@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "747927280653",
+    "project_id": "e-blood-bankv1-1",
+    "storage_bucket": "e-blood-bankv1-1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:747927280653:android:b92a47eb75ffa368fc4944",
+        "android_client_info": {
+          "package_name": "com.ebloodbank.makila.grpe.apps.eblood_bank_mak_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "747927280653-j5gotb1qe2ld0riu1v65fut2qleoi68v.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.ebloodbank.makila.grpe.apps.eblood_bank_mak_app",
+            "certificate_hash": "36caf5125c4cfb647e12693fc14bac4688002404"
+          }
+        },
+        {
+          "client_id": "747927280653-roilosa9roscu2bbn7rb51bgnobcee91.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA10iRKoZzQpCzip-PNXySDqWDKc5arNJw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "747927280653-roilosa9roscu2bbn7rb51bgnobcee91.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

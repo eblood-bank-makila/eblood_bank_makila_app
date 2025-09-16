@@ -1,0 +1,25 @@
+import 'package:eblood_bank_mak_app/commande/business/model/DatumPanierModel.dart';
+import 'package:eblood_bank_mak_app/paiement/businness/models/PaiementModel.dart';
+import 'package:eblood_bank_mak_app/paiement/businness/models/PaiementResponseModel.dart';
+import 'package:eblood_bank_mak_app/paiement/businness/service/PaiementNetworkService.dart';
+import 'package:eblood_bank_mak_app/utilisateurs/business/service/utilisateurLocalService.dart';
+
+class AjouterPochePaiementUseCase {
+  PaiementNetworkService network;
+  UtilisateurLocalService local;
+
+  AjouterPochePaiementUseCase(this.network, this.local);
+
+  Future<PaiementResponseModel?> run(DatumModel panier_id, {String? phoneNumber, String? transactionalCurrencyId}) async {
+    var token = await local.recupererTokenOtp();
+
+    var paiementData = PaiementModel(
+      cartId: panier_id.id,
+      phoneNumber: phoneNumber,
+      transactionalCurrencyId: transactionalCurrencyId,
+    );
+
+    var res = await network.ajouterPaiement(paiementData, token ?? "");
+    return res;
+  }
+}

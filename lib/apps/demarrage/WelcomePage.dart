@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:ionicons/ionicons.dart';
+import 'package:get/get.dart';
+import '../widgets/LanguageSelector.dart';
 
 class WelcomePage extends ConsumerWidget {
   const WelcomePage({super.key});
@@ -31,10 +33,15 @@ class WelcomePage extends ConsumerWidget {
           ),
         ),
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
-              children: [
+          child: Stack(
+            children: [
+              // Main content
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  children: [
+                    // Add some top spacing for the language selector
+                    const SizedBox(height: 60),
                 Expanded(
                   flex: 2,
                   child: Column(
@@ -68,7 +75,7 @@ class WelcomePage extends ConsumerWidget {
                         duration: const Duration(milliseconds: 800),
                         delay: const Duration(milliseconds: 200),
                         child: Text(
-                          'Bienvenue !',
+                          'welcome'.tr,
                           style: GoogleFonts.ubuntu(
                             fontSize: 32,
                             fontWeight: FontWeight.bold,
@@ -82,7 +89,7 @@ class WelcomePage extends ConsumerWidget {
                         duration: const Duration(milliseconds: 800),
                         delay: const Duration(milliseconds: 400),
                         child: Text(
-                          'Connectez-vous pour accéder à votre\ncompte E-Blood Bank Makila',
+                          'welcome_message'.tr,
                           style: GoogleFonts.ubuntu(
                             fontSize: 16,
                             color: Colors.grey.shade600,
@@ -99,14 +106,14 @@ class WelcomePage extends ConsumerWidget {
                   flex: 3,
                   child: Column(
                     children: [
-                      // Username login button
+                      // Email login button
                       FadeInUp(
                         duration: const Duration(milliseconds: 600),
                         delay: const Duration(milliseconds: 600),
                         child: _buildLoginButton(
                           context: context,
-                          icon: Icons.person_outline,
-                          text: 'Se connecter avec nom d\'utilisateur',
+                          icon: Icons.mail_outline,
+                          text: 'sign_in_with_email'.tr,
                           color: ColorPages.COLOR_PRINCIPAL,
                           textColor: Colors.white,
                           onPressed: () {
@@ -146,7 +153,7 @@ class WelcomePage extends ConsumerWidget {
                         child: _buildSocialLoginButton(
                           context: context,
                           icon: Ionicons.logo_google,
-                          text: 'Continuer avec Google',
+                          text: 'sign_in_with_google'.tr,
                           color: Colors.white,
                           textColor: Colors.grey.shade700,
                           borderColor: Colors.grey.shade300,
@@ -156,36 +163,27 @@ class WelcomePage extends ConsumerWidget {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      
+
                       FadeInUp(
                         duration: const Duration(milliseconds: 600),
                         delay: const Duration(milliseconds: 900),
                         child: _buildSocialLoginButton(
                           context: context,
-                          icon: Ionicons.logo_facebook,
-                          text: 'Continuer avec Facebook',
-                          color: const Color(0xFF1877F2),
+                          icon: Ionicons.phone_portrait_outline,
+                          text: 'sign_in_with_phone_number'.tr,
+                          color: ColorPages.COLOR_PRINCIPAL,
                           textColor: Colors.white,
                           onPressed: () {
-                            _showComingSoonDialog(context, 'Facebook');
+                            _showComingSoonDialog(context, 'PhoneNumber');
                           },
                         ),
                       ),
                       const SizedBox(height: 12),
-                      
+
                       FadeInUp(
                         duration: const Duration(milliseconds: 600),
                         delay: const Duration(milliseconds: 1000),
-                        child: _buildSocialLoginButton(
-                          context: context,
-                          icon: Ionicons.logo_twitter,
-                          text: 'Continuer avec Twitter',
-                          color: const Color(0xFF1DA1F2),
-                          textColor: Colors.white,
-                          onPressed: () {
-                            _showComingSoonDialog(context, 'Twitter');
-                          },
-                        ),
+                        child: _buildVisitorButton(context),
                       ),
                     ],
                   ),
@@ -224,8 +222,23 @@ class WelcomePage extends ConsumerWidget {
                     ),
                   ),
                 ),
-              ],
-            ),
+                  ],
+                ),
+              ),
+
+              // Language selector positioned on top
+              Positioned(
+                top: 16,
+                right: 24,
+                child: FadeInRight(
+                  duration: const Duration(milliseconds: 600),
+                  child: CompactLanguageSelector(
+                    iconColor: ColorPages.COLOR_PRINCIPAL,
+                    showBottomSheet: true,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -261,6 +274,7 @@ class WelcomePage extends ConsumerWidget {
             const SizedBox(width: 12),
             Text(
               text,
+              overflow: TextOverflow.ellipsis,
               style: GoogleFonts.ubuntu(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -303,12 +317,56 @@ class WelcomePage extends ConsumerWidget {
             const SizedBox(width: 12),
             Text(
               text,
+              overflow: TextOverflow.ellipsis,
               style: GoogleFonts.ubuntu(
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVisitorButton(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      height: 56,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.3),
+          width: 1.5,
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            // Navigate to main app as visitor
+            context.go('/app/MainApp');
+          },
+          borderRadius: BorderRadius.circular(16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Ionicons.eye_outline,
+                color: ColorPages.COLOR_PRINCIPAL,
+                size: 20,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'continue_as_visitor'.tr,
+                style: GoogleFonts.ubuntu(
+                  color: ColorPages.COLOR_PRINCIPAL,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -325,8 +383,8 @@ class WelcomePage extends ConsumerWidget {
       }
     } catch (e) {
       if (context.mounted) {
-        _showErrorDialog(context, 'Erreur de connexion',
-          'Une erreur est survenue lors de la connexion avec Google. Veuillez réessayer.');
+        _showErrorDialog(context, 'connection_error'.tr,
+          'connection_error_message'.tr);
       }
     }
   }
@@ -337,18 +395,18 @@ class WelcomePage extends ConsumerWidget {
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
-          'Bientôt disponible',
+          'coming_soon'.tr,
           style: GoogleFonts.ubuntu(fontWeight: FontWeight.bold),
         ),
         content: Text(
-          'La connexion avec $platform sera bientôt disponible.',
+          'coming_soon_message'.tr.replaceAll('@platform', platform),
           style: GoogleFonts.ubuntu(),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: Text(
-              'OK',
+              'ok'.tr,
               style: GoogleFonts.ubuntu(
                 color: ColorPages.COLOR_PRINCIPAL,
                 fontWeight: FontWeight.w600,

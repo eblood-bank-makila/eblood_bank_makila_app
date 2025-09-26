@@ -1,4 +1,3 @@
-import 'package:binoxuspay/utils/utils.dart';
 import 'package:eblood_bank_mak_app/apps/autres/AproposPage.dart';
 import 'package:eblood_bank_mak_app/apps/autres/ParametrePage.dart';
 import 'package:eblood_bank_mak_app/apps/autres/AidePage.dart';
@@ -20,6 +19,14 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
+
+// String extension for text formatting
+extension StringExtension on String {
+  String capitalizeFirstLetter() {
+    if (isEmpty) return this;
+    return this[0].toUpperCase() + substring(1).toLowerCase();
+  }
+}
 
 class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({super.key});

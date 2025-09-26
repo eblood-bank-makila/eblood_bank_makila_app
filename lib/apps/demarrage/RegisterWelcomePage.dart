@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:ionicons/ionicons.dart';
+import 'package:get/get.dart';
 
 class RegisterWelcomePage extends ConsumerWidget {
   const RegisterWelcomePage({super.key});
@@ -79,7 +80,7 @@ class RegisterWelcomePage extends ConsumerWidget {
                         duration: const Duration(milliseconds: 800),
                         delay: const Duration(milliseconds: 200),
                         child: Text(
-                          'Créer un compte',
+                          'create_account'.tr,
                           style: GoogleFonts.ubuntu(
                             fontSize: 32,
                             fontWeight: FontWeight.bold,
@@ -93,7 +94,7 @@ class RegisterWelcomePage extends ConsumerWidget {
                         duration: const Duration(milliseconds: 800),
                         delay: const Duration(milliseconds: 400),
                         child: Text(
-                          'Rejoignez E-Blood Bank Makila et\naidez à sauver des vies',
+                          'join_eblood_message'.tr,
                           style: GoogleFonts.ubuntu(
                             fontSize: 16,
                             color: Colors.grey.shade600,
@@ -117,11 +118,11 @@ class RegisterWelcomePage extends ConsumerWidget {
                         child: _buildRegisterButton(
                           context: context,
                           icon: Icons.person_add_outlined,
-                          text: 'S\'inscrire avec nom d\'utilisateur',
+                          text: 'create_account_with_email'.tr,
                           color: ColorPages.COLOR_PRINCIPAL,
                           textColor: Colors.white,
                           onPressed: () {
-                            _showComingSoonDialog(context, 'Inscription');
+                            context.push('/account-type-selection');
                           },
                         ),
                       ),
@@ -137,7 +138,7 @@ class RegisterWelcomePage extends ConsumerWidget {
                             Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 16),
                               child: Text(
-                                'ou',
+                                'or'.tr,
                                 style: GoogleFonts.ubuntu(
                                   color: Colors.grey.shade500,
                                   fontSize: 14,
@@ -157,7 +158,7 @@ class RegisterWelcomePage extends ConsumerWidget {
                         child: _buildSocialRegisterButton(
                           context: context,
                           icon: Ionicons.logo_google,
-                          text: 'S\'inscrire avec Google',
+                          text: 'create_account_with_google'.tr,
                           color: Colors.white,
                           textColor: Colors.grey.shade700,
                           borderColor: Colors.grey.shade300,
@@ -167,36 +168,27 @@ class RegisterWelcomePage extends ConsumerWidget {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      
+
                       FadeInUp(
                         duration: const Duration(milliseconds: 600),
                         delay: const Duration(milliseconds: 900),
                         child: _buildSocialRegisterButton(
                           context: context,
-                          icon: Ionicons.logo_facebook,
-                          text: 'S\'inscrire avec Facebook',
-                          color: const Color(0xFF1877F2),
+                          icon: Ionicons.phone_portrait_outline,
+                          text: 'create_account_with_phone_number'.tr,
+                          color: ColorPages.COLOR_PRINCIPAL,
                           textColor: Colors.white,
                           onPressed: () {
-                            _showComingSoonDialog(context, 'Facebook');
+                            _showComingSoonDialog(context, 'PhoneNumber');
                           },
                         ),
                       ),
                       const SizedBox(height: 12),
-                      
+
                       FadeInUp(
                         duration: const Duration(milliseconds: 600),
                         delay: const Duration(milliseconds: 1000),
-                        child: _buildSocialRegisterButton(
-                          context: context,
-                          icon: Ionicons.logo_twitter,
-                          text: 'S\'inscrire avec Twitter',
-                          color: const Color(0xFF1DA1F2),
-                          textColor: Colors.white,
-                          onPressed: () {
-                            _showComingSoonDialog(context, 'Twitter');
-                          },
-                        ),
+                        child: _buildVisitorButton(context),
                       ),
                     ],
                   ),
@@ -212,7 +204,7 @@ class RegisterWelcomePage extends ConsumerWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          'Vous avez déjà un compte ? ',
+                          '${'already_have_account'.tr} ',
                           style: GoogleFonts.ubuntu(
                             color: Colors.grey.shade600,
                             fontSize: 14,
@@ -223,7 +215,7 @@ class RegisterWelcomePage extends ConsumerWidget {
                             context.go('/welcome');
                           },
                           child: Text(
-                            'Se connecter',
+                            'sign_in_link'.tr,
                             style: GoogleFonts.ubuntu(
                               color: ColorPages.COLOR_PRINCIPAL,
                               fontSize: 14,
@@ -272,6 +264,7 @@ class RegisterWelcomePage extends ConsumerWidget {
             const SizedBox(width: 12),
             Text(
               text,
+              overflow: TextOverflow.ellipsis,
               style: GoogleFonts.ubuntu(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -314,12 +307,56 @@ class RegisterWelcomePage extends ConsumerWidget {
             const SizedBox(width: 12),
             Text(
               text,
+              overflow: TextOverflow.ellipsis,
               style: GoogleFonts.ubuntu(
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVisitorButton(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      height: 56,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.3),
+          width: 1.5,
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            // Navigate to main app as visitor
+            context.go('/app/MainApp');
+          },
+          borderRadius: BorderRadius.circular(16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Ionicons.eye_outline,
+                color: ColorPages.COLOR_PRINCIPAL,
+                size: 20,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'continue_as_visitor'.tr,
+                style: GoogleFonts.ubuntu(
+                  color: ColorPages.COLOR_PRINCIPAL,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -336,8 +373,8 @@ class RegisterWelcomePage extends ConsumerWidget {
       }
     } catch (e) {
       if (context.mounted) {
-        _showErrorDialog(context, 'Erreur d\'inscription',
-          'Une erreur est survenue lors de l\'inscription avec Google. Veuillez réessayer.');
+        _showErrorDialog(context, 'connection_error'.tr,
+          'connection_error_message'.tr);
       }
     }
   }
@@ -348,18 +385,18 @@ class RegisterWelcomePage extends ConsumerWidget {
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
-          'Bientôt disponible',
+          'coming_soon'.tr,
           style: GoogleFonts.ubuntu(fontWeight: FontWeight.bold),
         ),
         content: Text(
-          '$feature sera bientôt disponible.',
+          'coming_soon_message'.tr.replaceAll('@platform', feature),
           style: GoogleFonts.ubuntu(),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: Text(
-              'OK',
+              'ok'.tr,
               style: GoogleFonts.ubuntu(
                 color: ColorPages.COLOR_PRINCIPAL,
                 fontWeight: FontWeight.w600,
@@ -388,7 +425,7 @@ class RegisterWelcomePage extends ConsumerWidget {
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: Text(
-              'OK',
+              'ok'.tr,
               style: GoogleFonts.ubuntu(
                 color: ColorPages.COLOR_PRINCIPAL,
                 fontWeight: FontWeight.w600,

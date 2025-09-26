@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import 'package:animate_do/animate_do.dart';
+import 'package:get/get.dart';
 import '../config/theme/ColorPages.dart';
 import '../services/FirstLaunchService.dart';
 import '../services/FirebaseAuthService.dart';
@@ -196,7 +197,7 @@ class _ModernSplashPageState extends ConsumerState<ModernSplashPage>
                         duration: const Duration(milliseconds: 1000),
                         delay: const Duration(milliseconds: 300),
                         child: Text(
-                          'E-blood Bank\n Makila',
+                          'app_name'.tr,
                           textAlign: TextAlign.center,
                           style: GoogleFonts.ubuntu(
                             fontSize: 42,
@@ -214,7 +215,7 @@ class _ModernSplashPageState extends ConsumerState<ModernSplashPage>
                         duration: const Duration(milliseconds: 1000),
                         delay: const Duration(milliseconds: 500),
                         child: Text(
-                          'Vous connecter au sang qui sauve des vies',
+                          'app_tagline'.tr,
                           style: GoogleFonts.ubuntu(
                             fontSize: 16,
                             color: Colors.white.withValues(alpha: 0.9),
@@ -284,7 +285,7 @@ class _ModernSplashPageState extends ConsumerState<ModernSplashPage>
                       duration: const Duration(milliseconds: 1000),
                       delay: const Duration(milliseconds: 900),
                       child: Text(
-                        'Loading...',
+                        'loading'.tr,
                         style: GoogleFonts.ubuntu(
                           fontSize: 14,
                           color: Colors.white.withValues(alpha: 0.7),

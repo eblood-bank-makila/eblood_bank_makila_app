@@ -1,6 +1,5 @@
 import 'dart:math';
 import 'package:animate_do/animate_do.dart';
-import 'package:binoxuspay/model/binoxuspay_response.dart';
 import 'package:confetti/confetti.dart';
 import 'package:eblood_bank_mak_app/apps/config/theme/ColorPages.dart';
 import 'package:eblood_bank_mak_app/apps/widgets/AppSpinner.dart';
@@ -18,7 +17,6 @@ import '../../../../../apps/widgets/DetailCommandeWidget.dart';
 import '../../../../../paiement/ui/pages/message/MessagePaiementEchouer.dart';
 import '../../../../../paiement/ui/pages/message/MessagePaiementReussiPage.dart';
 import '../../panier/PanierCtrl.dart';
-import 'package:binoxuspay/binoxuspay.dart';
 import '../widgets/PhoneNumberBottomSheet.dart';
 import 'PaymentStatusPage.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';

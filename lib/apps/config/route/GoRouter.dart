@@ -5,6 +5,10 @@ import 'package:eblood_bank_mak_app/apps/demarrage/IntroSlidePage.dart';
 import 'package:eblood_bank_mak_app/apps/demarrage/WelcomePage.dart';
 import 'package:eblood_bank_mak_app/apps/demarrage/ModernLoginPage.dart';
 import 'package:eblood_bank_mak_app/apps/demarrage/RegisterWelcomePage.dart';
+import 'package:eblood_bank_mak_app/apps/demarrage/AccountTypeSelectionPage.dart';
+import 'package:eblood_bank_mak_app/apps/demarrage/PersonalRegistrationPage.dart';
+import 'package:eblood_bank_mak_app/apps/demarrage/HospitalRegistrationPage.dart';
+import 'package:eblood_bank_mak_app/apps/demarrage/BloodBankRegistrationPage.dart';
 import 'package:eblood_bank_mak_app/apps/debug/FirstLaunchDebugScreen.dart';
 import 'package:eblood_bank_mak_app/apps/widgets/BottomNavBarWidget.dart';
 import 'package:eblood_bank_mak_app/apps/widgets/AccountTypeBasedNavigation.dart';
@@ -101,6 +105,34 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: '/register',
         pageBuilder: (context, state) =>
             const MaterialPage(child: RegisterWelcomePage()),
+      ),
+
+      // Account type selection page route
+      GoRoute(
+        path: '/account-type-selection',
+        pageBuilder: (context, state) =>
+            const MaterialPage(child: AccountTypeSelectionPage()),
+      ),
+
+      // Personal registration page route
+      GoRoute(
+        path: '/personal-registration',
+        pageBuilder: (context, state) =>
+            const MaterialPage(child: PersonalRegistrationPage()),
+      ),
+
+      // Hospital registration page route
+      GoRoute(
+        path: '/hospital-registration',
+        pageBuilder: (context, state) =>
+            const MaterialPage(child: HospitalRegistrationPage()),
+      ),
+
+      // Blood bank registration page route
+      GoRoute(
+        path: '/blood-bank-registration',
+        pageBuilder: (context, state) =>
+            const MaterialPage(child: BloodBankRegistrationPage()),
       ),
 
       // Debug Screen for First Launch Testing

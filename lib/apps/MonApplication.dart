@@ -2,6 +2,10 @@ import 'package:eblood_bank_mak_app/apps/config/route/GoRouter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:get/get.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'translations/AppTranslations.dart';
+import 'services/LanguageService.dart';
 
 class MonApplication extends ConsumerWidget {
   const MonApplication({super.key});
@@ -9,18 +13,46 @@ class MonApplication extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(goRouterProvider);
-    return MaterialApp.router(
+
+    return GetMaterialApp.router(
       title: 'E-Blood Bank Makila',
-      //   routerConfig: ref.watch(routerProvider),
+
+      // Internationalization configuration
+      translations: AppTranslations(),
+      locale: Get.find<LanguageService>().currentLocale,
+      fallbackLocale: const Locale('fr', 'FR'),
+      supportedLocales: const [
+        Locale('fr', 'FR'),
+        Locale('en', 'US'),
+        Locale('es', 'ES'),
+        Locale('ln', 'CD'),
+        Locale('ar', 'SA'),
+        Locale('ru', 'RU'),
+      ],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+
+      // Theme configuration
       theme: ThemeData(
         visualDensity: VisualDensity.adaptivePlatformDensity,
         textTheme: GoogleFonts.ubuntuTextTheme(),
         fontFamily: GoogleFonts.ubuntu().fontFamily,
+        useMaterial3: true,
       ),
+
+      // Router configuration
       debugShowCheckedModeBanner: false,
       routeInformationProvider: router.routeInformationProvider,
       routeInformationParser: router.routeInformationParser,
       routerDelegate: router.routerDelegate,
+
+      // Initialize services
+      initialBinding: BindingsBuilder(() {
+        Get.put(LanguageService());
+      }),
     );
   }
 }

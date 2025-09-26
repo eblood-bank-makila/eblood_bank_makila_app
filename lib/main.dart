@@ -18,7 +18,9 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sembast/sembast.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:get/get.dart';
 import 'apps/MonApplication.dart';
+import 'apps/services/LanguageService.dart';
 import 'package:path/path.dart';
 import 'package:sembast/sembast_io.dart';
 import 'package:path_provider/path_provider.dart';
@@ -31,6 +33,10 @@ void main() async {
 
   // Initialize GetStorage
   await GetStorage.init();
+
+  // Initialize GetX services
+  final languageService = Get.put(LanguageService());
+  await languageService.onInit();
 
   // Debug: Check first launch status
   final storage = GetStorage();

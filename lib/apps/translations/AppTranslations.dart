@@ -88,6 +88,31 @@ class AppTranslations extends Translations {
       'sign_in': 'Se connecter',
       'sign_up': 'S\'inscrire',
       'sign_out': 'Se déconnecter',
+      
+      // OTP Verification
+      'verify_email': 'Vérifier l\'email',
+      'verify_phone': 'Vérifier le téléphone',
+      'otp_verification': 'Vérification OTP',
+      'verification_code_sent_to': 'Nous avons envoyé un code de vérification à\n@email',
+      'verification_code_sent_to_phone': 'Nous avons envoyé un code de vérification au\n@phone',
+      'didnt_receive_code': 'Vous n\'avez pas reçu de code ? ',
+      'sending': 'Envoi en cours...',
+      'resend': 'Renvoyer',
+      'verify': 'Vérifier',
+      'please_enter_six_digits': 'Veuillez entrer les 6 chiffres du code OTP',
+      'missing_validation_key': 'Clé de validation manquante. Veuillez revenir en arrière et réessayer.',
+      'verification_error': 'Erreur de vérification',
+      'missing_validation_key_try_again': 'Clé de validation manquante. Veuillez revenir en arrière et réessayer.',
+      'registration_failed': 'Inscription échouée',
+      'registration_failed_after_verification': 'L\'inscription a échoué après la vérification',
+      'verification_failed': 'Vérification échouée',
+      'check_otp_code': 'Veuillez vérifier votre code OTP et réessayer',
+      'verification_error_occurred': 'Une erreur s\'est produite lors de la vérification',
+      'verification_error_details': 'Une erreur s\'est produite lors de la vérification: @error',
+      'new_code_sent_email': 'Un nouveau code de vérification a été envoyé à votre adresse email',
+      'code_resent_email': 'Le code de vérification a été renvoyé à votre adresse email',
+      'failed_resend_code': 'Échec de l\'envoi du code de vérification',
+      'failed_resend_code_details': 'Échec de l\'envoi du code de vérification: @error',
 
       // Account Types
       'select_account_type': 'Sélectionner le type de compte',
@@ -113,9 +138,16 @@ class AppTranslations extends Translations {
       'male': 'Masculin',
       'female': 'Féminin',
       'other': 'Autre',
+      'date_of_birth': 'Date de naissance',
       'phone_number': 'Numéro de téléphone',
       'address': 'Adresse',
       'city': 'Ville',
+      'your_location': 'Votre localisation',
+      'registration_reason': 'Raison d\'inscription',
+      'blood_donor': 'Donneur de sang',
+      'blood_recipient': 'Receveur de sang',
+      'explore_app': 'Explorer l\'application',
+      'delivery_person': 'Livreur',
       'organization_name': 'Nom de l\'organisation',
       'hospital_name': 'Nom de l\'hôpital',
       'blood_bank_name': 'Nom de la banque de sang',
@@ -138,6 +170,10 @@ class AppTranslations extends Translations {
       'blood_type_ab_negative': 'AB-',
       'blood_type_o_positive': 'O+',
       'blood_type_o_negative': 'O-',
+      
+      // Information categories
+      'blood_information': 'Informations Sanguines',
+      'account_security': 'Sécurité du Compte',
       
       // Navigation
       'home': 'Accueil',
@@ -169,6 +205,37 @@ class AppTranslations extends Translations {
       'network_error': 'Erreur de réseau',
       'server_error': 'Erreur du serveur',
       'timeout_error': 'Délai d\'attente dépassé',
+      
+      // Validation messages
+      'field_required': 'Ce champ est obligatoire',
+      'email_required': 'L\'email est obligatoire',
+      'email_invalid': 'Veuillez entrer une adresse email valide',
+      'password_required': 'Le mot de passe est obligatoire',
+      'password_min_length': 'Le mot de passe doit contenir au moins 8 caractères',
+      'confirm_password_required': 'Veuillez confirmer votre mot de passe',
+      'passwords_not_match': 'Les mots de passe ne correspondent pas',
+      'date_of_birth_required': 'La date de naissance est obligatoire',
+      'invalid_date_format': 'Format de date invalide. Utilisez JJ/MM/AAAA',
+      'minimum_age_requirement': 'Vous devez avoir au moins 16 ans',
+      'invalid_date': 'Date invalide',
+      'accept_terms_conditions': 'Veuillez accepter les conditions d\'utilisation',
+      'select_valid_location': 'Veuillez sélectionner un emplacement valide',
+      'terms_and_conditions_acceptance': 'J\'accepte les conditions générales',
+      'select_date_of_birth': 'Sélectionnez votre date de naissance',
+      
+      // Form hints
+      'hint_first_name': 'Entrez votre prénom',
+      'hint_last_name': 'Entrez votre nom',
+      'hint_select_gender': 'Sélectionnez votre genre',
+      'hint_date_format': 'JJ/MM/AAAA',
+      'hint_email': 'Entrez votre adresse email',
+      'hint_phone': 'Entrez votre numéro de téléphone',
+      'hint_select_location': 'Sélectionnez votre emplacement',
+      'hint_address': 'Entrez votre adresse',
+      'hint_select_blood': 'Sélectionnez votre groupe sanguin',
+      'hint_select_reason': 'Sélectionnez votre raison d\'inscription',
+      'hint_password': 'Entrez votre mot de passe',
+      'hint_confirm_password': 'Confirmez votre mot de passe',
     },
     
     // English translations
@@ -255,6 +322,31 @@ class AppTranslations extends Translations {
       'sign_in': 'Sign In',
       'sign_up': 'Sign Up',
       'sign_out': 'Sign Out',
+      
+      // OTP Verification
+      'verify_email': 'Verify Email',
+      'verify_phone': 'Verify Phone',
+      'otp_verification': 'OTP Verification',
+      'verification_code_sent_to': 'We have sent a verification code to\n@email',
+      'verification_code_sent_to_phone': 'We have sent a verification code to\n@phone',
+      'didnt_receive_code': 'Didn\'t receive code? ',
+      'sending': 'Sending...',
+      'resend': 'Resend',
+      'verify': 'Verify',
+      'please_enter_six_digits': 'Please enter all 6 digits of the OTP code',
+      'missing_validation_key': 'Missing validation key. Please go back and try again.',
+      'verification_error': 'Verification Error',
+      'missing_validation_key_try_again': 'Missing validation key. Please go back and try again.',
+      'registration_failed': 'Registration Failed',
+      'registration_failed_after_verification': 'Registration failed after verification',
+      'verification_failed': 'Verification Failed',
+      'check_otp_code': 'Please check your OTP code and try again',
+      'verification_error_occurred': 'An error occurred during verification',
+      'verification_error_details': 'An error occurred during verification: @error',
+      'new_code_sent_email': 'A new verification code has been sent to your email',
+      'code_resent_email': 'Verification code has been resent to your email',
+      'failed_resend_code': 'Failed to resend verification code',
+      'failed_resend_code_details': 'Failed to resend verification code: @error',
 
       // Account Types
       'select_account_type': 'Select Account Type',
@@ -280,9 +372,16 @@ class AppTranslations extends Translations {
       'male': 'Male',
       'female': 'Female',
       'other': 'Other',
+      'date_of_birth': 'Date of Birth',
       'phone_number': 'Phone Number',
       'address': 'Address',
       'city': 'City',
+      'your_location': 'Your Location',
+      'registration_reason': 'Registration Reason',
+      'blood_donor': 'Blood Donor',
+      'blood_recipient': 'Blood Recipient',
+      'explore_app': 'Explore App',
+      'delivery_person': 'Delivery Person',
       'organization_name': 'Organization Name',
       'hospital_name': 'Hospital Name',
       'blood_bank_name': 'Blood Bank Name',
@@ -305,6 +404,10 @@ class AppTranslations extends Translations {
       'blood_type_ab_negative': 'AB-',
       'blood_type_o_positive': 'O+',
       'blood_type_o_negative': 'O-',
+      
+      // Information categories
+      'blood_information': 'Blood Information',
+      'account_security': 'Account Security',
       
       // Navigation
       'home': 'Home',
@@ -336,6 +439,37 @@ class AppTranslations extends Translations {
       'network_error': 'Network Error',
       'server_error': 'Server Error',
       'timeout_error': 'Timeout Error',
+      
+      // Validation messages
+      'field_required': 'This field is required',
+      'email_required': 'Email is required',
+      'email_invalid': 'Please enter a valid email address',
+      'password_required': 'Password is required',
+      'password_min_length': 'Password must be at least 8 characters',
+      'confirm_password_required': 'Please confirm your password',
+      'passwords_not_match': 'Passwords do not match',
+      'date_of_birth_required': 'Date of birth is required',
+      'invalid_date_format': 'Invalid date format. Use YYYY-MM-DD',
+      'minimum_age_requirement': 'You must be at least 16 years old',
+      'invalid_date': 'Invalid date',
+      'accept_terms_conditions': 'Please accept the terms and conditions',
+      'select_valid_location': 'Please select a valid location',
+      'terms_and_conditions_acceptance': 'I accept the terms and conditions',
+      'select_date_of_birth': 'Select your date of birth',
+      
+      // Form hints
+      'hint_first_name': 'Enter your first name',
+      'hint_last_name': 'Enter your last name',
+      'hint_select_gender': 'Select your gender',
+      'hint_date_format': 'YYYY-MM-DD',
+      'hint_email': 'Enter your email address',
+      'hint_phone': 'Enter your phone number',
+      'hint_select_location': 'Select your location',
+      'hint_address': 'Enter your address',
+      'hint_select_blood': 'Select your blood type',
+      'hint_select_reason': 'Select your reason for registration',
+      'hint_password': 'Enter your password',
+      'hint_confirm_password': 'Confirm your password',
     },
 
     // Spanish translations
@@ -464,6 +598,10 @@ class AppTranslations extends Translations {
       'network_error': 'Error de Red',
       'server_error': 'Error del Servidor',
       'timeout_error': 'Error de Tiempo de Espera',
+      
+      // Form hints
+      'hint_date_format': 'DD/MM/AAAA',
+      'select_date_of_birth': 'Seleccione su fecha de nacimiento',
     },
 
     // Lingala translations
@@ -713,6 +851,10 @@ class AppTranslations extends Translations {
       'network_error': 'خطأ في الشبكة',
       'server_error': 'خطأ في الخادم',
       'timeout_error': 'خطأ في انتهاء الوقت',
+      
+      // Form hints
+      'hint_date_format': 'يوم/شهر/سنة',
+      'select_date_of_birth': 'اختر تاريخ ميلادك',
     },
 
     // Russian translations

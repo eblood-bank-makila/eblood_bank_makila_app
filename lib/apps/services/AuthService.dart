@@ -1,0 +1,374 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import '../config/AppConfig.dart';
+import '../services/HttpInterceptorService.dart';
+import '../models/UserInfoValidation.dart';
+
+class AuthService {
+  final HttpInterceptorService _httpInterceptor = HttpInterceptorService();
+  final String baseApiUrl = AppConfig.instance.baseApiUrl;
+  
+  // Register a new user
+  Future<Map<String, dynamic>> register(Map<String, dynamic> userData) async {
+    try {
+      // Using the HTTP interceptor to get proper headers
+      final headers = await _httpInterceptor.getHeaders();
+      headers['Content-Type'] = 'application/json';
+      
+      // Using the correct endpoint from the API endpoint file
+      final registrationEndpoint = '$baseApiUrl/eblood-connect/users/register';
+      
+      print('🔄 Registering user at: $registrationEndpoint');
+      print('📦 Registration data: ${jsonEncode(userData)}');
+      print('🔑 Headers: ${headers.toString()}');
+      
+      // Validate the URL is properly formed
+      if (baseApiUrl.isEmpty) {
+        print('⚠️ Base API URL is empty! Check your .env file.');
+        return {
+          'success': false,
+          'message': 'API URL configuration is missing. Please contact support.',
+        };
+      }
+      
+      try {
+        final response = await http.post(
+          Uri.parse(registrationEndpoint),
+          headers: headers,
+          body: jsonEncode(userData),
+        ).timeout(
+          const Duration(seconds: 30),
+          onTimeout: () {
+            print('⏱️ Registration request timed out');
+            throw Exception('Registration request timed out');
+          },
+        );
+        
+        print('📊 Response status code: ${response.statusCode}');
+        print('📄 Response body: ${response.body}');
+        
+        // Check if the response body is valid JSON
+        if (response.body.isEmpty) {
+          print('⚠️ Empty response received');
+          return {
+            'success': false,
+            'message': 'Server returned an empty response',
+          };
+        }
+        
+        Map<String, dynamic> jsonData;
+        try {
+          jsonData = jsonDecode(response.body);
+        } catch (jsonError) {
+          print('⚠️ Invalid JSON response: ${response.body}');
+          return {
+            'success': false,
+            'message': 'Server returned an invalid response format',
+          };
+        }
+        
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          print('✅ Registration successful');
+          // Check if we have a standard success response structure
+          final bool isSuccess = jsonData['success'] == true || 
+                               jsonData['status'] == 'success' ||
+                               (jsonData['status_code'] != null && (jsonData['status_code'] == 200 || jsonData['status_code'] == 201));
+          
+          // Based on your specific backend response: {"success":true,"status_code":200,"message":"...", "data":null}
+          if (isSuccess) {
+            return {
+              'success': true,
+              'data': jsonData['data'],
+              'message': jsonData['message'] ?? 'Registration successful',
+              'phoneNumber': userData['phone_number'],
+              'email': userData['email'],
+            };
+          } else {
+            print('⚠️ Unexpected success response format: $jsonData');
+            return {
+              'success': true, // Still consider it success based on HTTP status
+              'data': jsonData,
+              'message': 'Registration request processed',
+              'phoneNumber': userData['phone_number'],
+              'email': userData['email'],
+            };
+          }
+        } else {
+          print('❌ Registration failed: ${jsonData['message'] ?? 'Unknown error'}');
+          return {
+            'success': false,
+            'message': jsonData['message'] ?? jsonData['error'] ?? 'Registration failed',
+            'errors': jsonData['errors'],
+            'statusCode': response.statusCode,
+          };
+        }
+      } catch (httpError) {
+        print('🔴 HTTP Request Error: $httpError');
+        return {
+          'success': false,
+          'message': 'Network error: $httpError',
+        };
+      }
+    } catch (e) {
+      print('⚠️ Registration error: $e');
+      return {
+        'success': false,
+        'message': 'Error occurred during registration: $e',
+      };
+    }
+  }
+  
+  // Verify OTP code
+  Future<Map<String, dynamic>> verifyOTP({
+    required String phoneNumber,
+    required String otpCode,
+  }) async {
+    try {
+      final headers = await _httpInterceptor.getHeaders();
+      headers['Content-Type'] = 'application/json';
+      
+      // Using the correct endpoint for OTP verification
+      final otpEndpoint = '$baseApiUrl/eblood/users/verify-email';
+      
+      print('🔄 Verifying OTP at: $otpEndpoint');
+      
+      final body = {
+        'phone_number': phoneNumber,
+        'code': otpCode, // Using 'code' as the parameter name based on the API endpoint
+      };
+      
+      final response = await http.post(
+        Uri.parse(otpEndpoint),
+        headers: headers,
+        body: jsonEncode(body),
+      );
+      
+      print('📊 OTP verification status code: ${response.statusCode}');
+      final jsonData = jsonDecode(response.body);
+      
+      if (response.statusCode == 200) {
+        print('✅ OTP verification successful');
+        return {
+          'success': true,
+          'data': jsonData['data'] ?? jsonData,
+          'message': jsonData['message'] ?? 'OTP verification successful',
+          'token': jsonData['data']?['token'] ?? jsonData['token'],
+        };
+      } else {
+        print('❌ OTP verification failed: ${jsonData['message']}');
+        return {
+          'success': false,
+          'message': jsonData['message'] ?? 'OTP verification failed',
+        };
+      }
+    } catch (e) {
+      print('⚠️ OTP verification error: $e');
+      return {
+        'success': false,
+        'message': 'Error occurred during OTP verification: $e',
+      };
+    }
+  }
+  
+  // Resend OTP
+  Future<Map<String, dynamic>> resendOTP(String phoneNumber) async {
+    try {
+      final headers = await _httpInterceptor.getHeaders();
+      headers['Content-Type'] = 'application/json';
+      
+      // Using the correct endpoint for resending OTP
+      final resendEndpoint = '$baseApiUrl/eblood/users/send-otp';
+      
+      print('🔄 Resending OTP to: $phoneNumber');
+      
+      final body = {
+        'phone_number': phoneNumber,
+        'type': 'registration', // Specify the purpose of the OTP
+      };
+      
+      final response = await http.post(
+        Uri.parse(resendEndpoint),
+        headers: headers,
+        body: jsonEncode(body),
+      );
+      
+      print('📊 Resend OTP status code: ${response.statusCode}');
+      final jsonData = jsonDecode(response.body);
+      
+      if (response.statusCode == 200) {
+        print('✅ OTP resent successfully');
+        return {
+          'success': true,
+          'message': jsonData['message'] ?? 'OTP resent successfully',
+        };
+      } else {
+        print('❌ Failed to resend OTP: ${jsonData['message']}');
+        return {
+          'success': false,
+          'message': jsonData['message'] ?? 'Failed to resend OTP',
+        };
+      }
+    } catch (e) {
+      print('⚠️ Error resending OTP: $e');
+      return {
+        'success': false,
+        'message': 'Error occurred while resending OTP: $e',
+      };
+    }
+  }
+  
+  // Validate user info before registration
+  Future<Map<String, dynamic>> validateUserInfo(UserInfoValidation userInfo) async {
+    try {
+      final headers = await _httpInterceptor.getHeaders();
+      headers['Content-Type'] = 'application/json';
+      
+      final endpoint = '$baseApiUrl/generic/validate-user-infos';
+      
+      print('🔄 Validating user info at: $endpoint');
+      print('📦 User info data: ${jsonEncode(userInfo.toJson())}');
+      
+      final response = await http.post(
+        Uri.parse(endpoint),
+        headers: headers,
+        body: jsonEncode(userInfo.toJson()),
+      ).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () {
+          print('⏱️ User validation request timed out');
+          throw Exception('User validation request timed out');
+        },
+      );
+      
+      print('📊 Response status code: ${response.statusCode}');
+      print('📄 Response body: ${response.body}');
+      
+      if (response.body.isEmpty) {
+        print('⚠️ Empty response received');
+        return {
+          'success': false,
+          'message': 'Server returned an empty response',
+        };
+      }
+      
+      Map<String, dynamic> jsonData;
+      try {
+        jsonData = jsonDecode(response.body);
+      } catch (jsonError) {
+        print('⚠️ Invalid JSON response: ${response.body}');
+        return {
+          'success': false,
+          'message': 'Server returned an invalid response format',
+        };
+      }
+      
+      if (response.statusCode == 200) {
+        print('✅ User info validation successful');
+        return {
+          'success': true,
+          'data': jsonData['data'] ?? jsonData,
+          'message': jsonData['message'] ?? 'User info validation successful',
+        };
+      } else {
+        print('❌ User info validation failed: ${jsonData['message'] ?? 'Unknown error'}');
+        return {
+          'success': false,
+          'message': jsonData['message'] ?? jsonData['error'] ?? 'User info validation failed',
+          'errors': jsonData['errors'],
+          'statusCode': response.statusCode,
+        };
+      }
+    } catch (e) {
+      print('⚠️ User info validation error: $e');
+      return {
+        'success': false,
+        'message': 'Error occurred during user info validation: $e',
+      };
+    }
+  }
+  
+  // Verify validation code
+  Future<Map<String, dynamic>> verifyValidationCode(UserValidationCodeVerification verificationData) async {
+    try {
+      final headers = await _httpInterceptor.getHeaders();
+      headers['Content-Type'] = 'application/json';
+      
+      final endpoint = '$baseApiUrl/generic/verify-user-validation-code';
+      
+      print('🔄 Verifying validation code at: $endpoint');
+      print('📦 Verification data: ${jsonEncode(verificationData.toJson())}');
+      
+      final response = await http.post(
+        Uri.parse(endpoint),
+        headers: headers,
+        body: jsonEncode(verificationData.toJson()),
+      ).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () {
+          print('⏱️ Verification request timed out');
+          throw Exception('Verification request timed out');
+        },
+      );
+      
+      print('📊 Response status code: ${response.statusCode}');
+      print('📄 Response body: ${response.body}');
+      
+      if (response.body.isEmpty) {
+        print('⚠️ Empty response received');
+        return {
+          'success': false,
+          'message': 'Server returned an empty response',
+        };
+      }
+      
+      Map<String, dynamic> jsonData;
+      try {
+        jsonData = jsonDecode(response.body);
+      } catch (jsonError) {
+        print('⚠️ Invalid JSON response: ${response.body}');
+        return {
+          'success': false,
+          'message': 'Server returned an invalid response format',
+        };
+      }
+      
+      if (response.statusCode == 200) {
+        print('✅ Validation code verification successful');
+        
+        // Check for success field in different formats that might come from the backend
+        final bool isSuccess = jsonData['success'] == true || 
+                            jsonData['status'] == 'success' ||
+                            (jsonData['status_code'] != null && jsonData['status_code'] == 200);
+                            
+        if (isSuccess) {
+          return {
+            'success': true,
+            'data': jsonData['data'] ?? jsonData,
+            'message': jsonData['message'] ?? 'Validation code verification successful',
+          };
+        } else {
+          // This handles the case where we get a 200 status code but the response indicates failure
+          print('⚠️ Backend returned 200 but with failure indication: $jsonData');
+          return {
+            'success': false,
+            'message': jsonData['message'] ?? 'Validation failed despite 200 status code',
+          };
+        }
+      } else {
+        print('❌ Validation code verification failed: ${jsonData['message'] ?? 'Unknown error'}');
+        return {
+          'success': false,
+          'message': jsonData['message'] ?? jsonData['error'] ?? 'Validation code verification failed',
+          'errors': jsonData['errors'],
+          'statusCode': response.statusCode,
+        };
+      }
+    } catch (e) {
+      print('⚠️ Validation code verification error: $e');
+      return {
+        'success': false,
+        'message': 'Error occurred during validation code verification: $e',
+      };
+    }
+  }
+}

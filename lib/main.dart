@@ -1,5 +1,7 @@
 import 'package:eblood_bank_mak_app/apps/config/theme/ColorPages.dart';
 import 'package:eblood_bank_mak_app/apps/config/AppConfig.dart';
+import 'package:eblood_bank_mak_app/apps/services/ApiTestService.dart';
+import 'package:eblood_bank_mak_app/core/utils/api_initializer.dart';
 import 'package:eblood_bank_mak_app/commande/business/interactor/CommandeInteractor.dart';
 import 'package:eblood_bank_mak_app/gestionStocks/business/interactor/GestionStockInteractor.dart';
 import 'package:eblood_bank_mak_app/gestionStocks/ui/framework/banque/BanqueListeServiceLocalImpl.dart';
@@ -81,9 +83,23 @@ void main() async {
   // Use AppConfig instead of direct dotenv access
   var baseUrl = AppConfig.instance.baseUrl;
 
-  // Debug logging to check what URL is being loaded
-  print("🌐 BASE_URL from AppConfig: '$baseUrl'");
+  // Debug logging to check what URLs are being loaded
+  print("🌐 BASE_URL from AppConfig: '${AppConfig.instance.baseUrl}'");
+  print("🌐 BASE_API_URL from AppConfig: '${AppConfig.instance.baseApiUrl}'");
+  print("🔑 API_CONSUMER set: ${AppConfig.instance.apiConsumer.isNotEmpty ? 'Yes' : 'No'}");
   print("🔧 AppConfig summary: ${AppConfig.instance.getConfigSummary()}");
+  
+  // Initialize the centralized Dio client
+  try {
+    // Initialize the centralized Dio client
+    await ApiInitializer.initialize();
+    
+    // Keeping the original test for backward compatibility
+    final apiTestService = ApiTestService();
+    await apiTestService.testLocationApi();
+  } catch (e) {
+    print("⚠️ API Test failed: $e");
+  }
 
   // Module utilisateur service implementations
   var utilisateurNetworkImpl = UtilisateurNetworkServiceImpl(baseUrl);

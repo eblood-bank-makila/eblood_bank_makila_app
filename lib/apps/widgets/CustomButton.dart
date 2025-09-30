@@ -14,6 +14,7 @@ class CustomButton extends StatelessWidget {
   final bool outlined;
   final double fontSize;
   final FontWeight fontWeight;
+  final Widget? child; // Added custom child widget parameter
 
   const CustomButton({
     super.key,
@@ -29,6 +30,7 @@ class CustomButton extends StatelessWidget {
     this.outlined = false,
     this.fontSize = 16,
     this.fontWeight = FontWeight.w600,
+    this.child, // Added to constructor
   });
 
   @override
@@ -93,7 +95,13 @@ class CustomButton extends StatelessWidget {
         ),
       );
     }
+    
+    // If a custom child widget is provided, use it
+    if (child != null) {
+      return child!;
+    }
 
+    // If an icon is provided, show icon + text
     if (icon != null) {
       return Row(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -116,6 +124,7 @@ class CustomButton extends StatelessWidget {
       );
     }
 
+    // Default to text only
     return Text(
       text,
       style: GoogleFonts.ubuntu(

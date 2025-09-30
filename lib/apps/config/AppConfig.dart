@@ -4,8 +4,11 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 class AppConfig {
   static AppConfig? _instance;
   late String _baseUrl;
+  late String _baseApiUrl;
   late String _apiVersion;
   late bool _isDebugMode;
+  late String _apiConsumer;
+  late String _apiConsumerHashKey;
 
   AppConfig._internal();
 
@@ -22,18 +25,28 @@ class AppConfig {
     
     // Load configuration values
     config._baseUrl = dotenv.env['BASE_URL'] ?? '';
+    config._baseApiUrl = dotenv.env['BASE_API_URL'] ?? '';
     config._apiVersion = dotenv.env['API_VERSION'] ?? 'v1';
     config._isDebugMode = dotenv.env['DEBUG_MODE']?.toLowerCase() == 'true';
+    config._apiConsumer = dotenv.env['API_CONSUMER'] ?? '';
+    config._apiConsumerHashKey = dotenv.env['API_CONSUMER_HASH_KEY'] ?? '';
     
     // Debug logging
     print("🔧 AppConfig initialized:");
     print("  - BASE_URL: '${config._baseUrl}'");
+    print("  - BASE_API_URL: '${config._baseApiUrl}'");
     print("  - API_VERSION: '${config._apiVersion}'");
     print("  - DEBUG_MODE: ${config._isDebugMode}");
+    print("  - API_CONSUMER: ${config._apiConsumer.isNotEmpty ? '(set)' : '(not set)'}");
     
     // Validate required configuration
     if (config._baseUrl.isEmpty) {
       print("⚠️ WARNING: BASE_URL is empty in .env file");
+    }
+    
+    if (config._baseApiUrl.isEmpty) {
+      config._baseApiUrl = "${config._baseUrl}/api/v1";
+      print("ℹ️ INFO: BASE_API_URL not found in .env, using: ${config._baseApiUrl}");
     }
   }
 
@@ -41,10 +54,30 @@ class AppConfig {
   String get baseUrl {
     if (_baseUrl.isEmpty) {
       print("⚠️ WARNING: BASE_URL is empty, using fallback");
-      return 'http://localhost:3101/eblood-hstdapi/v1';
+      return 'http://localhost:3101';
     }
     return _baseUrl;
   }
+  
+  /// Get the base API URL with the /api/v1 path included
+  String get baseApiUrl {
+    if (_baseApiUrl.isEmpty) {
+      print("⚠️ WARNING: BASE_API_URL is empty, using fallback");
+      return '$baseUrl/api/v1';
+    }
+    return _baseApiUrl;
+  }
+  
+  /// Get the API consumer key for authentication
+  String get apiConsumer {
+    if (_apiConsumer.isEmpty) {
+      print("⚠️ WARNING: API_CONSUMER is empty");
+    }
+    return _apiConsumer;
+  }
+  
+  /// Get the API consumer hash key
+  String get apiConsumerHashKey => _apiConsumerHashKey;
 
   /// Get the API version
   String get apiVersion => _apiVersion;
@@ -85,9 +118,12 @@ class AppConfig {
   Map<String, dynamic> getConfigSummary() {
     return {
       'baseUrl': _baseUrl,
+      'baseApiUrl': _baseApiUrl,
       'fullApiUrl': fullApiUrl,
       'apiVersion': _apiVersion,
       'isDebugMode': _isDebugMode,
+      'hasApiConsumer': _apiConsumer.isNotEmpty,
+      'hasApiConsumerHashKey': _apiConsumerHashKey.isNotEmpty,
       'isValid': isValid(),
     };
   }

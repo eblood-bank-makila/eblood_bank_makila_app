@@ -7,7 +7,9 @@ import 'package:ionicons/ionicons.dart';
 import '../config/theme/ColorPages.dart';
 
 class AccountTypeSelectionPage extends StatelessWidget {
-  const AccountTypeSelectionPage({super.key});
+  final Map<String, dynamic>? extra;
+  
+  const AccountTypeSelectionPage({super.key, this.extra});
 
   @override
   Widget build(BuildContext context) {
@@ -194,15 +196,18 @@ class AccountTypeSelectionPage extends StatelessWidget {
   }
 
   void _navigateToRegistration(BuildContext context, String accountType) {
+    // Get the verification mode from extra parameters
+    final String verificationMode = extra?['verification_mode'] ?? 'email';
+    
     switch (accountType) {
       case 'personal':
-        context.push('/personal-registration');
+        context.push('/personal-registration', extra: {'verification_mode': verificationMode});
         break;
       case 'hospital':
-        context.push('/hospital-registration');
+        context.push('/hospital-registration', extra: {'verification_mode': verificationMode});
         break;
       case 'blood_bank':
-        context.push('/blood-bank-registration');
+        context.push('/blood-bank-registration', extra: {'verification_mode': verificationMode});
         break;
     }
   }

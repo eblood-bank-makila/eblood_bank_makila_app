@@ -122,7 +122,10 @@ class RegisterWelcomePage extends ConsumerWidget {
                           color: ColorPages.COLOR_PRINCIPAL,
                           textColor: Colors.white,
                           onPressed: () {
-                            context.push('/account-type-selection');
+                            // Navigate to account type selection page with registration type
+                            context.push('/account-type-selection', extra: {
+                              'verification_mode': 'email', // We'll need this for OTP verification
+                            });
                           },
                         ),
                       ),
@@ -179,7 +182,8 @@ class RegisterWelcomePage extends ConsumerWidget {
                           color: ColorPages.COLOR_PRINCIPAL,
                           textColor: Colors.white,
                           onPressed: () {
-                            _showComingSoonDialog(context, 'PhoneNumber');
+                            // Navigate to account type selection with phone registration flag
+                            context.push('/account-type-selection', extra: {'verification_mode': 'phone'});
                           },
                         ),
                       ),
@@ -379,34 +383,7 @@ class RegisterWelcomePage extends ConsumerWidget {
     }
   }
 
-  void _showComingSoonDialog(BuildContext context, String feature) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          'coming_soon'.tr,
-          style: GoogleFonts.ubuntu(fontWeight: FontWeight.bold),
-        ),
-        content: Text(
-          'coming_soon_message'.tr.replaceAll('@platform', feature),
-          style: GoogleFonts.ubuntu(),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(
-              'ok'.tr,
-              style: GoogleFonts.ubuntu(
-                color: ColorPages.COLOR_PRINCIPAL,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  // Remove unused function - can be restored later if needed
 
   void _showErrorDialog(BuildContext context, String title, String message) {
     showDialog(

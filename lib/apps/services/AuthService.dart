@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../config/AppConfig.dart';
 import '../services/HttpInterceptorService.dart';
+import '../constants/api_constants.dart';
 import '../models/UserInfoValidation.dart';
 
 class AuthService {
@@ -16,7 +17,7 @@ class AuthService {
       headers['Content-Type'] = 'application/json';
       
       // Using the correct endpoint from the API endpoint file
-      final registrationEndpoint = '$baseApiUrl/eblood-connect/users/register';
+    final registrationEndpoint = ApiConstants.USERS_REGISTER;
       
       print('🔄 Registering user at: $registrationEndpoint');
       print('📦 Registration data: ${jsonEncode(userData)}');
@@ -70,9 +71,9 @@ class AuthService {
         if (response.statusCode == 200 || response.statusCode == 201) {
           print('✅ Registration successful');
           // Check if we have a standard success response structure
-          final bool isSuccess = jsonData['success'] == true || 
-                               jsonData['status'] == 'success' ||
-                               (jsonData['status_code'] != null && (jsonData['status_code'] == 200 || jsonData['status_code'] == 201));
+          final bool isSuccess = jsonData['success'] == true ||
+              jsonData['status'] == 'success' ||
+              (jsonData['status_code'] != null && (jsonData['status_code'] == 200 || jsonData['status_code'] == 201));
           
           // Based on your specific backend response: {"success":true,"status_code":200,"message":"...", "data":null}
           if (isSuccess) {
@@ -116,6 +117,84 @@ class AuthService {
         'message': 'Error occurred during registration: $e',
       };
     }
+  }
+
+  // Generic social provider registration; provider examples: google, facebook, apple
+  Future<Map<String, dynamic>> socialRegister(String provider, Map<String, dynamic> userData) async {
+    try {
+      final headers = await _httpInterceptor.getHeaders();
+      headers['Content-Type'] = 'application/json';
+      // Decide endpoint based on account type
+      final bool isHealthStructure = (userData['account_type'] == 'health_structure') || userData.containsKey('health_structure');
+      final endpoint = isHealthStructure
+          ? ApiConstants.healthStructureSocialRegister(provider)
+          : ApiConstants.userSocialRegister(provider);
+      print('🔄 Social($provider) registering user (healthStructure=$isHealthStructure) at: $endpoint');
+      print('📦 Social registration data: ${jsonEncode(userData)}');
+
+      if (baseApiUrl.isEmpty) {
+        return {
+          'success': false,
+          'message': 'API URL configuration is missing. Please contact support.'
+        };
+      }
+
+      final response = await http.post(
+        Uri.parse(endpoint),
+        headers: headers,
+        body: jsonEncode(userData),
+      ).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () => throw Exception('Google registration timed out'),
+      );
+
+  print('📊 Social($provider) registration status: ${response.statusCode}');
+  print('📄 Social($provider) registration body: ${response.body}');
+
+      if (response.body.isEmpty) {
+        return {'success': false, 'message': 'Empty response from server'};
+      }
+      Map<String, dynamic> jsonData;
+      try {
+        jsonData = jsonDecode(response.body);
+      } catch (e) {
+        return {'success': false, 'message': 'Invalid JSON from server'};
+      }
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final bool isSuccess = jsonData['success'] == true ||
+            jsonData['status'] == 'success' ||
+            (jsonData['status_code'] != null && (jsonData['status_code'] == 200 || jsonData['status_code'] == 201));
+  final String prettyProvider = provider.isEmpty ? 'Provider' : provider[0].toUpperCase() + provider.substring(1);
+  if (isSuccess) {
+          return {
+            'success': true,
+            'data': jsonData['data'],
+            'message': jsonData['message'] ?? '$prettyProvider registration successful',
+          };
+        } else {
+          return {
+            'success': false,
+            'message': jsonData['message'] ?? '$prettyProvider registration failed',
+          };
+        }
+      }
+      final String prettyProvider = provider.isEmpty ? 'Provider' : provider[0].toUpperCase() + provider.substring(1);
+      return {
+        'success': false,
+        'message': jsonData['message'] ?? '$prettyProvider registration failed',
+        'statusCode': response.statusCode,
+      };
+    } catch (e) {
+      print('⚠️ Social($provider) registration error: $e');
+      final String prettyProvider = provider.isEmpty ? 'Provider' : provider[0].toUpperCase() + provider.substring(1);
+      return {'success': false, 'message': 'Error during $prettyProvider registration: $e'};
+    }
+  }
+  
+  // Backward compatible googleRegister using generic handler
+  Future<Map<String, dynamic>> googleRegister(Map<String, dynamic> userData) {
+    return socialRegister('google', userData);
   }
   
   // Verify OTP code

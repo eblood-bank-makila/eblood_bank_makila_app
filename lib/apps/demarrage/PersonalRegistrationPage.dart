@@ -47,11 +47,16 @@ class _PersonalRegistrationPageState extends State<PersonalRegistrationPage> {
   DateTime? _selectedDate;
   
   // Location data
-  Map<String, String> _selectedLocation = {};
+  Map<String, dynamic> _selectedLocation = {};
   List<SystemCountry> _locationData = [];
   bool _isLoadingLocations = false;
   String? _locationError;
   final LocationService _locationService = LocationService();
+  
+  // Phone formatting info
+  String? _countryCode;
+  List<String> _validPrefixes = [];
+  String? _phoneError;
   
   // Loading state
   bool _isLoading = false;
@@ -70,6 +75,30 @@ class _PersonalRegistrationPageState extends State<PersonalRegistrationPage> {
     super.initState();
     _fetchLocationData();
     _testApiConnectivity(); // Test API connectivity on initialization
+    // Google mode prefill
+    final mode = widget.extra?['registration_mode'];
+    if (mode == 'google') {
+      final gEmail = widget.extra?['google_email'];
+      final gName = widget.extra?['google_display_name'];
+      if (gEmail is String && gEmail.isNotEmpty) {
+        _emailController.text = gEmail;
+      }
+      if (gName is String && gName.isNotEmpty) {
+        final parts = gName.split(' ');
+        if (parts.isNotEmpty) _firstNameController.text = parts.first;
+        if (parts.length > 1) _lastNameController.text = parts.sublist(1).join(' ');
+      }
+    }
+    
+    // Set up a listener for the phone controller to rebuild validation on changes
+    _phoneController.addListener(() {
+      // Only rebuild if we have text to avoid unnecessary rebuilds
+      if (_phoneController.text.isNotEmpty && _validPrefixes.isNotEmpty) {
+        setState(() {
+          _phoneError = _validatePhone(_phoneController.text);
+        });
+      }
+    });
   }
   
   // Test API connectivity
@@ -114,6 +143,24 @@ class _PersonalRegistrationPageState extends State<PersonalRegistrationPage> {
         print("- Country ID: ${country.id}");
         print("- Children count: ${country.children.length}");
         
+        // Print country codes and telephone prefixes if available
+        if (country.countryCodes != null && country.countryCodes!.isNotEmpty) {
+          print("- Country Codes: ${country.countryCodes!.map((c) => c.countryCode).join(', ')}");
+        }
+        
+        if (country.telephonePrefixes != null && country.telephonePrefixes!.isNotEmpty) {
+          print("- Telephone Prefixes Count: ${country.telephonePrefixes!.length}");
+          print("- Telephone Prefixes: ${country.telephonePrefixes!.map((p) => p.prefix).join(', ')}");
+          // Detailed debug of prefixes
+          for (var prefix in country.telephonePrefixes!) {
+            print("  - Prefix: ${prefix.prefix} (ID: ${prefix.id})");
+          }
+        }
+        
+        if (country.countryFlag != null) {
+          print("- Country Flag: ${country.countryFlag}");
+        }
+        
         for (var province in country.children) {
           print("  PROVINCE: ${province.name} (${province.namedEntityFlag})");
           print("  - Province ID: ${province.id}");
@@ -140,24 +187,253 @@ class _PersonalRegistrationPageState extends State<PersonalRegistrationPage> {
     }
   }
 
-  void _onLocationSelected(Map<String, String> location) {
-    setState(() {
-      _selectedLocation = location;
-      
+  void _onLocationSelected(Map<String, dynamic> location) {
+    // Debug the incoming location data in detail
+    print('📍 LOCATION SELECTED:');
+    print('📍 Raw data: ${location.toString()}');
+    print('📍 Type: ${location['type']}');
+    print('📍 ID: ${location['id']}');
+    print('📍 Name: ${location['name']}');
+    print('📍 Parent ID: ${location['parent_id']}');
+    print('📍 Country ID: ${location['country_id']}');
+    print('📍 System Country ID: ${location['system_country_id']}');
+    print('📍 Province ID: ${location['province_id']}');
+    
+    // Clear phone-related data first to avoid showing outdated info
+    String? newCountryCode;
+    List<String> newPrefixes = [];
+    String? countryFlag;
+    
+    // Process location selection
+    if (location.isNotEmpty) {
       // Clear location error if location is selected
-      if (location.isNotEmpty) {
-        _locationError = null;
+      _locationError = null;
+      
+      // Find the selected location's country to extract country code and prefixes
+      String? selectedType = location['type'];
+      String? selectedCountryId;
+      
+      print('📱 Selected location type: $selectedType');
+      
+      if (selectedType == 'country') {
+        // If it's a country, we already have what we need
+        selectedCountryId = location['id'];
+        print('📱 Direct country selection, ID: $selectedCountryId');
+      } else if (selectedType == 'province') {
+        // For province, get the country_id if available or search for parent
+        selectedCountryId = location['country_id'] ?? location['system_country_id'];
+        print('📱 Province selection, country ID: $selectedCountryId');
+      } else if (selectedType == 'town') {
+        // For town, we need to find the parent country - check multiple fields
+        selectedCountryId = location['country_id'] ?? location['system_country_id'];
+        
+        // If country_id not directly available in town data, check for province data
+        if (selectedCountryId == null) {
+          // Try to get province parent first, then find its country
+          String? provinceId = location['province_id'] ?? location['parent_id'];
+          
+          if (provinceId != null) {
+            print('📱 Town with province parent ID: $provinceId');
+            // Find province in location data to get its country
+            for (var country in _locationData) {
+              for (var province in country.children) {
+                if (province.id == provinceId) {
+                  selectedCountryId = country.id;
+                  print('📱 Found parent country via province: $selectedCountryId');
+                  break;
+                }
+              }
+              if (selectedCountryId != null) break;
+            }
+          }
+        }
+        
+        // If we still don't have the country ID, search directly for the town in all countries
+        if (selectedCountryId == null) {
+          String townId = location['id'];
+          print('📱 Searching for town ID: $townId in all location data');
+          
+          for (var country in _locationData) {
+            bool found = false;
+            for (var province in country.children) {
+              for (var town in province.children) {
+                if (town.id == townId) {
+                  selectedCountryId = country.id;
+                  print('📱 Found parent country by searching town: $selectedCountryId');
+                  found = true;
+                  break;
+                }
+              }
+              if (found) break;
+            }
+            if (found) break;
+          }
+        }
       }
+      
+      // Final fallback - use the first country in the data if available
+      if (selectedCountryId == null && _locationData.isNotEmpty) {
+        selectedCountryId = _locationData.first.id;
+        print('📱 Fallback to first country in data: $selectedCountryId');
+      }
+      
+      // Find the country in our location data
+      if (selectedCountryId != null) {
+        print('🔍 Searching for country with ID: $selectedCountryId');
+        bool countryFound = false;
+        
+        for (var country in _locationData) {
+          if (country.id == selectedCountryId) {
+            countryFound = true;
+            print('✅ Found matching country: ${country.name}');
+            
+            // Found matching country, extract codes and prefixes
+            if (country.countryCodes != null && country.countryCodes!.isNotEmpty) {
+              // Make sure country code has + prefix
+              String code = country.countryCodes![0].countryCode;
+              newCountryCode = code.startsWith('+') ? code : '+$code';
+              print('📱 Found country code: $newCountryCode');
+            } else {
+              print('⚠️ No country codes found for this country');
+            }
+            
+            if (country.telephonePrefixes != null && country.telephonePrefixes!.isNotEmpty) {
+              try {
+                // Debug the telephone prefixes in detail
+                print('📱 Telephone prefixes count: ${country.telephonePrefixes!.length}');
+                print('📱 Telephone prefixes data: ${country.telephonePrefixes!.map((p) => "${p.id}:${p.prefix}").join(", ")}');
+                
+                // Direct extraction - no need for complex error handling since we know the structure
+                newPrefixes = country.telephonePrefixes!
+                  .map((prefix) => prefix.prefix)
+                  .toList();
+                
+                if (newPrefixes.isNotEmpty) {
+                  // Log the prefixes we extracted
+                  print('✅ Successfully extracted prefixes: $newPrefixes');
+                } else {
+                  print('⚠️ Extracted prefixes list is empty');
+                  newPrefixes = ['81', '82', '89', '99']; // Default fallback
+                  print('📱 Using default prefixes as fallback');
+                }
+              } catch (e) {
+                print('❌ Error extracting prefixes: $e');
+                // Use default prefixes only if there's an error
+                newPrefixes = ['81', '82', '89', '99'];
+                print('📱 Using fallback prefixes due to error');
+              }
+            } else {
+              // No telephone prefixes in the data
+              print('⚠️ No telephone prefixes found in the API data for this country');
+              newPrefixes = ['81', '82', '89', '99']; // Default fallback
+              print('📱 Using default prefixes due to no prefixes in data');
+            }
+            
+            // Get the country flag
+            if (country.countryFlag != null && country.countryFlag!.isNotEmpty) {
+              countryFlag = country.countryFlag;
+              print('🏳️ Found country flag: $countryFlag');
+            } else {
+              print('⚠️ No country flag found');
+            }
+            
+            // We found what we needed, break the loop
+            break;
+          }
+        }
+        
+        if (!countryFound) {
+          print('❌ Could not find country with ID: $selectedCountryId in location data');
+          // Use default values since we couldn't find the country
+          newCountryCode = '+243'; // Default Congo code
+          newPrefixes = ['81', '82', '89', '99']; // Default Congo prefixes
+          countryFlag = '🇨🇩'; // Default Congo flag
+        }
+      }
+    }
+    
+    // Before state update - log what we're about to set
+    print('📱 BEFORE STATE UPDATE:');
+    print('📱 New country code: $newCountryCode');
+    print('📱 New prefixes: $newPrefixes');
+    
+    // Update state after all data processing to ensure UI updates properly
+    setState(() {
+      bool locationChanged = _selectedLocation.isEmpty || 
+                             _selectedLocation['id'] != location['id'];
+      
+      _selectedLocation = Map<String, dynamic>.from(location); // Create a copy to safely modify
+      
+      // Use default values only if nothing was found
+      if (_selectedLocation.isNotEmpty) {
+        // Use fetched values or fallback to defaults if empty
+        String? oldCountryCode = _countryCode;
+        _countryCode = newCountryCode ?? '+243'; // Default to Congo if not found
+        
+        // Make sure we're setting the prefixes from the API data
+        if (newPrefixes.isNotEmpty) {
+          _validPrefixes = List<String>.from(newPrefixes); // Create a new copy to avoid reference issues
+          print('📱 Using API prefixes: $_validPrefixes');
+        } else {
+          _validPrefixes = ['81', '82', '89', '99'];
+          print('📱 Using default prefixes: $_validPrefixes');
+        }
+        
+        // Add country code and prefixes to the selected location data
+        // Store as a joined string to avoid type issues
+        _selectedLocation['country_code'] = _countryCode;
+        _selectedLocation['telephone_prefixes_string'] = _validPrefixes.join(',');
+        _selectedLocation['country_flag'] = countryFlag ?? '🇨🇩'; // Default Congo flag
+        
+        // Clear phone if country code changed to avoid invalid numbers
+        if (locationChanged || oldCountryCode != _countryCode) {
+          _phoneController.clear();
+          print('📱 Phone field cleared due to location/country code change');
+        }
+      } else {
+        // Clear data when location is not selected
+        _countryCode = null;
+        _validPrefixes = [];
+        _phoneController.clear();
+        print('📱 All phone-related data cleared (no location)');
+      }
+      
+      // Clear any existing phone error
+      _phoneError = null;
     });
     
     // Debug log selected location
-    if (location.isNotEmpty) {
-      print('Selected location: ${location['type']} - ${location['town_name'] ?? location['province_name'] ?? location['country_name']}');
-      print('Selected location id (ref_entity_id): ${location['id']}');
+    if (_selectedLocation.isNotEmpty) {
+      print('Selected location: ${_selectedLocation['type']} - ${_selectedLocation['town_name'] ?? _selectedLocation['province_name'] ?? _selectedLocation['country_name']}');
+      print('Selected location id (ref_entity_id): ${_selectedLocation['id']}');
+      print('Country code: $_countryCode');
+      if (_validPrefixes.isNotEmpty) {
+        print('Valid prefixes: ${_validPrefixes.join(", ")}');
+      }
     } else {
       print('Location selection cleared');
     }
+    
+    // Ensure that any text field validation errors are cleared when selection changes
+    _phoneError = null;
   }
+  
+  // Helper method to check if a phone number starts with any valid prefix
+  bool _hasValidPrefix(String phoneNumber) {
+    if (_validPrefixes.isEmpty || phoneNumber.length < 2) {
+      return false;
+    }
+    
+    for (String prefix in _validPrefixes) {
+      if (phoneNumber.startsWith(prefix)) {
+        return true;
+      }
+    }
+    
+    return false;
+  }
+  
+  // No unused methods
 
   @override
   void dispose() {
@@ -285,44 +561,10 @@ class _PersonalRegistrationPageState extends State<PersonalRegistrationPage> {
                       _buildSectionHeader('contact_information'.tr),
                       const SizedBox(height: 20),
                       
-                      // Email field
+                      // Location dropdown (country, province, town) - MOVED TO TOP
                       FadeInUp(
                         duration: const Duration(milliseconds: 600),
                         delay: const Duration(milliseconds: 200),
-                        child: CustomTextField(
-                          controller: _emailController,
-                          label: 'email'.tr,
-                          hint: 'hint_email'.tr,
-                          prefixIcon: Ionicons.mail_outline,
-                          keyboardType: TextInputType.emailAddress,
-                          validator: _validateEmail,
-                        ),
-                      ),
-                      
-                      const SizedBox(height: 20),
-                      
-                      // Phone field
-                      FadeInUp(
-                        duration: const Duration(milliseconds: 600),
-                        delay: const Duration(milliseconds: 300),
-                        child: CustomTextField(
-                          controller: _phoneController,
-                          label: 'phone_number'.tr,
-                          hint: 'hint_phone'.tr,
-                          prefixIcon: Ionicons.call_outline,
-                          keyboardType: TextInputType.phone,
-                          validator: _validateRequired,
-                        ),
-                      ),
-                      
-                      const SizedBox(height: 20),
-                      
-
-                      
-                      // Location dropdown (country, province, town)
-                      FadeInUp(
-                        duration: const Duration(milliseconds: 600),
-                        delay: const Duration(milliseconds: 400),
                         child: LocationTreeSelect(
                           label: 'your_location'.tr,
                           hint: 'hint_select_location'.tr,
@@ -336,6 +578,164 @@ class _PersonalRegistrationPageState extends State<PersonalRegistrationPage> {
                           selectOnlyLastChild: true, // Only allow selecting towns (leaf nodes)
                         ),
                       ),
+                      
+                      const SizedBox(height: 20),
+                      
+                      // Email field
+                      FadeInUp(
+                        duration: const Duration(milliseconds: 600),
+                        delay: const Duration(milliseconds: 300),
+                        child: CustomTextField(
+                          controller: _emailController,
+                          label: 'email'.tr,
+                          hint: 'hint_email'.tr,
+                          prefixIcon: Ionicons.mail_outline,
+                          keyboardType: TextInputType.emailAddress,
+                          enabled: widget.extra?['registration_mode'] != 'google',
+                          validator: widget.extra?['registration_mode'] == 'google' ? null : _validateEmail,
+                        ),
+                      ),
+                      
+                      const SizedBox(height: 20),
+                      
+                      // Phone field - Only shown when location is selected
+                      if (_selectedLocation.isNotEmpty && _countryCode != null)
+                      FadeInUp(
+                        duration: const Duration(milliseconds: 600),
+                        delay: const Duration(milliseconds: 400),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Custom phone field with country flag and code
+                            Container(
+                              margin: const EdgeInsets.only(bottom: 5),
+                              child: Text(
+                                'phone_number'.tr,
+                                style: GoogleFonts.ubuntu(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ),
+                            Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.grey[300]!),
+                              ),
+                              child: Row(
+                                children: [
+                                  // Country flag and code
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey[50],
+                                      borderRadius: const BorderRadius.only(
+                                        topLeft: Radius.circular(8),
+                                        bottomLeft: Radius.circular(8),
+                                      ),
+                                      border: Border(
+                                        right: BorderSide(color: Colors.grey[300]!),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        // Country flag if available
+                                        if (_selectedLocation['country_flag'] != null)
+                                          Text(
+                                            _selectedLocation['country_flag'],
+                                            style: const TextStyle(fontSize: 20),
+                                          ),
+                                        const SizedBox(width: 5),
+                                        // Country code
+                                        Text(
+                                          _countryCode ?? '', // Display country code without adding an extra +
+                                          style: GoogleFonts.ubuntu(
+                                            fontSize: 16, 
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.grey[800],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  // Phone number input
+                                  Expanded(
+                                    child: TextField(
+                                      controller: _phoneController,
+                                      decoration: InputDecoration(
+                                        hintText: _validPrefixes.isNotEmpty 
+                                          ? '${_validPrefixes.first} XXXXXXX'  // Show first prefix as example
+                                          : "XXXXXXXX",
+                                        hintStyle: TextStyle(color: Colors.grey[400]),
+                                        border: InputBorder.none,
+                                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                        prefixIcon: Icon(Ionicons.call_outline, color: Colors.grey[600], size: 20),
+                                        errorText: _phoneError,
+                                        // Show a tooltip with all valid prefixes
+                                        helperText: _validPrefixes.isNotEmpty
+                                          ? 'Use one of the valid prefixes shown below'
+                                          : null,
+                                        helperStyle: TextStyle(
+                                          fontSize: 11,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                      keyboardType: TextInputType.phone,
+                                      onChanged: (value) {
+                                        // Validate the phone number on change
+                                        setState(() {
+                                          _phoneError = _validatePhone(value);
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            
+                            // Display prefixes
+                            if (_validPrefixes.isNotEmpty)
+                            Container(
+                              padding: const EdgeInsets.only(top: 8, left: 12),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'valid_prefixes'.tr,
+                                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  // Use a more flexible layout for multiple prefixes
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: _validPrefixes.map((prefix) => Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: ColorPages.COLOR_PRINCIPAL.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: ColorPages.COLOR_PRINCIPAL.withOpacity(0.3)),
+                                      ),
+                                      child: Text(
+                                        prefix,
+                                        style: GoogleFonts.ubuntu(
+                                          fontSize: 12, 
+                                          fontWeight: FontWeight.bold,
+                                          color: ColorPages.COLOR_PRINCIPAL,
+                                        ),
+                                      ),
+                                    )).toList(),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      
+                      const SizedBox(height: 20),
                       
                       const SizedBox(height: 20),
                       
@@ -610,6 +1010,39 @@ class _PersonalRegistrationPageState extends State<PersonalRegistrationPage> {
     return null;
   }
   
+  String? _validatePhone(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'phone_required'.tr;
+    }
+    
+    // Check if phone number contains only digits
+    if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
+      return 'phone_only_digits'.tr;
+    }
+    
+    // Check if phone number starts with a valid prefix if prefixes are defined
+    if (_validPrefixes.isNotEmpty && value.length >= 2) {
+      // Use our helper method to check prefixes
+      if (!_hasValidPrefix(value) && value.length >= 3) {
+        // Only show prefix error if the user has entered enough digits
+        // and we know they're done with the prefix part
+        return 'invalid_phone_prefix'.tr;
+      }
+    }
+    
+    // Only check length if the prefix is valid and the user has entered a substantial part of the number
+    // We don't want to show length errors while the user is still typing
+    if (_hasValidPrefix(value) && value.length > 5 && value.length < 9) {
+      // Show a warning only if they've entered most of the number but it's still too short
+      return 'invalid_phone_length'.tr;
+    } else if (value.length > 15) {
+      // Phone numbers are rarely longer than 15 digits including prefix
+      return 'invalid_phone_length'.tr;
+    }
+    
+    return null;
+  }
+  
   String? _validateDateOfBirth(String? value) {
     if (value == null || value.isEmpty) {
       return 'date_of_birth_required'.tr;
@@ -692,6 +1125,42 @@ class _PersonalRegistrationPageState extends State<PersonalRegistrationPage> {
   }
   
   void _handleRegistration() async {
+    final bool isGoogle = widget.extra?['registration_mode'] == 'google';
+    if (isGoogle) {
+      // Minimal validation for google: ensure first/last name & location, account type personal by default
+      if (_firstNameController.text.trim().isEmpty || _lastNameController.text.trim().isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('name_required'.tr), backgroundColor: Colors.red));
+        return;
+      }
+      if (!_selectedLocation.containsKey('id')) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('select_valid_location'.tr), backgroundColor: Colors.red));
+        return;
+      }
+      setState(() => _isLoading = true);
+      try {
+        final authService = AuthService();
+        final payload = {
+          'first_name': _firstNameController.text,
+            'last_name': _lastNameController.text,
+            'email': _emailController.text,
+            'account_type': 'personal',
+            'ref_entity_id': _selectedLocation['id'],
+            'registration_provider': 'google',
+        };
+        final result = await authService.googleRegister(payload);
+        if (result['success'] == true && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('registration_success'.tr), backgroundColor: Colors.green));
+          context.go('/app/MainApp');
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result['message'] ?? 'registration_failed'.tr), backgroundColor: Colors.red));
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('registration_failed'.tr), backgroundColor: Colors.red));
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
+      }
+      return; // Skip standard flow
+    }
     print('🔍 Starting registration validation...');
     
     try {
@@ -713,6 +1182,22 @@ class _PersonalRegistrationPageState extends State<PersonalRegistrationPage> {
       
       if (!isValid) {
         return;
+      }
+      
+      // Manually validate phone number since it's not part of the form
+      if (_countryCode != null) {
+        final String? phoneError = _validatePhone(_phoneController.text);
+        if (phoneError != null) {
+          print('❌ Phone validation failed: $phoneError');
+          setState(() => _phoneError = phoneError);
+          // Scroll to the phone field
+          _scrollController.animateTo(
+            _scrollController.position.pixels + 200, // approximate position
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+          );
+          return;
+        }
       }
 
       // Check terms acceptance

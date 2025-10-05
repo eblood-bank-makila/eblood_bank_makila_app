@@ -1,8 +1,9 @@
 import 'package:eblood_bank_mak_app/utilisateurs/business/models/authentification/AuthentificationModele.dart';
-import 'package:eblood_bank_mak_app/utilisateurs/business/models/OtpCodeModele.dart';
 import 'package:eblood_bank_mak_app/utilisateurs/business/models/code_otp/DatumCodeOtpModele.dart';
 import 'package:eblood_bank_mak_app/utilisateurs/business/service/utilisateurLocalService.dart';
 import 'package:sembast/sembast.dart';
+import 'package:get_storage/get_storage.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class UtilisateurLocalServiceImpl implements UtilisateurLocalService {
   Database db;
@@ -50,7 +51,38 @@ class UtilisateurLocalServiceImpl implements UtilisateurLocalService {
     await stockage.record(userKey).delete(db);
     await stockage.record(tokenKey).delete(db);      // Temporary token
     await stockage.record(otpTokenKey).delete(db);   // Final OTP token
-    print("🔐 User disconnected - All tokens cleared");
+
+    // Also clear any session flags/tokens stored via GetStorage
+    try {
+      final box = GetStorage();
+      // Auth tokens and account context used by UI/routing
+      await box.remove('auth_token');
+      await box.remove('refresh_token');
+      await box.remove('account_type');
+      await box.remove('user_profiles');
+
+      // Pending MFA flow flags that could incorrectly trigger OTP screens
+      await box.remove('mfa_access_token');
+      await box.remove('pending_mfa_type');
+      await box.remove('pending_login_email');
+      await box.remove('pending_login_phone');
+
+      // Keep remember_me and first-launch/language settings intact
+    } catch (e) {
+      // Non-fatal: continue clearing secure storage
+      print('⚠️ GetStorage clear on logout failed: $e');
+    }
+
+    // Clear secure storage tokens written by network/AuthApi layers
+    try {
+      const secure = FlutterSecureStorage();
+      await secure.delete(key: 'auth_token');
+      await secure.delete(key: 'refresh_token');
+    } catch (e) {
+      print('⚠️ SecureStorage clear on logout failed: $e');
+    }
+
+    print("🔐 User disconnected - All tokens and session flags cleared");
     return true;
   }
 

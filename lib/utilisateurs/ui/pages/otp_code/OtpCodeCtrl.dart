@@ -1,9 +1,8 @@
+import 'package:eblood_bank_mak_app/apps/services/AuthApi.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:eblood_bank_mak_app/utilisateurs/business/interactors/UtilisateurInteractor.dart';
-import 'package:eblood_bank_mak_app/utilisateurs/business/models/OtpCodeModele.dart';
-import 'package:eblood_bank_mak_app/utilisateurs/business/models/OtpModele.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import '../../../business/models/code_otp/DatumCodeOtpModele.dart';
 import 'OtpCodePageState.dart';
 
 part 'OtpCodeCtrl.g.dart';
@@ -18,18 +17,43 @@ class OtpCodeCtrl extends _$OtpCodeCtrl {
   //envoi des données vers framework
   Future<Map<String, dynamic>> otp(String code) async {
     try {
-      var data = OtpModele(
-        code: code,
-      );
-      var usecase =
-          ref.read(utilisateurInteractorProvider).otpUtilisateurUsecase;
       state = state.copyWith(isLoading: true);
-      var res = await usecase.run(data);
+      // Use stored MFA type (default to email) and validate via AuthApi
+  final storage = GetStorage();
+  final String chosenMfa = (storage.read('pending_mfa_type') as String?) ?? 'email';
+
+      final resp = await AuthApi.instance.validateOtp(
+        otpCode: code,
+        mfaType: chosenMfa,
+      );
+
+      if (resp['success'] == true) {
+        // Persist the final authenticated token for app-wide guards (GoRouter)
+        try {
+          final String? accessToken =
+              (resp['access_token'] as String?) ?? storage.read('auth_token');
+          if (accessToken != null && accessToken.isNotEmpty) {
+            final interactor = ref.read(utilisateurInteractorProvider);
+            await interactor.saveTokenOtpUseCase.run(accessToken);
+          }
+        } catch (e) {
+          // Non-fatal: navigation can still proceed if token is available elsewhere
+          // but GoRouter guard relies on this persisted token.
+          // Keep going to avoid blocking UX.
+        }
+
+        state = state.copyWith(isLoading: false);
+        return {
+          'success': true,
+          'data': null,
+          'message': 'Code OTP vérifié avec succès'
+        };
+      }
       state = state.copyWith(isLoading: false);
       return {
-        'success': true,
-        'data': res,
-        'message': 'Code OTP vérifié avec succès'
+        'success': false,
+        'data': null,
+        'message': resp['message'] ?? 'Code OTP invalide'
       };
     } catch (e) {
       // Ensure loading state is reset even if there's an error
@@ -57,16 +81,15 @@ class OtpCodeCtrl extends _$OtpCodeCtrl {
   }
 
   Future<String?> renvoicode(String token) async {
-    var usecase = ref.watch(utilisateurInteractorProvider).renvoyerCodeUseCase;
-    var res = await usecase.run(token);
-    return res;
+    // Resend using AuthApi with stored MFA type
+    final storage = GetStorage();
+    final String mfaType = (storage.read('pending_mfa_type') as String?) ?? 'email';
+    final resp = await AuthApi.instance.resendOtp(mfaType: mfaType);
+    return resp['success'] == true ? 'ok' : null;
   }
 
   Future<String> getLocalToken() async {
-    var usecase =
-        ref.watch(utilisateurInteractorProvider).recuperationTokenUseCase;
-    var res = await usecase.run();
-    print("token $res");
-    return res;
+    // Tokens are stored via GetStorage in AuthApi; keep signature
+    return '';
   }
 }

@@ -4,15 +4,23 @@ import 'package:animate_do/animate_do.dart';
 import '../config/theme/ColorPages.dart';
 import 'svg_icons/CustomSvgIcons.dart';
 
+class NavItemConfig {
+  final Widget Function({double size, Color? color}) icon;
+  final String label;
+  const NavItemConfig({required this.icon, required this.label});
+}
+
 class EnhancedBottomNavBar extends StatelessWidget {
   final int currentIndex;
   final Function(int) onTap;
   final int cartItemCount;
+  final List<NavItemConfig> items;
 
   const EnhancedBottomNavBar({
     super.key,
     required this.currentIndex,
     required this.onTap,
+    required this.items,
     this.cartItemCount = 0,
   });
 
@@ -41,33 +49,17 @@ class EnhancedBottomNavBar extends StatelessWidget {
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _buildNavItem(
-              index: 0,
-              icon: CustomSvgIcons.home,
-              label: 'Accueil',
-              isSelected: currentIndex == 0,
-            ),
-            _buildNavItem(
-              index: 1,
-              icon: CustomSvgIcons.shoppingCart,
-              label: 'Panier',
-              isSelected: currentIndex == 1,
-              badgeCount: cartItemCount,
-            ),
-            _buildNavItem(
-              index: 2,
-              icon: CustomSvgIcons.medicalRequest,
-              label: 'Demandes',
-              isSelected: currentIndex == 2,
-            ),
-            _buildNavItem(
-              index: 3,
-              icon: CustomSvgIcons.profile,
-              label: 'Profil',
-              isSelected: currentIndex == 3,
-            ),
-          ],
+          children: List.generate(items.length, (i) {
+            final it = items[i];
+            final isCartTab = it.label.toLowerCase() == 'panier';
+            return _buildNavItem(
+              index: i,
+              icon: it.icon,
+              label: it.label,
+              isSelected: currentIndex == i,
+              badgeCount: isCartTab ? (cartItemCount > 0 ? cartItemCount : null) : null,
+            );
+          }),
         ),
       ),
     );

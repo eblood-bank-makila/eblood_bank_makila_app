@@ -81,8 +81,8 @@ class AccountTypeSelectionPage extends StatelessWidget {
                       child: _buildAccountTypeCard(
                         context: context,
                         icon: Ionicons.medical_outline,
-                        title: 'hospital_account'.tr,
-                        description: 'hospital_account_description'.tr,
+                        title: 'health_structure_account'.tr,
+                        description: 'health_structure_account_description'.tr,
                         color: Colors.blue[600]!,
                         onTap: () => _navigateToRegistration(context, 'hospital'),
                       ),
@@ -91,18 +91,18 @@ class AccountTypeSelectionPage extends StatelessWidget {
                     const SizedBox(height: 20),
                     
                     // Blood Bank Account
-                    FadeInUp(
-                      duration: const Duration(milliseconds: 600),
-                      delay: const Duration(milliseconds: 600),
-                      child: _buildAccountTypeCard(
-                        context: context,
-                        icon: Ionicons.water_outline,
-                        title: 'blood_bank_account'.tr,
-                        description: 'blood_bank_account_description'.tr,
-                        color: Colors.red[600]!,
-                        onTap: () => _navigateToRegistration(context, 'blood_bank'),
-                      ),
-                    ),
+                    // FadeInUp(
+                    //   duration: const Duration(milliseconds: 600),
+                    //   delay: const Duration(milliseconds: 600),
+                    //   child: _buildAccountTypeCard(
+                    //     context: context,
+                    //     icon: Ionicons.water_outline,
+                    //     title: 'blood_bank_account'.tr,
+                    //     description: 'blood_bank_account_description'.tr,
+                    //     color: Colors.red[600]!,
+                    //     onTap: () => _navigateToRegistration(context, 'blood_bank'),
+                    //   ),
+                    // ),
                   ],
                 ),
               ),
@@ -196,18 +196,29 @@ class AccountTypeSelectionPage extends StatelessWidget {
   }
 
   void _navigateToRegistration(BuildContext context, String accountType) {
-    // Get the verification mode from extra parameters
-    final String verificationMode = extra?['verification_mode'] ?? 'email';
+    // Determine registration mode (email or google). Google skips verification.
+    final String registrationMode = extra?['registration_mode'] == 'google' ? 'google' : 'email';
+    final bool isGoogle = registrationMode == 'google';
+    final String verificationMode = isGoogle ? 'none' : 'email';
+    final Map<String, dynamic> passExtra = {
+      'verification_mode': verificationMode,
+      'registration_mode': registrationMode,
+      if (isGoogle) ...{
+        'google_email': extra?['google_email'],
+        'google_display_name': extra?['google_display_name'],
+        'google_photo_url': extra?['google_photo_url'],
+      }
+    };
     
     switch (accountType) {
       case 'personal':
-        context.push('/personal-registration', extra: {'verification_mode': verificationMode});
+        context.push('/personal-registration', extra: passExtra);
         break;
       case 'hospital':
-        context.push('/hospital-registration', extra: {'verification_mode': verificationMode});
+        context.push('/hospital-registration', extra: passExtra);
         break;
       case 'blood_bank':
-        context.push('/blood-bank-registration', extra: {'verification_mode': verificationMode});
+        context.push('/blood-bank-registration', extra: passExtra);
         break;
     }
   }

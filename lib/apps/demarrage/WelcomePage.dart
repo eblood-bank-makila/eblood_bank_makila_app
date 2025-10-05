@@ -164,21 +164,21 @@ class WelcomePage extends ConsumerWidget {
                       ),
                       const SizedBox(height: 12),
 
-                      FadeInUp(
-                        duration: const Duration(milliseconds: 600),
-                        delay: const Duration(milliseconds: 900),
-                        child: _buildSocialLoginButton(
-                          context: context,
-                          icon: Ionicons.phone_portrait_outline,
-                          text: 'sign_in_with_phone_number'.tr,
-                          color: ColorPages.COLOR_PRINCIPAL,
-                          textColor: Colors.white,
-                          onPressed: () {
-                            _showComingSoonDialog(context, 'PhoneNumber');
-                          },
-                        ),
-                      ),
-                      const SizedBox(height: 12),
+                      // FadeInUp(
+                      //   duration: const Duration(milliseconds: 600),
+                      //   delay: const Duration(milliseconds: 900),
+                      //   child: _buildSocialLoginButton(
+                      //     context: context,
+                      //     icon: Ionicons.phone_portrait_outline,
+                      //     text: 'sign_in_with_phone_number'.tr,
+                      //     color: ColorPages.COLOR_PRINCIPAL,
+                      //     textColor: Colors.white,
+                      //     onPressed: () {
+                      //       _showComingSoonDialog(context, 'PhoneNumber');
+                      //     },
+                      //   ),
+                      // ),
+                      // const SizedBox(height: 12),
 
                       FadeInUp(
                         duration: const Duration(milliseconds: 600),

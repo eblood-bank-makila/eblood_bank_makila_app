@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:ionicons/ionicons.dart';
 import 'package:lottie/lottie.dart';
+import 'package:go_router/go_router.dart';
 import '../config/theme/ColorPages.dart';
 import '../widgets/CustomButton.dart';
 
@@ -31,11 +32,11 @@ class RegistrationSuccessPage extends StatelessWidget {
             children: [
               const Spacer(),
               
-              // Success animation
+              // Success animation - using local asset instead of network to avoid 403 error
               FadeInDown(
                 duration: const Duration(milliseconds: 600),
-                child: Lottie.network(
-                  'https://assets10.lottiefiles.com/packages/lf20_s4tubvxb.json',
+                child: Lottie.asset(
+                  'assets/animations/success_animation.json',
                   width: 200,
                   height: 200,
                   repeat: false,
@@ -44,12 +45,12 @@ class RegistrationSuccessPage extends StatelessWidget {
               
               const SizedBox(height: 30),
               
-              // Heading
+              // Heading - translated
               FadeInDown(
                 duration: const Duration(milliseconds: 600),
                 delay: const Duration(milliseconds: 200),
                 child: Text(
-                  'Registration Successful!',
+                  'registration_successful'.tr,
                   style: GoogleFonts.ubuntu(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -61,12 +62,12 @@ class RegistrationSuccessPage extends StatelessWidget {
               
               const SizedBox(height: 16),
               
-              // Description
+              // Description - translated
               FadeInDown(
                 duration: const Duration(milliseconds: 600),
                 delay: const Duration(milliseconds: 300),
                 child: Text(
-                  'Your account has been created successfully. You can now log in to access all features.',
+                  'account_created_successfully'.tr,
                   style: GoogleFonts.ubuntu(
                     fontSize: 16,
                     color: Colors.grey[600],
@@ -95,18 +96,21 @@ class RegistrationSuccessPage extends StatelessWidget {
                           Icon(Ionicons.call_outline, color: Colors.grey.shade700, size: 20),
                           const SizedBox(width: 8),
                           Text(
-                            'Phone: ',
+                            'phone_label'.tr + ': ',
                             style: GoogleFonts.ubuntu(
                               fontSize: 14,
                               color: Colors.grey.shade700,
                             ),
                           ),
-                          Text(
-                            phoneNumber,
-                            style: GoogleFonts.ubuntu(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
+                          Expanded(
+                            child: Text(
+                              phoneNumber,
+                              style: GoogleFonts.ubuntu(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
@@ -117,18 +121,21 @@ class RegistrationSuccessPage extends StatelessWidget {
                           Icon(Ionicons.mail_outline, color: Colors.grey.shade700, size: 20),
                           const SizedBox(width: 8),
                           Text(
-                            'Email: ',
+                            'email'.tr + ': ',
                             style: GoogleFonts.ubuntu(
                               fontSize: 14,
                               color: Colors.grey.shade700,
                             ),
                           ),
-                          Text(
-                            email,
-                            style: GoogleFonts.ubuntu(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
+                          Expanded(
+                            child: Text(
+                              email,
+                              style: GoogleFonts.ubuntu(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
@@ -140,14 +147,14 @@ class RegistrationSuccessPage extends StatelessWidget {
               
               const Spacer(),
               
-              // Continue button
+              // Continue button - translated
               FadeInUp(
                 duration: const Duration(milliseconds: 600),
                 child: CustomButton(
-                  text: 'Continue to Login',
+                  text: 'continue_to_login'.tr,
                   onPressed: () {
-                    // Navigate to login page
-                    Get.offAllNamed('/welcome');
+                    // Navigate to login page using GoRouter
+                    context.go('/welcome'); // Using go_router to navigate to welcome page
                   },
                   backgroundColor: ColorPages.COLOR_PRINCIPAL,
                 ),

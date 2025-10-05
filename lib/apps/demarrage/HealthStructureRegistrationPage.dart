@@ -1,15 +1,16 @@
-import 'dart:convert';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:ionicons/ionicons.dart';
-import 'package:http/http.dart' as http;
+import 'package:geolocator/geolocator.dart';
 import '../../core/network/network_manager.dart';
 import '../../core/widgets/network_status_widget.dart';
 import '../config/theme/ColorPages.dart';
-import '../constants/api_constants.dart';
+// api_constants no longer used directly here (submission deferred until verification)
+import 'HealthStructureEmailVerificationPage.dart';
 import '../widgets/CustomTextField.dart';
 import '../widgets/CustomDropdown.dart';
 import '../widgets/CustomButton.dart';
@@ -50,7 +51,10 @@ enum HealthStructureType {
 }
 
 class HealthStructureRegistrationPage extends StatefulWidget {
-  const HealthStructureRegistrationPage({super.key});
+  const HealthStructureRegistrationPage({super.key, this.extra});
+
+  // Expecting same pattern as Hospital/Personal pages: GoRouter extra map
+  final Map<String, dynamic>? extra;
 
   @override
   State<HealthStructureRegistrationPage> createState() => _HealthStructureRegistrationPageState();
@@ -107,16 +111,18 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
   // Loading state
   bool _isLoading = false;
   bool _acceptTerms = false;
+  bool get _isGoogleMode => widget.extra?['registration_mode'] == 'google';
+
+  // Cached google data from extra (if any)
+  Map<String, dynamic>? get _googleData => widget.extra?['google_user'];
   
   // Mock data - in real app, this would come from API
-  final List<String> _genders = ['male', 'female', 'other'];
+  final List<String> _genders = ['male', 'female'];//other
 
   @override
   void initState() {
     super.initState();
     _fetchLocationData();
-    
-    // No need for language controller anymore, using LanguageAwareText
     
     // Debug translations
     print('🌐 Current locale: ${Get.locale}');
@@ -159,6 +165,34 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
         });
       }
     });
+
+    // Prefill for Google mode
+    if (_isGoogleMode) {
+      final g = _googleData ?? {};
+      final email = g['email']?.toString() ?? '';
+      final displayName = g['displayName']?.toString() ?? '';
+      // Attempt to split displayName
+      String firstName = '';
+      String lastName = '';
+      if (displayName.isNotEmpty) {
+        final parts = displayName.split(' ');
+        if (parts.length == 1) {
+          firstName = parts.first;
+        } else if (parts.isNotEmpty) {
+          firstName = parts.first;
+          lastName = parts.sublist(1).join(' ');
+        }
+      }
+      _structureEmailController.text = email;
+      _contactEmailController.text = email; // default; user can change later if needed
+      _adminEmailController.text = email;
+      _contactFirstNameController.text = firstName;
+      _contactLastNameController.text = lastName;
+      _adminFirstNameController.text = firstName;
+      _adminLastNameController.text = lastName;
+      // Auto generate read-only username placeholder
+      _adminUsernameController.text = (email.isNotEmpty ? email.split('@').first : (firstName + lastName).toLowerCase().replaceAll(' ', ''));
+    }
   }
   
   Future<void> _fetchLocationData() async {
@@ -412,7 +446,7 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
     return false;
   }
 
-    @override
+  @override
   void dispose() {
     _structureNameController.dispose();
     _addressController.dispose();
@@ -446,21 +480,36 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
           icon: const Icon(Icons.arrow_back_ios, color: Colors.black87),
           onPressed: () => context.pop(),
         ),
-        title: Text(
-          'health_structure_registration'.tr,
-          style: GoogleFonts.ubuntu(
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            color: Colors.black87,
-          ),
-        ),
+        title: _isGoogleMode
+            ? Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'health_structure_registration'.tr,
+                    style: GoogleFonts.ubuntu(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  _buildGoogleBadge(),
+                ],
+              )
+            : Text(
+                'health_structure_registration'.tr,
+                style: GoogleFonts.ubuntu(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
         centerTitle: true,
       ),
       body: SafeArea(
         child: NetworkStatusWidget(
-          onRetry: _fetchLocationData,
-          // backgroundColor: Colors.red.shade800,
-          offlineMessage: 'connection_error'.tr,
+          preserveSpace: true,
+          absorbPointerWhenOffline: false,
           child: Form(
             key: _formKey,
             child: Column(
@@ -473,7 +522,7 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Location selection (first to affect other fields)
-                        _buildSectionHeader('location'),
+                        _buildSectionHeader('location'.tr),
                         const SizedBox(height: 20),
                       
                       // Location tree selector
@@ -501,73 +550,6 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Debug translation
-                            Container(
-                              margin: const EdgeInsets.only(bottom: 4),
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: Colors.amber.shade50,
-                                border: Border.all(color: Colors.amber),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Direct hardcoded test
-                                  Text('Test 1 - Direct Key Translation: blood_bank = ${'blood_bank'.tr}', 
-                                    style: TextStyle(fontSize: 12, color: Colors.amber.shade900),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  // Variable test
-                                  Text('Test 2 - Enum Label: ${HealthStructureType.BLOOD_BANK.label}', 
-                                    style: TextStyle(fontSize: 12, color: Colors.amber.shade900),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  // Try lowercase for translation
-                                  Text('Test 3 - Lowercase Label with tr: ${HealthStructureType.BLOOD_BANK.label.toLowerCase().tr}', 
-                                    style: TextStyle(fontSize: 12, color: Colors.amber.shade900),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  // Current language info
-                                  Text('Current language: ${Get.locale?.languageCode}_${Get.locale?.countryCode}', 
-                                    style: TextStyle(fontSize: 12, color: Colors.amber.shade900),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  // Test LanguageAwareText directly
-                                  LanguageAwareText(
-                                    'blood_bank',
-                                    style: TextStyle(fontSize: 12, color: Colors.amber.shade900),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  // Debug button to force rebuild and show translations
-                                  ElevatedButton(
-                                    onPressed: () {
-                                      // Force UI refresh
-                                      setState(() {
-                                        // Print all health structure type translations again
-                                        print('🔄 RELOADING TRANSLATIONS');
-                                        print('🌐 Current locale: ${Get.locale}');
-                                        for (var type in HealthStructureType.values) {
-                                          final key = type.label.toLowerCase();
-                                          final translation = key.tr;
-                                          print('🌐 $key -> $translation');
-                                        }
-                                      });
-                                    },
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.amber.shade800,
-                                      minimumSize: Size(double.infinity, 30),
-                                      padding: EdgeInsets.zero,
-                                    ),
-                                    child: Text(
-                                      'Reload Translations', 
-                                      style: TextStyle(fontSize: 12, color: Colors.white),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 8),
                             Container(
                               margin: const EdgeInsets.only(bottom: 10),
                               child: LanguageAwareText(
@@ -606,19 +588,12 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
                                       });
                                     },
                                     items: HealthStructureType.values.map((HealthStructureType type) {
-                                      // Debug print to see if translations are working
-                                      print("Dropdown item: ${type.label} -> ${type.label.toLowerCase().tr} : ${type.toString()}");
-                                      // Check if translation exists for this key in current locale
-                                      final localeKey = Get.locale?.toString() ?? 'en_US';
-                                      final hasTranslation = Get.translations[localeKey]?.containsKey(type.label.toLowerCase()) ?? false;
-                                      print("Translation for ${type.label.toLowerCase()} exists: $hasTranslation");
                                       return DropdownMenuItem<HealthStructureType>(
                                         value: type,
                                         child: Row(
                                           children: [
                                             Icon(type.icon, color: ColorPages.COLOR_PRINCIPAL),
                                             const SizedBox(width: 10),
-                                            // Use LanguageAwareText with key forced to lowercase for consistent lookup
                                             LanguageAwareText(
                                               type.label.toLowerCase(), // Ensure consistent key format for translation
                                               style: GoogleFonts.ubuntu(
@@ -682,11 +657,11 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
                       
                       const SizedBox(height: 30),
                       
-                      // Hospital Information Section
-                      _buildSectionHeader('structure_information'),
+                      // Structure Information Section
+                      _buildSectionHeader('structure_information'.tr),
                       const SizedBox(height: 20),
                       
-                      // Hospital name
+                      // Structure name
                       FadeInUp(
                         duration: const Duration(milliseconds: 600),
                         delay: const Duration(milliseconds: 100),
@@ -704,7 +679,7 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
                       
                       const SizedBox(height: 20),
                       
-                      // Hospital email
+                      // Structure email
                       FadeInUp(
                         duration: const Duration(milliseconds: 600),
                         delay: const Duration(milliseconds: 200),
@@ -714,7 +689,8 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
                           hint: 'hint_structure_email'.tr,
                           prefixIcon: Ionicons.mail_outline,
                           keyboardType: TextInputType.emailAddress,
-                          validator: _validateEmail,
+                          enabled: !_isGoogleMode,
+                          validator: _isGoogleMode ? null : _validateEmail,
                         ),
                       ),
                       
@@ -915,7 +891,7 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
                       const SizedBox(height: 30),
                       
                       // Contact Person Section
-                      _buildSectionHeader('contact_person'),
+                      _buildSectionHeader('contact_person'.tr),
                       const SizedBox(height: 20),
                       
                       // Contact person name
@@ -961,7 +937,7 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
                           value: _contactGender,
                           items: _genders.map((gender) => DropdownMenuItem(
                             value: gender,
-                            child: LanguageAwareText(gender.toLowerCase()), // Use lowercase for consistent lookup
+                            child: Text(gender.tr),
                           )).toList(),
                           onChanged: (value) => setState(() => _contactGender = value),
                           validator: _validateRequired,
@@ -980,7 +956,8 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
                           hint: 'hint_contact_email'.tr,
                           prefixIcon: Ionicons.mail_outline,
                           keyboardType: TextInputType.emailAddress,
-                          validator: _validateEmail,
+                          enabled: !_isGoogleMode,
+                          validator: _isGoogleMode ? null : _validateEmail,
                         ),
                       ),
                       
@@ -1075,7 +1052,7 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
                       const SizedBox(height: 30),
                       
                       // Admin Account Section
-                      _buildSectionHeader('admin_account_information'),
+                      _buildSectionHeader('admin_account_information'.tr),
                       const SizedBox(height: 20),
                       
                       // Admin name
@@ -1121,7 +1098,7 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
                           value: _adminGender,
                           items: _genders.map((gender) => DropdownMenuItem(
                             value: gender,
-                            child: LanguageAwareText(gender.toLowerCase()), // Use lowercase for consistent lookup
+                            child: Text(gender.tr),
                           )).toList(),
                           onChanged: (value) => setState(() => _adminGender = value),
                           validator: _validateRequired,
@@ -1140,7 +1117,8 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
                           hint: 'hint_admin_email'.tr,
                           prefixIcon: Ionicons.mail_outline,
                           keyboardType: TextInputType.emailAddress,
-                          validator: _validateEmail,
+                          enabled: !_isGoogleMode,
+                          validator: _isGoogleMode ? null : _validateEmail,
                         ),
                       ),
                       
@@ -1235,6 +1213,7 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
                       const SizedBox(height: 20),
                       
                       // Admin username
+                      if (!_isGoogleMode)
                       FadeInUp(
                         duration: const Duration(milliseconds: 600),
                         delay: const Duration(milliseconds: 1200),
@@ -1250,6 +1229,7 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
                       const SizedBox(height: 20),
                       
                       // Admin password
+                      if (!_isGoogleMode)
                       FadeInUp(
                         duration: const Duration(milliseconds: 600),
                         delay: const Duration(milliseconds: 1300),
@@ -1266,6 +1246,7 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
                       const SizedBox(height: 20),
                       
                       // Confirm password
+                      if (!_isGoogleMode)
                       FadeInUp(
                         duration: const Duration(milliseconds: 600),
                         delay: const Duration(milliseconds: 1350),
@@ -1293,8 +1274,8 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
                               activeColor: ColorPages.COLOR_PRINCIPAL,
                             ),
                             Expanded(
-                              child: LanguageAwareText(
-                                'accept_terms_and_conditions',
+                              child: Text(
+                                'I accept the terms and conditions',
                                 style: GoogleFonts.ubuntu(
                                   fontSize: 14,
                                   color: Colors.grey[600],
@@ -1310,7 +1291,6 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
                   ),
                 ),
               ),
-              
               // Register button
               Padding(
                 padding: const EdgeInsets.all(24.0),
@@ -1318,7 +1298,7 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
                   duration: const Duration(milliseconds: 600),
                   delay: const Duration(milliseconds: 1500),
                   child: CustomButton(
-                    text: 'register'.tr,
+                    text: _isGoogleMode ? 'continue'.tr : 'register'.tr,
                     onPressed: _isLoading ? null : _handleRegistration,
                     isLoading: _isLoading,
                     backgroundColor: Colors.blue[600]!,
@@ -1328,8 +1308,9 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
             ],
           ),
         ),
-      ),
-    ));
+        ), // end NetworkStatusWidget
+      ), // end SafeArea
+    ); // end Scaffold
   }
 
   Widget _buildSectionHeader(String title) {
@@ -1410,34 +1391,84 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
     
     return null;
   }
-
-  void _getCurrentLocation() {
-    // TODO: Implement location service
-          Get.snackbar(
-      'info'.tr,
-      'location_service_implementation'.tr,
-      snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: Colors.blue,
-      colorText: Colors.white,
-    );
+  
+  // Helper method to safely show a snackbar
+  void _showSnackBar(String message, {bool isError = false}) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: isError ? Colors.red : Colors.green,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
+  Future<void> _getCurrentLocation() async {
+    // Prevent multiple simultaneous requests
+    if (_isLoading) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      // 1. Check if location services are enabled
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        _showSnackBar('Location services are disabled. Please enable them.', isError: true);
+        await Geolocator.openLocationSettings();
+        return;
+      }
+
+      // 2. Check / request permission
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+
+      if (permission == LocationPermission.denied) {
+        _showSnackBar('Location permission denied', isError: true);
+        return;
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        _showSnackBar('Location permissions permanently denied. Please enable in settings.', isError: true);
+        await Geolocator.openAppSettings();
+        return;
+      }
+
+      // 3. Get current position with timeout & high accuracy
+      final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      ).timeout(const Duration(seconds: 12));
+
+      setState(() {
+        _longitudeController.text = position.longitude.toStringAsFixed(6);
+        _latitudeController.text = position.latitude.toStringAsFixed(6);
+      });
+
+      _showSnackBar('Location obtained successfully');
+    } on TimeoutException {
+      _showSnackBar('Timed out while obtaining location. Try again.', isError: true);
+    } catch (e) {
+      print('📍 Error getting location: $e');
+      _showSnackBar('Error obtaining location', isError: true);
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+  
+
   void _handleRegistration() async {
-    final args = ModalRoute.of(context)?.settings.arguments;
-    final bool isGoogle = args is Map && args['registration_mode'] == 'google';
-    print('🔍 Starting hospital registration validation... (googleMode=$isGoogle)');
+    print('🔍 Starting health structure registration validation...');
     
     try {
       // Check form validation
       if (_formKey.currentState == null) {
         print('❌ Form key state is null');
-        Get.snackbar(
-          'error'.tr,
-          'form_validation_error'.tr,
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-        );
+        _showSnackBar('form_validation_error'.tr, isError: true);
         return;
       }
       
@@ -1448,6 +1479,93 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
         return;
       }
 
+      // In Google mode we do not require username/password fields (already hidden)
+      if (_isGoogleMode) {
+        // Skip multi-email verification & directly hit google-register endpoint via AuthService
+        setState(() => _isLoading = true);
+        try {
+          if (_selectedLocation.isEmpty || !_selectedLocation.containsKey('id')) {
+            _showSnackBar('select_valid_location'.tr, isError: true);
+            return;
+          }
+          if (_selectedHealthStructureType == null) {
+            _showSnackBar('select_health_structure_type_error'.tr, isError: true);
+            return;
+          }
+          if (!_acceptTerms) {
+            _showSnackBar('accept_terms_conditions'.tr, isError: true);
+            return;
+          }
+          // We still need valid phones in google mode
+          if (_countryCode == null) {
+            _showSnackBar('select_valid_location_for_phone'.tr, isError: true);
+            return;
+          }
+          final String? structurePhoneError = _validatePhone(_structurePhoneController.text);
+          final String? contactPhoneError = _validatePhone(_contactPhoneController.text);
+          final String? adminPhoneError = _validatePhone(_adminPhoneController.text);
+          if (structurePhoneError != null || contactPhoneError != null || adminPhoneError != null) {
+            setState(() {
+              _structurePhoneError = structurePhoneError;
+              _contactPhoneError = contactPhoneError;
+              _adminPhoneError = adminPhoneError;
+            });
+            return;
+          }
+          final Map<String, dynamic> googlePayload = {
+            'registration_mode': 'google',
+            'account_type': 'health_structure',
+            'health_structure': {
+              'health_structure_name': _structureNameController.text,
+              'email': _structureEmailController.text,
+              'phone_number': _countryCode! + _structurePhoneController.text,
+              'address': _addressController.text,
+              'location_id': _selectedLocation['id'],
+              'health_structure_type_flag': _selectedHealthStructureType!.value,
+              'latitude': _latitudeController.text.isNotEmpty ? double.tryParse(_latitudeController.text) : null,
+              'longitude': _longitudeController.text.isNotEmpty ? double.tryParse(_longitudeController.text) : null,
+            },
+            'contact_person': {
+              'first_name': _contactFirstNameController.text,
+              'last_name': _contactLastNameController.text,
+              'email': _contactEmailController.text,
+              'phone': _countryCode! + _contactPhoneController.text,
+              'gender': _contactGender,
+            },
+            'admin_account': {
+              'first_name': _adminFirstNameController.text,
+              'last_name': _adminLastNameController.text,
+              'email': _adminEmailController.text,
+              'phone': _countryCode! + _adminPhoneController.text,
+              // username/password omitted in google mode (handled server-side)
+              'gender': _adminGender,
+              'google_user': _googleData,
+            }
+          };
+          print('📦 Google health structure payload: $googlePayload');
+          // Lazy import to avoid circular imports at top-level
+          // ignore: unused_local_variable
+          final authServiceImport = true;
+          // Use AuthService
+          // We add the import at file top separately
+          final auth = AuthService();
+          final result = await auth.googleRegister(googlePayload);
+          if (!mounted) return;
+          if (result['success'] == true) {
+            _showSnackBar('registration_success'.tr, isError: false);
+            context.go('/login');
+          } else {
+            _showSnackBar(result['message']?.toString() ?? 'registration_failed'.tr, isError: true);
+          }
+        } catch (e) {
+          print('❌ Google registration error: $e');
+          _showSnackBar('registration_failed'.tr, isError: true);
+        } finally {
+          if (mounted) setState(() => _isLoading = false);
+        }
+        return; // stop normal flow
+      }
+
       // Check if location is selected
       print('🌍 Selected location: $_selectedLocation');
       
@@ -1456,26 +1574,14 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
       
       if (!hasValidLocation) {
         print('❌ Location not selected');
-        Get.snackbar(
-          'error'.tr,
-          'select_valid_location'.tr,
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-        );
+        _showSnackBar('select_valid_location'.tr, isError: true);
         return;
       }
       
       // Check if health structure type is selected
       if (_selectedHealthStructureType == null) {
         print('❌ Health structure type not selected');
-        Get.snackbar(
-          'error'.tr,
-          'select_health_structure_type_error'.tr,
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-        );
+        _showSnackBar('select_health_structure_type_error'.tr, isError: true);
         return;
       }
       
@@ -1506,26 +1612,14 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
         }
       } else {
         print('❌ Country code not set');
-        Get.snackbar(
-          'error'.tr,
-          'select_valid_location_for_phone'.tr,
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-        );
+        _showSnackBar('select_valid_location_for_phone'.tr, isError: true);
         return;
       }
       
       // Check terms acceptance
       if (!_acceptTerms) {
         print('❌ Terms not accepted');
-        Get.snackbar(
-          'error'.tr,
-          'accept_terms_conditions'.tr,
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-        );
+        _showSnackBar('accept_terms_conditions'.tr, isError: true);
         return;
       }
       
@@ -1537,7 +1631,7 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
       // Prepare registration payload
       final Map<String, dynamic> payload = {
         // Structure information
-        'hospital_name': _structureNameController.text,
+        'health_structure_name': _structureNameController.text,
         'email': _structureEmailController.text,
         'phone_number': _countryCode! + _structurePhoneController.text,
         'address': _addressController.text,
@@ -1569,91 +1663,74 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
       
       print('📦 Registration payload prepared: $payload');
       
-      if (isGoogle) {
-        // Use googleRegister endpoint
-        try {
-          final auth = AuthService();
-            final googlePayload = {
-              'account_type': 'health_structure',
-              'registration_provider': 'google',
-              ...payload,
-            };
-          final result = await auth.googleRegister(googlePayload);
-          if (result['success'] == true) {
-            Get.snackbar(
-              'success'.tr,
-              'hospital_registration_successful'.tr,
-              snackPosition: SnackPosition.BOTTOM,
-              backgroundColor: Colors.green,
-              colorText: Colors.white,
-            );
-            Get.offAllNamed('/app/MainApp');
-          } else {
-            Get.snackbar(
-              'error'.tr,
-              (result['message'] ?? 'registration_failed'.tr),
-              snackPosition: SnackPosition.BOTTOM,
-              backgroundColor: Colors.red,
-              colorText: Colors.white,
-            );
-          }
-        } catch (e) {
-          Get.snackbar(
-            'error'.tr,
-            'registration_failed'.tr,
-            snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: Colors.red,
-            colorText: Colors.white,
-          );
-        }
-      } else {
-        // Standard flow
-        final url = ApiConstants.HEALTH_STRUCTURE_REGISTER;
-        print('🔗 Making API request to: $url');
-        final response = await http.post(
-          Uri.parse(url),
-          headers: {
-            'Content-Type': 'application/json',
-            'accept-language': Get.locale?.languageCode ?? 'en'
-          },
-          body: jsonEncode(payload),
+      // Collect unique emails to verify (order: structure, contact, admin)
+      final Set<String> emailSet = {};
+      if (_structureEmailController.text.trim().isNotEmpty) emailSet.add(_structureEmailController.text.trim());
+      if (_contactEmailController.text.trim().isNotEmpty) emailSet.add(_contactEmailController.text.trim());
+      if (_adminEmailController.text.trim().isNotEmpty) emailSet.add(_adminEmailController.text.trim());
+      final emails = emailSet.toList();
+
+      if (emails.isEmpty) {
+        _showSnackBar('email_required'.tr, isError: true);
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      // Navigate to multi-email verification flow BEFORE actual submission
+      if (mounted) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => HealthStructureEmailVerificationPage(
+              emails: emails,
+              registrationPayload: payload,
+            ),
+          ),
         );
-        print('📡 API response status code: ${response.statusCode}');
-        print('📡 API response body: ${response.body}');
-        if (response.statusCode == 201) {
-          final responseData = jsonDecode(response.body);
-          final String? hospitalId = responseData['data']['_id'];
-          Get.snackbar(
-            'success'.tr,
-            'hospital_registration_successful'.tr,
-            snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: Colors.green,
-            colorText: Colors.white,
-          );
-          Get.toNamed('/verify-hospital', arguments: {'hospital_id': hospitalId});
-        } else {
-          final responseData = jsonDecode(response.body);
-          final String errorMessage = responseData['message'] ?? 'registration_failed'.tr;
-          Get.snackbar(
-            'error'.tr,
-            errorMessage,
-            snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: Colors.red,
-            colorText: Colors.white,
-          );
-        }
       }
     } catch (e) {
       print('⚠️ Registration error: $e');
-      Get.snackbar(
-        'error'.tr,
-        'registration_failed'.tr,
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
+      _showSnackBar('registration_failed'.tr, isError: true);
     } finally {
       setState(() => _isLoading = false);
     }
+  }
+}
+
+// === Helper Widgets / Badges ===
+extension _GoogleBadgeExtension on _HealthStructureRegistrationPageState {
+  Widget _buildGoogleBadge() {
+    return Semantics(
+      label: 'Google authenticated'.trParams({}),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(30),
+          border: Border.all(color: Colors.redAccent.withOpacity(0.6), width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.redAccent.withOpacity(0.15),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Ionicons.logo_google, size: 16, color: Colors.redAccent),
+            const SizedBox(width: 6),
+            Text(
+              'Google',
+              style: GoogleFonts.ubuntu(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Colors.redAccent,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

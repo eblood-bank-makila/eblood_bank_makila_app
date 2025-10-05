@@ -1,8 +1,6 @@
 import 'package:eblood_bank_mak_app/apps/config/theme/ColorPages.dart';
 import 'package:eblood_bank_mak_app/commande/ui/pages/panier/PanierCtrl.dart';
-import 'package:eblood_bank_mak_app/commande/ui/pages/panier/PanierPage.dart';
 import 'package:eblood_bank_mak_app/commande/ui/pages/qr_action/QrCodeActionPage.dart';
-import 'package:eblood_bank_mak_app/commande/ui/pages/blood_request/BloodRequestPage.dart';
 import 'package:eblood_bank_mak_app/gestionStocks/ui/pages/banque/BanquePage.dart';
 import 'package:eblood_bank_mak_app/utilisateurs/business/service/NotificationPush.dart';
 import 'package:eblood_bank_mak_app/utilisateurs/ui/framework/UtilisateurLocalServiceImpl.dart';
@@ -19,6 +17,16 @@ import 'package:path_provider/path_provider.dart';
 
 import 'EnhancedBottomNavBar.dart';
 import 'package:path/path.dart';
+import '../connect/network/network_screen.dart';
+import '../connect/announcements/announcements_screen.dart';
+import '../connect/announcements/create_announcements_screen.dart';
+import '../home/customer_home_page.dart';
+import '../home/blood_bank_homepage.dart';
+import '../home/blood_donor_screen.dart';
+import 'package:get_storage/get_storage.dart';
+import '../../gestionStocks/ui/pages/recherchePoche/RecherchePochePage.dart';
+import '../../commande/ui/pages/panier/PanierPage.dart';
+import 'svg_icons/CustomSvgIcons.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -64,16 +72,39 @@ class _BottomNavBarWidgetState extends ConsumerState<BottomNavBarWidget> {
   }
 
   int selectedIndex = 0;
-  late final List<Widget> page;
+  late List<Widget> page;
 
   @override
   void initState() {
-    page = [
-      Banquepage(),
-      PanierPage(),
-      const BloodRequestPage(),
-      ProfilePage(),
-    ];
+    // Build tabs based on account_type
+    final storage = GetStorage();
+    final accountType = (storage.read('account_type') as String?)?.toLowerCase().trim() ?? 'hospital';
+
+    if (accountType == 'customer') {
+      // Customer bottom nav (consumer: simple user / donor)
+      page = [
+        CustomerHomePage(),
+        const AnnouncementsScreen(),
+        const NetworkScreen(),
+        ProfilePage(),
+      ];
+    } else if (accountType == 'blood_bank') {
+      // Customer bottom nav (consumer: simple user / donor)
+      page = [
+        BloodBankHomepage(),
+        const BloodDonorScreen(),
+        const CreateAnnouncementsScreen(),
+        ProfilePage(),
+      ];
+    } else {
+      // Hospital/blood bank default stack (original behavior)
+      page = [
+        Banquepage(),
+        Recherchepage(query: ''),
+        PanierPage(),
+        ProfilePage(),
+      ];
+    }
     Future.delayed(const Duration(seconds: 10), () {
       initiateFCMApp();
     });
@@ -83,9 +114,35 @@ class _BottomNavBarWidgetState extends ConsumerState<BottomNavBarWidget> {
   @override
   Widget build(BuildContext context) {
     var state = ref.watch(panierCtrlProvider);
-    final cartItemCount = state.paniers?.data.isNotEmpty == true
-        ? state.paniers!.data[0].cartItems.length
-        : 0;
+    final cartItemCount = state.paniers?.data.isNotEmpty == true ? state.paniers!.data[0].cartItems.length : 0;
+    final storage = GetStorage();
+    final accountType = (storage.read('account_type') as String?)?.toLowerCase().trim() ?? 'hospital';
+
+    // Build dynamic nav labels/icons per account type
+    final navItems = () {
+      if (accountType == 'customer') {
+        return [
+          NavItemConfig(icon: CustomSvgIcons.home, label: 'Accueil'),
+          NavItemConfig(icon: CustomSvgIcons.heart, label: 'News'),
+          NavItemConfig(icon: CustomSvgIcons.bank, label: 'Réseau'),
+          NavItemConfig(icon: CustomSvgIcons.profile, label: 'Profil'),
+        ];
+      } else if (accountType == 'blood_bank') {
+        return [
+          NavItemConfig(icon: CustomSvgIcons.home, label: 'Tableau'),
+          NavItemConfig(icon: CustomSvgIcons.heart, label: 'Donneurs'),
+          NavItemConfig(icon: CustomSvgIcons.bank, label: 'Annonces'),
+          NavItemConfig(icon: CustomSvgIcons.profile, label: 'Profil'),
+        ];
+      } else {
+        return [
+          NavItemConfig(icon: CustomSvgIcons.home, label: 'Banque'),
+          NavItemConfig(icon: CustomSvgIcons.heart, label: 'Recherche'),
+          NavItemConfig(icon: CustomSvgIcons.bank, label: 'Panier'),
+          NavItemConfig(icon: CustomSvgIcons.profile, label: 'Profil'),
+        ];
+      }
+    }();
 
     return Scaffold(
       body: page[selectedIndex],
@@ -103,6 +160,7 @@ class _BottomNavBarWidgetState extends ConsumerState<BottomNavBarWidget> {
       bottomNavigationBar: EnhancedBottomNavBar(
         currentIndex: selectedIndex,
         cartItemCount: cartItemCount,
+        items: navItems,
         onTap: (value) {
           setState(() {
             selectedIndex = value;

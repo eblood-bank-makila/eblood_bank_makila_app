@@ -22,11 +22,48 @@ class BanqueListeNetworkServiceImpl implements BanqueListeNetworkService {
           "0af4ebc066accceff45fad9ee6f2e9a9a24f6051ddb59b73f188dff0326c1e31"
     });
     debugPrint("body response getuser: ${res.body}", wrapWidth: 1024);
-    var reponseMap = json.decode(res.body) as Map;
-    debugPrint("responseMap $reponseMap");
-    var data = reponseMap['data'] as List;
-    var responseFinal = data.map((e) => BanqueModele.fromJson(e)).toList();
-    return responseFinal;
+
+    if (res.statusCode != 200) {
+      debugPrint("⚠️ Failed to fetch blood banks (status: ${res.statusCode})");
+      return <BanqueModele>[];
+    }
+
+    try {
+      final dynamic decoded = json.decode(res.body);
+      List<dynamic> items = <dynamic>[];
+
+      if (decoded is List) {
+        // API returned a top-level list
+        items = decoded;
+      } else if (decoded is Map) {
+        // Common case: data is under a 'data' key
+        final dynamic data = decoded['data'];
+        if (data is List) {
+          items = data;
+        } else if (data is Map) {
+          // Try common nested list keys
+          const candidateKeys = ['items', 'result', 'rows', 'content', 'records'];
+          for (final key in candidateKeys) {
+            final v = data[key];
+            if (v is List) {
+              items = v;
+              break;
+            }
+          }
+        }
+      }
+
+      debugPrint("responseMap parsed, items length: ${items.length}");
+
+      final responseFinal = items
+          .whereType<Map>()
+          .map((e) => BanqueModele.fromJson(e.cast<String, dynamic>()))
+          .toList();
+      return responseFinal;
+    } catch (e) {
+      debugPrint("❌ Error parsing blood banks response: $e");
+      return <BanqueModele>[];
+    }
   }
 }
 

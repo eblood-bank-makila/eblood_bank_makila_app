@@ -7,11 +7,12 @@ import 'package:eblood_bank_mak_app/apps/demarrage/ModernLoginPage.dart';
 import 'package:eblood_bank_mak_app/apps/demarrage/RegisterWelcomePage.dart';
 import 'package:eblood_bank_mak_app/apps/demarrage/AccountTypeSelectionPage.dart';
 import 'package:eblood_bank_mak_app/apps/demarrage/PersonalRegistrationPage.dart';
-import 'package:eblood_bank_mak_app/apps/demarrage/HospitalRegistrationPage.dart';
+import 'package:eblood_bank_mak_app/apps/demarrage/HealthStructureRegistrationPage.dart';
 import 'package:eblood_bank_mak_app/apps/demarrage/BloodBankRegistrationPage.dart';
 import 'package:eblood_bank_mak_app/apps/debug/FirstLaunchDebugScreen.dart';
-import 'package:eblood_bank_mak_app/apps/widgets/BottomNavBarWidget.dart';
 import 'package:eblood_bank_mak_app/apps/widgets/AccountTypeBasedNavigation.dart';
+import 'package:eblood_bank_mak_app/apps/widgets/ConsumerMainApp.dart';
+import 'package:eblood_bank_mak_app/blood_bank/ui/widgets/BloodBankBottomNavWidget.dart';
 import 'package:eblood_bank_mak_app/apps/widgets/DetailsPocheBanqueWidget.dart';
 import 'package:eblood_bank_mak_app/commande/ui/pages/MessageCommadePage.dart';
 import 'package:eblood_bank_mak_app/commande/ui/pages/panier/PanierPage.dart';
@@ -31,7 +32,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../gestionStocks/business/model/banque/BanqueModele.dart';
-import '../../../gestionStocks/ui/pages/favoris/FavorisCtrl.dart';
 
 final goRouterProvider = Provider<GoRouter>((ref) {
   // Use ref.read instead of ref.watch to prevent continuous rebuilds
@@ -121,11 +121,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             const MaterialPage(child: PersonalRegistrationPage()),
       ),
 
-      // Hospital registration page route
+      // Health Structure registration page route
       GoRoute(
         path: '/hospital-registration',
         pageBuilder: (context, state) =>
-            const MaterialPage(child: HospitalRegistrationPage()),
+            const MaterialPage(child: HealthStructureRegistrationPage()),
       ),
 
       // Blood bank registration page route
@@ -133,6 +133,30 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: '/blood-bank-registration',
         pageBuilder: (context, state) =>
             const MaterialPage(child: BloodBankRegistrationPage()),
+      ),
+
+      // Health Structure verification page route
+      GoRoute(
+        path: '/verify-hospital',
+        pageBuilder: (context, state) {
+          // TODO: Create HealthStructureVerificationPage
+          // For now, return to welcome page
+          
+          // Show a SnackBar after a short delay to ensure it's shown when the page is rendered
+          Future.delayed(const Duration(milliseconds: 300), () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Please verify your health structure with the code sent to your email.'),
+                backgroundColor: Colors.blue,
+                duration: const Duration(seconds: 5),
+              ),
+            );
+          });
+          
+          return const MaterialPage(
+            child: WelcomePage(),
+          );
+        },
       ),
 
       // Debug Screen for First Launch Testing
@@ -200,6 +224,18 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               name: bottomNavBarWidget,
               pageBuilder: (context, state) =>
                   const MaterialPage(child: AccountTypeBasedNavigation()),
+            ),
+            // Blood bank main app (exclusive profile)
+            GoRoute(
+              path: 'BloodBankMainApp',
+              pageBuilder: (context, state) =>
+                  const MaterialPage(child: BloodBankBottomNavWidget()),
+            ),
+            // Consumer main app (simple user, blood donor, and optionally delivery)
+            GoRoute(
+              path: 'ConsumerMainApp',
+              pageBuilder: (context, state) =>
+                  const MaterialPage(child: ConsumerMainApp()),
             ),
             GoRoute(
               path: 'ProfilePage',

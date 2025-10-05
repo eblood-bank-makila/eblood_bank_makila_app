@@ -57,6 +57,7 @@ dependencies:
   firebase_auth: ^5.3.1
   google_sign_in: ^6.2.1
   lottie: ^3.3.2
+  connectivity_plus: ^6.0.5
 
 dev_dependencies:
   flutter_test:
@@ -83,5 +84,7 @@ flutter:
     - assets/icons/
     - assets/images/
     - assets/logo/
+    - assets/animations/
+    - assets/i18n/
     - .env
   

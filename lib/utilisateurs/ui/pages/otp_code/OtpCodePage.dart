@@ -2,12 +2,13 @@ import 'package:animate_do/animate_do.dart';
 import 'package:eblood_bank_mak_app/apps/config/theme/ColorPages.dart';
 import 'package:eblood_bank_mak_app/apps/widgets/ModernSpinnerWidget.dart';
 import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/otp_code/OtpCodeCtrl.dart';
-import 'package:eblood_bank_mak_app/utilisateurs/business/interactors/UtilisateurInteractor.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 
 class OtpCodePage extends ConsumerStatefulWidget {
   const OtpCodePage({super.key});
@@ -17,7 +18,6 @@ class OtpCodePage extends ConsumerStatefulWidget {
 }
 
 class _OtpCodePageState extends ConsumerState<OtpCodePage> {
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   // Individual controllers for each OTP digit
   final List<TextEditingController> _controllers = List.generate(6, (index) => TextEditingController());
@@ -71,8 +71,9 @@ class _OtpCodePageState extends ConsumerState<OtpCodePage> {
 
       if (mounted) {
         if (result['success'] == true) {
-          // OTP verification successful - navigate to main app
-          context.go('/app/MainApp');
+          // OTP verification successful - route based on profiles if needed
+          final route = _computePostLoginRoute();
+          context.go(route);
         } else {
           // Show server error message
           ScaffoldMessenger.of(context).showSnackBar(
@@ -94,6 +95,36 @@ class _OtpCodePageState extends ConsumerState<OtpCodePage> {
       controller.clear();
     }
     _focusNodes[0].requestFocus();
+  }
+
+  String _computePostLoginRoute() {
+    final storage = GetStorage();
+    final dynamic profiles = storage.read('user_profiles');
+    if (profiles is List && profiles.isNotEmpty) {
+      // Collect unique flags
+      final profilFlags = profiles
+          .whereType<Map>()
+          .map((e) => (e['profil'] ?? e['flag'] ?? '').toString())
+          .where((s) => s.isNotEmpty)
+          .toSet();
+
+      // Exclusivity: blood bank and health structure cannot be combined with others
+      if (profilFlags.contains('mobile_app_blood_bank_profil')) {
+        return '/app/BloodBankMainApp';
+      }
+      if (profilFlags.contains('mobile_app_health_structure_profil')) {
+        return '/app/MainApp'; // existing hospital main app
+      }
+
+      // Consumer space: simple user, blood donor, and optional delivery
+      if (profilFlags.contains('mobile_app_simple_user_profil') ||
+          profilFlags.contains('mobile_app_blood_donor_profil') ||
+          profilFlags.contains('mobile_app_delivery_person_profil')) {
+        return '/app/ConsumerMainApp';
+      }
+    }
+    // Default
+    return '/app/ConsumerMainApp';
   }
 
   @override
@@ -121,7 +152,7 @@ class _OtpCodePageState extends ConsumerState<OtpCodePage> {
               _buildModernOtpBody(context),
               ModernLoadingOverlay(
                 isVisible: isLoading,
-                message: 'Vérification du code OTP...',
+                message: 'otp_verification_in_progress'.tr,
                 spinnerType: SpinnerType.pulse,
                 spinnerColor: ColorPages.COLOR_PRINCIPAL,
               ),
@@ -215,7 +246,7 @@ class _OtpCodePageState extends ConsumerState<OtpCodePage> {
             FadeInUp(
               delay: const Duration(milliseconds: 300),
               child: Text(
-                'Vérification OTP',
+                'otp_verification'.tr,
                 style: GoogleFonts.ubuntu(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
@@ -226,13 +257,13 @@ class _OtpCodePageState extends ConsumerState<OtpCodePage> {
 
             const SizedBox(height: 12),
 
-            // Enhanced Subtitle
+            // Enhanced Subtitle (i18n + dynamic target)
             FadeInUp(
               delay: const Duration(milliseconds: 400),
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Text(
-                  'Entrez le code à 6 chiffres envoyé\nà votre adresse e-mail',
+                  _buildOtpSubtitle(),
                   textAlign: TextAlign.center,
                   style: GoogleFonts.ubuntu(
                     fontSize: 16,
@@ -443,7 +474,7 @@ class _OtpCodePageState extends ConsumerState<OtpCodePage> {
             ),
             const SizedBox(width: 8),
             Text(
-              'Vérifier le code',
+              'verify'.tr,
               style: GoogleFonts.ubuntu(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -461,14 +492,14 @@ class _OtpCodePageState extends ConsumerState<OtpCodePage> {
       onPressed: _resendCode,
       child: RichText(
         text: TextSpan(
-          text: 'Vous n\'avez pas reçu le code ? ',
+          text: 'didnt_receive_code'.tr,
           style: GoogleFonts.ubuntu(
             fontSize: 14,
             color: Colors.grey.shade600,
           ),
           children: [
             TextSpan(
-              text: 'Renvoyer',
+              text: 'resend'.tr,
               style: GoogleFonts.ubuntu(
                 fontSize: 14,
                 color: ColorPages.COLOR_PRINCIPAL,
@@ -485,34 +516,42 @@ class _OtpCodePageState extends ConsumerState<OtpCodePage> {
   void _resendCode() async {
     final ctrl = ref.read(otpCodeCtrlProvider.notifier);
 
-    // Get user data to extract token
-    final authProvider = ref.read(utilisateurInteractorProvider);
-    final userUseCase = authProvider.getUserLocalUseCase;
-    final userData = await userUseCase.run();
+    final result = await ctrl.renvoicode('');
+    if (mounted && result != null && result.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('code_resent_email'.tr),
+          backgroundColor: ColorPages.COLOR_PRINCIPAL,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+      _clearAllFields();
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('failed_resend_code'.tr),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
 
-    if (userData?.token != null) {
-      final result = await ctrl.renvoicode(userData!.token);
-
-      if (mounted && result != null && result.isNotEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Un nouveau code vous a été envoyé'),
-            backgroundColor: ColorPages.COLOR_PRINCIPAL,
-            duration: const Duration(seconds: 3),
-          ),
-        );
-        _clearAllFields();
+  String _buildOtpSubtitle() {
+    final storage = GetStorage();
+    final String mfaType = (storage.read('pending_mfa_type') as String?) ?? 'email';
+    if (mfaType == 'phone') {
+      final phone = (storage.read('pending_login_phone') as String?) ?? '';
+      if (phone.isNotEmpty) {
+        return 'verification_code_sent_to_phone'.trParams({'phone': phone});
       }
+      return 'verify_phone'.tr;
     } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Erreur: Impossible de renvoyer le code'),
-            backgroundColor: Colors.red,
-            duration: Duration(seconds: 3),
-          ),
-        );
+      final email = (storage.read('pending_login_email') as String?) ?? '';
+      if (email.isNotEmpty) {
+        return 'verification_code_sent_to'.trParams({'email': email});
       }
+      return 'please_enter_six_digits'.tr;
     }
   }
 }

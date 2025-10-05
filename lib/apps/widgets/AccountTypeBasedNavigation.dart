@@ -4,11 +4,13 @@ import '../../utilisateurs/business/interactors/UtilisateurInteractor.dart';
 import 'BottomNavBarWidget.dart';
 import '../../blood_bank/ui/widgets/BloodBankBottomNavWidget.dart';
 import 'DeliveryPersonBottomNavWidget.dart';
+import 'package:get_storage/get_storage.dart';
 
 enum AccountType {
   hospital,
   bloodBank,
   deliveryPerson,
+  customer,
   unknown,
 }
 
@@ -34,7 +36,7 @@ class _AccountTypeBasedNavigationState extends ConsumerState<AccountTypeBasedNav
       final userInteractor = ref.read(utilisateurInteractorProvider);
       final userData = await userInteractor.getUserLocalCodeUseCase.run();
       
-      if (userData != null) {
+  if (userData != null && userData.uAccountType.isNotEmpty) {
         final accountType = _parseAccountType(userData.uAccountType);
         setState(() {
           _accountType = accountType;
@@ -43,11 +45,15 @@ class _AccountTypeBasedNavigationState extends ConsumerState<AccountTypeBasedNav
         
         debugPrint('🏥 Account Type Determined: ${accountType.name}');
       } else {
+        // Fallback to a value persisted by AuthApi from user_profiles
+        final storage = GetStorage();
+        final stored = (storage.read('account_type') as String?) ?? '';
+        final accountType = _parseAccountType(stored.isNotEmpty ? stored : null);
         setState(() {
-          _accountType = AccountType.unknown;
+          _accountType = accountType;
           _isLoading = false;
         });
-        debugPrint('❌ No user data found');
+        debugPrint('ℹ️ Using stored account_type fallback: ${accountType.name}');
       }
     } catch (e) {
       debugPrint('❌ Error determining account type: $e');
@@ -76,6 +82,10 @@ class _AccountTypeBasedNavigationState extends ConsumerState<AccountTypeBasedNav
       case 'banque_sang':
       case 'banque_de_sang':
         return AccountType.bloodBank;
+      case 'customer':
+      case 'consommateur':
+      case 'consumer':
+        return AccountType.customer;
       case 'delivery':
       case 'delivery_person':
       case 'livreur':
@@ -122,6 +132,8 @@ class _AccountTypeBasedNavigationState extends ConsumerState<AccountTypeBasedNav
         return const BloodBankBottomNavWidget();
       case AccountType.deliveryPerson:
         return const DeliveryPersonBottomNavWidget();
+      case AccountType.customer:
+        return const BottomNavBarWidget(); // Consumer UI
       case AccountType.unknown:
         return const BottomNavBarWidget(); // Fallback to hospital navigation
     }
@@ -138,6 +150,8 @@ extension AccountTypeExtension on AccountType {
         return 'Banque de Sang';
       case AccountType.deliveryPerson:
         return 'Livreur';
+      case AccountType.customer:
+        return 'Client';
       case AccountType.unknown:
         return 'Inconnu';
     }
@@ -151,6 +165,8 @@ extension AccountTypeExtension on AccountType {
         return 'Gestion des stocks et traitement des demandes';
       case AccountType.deliveryPerson:
         return 'Livraison et suivi des commandes';
+      case AccountType.customer:
+        return 'Espace client: commandes et demandes de sang';
       case AccountType.unknown:
         return 'Type de compte non défini';
     }

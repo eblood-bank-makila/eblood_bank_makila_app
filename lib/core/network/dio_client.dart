@@ -14,36 +14,56 @@ class DioClient {
   factory DioClient() => _instance;
 
   DioClient._internal() {
-    _initDio();
-  }
-
-  Dio get dio => _dio;
-
-  Future<void> _initDio() async {
+    // Initialize Dio synchronously to avoid first-call race conditions
     final BaseOptions options = BaseOptions(
       baseUrl: AppConfig.apiBaseUrl,
       connectTimeout: const Duration(milliseconds: 30000),
       receiveTimeout: const Duration(milliseconds: 30000),
       responseType: ResponseType.json,
-      headers: await _getDefaultHeaders(),
+      // Set minimal default headers synchronously; richer headers (device info)
+      // are added in the request interceptor without blocking initialization.
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'api-consumer': AppConfig.apiConsumerKey,
+      },
     );
 
     _dio = Dio(options);
     _setupInterceptors();
   }
 
+  Dio get dio => _dio;
+
+  // Note: Removed async initialization to ensure _dio is ready immediately.
+
   void _setupInterceptors() {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (RequestOptions options, RequestInterceptorHandler handler) async {
           // Add auth token if it exists
-          final String? token = _storage.read<String>('auth_token');
-          if (token != null && token.isNotEmpty) {
-            options.headers['Authorization'] = 'Bearer $token';
+          // Respect an Authorization header explicitly set by the caller (e.g., MFA flow)
+          final bool hasExplicitAuthHeader = options.headers.containsKey('Authorization') &&
+              options.headers['Authorization'] != null &&
+              (options.headers['Authorization'] as String).isNotEmpty;
+
+          if (!hasExplicitAuthHeader) {
+            final String? token = _storage.read<String>('auth_token');
+            if (token != null && token.isNotEmpty) {
+              options.headers['Authorization'] = 'Bearer $token';
+            }
           }
 
-          // Update headers on each request to ensure they're current
-          options.headers.addAll(await _getDefaultHeaders());
+          // Update headers on each request to ensure they're current.
+          // This augments the minimal headers configured at construction time
+          // with dynamic values (like device info) without blocking startup.
+          try {
+            options.headers.addAll(await _getDefaultHeaders());
+          } catch (e) {
+            if (kDebugMode) {
+              print('Could not augment headers: $e');
+            }
+          }
 
           if (kDebugMode) {
             print('REQUEST[${options.method}] => PATH: ${options.path}');

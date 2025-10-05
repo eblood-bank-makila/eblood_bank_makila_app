@@ -170,23 +170,23 @@ class RegisterWelcomePage extends ConsumerWidget {
                           },
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      // const SizedBox(height: 12),
 
-                      FadeInUp(
-                        duration: const Duration(milliseconds: 600),
-                        delay: const Duration(milliseconds: 900),
-                        child: _buildSocialRegisterButton(
-                          context: context,
-                          icon: Ionicons.phone_portrait_outline,
-                          text: 'create_account_with_phone_number'.tr,
-                          color: ColorPages.COLOR_PRINCIPAL,
-                          textColor: Colors.white,
-                          onPressed: () {
-                            // Navigate to account type selection with phone registration flag
-                            context.push('/account-type-selection', extra: {'verification_mode': 'phone'});
-                          },
-                        ),
-                      ),
+                      // FadeInUp(
+                      //   duration: const Duration(milliseconds: 600),
+                      //   delay: const Duration(milliseconds: 900),
+                      //   child: _buildSocialRegisterButton(
+                      //     context: context,
+                      //     icon: Ionicons.phone_portrait_outline,
+                      //     text: 'create_account_with_phone_number'.tr,
+                      //     color: ColorPages.COLOR_PRINCIPAL,
+                      //     textColor: Colors.white,
+                      //     onPressed: () {
+                      //       // Navigate to account type selection with phone registration flag
+                      //       context.push('/account-type-selection', extra: {'verification_mode': 'phone'});
+                      //     },
+                      //   ),
+                      // ),
                       const SizedBox(height: 12),
 
                       FadeInUp(
@@ -372,8 +372,14 @@ class RegisterWelcomePage extends ConsumerWidget {
       final userCredential = await authService.signInWithGoogle();
 
       if (userCredential != null && context.mounted) {
-        // Successfully signed in, navigate to main app
-        context.go('/app/MainApp');
+        final user = userCredential.user;
+        // Navigate to account type selection carrying google info
+        context.push('/account-type-selection', extra: {
+          'registration_mode': 'google',
+          'google_email': user?.email,
+          'google_display_name': user?.displayName,
+          'google_photo_url': user?.photoURL,
+        });
       }
     } catch (e) {
       if (context.mounted) {

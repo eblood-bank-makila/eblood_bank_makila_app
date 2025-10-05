@@ -103,13 +103,15 @@ class _OTPVerificationPageState extends State<OTPVerificationPage> {
             _isLoading = false;
           });
           
-          Get.snackbar(
-            'verification_error'.tr,
-            'missing_validation_key_try_again'.tr,
-            snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: Colors.red,
-            colorText: Colors.white,
-            duration: const Duration(seconds: 4),
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'something_wrong_try_again'.tr,
+                style: const TextStyle(color: Colors.white),
+              ),
+              backgroundColor: Colors.redAccent,
+              duration: const Duration(seconds: 3),
+            ),
           );
           return;
         }
@@ -136,25 +138,31 @@ class _OTPVerificationPageState extends State<OTPVerificationPage> {
           
           if (registrationResult['success'] == true) {
             // Registration successful, navigate to success page
-            Get.off(() => RegistrationSuccessPage(
-              phoneNumber: widget.phoneNumber,
-              email: widget.email,
-              token: registrationResult['data']?['token'] ?? '',
-            ));
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (context) => RegistrationSuccessPage(
+                  phoneNumber: widget.phoneNumber,
+                  email: widget.email,
+                  token: registrationResult['data']?['token'] ?? '',
+                ),
+              ),
+            );
           } else {
             setState(() {
               _errorMessage = registrationResult['message'];
               _isLoading = false;
             });
             
-            // Show error in a snackbar for better visibility
-            Get.snackbar(
-              'registration_failed'.tr,
-              registrationResult['message'] ?? 'registration_failed_after_verification'.tr,
-              snackPosition: SnackPosition.BOTTOM,
-              backgroundColor: Colors.red,
-              colorText: Colors.white,
-              duration: const Duration(seconds: 4),
+            // Show error in a snackbar for better visibility using ScaffoldMessenger
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  registrationResult['message'] ?? 'registration_failed_after_verification'.tr,
+                  style: const TextStyle(color: Colors.white),
+                ),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 4),
+              ),
             );
           }
         } else {
@@ -164,13 +172,15 @@ class _OTPVerificationPageState extends State<OTPVerificationPage> {
           });
           
           // Show error in a snackbar for better visibility
-          Get.snackbar(
-            'verification_failed'.tr,
-            verificationResult['message'] ?? 'check_otp_code'.tr,
-            snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: Colors.red,
-            colorText: Colors.white,
-            duration: const Duration(seconds: 4),
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                verificationResult['message'] ?? 'check_otp_code'.tr,
+                style: const TextStyle(color: Colors.white),
+              ),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 4),
+            ),
           );
         }
       } else {
@@ -182,11 +192,15 @@ class _OTPVerificationPageState extends State<OTPVerificationPage> {
         
         if (result['success']) {
           // Navigate to success page
-          Get.off(() => RegistrationSuccessPage(
-            phoneNumber: widget.phoneNumber,
-            email: widget.email,
-            token: result['token'],
-          ));
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => RegistrationSuccessPage(
+                phoneNumber: widget.phoneNumber,
+                email: widget.email,
+                token: result['token'],
+              ),
+            ),
+          );
         } else {
           setState(() {
             _errorMessage = result['message'];
@@ -194,13 +208,15 @@ class _OTPVerificationPageState extends State<OTPVerificationPage> {
           });
           
           // Show error in a snackbar for better visibility
-          Get.snackbar(
-            'verification_failed'.tr,
-            result['message'] ?? 'check_otp_code'.tr,
-            snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: Colors.red,
-            colorText: Colors.white,
-            duration: const Duration(seconds: 4),
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                result['message'] ?? 'check_otp_code'.tr,
+                style: const TextStyle(color: Colors.white),
+              ),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 4),
+            ),
           );
         }
       }
@@ -211,13 +227,15 @@ class _OTPVerificationPageState extends State<OTPVerificationPage> {
       });
       
       // Show error in a snackbar for better visibility
-      Get.snackbar(
-        'error'.tr,
-        'verification_error_details'.trParams({'error': e.toString()}),
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-        duration: const Duration(seconds: 4),
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'verification_error_details'.trParams({'error': e.toString()}),
+            style: const TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
+        ),
       );
     }
   }
@@ -250,12 +268,15 @@ class _OTPVerificationPageState extends State<OTPVerificationPage> {
             // So we'll just use the new one in the UI or reload the page
           }
           
-          Get.snackbar(
-            'success'.tr,
-            'new_code_sent_email'.tr,
-            snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: Colors.green,
-            colorText: Colors.white,
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'new_code_sent_email'.tr,
+                style: const TextStyle(color: Colors.white),
+              ),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 3),
+            ),
           );
           
           // Reset timer
@@ -270,12 +291,15 @@ class _OTPVerificationPageState extends State<OTPVerificationPage> {
         final result = await _authService.resendOTP(widget.phoneNumber);
         
         if (result['success']) {
-          Get.snackbar(
-            'success'.tr,
-            'code_resent_email'.tr,
-            snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: Colors.green,
-            colorText: Colors.white,
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'code_resent_email'.tr,
+                style: const TextStyle(color: Colors.white),
+              ),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 3),
+            ),
           );
           
           // Reset timer
@@ -291,12 +315,15 @@ class _OTPVerificationPageState extends State<OTPVerificationPage> {
         _errorMessage = 'failed_resend_code'.tr;
       });
       
-      Get.snackbar(
-        'error'.tr,
-        'failed_resend_code_details'.trParams({'error': e.toString()}),
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'failed_resend_code_details'.trParams({'error': e.toString()}),
+            style: const TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
       );
     } finally {
       setState(() {

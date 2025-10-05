@@ -72,8 +72,8 @@ class DioClient extends getx.GetxService {
   }) async {
     try {
       // Check connectivity
-      final connectivityResult = await Connectivity().checkConnectivity();
-      if (connectivityResult.contains(ConnectivityResult.none)) {
+      final connectivityResult = await (Connectivity()).checkConnectivity();
+      if (connectivityResult == ConnectivityResult.none) {
         return {
           'success': false,
           'message': 'No internet connection. Please check your network and try again.',

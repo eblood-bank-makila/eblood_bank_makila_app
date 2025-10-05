@@ -6,6 +6,45 @@ class AppTranslations extends Translations {
   Map<String, Map<String, String>> get keys => {
     // French translations
     'fr_FR': {
+      // Registration Success Page
+      'registration_successful': 'Inscription Réussie !',
+      'account_created_successfully': 'Votre compte a été créé avec succès. Vous pouvez maintenant vous connecter pour accéder à toutes les fonctionnalités.',
+      'phone_label': 'Téléphone',
+      'continue_to_login': 'Continuer vers la Connexion',
+      // Login (standardized keys)
+      'login_subtitle': 'Connectez-vous pour accéder à votre tableau de bord sécurisé',
+      'login_no_account': 'Vous n\'avez pas de compte ? ',
+      
+      // Health Structure Registration
+      'you_selected': 'Vous avez sélectionné :',
+      'health_structure_registration': 'Inscription de Structure de Santé',
+      'structure_location': 'Emplacement de la Structure de Santé',
+      'health_structure_type': 'Type de Structure de Santé',
+      'select_health_structure_type': 'Sélectionner le type de structure de santé',
+      'select_health_structure_type_error': 'Veuillez sélectionner un type de structure de santé',
+      'structure_information': 'Informations sur la Structure de Santé',
+      'structure_name': 'Nom de la Structure de Santé',
+      'structure_phone': 'Téléphone de la Structure de Santé',
+      'hint_structure_name': 'Entrez le nom de la structure de santé',
+      'hint_structure_email': 'Entrez l\'email de la structure de santé',
+      'hint_structure_address': 'Entrez l\'adresse de la structure de santé',
+      
+      // Health Structure Types
+      'blood_bank': 'Banque de Sang',
+      'general_hospital': 'Hôpital Général',
+      'clinic': 'Clinique',
+      'pharmacy': 'Pharmacie',
+      'health_center': 'Centre de Santé',
+      'maternity': 'Maternité',
+      'medical_lab': 'Laboratoire Médical',
+      'rehabilitation_center': 'Centre de Réhabilitation',
+      'health_care_center': 'Centre de Soins',
+      'mental_health_center': 'Centre de Santé Mentale',
+      'retirement_home': 'Maison de Retraite',
+      'emergency_center': 'Centre d\'Urgence',
+      'university_hospital': 'Hôpital Universitaire',
+      'private_practice': 'Cabinet Privé',
+      
       // General
       'app_name': 'eBlood Bank Makila',
       'app_tagline': 'Votre Connexion Vitale au Sang',
@@ -23,6 +62,7 @@ class AppTranslations extends Translations {
       'ok': 'OK',
       'done': 'Terminé',
       'loading': 'Chargement...',
+  'login_in_progress': 'Connexion en cours... ',
       'error': 'Erreur',
       'success': 'Succès',
       'warning': 'Avertissement',
@@ -92,6 +132,8 @@ class AppTranslations extends Translations {
       // OTP Verification
       'verify_email': 'Vérifier l\'email',
       'verify_phone': 'Vérifier le téléphone',
+  'verify_emails': 'Vérifier les emails',
+  'verify_each_email_before_submission': 'Veuillez vérifier chaque email avant la soumission',
       'otp_verification': 'Vérification OTP',
       'verification_code_sent_to': 'Nous avons envoyé un code de vérification à\n@email',
       'verification_code_sent_to_phone': 'Nous avons envoyé un code de vérification au\n@phone',
@@ -113,6 +155,7 @@ class AppTranslations extends Translations {
       'code_resent_email': 'Le code de vérification a été renvoyé à votre adresse email',
       'failed_resend_code': 'Échec de l\'envoi du code de vérification',
       'failed_resend_code_details': 'Échec de l\'envoi du code de vérification: @error',
+  'otp_verification_in_progress': 'Vérification du code OTP... ',
 
       // Account Types
       'select_account_type': 'Sélectionner le type de compte',
@@ -121,6 +164,9 @@ class AppTranslations extends Translations {
       'personal_account_description': 'Pour les donneurs et receveurs individuels',
       'hospital_account': 'Compte Hôpital',
       'hospital_account_description': 'Pour les établissements hospitaliers',
+  // New generalized health structure keys (replacing hospital_account in UI)
+  'health_structure_account': 'Structure de Santé',
+  'health_structure_account_description': 'Pour les structures et établissements de santé',
       'blood_bank_account': 'Compte Banque de Sang',
       'blood_bank_account_description': 'Pour les banques de sang et centres de transfusion',
 
@@ -222,6 +268,11 @@ class AppTranslations extends Translations {
       'select_valid_location': 'Veuillez sélectionner un emplacement valide',
       'terms_and_conditions_acceptance': 'J\'accepte les conditions générales',
       'select_date_of_birth': 'Sélectionnez votre date de naissance',
+      'phone_required': 'Le numéro de téléphone est obligatoire',
+      'phone_only_digits': 'Le numéro doit contenir uniquement des chiffres',
+      'invalid_phone_prefix': 'Le préfixe de téléphone est invalide',
+      'invalid_phone_length': 'La longueur du numéro est invalide',
+      'valid_prefixes': 'Préfixes valides :',
       
       // Form hints
       'hint_first_name': 'Entrez votre prénom',
@@ -236,10 +287,69 @@ class AppTranslations extends Translations {
       'hint_select_reason': 'Sélectionnez votre raison d\'inscription',
       'hint_password': 'Entrez votre mot de passe',
       'hint_confirm_password': 'Confirmez votre mot de passe',
+      
+      // Hospital registration specifics
+      'hospital_location': 'Emplacement de l\'hôpital',
+      'select_location': 'Sélectionner un emplacement',
+      'hint_hospital_name': 'Entrez le nom de l\'hôpital',
+      'hint_hospital_email': 'Entrez l\'email de l\'hôpital',
+      'hint_hospital_address': 'Entrez l\'adresse de l\'hôpital',
+      'hint_longitude': 'Entrez la longitude',
+      'hint_latitude': 'Entrez la latitude',
+      'hint_contact_email': 'Entrez l\'email de contact',
+      'hint_admin_email': 'Entrez l\'email de l\'administrateur',
+      'hint_admin_username': 'Entrez le nom d\'utilisateur de l\'administrateur',
+      'select_valid_location_for_phone': 'Veuillez sélectionner un emplacement valide pour le numéro de téléphone',
+      'form_validation_error': 'Erreur de validation du formulaire',
+      'form_validation_error_with_details': 'Erreur de validation du formulaire: {error}',
+      'hospital_registration_successful': 'Inscription de l\'hôpital réussie!',
+      'location_service_implementation': 'Le service de localisation sera implémenté prochainement',
+      // Submission actions
+      'submit_registration': 'Soumettre l\'inscription',
+      'submitting': 'Soumission en cours...',
     },
     
     // English translations
     'en_US': {
+      // Registration Success Page
+      'registration_successful': 'Registration Successful!',
+      'account_created_successfully': 'Your account has been created successfully. You can now log in to access all features.',
+      'phone_label': 'Phone',
+      'continue_to_login': 'Continue to Login',
+      // Login (standardized keys)
+      'login_subtitle': 'Sign in to continue to your secure dashboard',
+      'login_no_account': "Don't have an account? ",
+      
+      // Health Structure Registration
+      'you_selected': 'You selected:',
+      'health_structure_registration': 'Health Structure Registration',
+      'structure_location': 'Health Structure Location',
+      'health_structure_type': 'Health Structure Type',
+      'select_health_structure_type': 'Select health structure type',
+      'select_health_structure_type_error': 'Please select a health structure type',
+      'structure_information': 'Health Structure Information',
+      'structure_name': 'Health Structure Name',
+      'structure_phone': 'Health Structure Phone',
+      'hint_structure_name': 'Enter health structure name',
+      'hint_structure_email': 'Enter health structure email',
+      'hint_structure_address': 'Enter structure address',
+      
+      // Health Structure Types
+      'blood_bank': 'Blood Bank',
+      'general_hospital': 'General Hospital',
+      'clinic': 'Clinic',
+      'pharmacy': 'Pharmacy',
+      'health_center': 'Health Center',
+      'maternity': 'Maternity',
+      'medical_lab': 'Medical Laboratory',
+      'rehabilitation_center': 'Rehabilitation Center',
+      'health_care_center': 'Health Care Center',
+      'mental_health_center': 'Mental Health Center',
+      'retirement_home': 'Retirement Home',
+      'emergency_center': 'Emergency Center',
+      'university_hospital': 'University Hospital',
+      'private_practice': 'Private Practice',
+      
       // General
       'app_name': 'eBlood Bank Makila',
       'app_tagline': 'Your Vital Blood Connection',
@@ -257,6 +367,7 @@ class AppTranslations extends Translations {
       'ok': 'OK',
       'done': 'Done',
       'loading': 'Loading...',
+  'login_in_progress': 'Logging in...',
       'error': 'Error',
       'success': 'Success',
       'warning': 'Warning',
@@ -326,6 +437,8 @@ class AppTranslations extends Translations {
       // OTP Verification
       'verify_email': 'Verify Email',
       'verify_phone': 'Verify Phone',
+  'verify_emails': 'Verify Emails',
+  'verify_each_email_before_submission': 'Verify each email before submission',
       'otp_verification': 'OTP Verification',
       'verification_code_sent_to': 'We have sent a verification code to\n@email',
       'verification_code_sent_to_phone': 'We have sent a verification code to\n@phone',
@@ -347,6 +460,7 @@ class AppTranslations extends Translations {
       'code_resent_email': 'Verification code has been resent to your email',
       'failed_resend_code': 'Failed to resend verification code',
       'failed_resend_code_details': 'Failed to resend verification code: @error',
+  'otp_verification_in_progress': 'Verifying OTP code...',
 
       // Account Types
       'select_account_type': 'Select Account Type',
@@ -355,6 +469,9 @@ class AppTranslations extends Translations {
       'personal_account_description': 'For individual donors and recipients',
       'hospital_account': 'Hospital Account',
       'hospital_account_description': 'For hospital establishments',
+  // New generalized health structure keys (replacing hospital_account in UI)
+  'health_structure_account': 'Health Structure Account',
+  'health_structure_account_description': 'For health structures and medical establishments',
       'blood_bank_account': 'Blood Bank Account',
       'blood_bank_account_description': 'For blood banks and transfusion centers',
 
@@ -446,6 +563,11 @@ class AppTranslations extends Translations {
       'email_invalid': 'Please enter a valid email address',
       'password_required': 'Password is required',
       'password_min_length': 'Password must be at least 8 characters',
+      'phone_required': 'Phone number is required',
+      'phone_only_digits': 'Phone number must contain only digits',
+      'invalid_phone_prefix': 'Invalid phone prefix',
+      'invalid_phone_length': 'Invalid phone number length',
+      'valid_prefixes': 'Valid prefixes:',
       'confirm_password_required': 'Please confirm your password',
       'passwords_not_match': 'Passwords do not match',
       'date_of_birth_required': 'Date of birth is required',
@@ -470,10 +592,34 @@ class AppTranslations extends Translations {
       'hint_select_reason': 'Select your reason for registration',
       'hint_password': 'Enter your password',
       'hint_confirm_password': 'Confirm your password',
+      
+      // Hospital registration specifics
+      'hospital_location': 'Hospital Location',
+      'select_location': 'Select location',
+      'hint_hospital_name': 'Enter hospital name',
+      'hint_hospital_email': 'Enter hospital email',
+      'hint_hospital_address': 'Enter hospital address',
+      'hint_longitude': 'Enter longitude',
+      'hint_latitude': 'Enter latitude',
+      'hint_contact_email': 'Enter contact email',
+      'hint_admin_email': 'Enter admin email',
+      'hint_admin_username': 'Enter admin username',
+      'select_valid_location_for_phone': 'Please select a valid location for phone number',
+      'form_validation_error': 'Form validation error',
+      'form_validation_error_with_details': 'Form validation error: {error}',
+      'hospital_registration_successful': 'Hospital registration successful!',
+      'location_service_implementation': 'Location service will be implemented soon',
+      // Submission actions
+      'submit_registration': 'Submit Registration',
+      'submitting': 'Submitting...',
     },
 
     // Spanish translations
     'es_ES': {
+      // Login (standardized keys)
+      'login_subtitle': 'Inicia sesión para continuar a tu panel seguro',
+      'login_no_account': '¿No tienes una cuenta? ',
+      'login_in_progress': 'Iniciando sesión...',
       // General
       'app_name': 'eBlood Bank Makila',
       'app_tagline': 'Tu Conexión Vital de Sangre',
@@ -497,6 +643,12 @@ class AppTranslations extends Translations {
       'info': 'Información',
       'retry': 'Reintentar',
       'refresh': 'Actualizar',
+    // Submission actions
+    'submit_registration': 'Enviar Registro',
+    'submitting': 'Enviando...',
+  // OTP (additions for health structure multi-email)
+  'verify_emails': 'Verificar correos',
+  'verify_each_email_before_submission': 'Verifique cada correo antes de enviar',
       'search_action': 'Buscar',
       'filter': 'Filtrar',
       'sort': 'Ordenar',
@@ -557,6 +709,19 @@ class AppTranslations extends Translations {
       'sign_up': 'Registrarse',
       'sign_out': 'Cerrar Sesión',
 
+  // OTP Verification
+  'otp_verification': 'Verificación OTP',
+  'verification_code_sent_to': 'Hemos enviado un código de verificación a\n@email',
+  'verification_code_sent_to_phone': 'Hemos enviado un código de verificación a\n@phone',
+  'didnt_receive_code': '¿No recibiste el código? ',
+  'sending': 'Enviando...',
+  'resend': 'Reenviar',
+  'verify': 'Verificar',
+  'please_enter_six_digits': 'Por favor ingresa los 6 dígitos del código OTP',
+  'code_resent_email': 'El código de verificación ha sido reenviado a tu correo',
+  'failed_resend_code': 'Error al reenviar el código de verificación',
+  'otp_verification_in_progress': 'Verificando código OTP...',
+
       // Blood Types
       'blood_type': 'Tipo de Sangre',
       'blood_type_a_positive': 'A+',
@@ -606,6 +771,9 @@ class AppTranslations extends Translations {
 
     // Lingala translations
     'ln_CD': {
+      // Login (standardized keys)
+      'login_subtitle': 'Kota mpo na kokoba na panneau na yo ya sécurité',
+      'login_no_account': 'Ozali na compte te? ',
       // General
       'app_name': 'eBlood Bank Makila',
       'app_tagline': 'Bokutani na Yo ya Bomoi na Makila',
@@ -727,6 +895,9 @@ class AppTranslations extends Translations {
 
     // Arabic translations
     'ar_SA': {
+      // Login (standardized keys)
+      'login_subtitle': 'سجّل الدخول للمتابعة إلى لوحة التحكم الآمنة',
+      'login_no_account': 'ليس لديك حساب؟ ',
       // General
       'app_name': 'eBlood Bank Makila',
       'app_tagline': 'اتصالك الحيوي بالدم',
@@ -859,6 +1030,9 @@ class AppTranslations extends Translations {
 
     // Russian translations
     'ru_RU': {
+      // Login (standardized keys)
+      'login_subtitle': 'Войдите, чтобы продолжить в защищённую панель',
+      'login_no_account': 'Нет аккаунта? ',
       // General
       'app_name': 'eBlood Bank Makila',
       'app_tagline': 'Ваша Жизненная Связь с Кровью',

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
@@ -78,16 +79,20 @@ class _ModernLoginPageState extends ConsumerState<ModernLoginPage> {
           _passwordController.text,
         );
 
-        // Handle successful authentication - follow the correct flow
+        // Handle successful authentication - align with connect flow
         if (result != null && result.token.isNotEmpty && mounted) {
-          debugPrint('✅ Login successful, navigating to OTP page');
-          // Navigate to OTP page (correct flow: Login → OTP → Home)
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const OtpCodePage(),
-            ),
-          );
+          if (result.token == 'mfa') {
+            debugPrint('✅ Login successful, MFA required → navigating to OTP page');
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const OtpCodePage(),
+              ),
+            );
+          } else {
+            debugPrint('✅ Login successful without MFA → navigating to main app');
+            context.go('/app/MainApp');
+          }
         } else if (result == null && mounted) {
           debugPrint('❌ Login failed, showing error message');
           // Clear any stale tokens on failed login
@@ -173,7 +178,7 @@ class _ModernLoginPageState extends ConsumerState<ModernLoginPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Bon retour !',
+                            'welcome_back'.tr,
                             style: GoogleFonts.ubuntu(
                               fontSize: 32,
                               fontWeight: FontWeight.bold,
@@ -182,7 +187,7 @@ class _ModernLoginPageState extends ConsumerState<ModernLoginPage> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Connectez-vous à votre compte',
+                            'login_subtitle'.tr,
                             style: GoogleFonts.ubuntu(
                               fontSize: 16,
                               color: Colors.white.withValues(alpha: 0.9),
@@ -275,7 +280,7 @@ class _ModernLoginPageState extends ConsumerState<ModernLoginPage> {
                                           });
                                         },
                                         child: Text(
-                                          'Se souvenir de moi',
+                                          'remember_me'.tr,
                                           style: GoogleFonts.ubuntu(
                                             fontSize: 14,
                                             color: Colors.grey.shade700,
@@ -304,7 +309,7 @@ class _ModernLoginPageState extends ConsumerState<ModernLoginPage> {
                                     );
                                   },
                                   child: Text(
-                                    'Mot de passe oublié ?',
+                                    'forgot_password'.tr,
                                     style: GoogleFonts.ubuntu(
                                       color: ColorPages.COLOR_PRINCIPAL,
                                       fontWeight: FontWeight.w500,
@@ -335,7 +340,7 @@ class _ModernLoginPageState extends ConsumerState<ModernLoginPage> {
                                           size: 24,
                                         )
                                       : Text(
-                                          'Se connecter',
+                                          'login'.tr,
                                           style: GoogleFonts.ubuntu(
                                             fontSize: 16,
                                             fontWeight: FontWeight.w600,
@@ -351,7 +356,7 @@ class _ModernLoginPageState extends ConsumerState<ModernLoginPage> {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Text(
-                                    'Pas encore de compte ? ',
+                                    'login_no_account'.tr,
                                     style: GoogleFonts.ubuntu(
                                       color: Colors.grey.shade600,
                                     ),
@@ -361,7 +366,7 @@ class _ModernLoginPageState extends ConsumerState<ModernLoginPage> {
                                       context.go('/register');
                                     },
                                     child: Text(
-                                      'S\'inscrire',
+                                      'register'.tr,
                                       style: GoogleFonts.ubuntu(
                                         color: ColorPages.COLOR_PRINCIPAL,
                                         fontWeight: FontWeight.w600,
@@ -386,7 +391,7 @@ class _ModernLoginPageState extends ConsumerState<ModernLoginPage> {
               // Modern loading overlay
               ModernLoadingOverlay(
                 isVisible: isLoading,
-                message: 'Connexion en cours...',
+                message: 'login_in_progress'.tr,
                 spinnerType: SpinnerType.bloodDrop,
                 spinnerColor: ColorPages.COLOR_PRINCIPAL,
               ),

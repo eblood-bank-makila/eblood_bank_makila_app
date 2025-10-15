@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:get/get.dart';
 import '../../config/theme/ColorPages.dart';
 import 'announcements_service.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/notification/NotificationPage.dart';
 
 class CreateAnnouncementsScreen extends StatefulWidget {
-  const CreateAnnouncementsScreen({super.key});
+  final String? initialType;
+  const CreateAnnouncementsScreen({super.key, this.initialType});
 
   @override
   State<CreateAnnouncementsScreen> createState() => _CreateAnnouncementsScreenState();
@@ -29,6 +31,14 @@ class _CreateAnnouncementsScreenState extends State<CreateAnnouncementsScreen> {
     super.dispose();
   }
 
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialType != null && widget.initialType!.isNotEmpty) {
+      _type = widget.initialType!;
+    }
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _submitting = true);
@@ -46,7 +56,7 @@ class _CreateAnnouncementsScreenState extends State<CreateAnnouncementsScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Annonce créée avec succès'),
+          content: Text('announcement_created_success'.tr),
           backgroundColor: ColorPages.COLOR_PRINCIPAL,
         ),
       );
@@ -116,8 +126,8 @@ class _CreateAnnouncementsScreenState extends State<CreateAnnouncementsScreen> {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('E-Blood Bank', style: GoogleFonts.ubuntu(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
-                            Text('Créer une annonce', style: GoogleFonts.ubuntu(fontSize: 12, color: Colors.white.withValues(alpha: 0.9))),
+                            Text('app_name'.tr, style: GoogleFonts.ubuntu(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                            Text('create_announcement'.tr, style: GoogleFonts.ubuntu(fontSize: 12, color: Colors.white.withValues(alpha: 0.9))),
                           ],
                         ),
                       ],
@@ -149,42 +159,42 @@ class _CreateAnnouncementsScreenState extends State<CreateAnnouncementsScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _sectionTitle('Informations'),
+                          _sectionTitle('information'.tr),
                           const SizedBox(height: 8),
                           _input(
-                            label: 'Titre',
+                            label: 'title'.tr,
                             controller: _titleCtrl,
-                            validator: (v) => (v == null || v.trim().isEmpty) ? 'Titre requis' : null,
+                            validator: (v) => (v == null || v.trim().isEmpty) ? 'title_required'.tr : null,
                           ),
                           const SizedBox(height: 12),
                           _dropdown(
-                            label: 'Type',
+                            label: 'type'.tr,
                             value: _type,
-                            items: const ['Blood Request', 'Campaign', 'News'],
+                            items: const ['Blood Request', 'Campaign', 'Event', 'News'],
                             onChanged: (val) => setState(() => _type = val ?? _type),
                           ),
                           const SizedBox(height: 12),
                           _input(
-                            label: 'Lieu',
+                            label: 'location'.tr,
                             controller: _locationCtrl,
-                            validator: (v) => (v == null || v.trim().isEmpty) ? 'Lieu requis' : null,
+                            validator: (v) => (v == null || v.trim().isEmpty) ? 'location_required'.tr : null,
                           ),
 
                           const SizedBox(height: 24),
-                          _sectionTitle('Détails'),
+                          _sectionTitle('details'.tr),
                           const SizedBox(height: 8),
                           _dropdown(
-                            label: 'Priorité',
+                            label: 'priority'.tr,
                             value: _priority,
                             items: const ['urgent', 'high', 'normal', 'low'],
                             onChanged: (val) => setState(() => _priority = val ?? _priority),
                           ),
                           const SizedBox(height: 12),
                           _input(
-                            label: 'Description',
+                            label: 'description'.tr,
                             controller: _descriptionCtrl,
                             maxLines: 5,
-                            validator: (v) => (v == null || v.trim().isEmpty) ? 'Description requise' : null,
+                            validator: (v) => (v == null || v.trim().isEmpty) ? 'description_required'.tr : null,
                           ),
 
                           const SizedBox(height: 24),
@@ -199,7 +209,7 @@ class _CreateAnnouncementsScreenState extends State<CreateAnnouncementsScreen> {
                               ),
                               child: _submitting
                                   ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                                  : Text('Publier', style: GoogleFonts.ubuntu(color: Colors.white, fontWeight: FontWeight.w600)),
+                                  : Text('publish'.tr, style: GoogleFonts.ubuntu(color: Colors.white, fontWeight: FontWeight.w600)),
                             ),
                           ),
                         ],
@@ -278,7 +288,7 @@ class _CreateAnnouncementsScreenState extends State<CreateAnnouncementsScreen> {
               items: items
                   .map((e) => DropdownMenuItem<String>(
                         value: e,
-                        child: Text(e),
+                        child: Text(_translateDropdownValue(e)),
                       ))
                   .toList(),
               onChanged: onChanged,
@@ -287,5 +297,28 @@ class _CreateAnnouncementsScreenState extends State<CreateAnnouncementsScreen> {
         ),
       ],
     );
+  }
+
+  String _translateDropdownValue(String value) {
+    switch (value) {
+      case 'Blood Request':
+        return 'blood_request'.tr;
+      case 'Campaign':
+        return 'campaign'.tr;
+      case 'Event':
+        return 'event'.tr;
+      case 'News':
+        return 'news'.tr;
+      case 'urgent':
+        return 'urgent'.tr;
+      case 'high':
+        return 'high'.tr;
+      case 'normal':
+        return 'normal'.tr;
+      case 'low':
+        return 'low'.tr;
+      default:
+        return value;
+    }
   }
 }

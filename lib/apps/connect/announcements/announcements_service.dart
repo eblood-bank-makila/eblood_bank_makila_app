@@ -52,4 +52,30 @@ class AnnouncementsService {
     }
     return {'success': true};
   }
+
+  Future<Map<String, dynamic>> updateAnnouncement({
+    required String id,
+    String? title,
+    String? type,
+    String? location,
+    String? priority,
+    String? description,
+  }) async {
+    final Map<String, dynamic> payload = {};
+    if (title != null) payload['title'] = title;
+    if (type != null) payload['type'] = type;
+    if (location != null) payload['location'] = location;
+    if (priority != null) payload['priority'] = priority;
+    if (description != null) payload['description'] = description;
+
+    final response = await _dio.put('$_base/$id', data: payload);
+    if (response.data is Map) {
+      return Map<String, dynamic>.from(response.data);
+    }
+    return {'success': true};
+  }
+
+  Future<void> deleteAnnouncement(String id) async {
+    await _dio.delete('$_base/$id');
+  }
 }

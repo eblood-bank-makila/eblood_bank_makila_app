@@ -65,8 +65,8 @@ class NetworkScreen extends StatelessWidget {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('E-Blood Bank', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.bold)),
-                            Text('Réseau médical', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.9))),
+                            Text('app_name'.tr, style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.bold)),
+                            Text('medical_network'.tr, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.9))),
                           ],
                         ),
                       ],
@@ -120,8 +120,8 @@ class NetworkScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Medical Network', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold, color: ColorPages.COLOR_PRINCIPAL)),
-                    Text('Find nearby hospitals & blood banks', style: theme.textTheme.bodyMedium?.copyWith(
+                    Text('medical_network'.tr, style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold, color: ColorPages.COLOR_PRINCIPAL)),
+                    Text('find_nearby_hospitals_banks'.tr, style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                     )),
                   ],
@@ -142,9 +142,9 @@ class NetworkScreen extends StatelessWidget {
               builder: (c) => TextField(
                 controller: c.searchController,
                 onChanged: c.onSearchChanged,
-                decoration: const InputDecoration(
-                  hintText: 'Search hospitals, blood banks...'
-                      ,prefixIcon: Icon(Icons.search),
+                decoration: InputDecoration(
+                  hintText: 'search_hospitals_blood_banks'.tr,
+                      prefixIcon: const Icon(Icons.search),
                   border: InputBorder.none,
                   contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 ),
@@ -175,7 +175,7 @@ class NetworkScreen extends StatelessWidget {
                 children: [
                   Icon(getCategoryIcon(category), size: 16, color: isSelected ? ColorPages.COLOR_PRINCIPAL : theme.iconTheme.color?.withValues(alpha: 0.7)),
                   const SizedBox(width: 4),
-                  Text(category),
+                  Text(category.tr),
                 ],
               ),
               selected: isSelected,
@@ -194,8 +194,8 @@ class NetworkScreen extends StatelessWidget {
     final theme = Theme.of(context);
     return Obx(() => controller.isLoading.value
         ? const Center(child: CircularProgressIndicator())
-        : controller.filteredNetworks.isEmpty
-            ? Center(child: Text('No facilities found', style: theme.textTheme.titleMedium))
+    : controller.filteredNetworks.isEmpty
+      ? Center(child: Text('no_facilities_found'.tr, style: theme.textTheme.titleMedium))
             : RefreshIndicator(
                 onRefresh: controller.loadNetworks,
                 child: ListView.builder(

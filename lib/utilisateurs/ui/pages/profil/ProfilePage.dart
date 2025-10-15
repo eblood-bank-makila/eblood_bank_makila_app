@@ -19,6 +19,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:get/get.dart';
 
 // String extension for text formatting
 extension StringExtension on String {
@@ -39,7 +40,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   List<DatumModel> favoris = []; // Initialisez la liste des favoris
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // action initiale de la page et appel d'un controleur
@@ -51,10 +51,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     var state = ref.watch(profileCtrlProvider);
-    var username = state.user?.uUserName ?? "";
-    var email = state.user?.uCourriels ?? [];
-    var prenom = state.user?.uPrenom ?? "";
-    var nom = state.user?.uNom ?? "";
+    var emailList = state.user?.uCourriels ?? [];
+    final String primaryEmail = emailList.isNotEmpty ? emailList[0].email : '';
+    var prenom = state.user?.uPrenom ?? '';
+    var nom = state.user?.uNom ?? '';
 
     return Scaffold(
       body: Container(
@@ -74,7 +74,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           child: Column(
             children: [
               // Modern Header
-              _buildModernHeader(context, prenom, nom, email),
+              _buildModernHeader(context, prenom, nom, primaryEmail),
 
               // Content
               Expanded(
@@ -94,10 +94,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         ),
       ),
     );
-
   }
 
-  Widget _buildModernHeader(BuildContext context, String prenom, String nom, List email) {
+  Widget _buildModernHeader(BuildContext context, String prenom, String nom, String email) {
     return Container(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -107,7 +106,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Profil',
+                'profile'.tr,
                 style: GoogleFonts.ubuntu(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
@@ -123,7 +122,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   icon: const Icon(Icons.settings, color: Colors.white),
                   onPressed: () {
                     Navigator.push(context,
-                        MaterialPageRoute(builder: (context) => ParametrePage()));
+                        MaterialPageRoute(builder: (context) => const ParametrePage()));
                   },
                 ),
               ),
@@ -139,7 +138,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => InformationPage()),
+                  MaterialPageRoute(builder: (context) => const InformationPage()),
                 );
               },
               child: Container(
@@ -204,7 +203,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                           const SizedBox(height: 4),
                           if (email.isNotEmpty)
                             Text(
-                              email[0].email ?? "",
+                              email,
                               style: GoogleFonts.ubuntu(
                                 color: Colors.white.withValues(alpha: 0.9),
                                 fontSize: 14,
@@ -235,7 +234,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Account Section
-          _buildSectionTitle('MON COMPTE'),
+          _buildSectionTitle('my_account'.tr.toUpperCase()),
           const SizedBox(height: 16),
 
           // Account Type
@@ -243,22 +242,22 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
           _buildModernListTile(
             icon: Icons.favorite_border,
-            title: 'Favoris',
+            title: 'favorites'.tr,
             onTap: () {
               Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => FavorisPage()));
+                  MaterialPageRoute(builder: (context) => const FavorisPage()));
             },
           ),
 
           _buildModernListTile(
             icon: Icons.notifications_none,
-            title: 'Notifications',
+            title: 'notifications'.tr,
             onTap: () {
               Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (context) => NotificationPage(
+                      builder: (context) => const NotificationPage(
                             notification: [],
                           )));
             },
@@ -267,46 +266,46 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           const SizedBox(height: 32),
 
           // General Section
-          _buildSectionTitle('GÉNÉRAL'),
+          _buildSectionTitle('general'.tr.toUpperCase()),
           const SizedBox(height: 16),
 
           _buildModernListTile(
             icon: Icons.info_outline,
-            title: 'À propos',
+            title: 'about'.tr,
             onTap: () {
               Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => AproposPage()));
+                  MaterialPageRoute(builder: (context) => const AproposPage()));
             },
           ),
 
           _buildModernListTile(
             icon: Icons.help_outline_rounded,
-            title: 'Aide',
+            title: 'help'.tr,
             onTap: () {
               Navigator.push(context,
-                  MaterialPageRoute(builder: (context) => AidePage()));
+                  MaterialPageRoute(builder: (context) => const AidePage()));
             },
           ),
 
           const SizedBox(height: 32),
 
           // Support Section
-          _buildSectionTitle('SUPPORT ET COMMENTAIRES'),
+          _buildSectionTitle('support_and_feedback'.tr.toUpperCase()),
           const SizedBox(height: 16),
 
           _buildModernListTile(
             icon: Icons.phone,
-            title: 'Contactez-nous',
+            title: 'contact_us'.tr,
             onTap: () {
               Navigator.push(context,
-                  MaterialPageRoute(builder: (context) => ContactezNousPage()));
+                  MaterialPageRoute(builder: (context) => const ContactezNousPage()));
             },
           ),
 
           _buildModernListTile(
             icon: Icons.reviews_outlined,
-            title: 'Noter l\'application',
+            title: 'rate_app'.tr,
             onTap: () async {
               final Uri url = Uri.parse(
                   'https://play.google.com/store/apps/details?id=com.example.your_app_id');
@@ -318,33 +317,33 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
           _buildModernListTile(
             icon: Icons.share,
-            title: 'Partager E-Blood Bank',
+            title: 'share_app'.tr + ' E-Blood Bank',
             onTap: () {
-              Share.share("https://play.google.com/store/apps/e-blood");
+              Share.share('https://play.google.com/store/apps/e-blood');
             },
           ),
 
           const SizedBox(height: 32),
 
           // App Info Section
-          _buildSectionTitle('INFORMATIONS SUR L\'APPLICATION'),
+          _buildSectionTitle('app_information'.tr.toUpperCase()),
           const SizedBox(height: 16),
 
           _buildModernListTile(
             icon: Icons.security,
-            title: 'Politique de confidentialité',
+            title: 'privacy'.tr,
             onTap: () {
               Navigator.push(context,
-                  MaterialPageRoute(builder: (context) => PolitiqueConfidentialitePage()));
+                  MaterialPageRoute(builder: (context) => const PolitiqueConfidentialitePage()));
             },
           ),
 
           _buildModernListTile(
             icon: Icons.info_outline_rounded,
-            title: 'Conditions générales',
+            title: 'terms'.tr,
             onTap: () {
               Navigator.push(context,
-                  MaterialPageRoute(builder: (context) => ConditionsGeneralesPage()));
+                  MaterialPageRoute(builder: (context) => const ConditionsGeneralesPage()));
             },
           ),
 
@@ -426,7 +425,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   Widget _buildAccountTypeListTile() {
     var state = ref.watch(profileCtrlProvider);
     var accountType = state.user?.accountType ?? ECommonConfigType.none;
-    var accountTypeName = state.user?.accountTypeDisplayName ?? "Non défini";
+    var accountTypeName = _localizedAccountType(accountType);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -453,7 +452,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           ),
         ),
         title: Text(
-          'Type de compte',
+          'account_type'.tr,
           style: GoogleFonts.ubuntu(
             fontSize: 16,
             fontWeight: FontWeight.w500,
@@ -510,6 +509,23 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     }
   }
 
+  String _localizedAccountType(ECommonConfigType type) {
+    switch (type) {
+      case ECommonConfigType.personal:
+        return 'personal_account'.tr;
+      case ECommonConfigType.hospital:
+        return 'hospital_account'.tr;
+      case ECommonConfigType.bloodBank:
+        return 'blood_bank_account'.tr;
+      case ECommonConfigType.deliveryPerson:
+        return 'delivery_person'.tr;
+      case ECommonConfigType.system:
+        return 'system_account'.tr;
+      case ECommonConfigType.none:
+        return 'account_type_undefined'.tr;
+    }
+  }
+
   Widget _buildLogoutButton(BuildContext context) {
     return FadeInUp(
       delay: const Duration(milliseconds: 600),
@@ -547,7 +563,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  'Se déconnecter',
+                  'sign_out'.tr,
                   style: GoogleFonts.ubuntu(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -587,7 +603,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               ),
               const SizedBox(width: 12),
               Text(
-                'Déconnexion',
+                'sign_out'.tr,
                 style: GoogleFonts.ubuntu(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -596,7 +612,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             ],
           ),
           content: Text(
-            'Êtes-vous sûr de vouloir vous déconnecter ?',
+            'logout_confirmation'.tr,
             style: GoogleFonts.ubuntu(
               fontSize: 16,
               color: Colors.grey.shade700,
@@ -606,7 +622,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
               child: Text(
-                'Annuler',
+                'cancel'.tr,
                 style: GoogleFonts.ubuntu(
                   fontSize: 16,
                   color: Colors.grey.shade600,
@@ -625,7 +641,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),
               child: Text(
-                'Se déconnecter',
+                'sign_out'.tr,
                 style: GoogleFonts.ubuntu(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -661,7 +677,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Déconnexion en cours...',
+                  'logging_out'.tr,
                   style: GoogleFonts.ubuntu(
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
@@ -692,7 +708,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         // Show error message
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur lors de la déconnexion: $e'),
+            content: Text('${'error'.tr}: $e'),
             backgroundColor: Colors.red,
           ),
         );

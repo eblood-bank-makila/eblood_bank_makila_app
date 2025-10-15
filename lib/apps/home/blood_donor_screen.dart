@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:get/get.dart';
 import '../config/theme/ColorPages.dart';
 import '../connect/announcements/announcements_service.dart';
 import 'package:iconsax/iconsax.dart';
@@ -97,13 +98,13 @@ class _BloodDonorScreenState extends State<BloodDonorScreen> {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('E-Blood Bank',
+                            Text('app_name'.tr,
                                 style: GoogleFonts.ubuntu(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
                                   color: Colors.white,
                                 )),
-                            Text('Espace Donneur',
+                            Text('donor_space'.tr,
                                 style: GoogleFonts.ubuntu(
                                   fontSize: 12,
                                   color: Colors.white.withValues(alpha: 0.9),
@@ -163,7 +164,7 @@ class _BloodDonorScreenState extends State<BloodDonorScreen> {
                         : ListView(
                             padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
                             children: [
-                              Text('Campagnes de don', style: GoogleFonts.ubuntu(fontSize: 16, fontWeight: FontWeight.w700)),
+                              Text('donation_campaigns'.tr, style: GoogleFonts.ubuntu(fontSize: 16, fontWeight: FontWeight.w700)),
                               const SizedBox(height: 10),
                               if (_campaigns.isEmpty)
                                 Container(
@@ -173,7 +174,7 @@ class _BloodDonorScreenState extends State<BloodDonorScreen> {
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(color: Colors.grey.shade200),
                                   ),
-                                  child: Text('Aucune campagne pour le moment.', style: GoogleFonts.ubuntu(color: Colors.grey.shade700)),
+                                  child: Text('no_campaigns_now'.tr, style: GoogleFonts.ubuntu(color: Colors.grey.shade700)),
                                 )
                               else
                                 ..._campaigns.map((a) {

@@ -6,7 +6,7 @@ part of 'RechercheCtrl.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$rechercheCtrlHash() => r'79ab451fb010e8e6855269777e80e0a91732258a';
+String _$rechercheCtrlHash() => r'6cf6af4c8320ccf4416299df9ede40136c15a752';
 
 /// See also [RechercheCtrl].
 @ProviderFor(RechercheCtrl)

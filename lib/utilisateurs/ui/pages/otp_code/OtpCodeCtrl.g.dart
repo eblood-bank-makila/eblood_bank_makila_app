@@ -6,7 +6,7 @@ part of 'OtpCodeCtrl.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$otpCodeCtrlHash() => r'ce369bd7a00d951e8bef7429514be24ac9c55252';
+String _$otpCodeCtrlHash() => r'74b78afaed9eb4242130729dff3f4e0d0828ff81';
 
 /// See also [OtpCodeCtrl].
 @ProviderFor(OtpCodeCtrl)

@@ -27,6 +27,7 @@ import 'package:get_storage/get_storage.dart';
 import '../../gestionStocks/ui/pages/recherchePoche/RecherchePochePage.dart';
 import '../../commande/ui/pages/panier/PanierPage.dart';
 import 'svg_icons/CustomSvgIcons.dart';
+import 'package:get/get.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -122,24 +123,24 @@ class _BottomNavBarWidgetState extends ConsumerState<BottomNavBarWidget> {
     final navItems = () {
       if (accountType == 'customer') {
         return [
-          NavItemConfig(icon: CustomSvgIcons.home, label: 'Accueil'),
-          NavItemConfig(icon: CustomSvgIcons.heart, label: 'News'),
-          NavItemConfig(icon: CustomSvgIcons.bank, label: 'Réseau'),
-          NavItemConfig(icon: CustomSvgIcons.profile, label: 'Profil'),
+          NavItemConfig(icon: CustomSvgIcons.home, label: 'home'.tr),
+          NavItemConfig(icon: CustomSvgIcons.heart, label: 'announcements'.tr),
+          NavItemConfig(icon: CustomSvgIcons.bank, label: 'medical_network'.tr),
+          NavItemConfig(icon: CustomSvgIcons.profile, label: 'profile'.tr),
         ];
       } else if (accountType == 'blood_bank') {
         return [
-          NavItemConfig(icon: CustomSvgIcons.home, label: 'Tableau'),
-          NavItemConfig(icon: CustomSvgIcons.heart, label: 'Donneurs'),
-          NavItemConfig(icon: CustomSvgIcons.bank, label: 'Annonces'),
-          NavItemConfig(icon: CustomSvgIcons.profile, label: 'Profil'),
+          NavItemConfig(icon: CustomSvgIcons.home, label: 'dashboard'.tr),
+          NavItemConfig(icon: CustomSvgIcons.heart, label: 'donors'.tr),
+          NavItemConfig(icon: CustomSvgIcons.bank, label: 'announcements'.tr),
+          NavItemConfig(icon: CustomSvgIcons.profile, label: 'profile'.tr),
         ];
       } else {
         return [
-          NavItemConfig(icon: CustomSvgIcons.home, label: 'Banque'),
-          NavItemConfig(icon: CustomSvgIcons.heart, label: 'Recherche'),
-          NavItemConfig(icon: CustomSvgIcons.bank, label: 'Panier'),
-          NavItemConfig(icon: CustomSvgIcons.profile, label: 'Profil'),
+          NavItemConfig(icon: CustomSvgIcons.home, label: 'blood_banks'.tr),
+          NavItemConfig(icon: CustomSvgIcons.heart, label: 'search'.tr),
+          NavItemConfig(icon: CustomSvgIcons.bank, label: 'cart'.tr),
+          NavItemConfig(icon: CustomSvgIcons.profile, label: 'profile'.tr),
         ];
       }
     }();
@@ -217,9 +218,9 @@ class _BottomNavBarWidgetState extends ConsumerState<BottomNavBarWidget> {
                   size: 28,
                 ),
                 const SizedBox(width: 12),
-                const Text(
-                  'Actions QR Code',
-                  style: TextStyle(
+                Text(
+                  'qr_code_actions'.tr,
+                  style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
@@ -232,16 +233,16 @@ class _BottomNavBarWidgetState extends ConsumerState<BottomNavBarWidget> {
             _buildActionButton(
               context: context,
               icon: Icons.check_circle_outline,
-              title: 'Confirmer la livraison',
-              subtitle: 'Scanner le QR code pour confirmer la réception',
+              title: 'confirm_delivery'.tr,
+              subtitle: 'scan_qr_to_confirm'.tr,
               onTap: () => _confirmDelivery(context),
             ),
             const SizedBox(height: 16),
             _buildActionButton(
               context: context,
               icon: Icons.lock_outline,
-              title: 'Demander le mot de passe',
-              subtitle: 'Obtenir le code d\'accès sécurisé',
+              title: 'request_password'.tr,
+              subtitle: 'get_secure_access_code'.tr,
               onTap: () => _requestPassword(context),
             ),
             const SizedBox(height: 20),

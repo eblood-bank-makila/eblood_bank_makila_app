@@ -1,13 +1,25 @@
 import 'dart:convert';
+import 'package:eblood_bank_mak_app/apps/config/api/dio_client.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import '../config/AppConfig.dart';
 import '../services/HttpInterceptorService.dart';
 import '../constants/api_constants.dart';
 import '../models/UserInfoValidation.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 class AuthService {
   final HttpInterceptorService _httpInterceptor = HttpInterceptorService();
   final String baseApiUrl = AppConfig.instance.baseApiUrl;
+
+  static const String _deviceNotAllowedInfoKey = 'device_not_allowed_info';
+  static const String _canNavigateToDeviceNotAllowedKey = 'can_navigate_to_device_not_allowed';
+
+  static const String _logoutEndpoint = '/auth/logout';
+   // Secure storage for sensitive data
+  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
+
   
   // Register a new user
   Future<Map<String, dynamic>> register(Map<String, dynamic> userData) async {
@@ -450,4 +462,169 @@ class AuthService {
       };
     }
   }
+
+  /// Store device not allowed information
+  Future<void> setDeviceNotAllowedInfo({
+    required String token,
+    required String message,
+    required String supportEmail,
+  }) async {
+    try {
+      final deviceInfo = {
+        'token': token,
+        'message': message,
+        'support_email': supportEmail,
+      };
+      await _secureStorage.write(
+        key: _deviceNotAllowedInfoKey,
+        value: jsonEncode(deviceInfo),
+      );
+      debugPrint('Device not allowed info stored');
+    } catch (e) {
+      debugPrint('Error storing device not allowed info: $e');
+    }
+  }
+
+  /// Get device not allowed information
+  Future<Map<String, String>> getDeviceNotAllowedInfo() async {
+    try {
+      final infoJson = await _secureStorage.read(key: _deviceNotAllowedInfoKey);
+      if (infoJson != null) {
+        final info = jsonDecode(infoJson) as Map<String, dynamic>;
+        return {
+          'token': info['token']?.toString() ?? '',
+          'message': info['message']?.toString() ?? '',
+          'support_email': info['support_email']?.toString() ?? '',
+        };
+      }
+    } catch (e) {
+      debugPrint('Error getting device not allowed info: $e');
+    }
+    return {
+      'token': '',
+      'message': '',
+      'support_email': '',
+    };
+  }
+
+  /// Set navigation flag for device not allowed screen
+  Future<void> setCanNavigateToDeviceNotAllowed(bool canNavigate) async {
+    try {
+      await _secureStorage.write(
+        key: _canNavigateToDeviceNotAllowedKey,
+        value: canNavigate.toString(),
+      );
+      debugPrint('Can navigate to device not allowed: $canNavigate');
+    } catch (e) {
+      debugPrint('Error setting navigation flag: $e');
+    }
+  }
+
+  /// Check if can navigate to device not allowed screen
+  Future<bool> canNavigateToDeviceNotAllowed() async {
+    try {
+      final canNavigate = await _secureStorage.read(key: _canNavigateToDeviceNotAllowedKey);
+      return canNavigate == 'true';
+    } catch (e) {
+      debugPrint('Error checking navigation flag: $e');
+      return false;
+    }
+  }
+
+  /// Handle token encryption (placeholder - implement based on your needs)
+  Future<void> handleTokenEncryption(String token, bool encrypt) async {
+    try {
+      if (encrypt) {
+        // Implement token encryption logic
+        await _secureStorage.write(key: 'encrypted_token', value: token);
+      } else {
+        // Implement token decryption or storage logic
+        await _secureStorage.write(key: 'temp_token', value: token);
+      }
+      debugPrint('Token encryption handled: encrypt=$encrypt');
+    } catch (e) {
+      debugPrint('Error handling token encryption: $e');
+    }
+  }
+
+  /// Clear device/account error information
+  Future<void> clearDeviceAccountErrorInfo() async {
+    try {
+      await _secureStorage.delete(key: _deviceNotAllowedInfoKey);
+      await _secureStorage.delete(key: _canNavigateToDeviceNotAllowedKey);
+      await _secureStorage.delete(key: 'encrypted_token');
+      await _secureStorage.delete(key: 'temp_token');
+      debugPrint('Device/Account error info cleared');
+    } catch (e) {
+      debugPrint('Error clearing device/account error info: $e');
+    }
+  }
+
+   // Logout user
+  Future<bool> logout({bool silent = false, BuildContext? context}) async {
+    try {
+      // _isLoadingController.add(true);
+
+      // Cancel token refresh timer
+      // _tokenRefreshTimer?.cancel();
+
+        try {
+          final connectivityResult = await Connectivity().checkConnectivity();
+          if (connectivityResult != ConnectivityResult.none) {
+            await postWithDio(
+              _logoutEndpoint,
+              
+            );
+          }
+        } catch (e) {
+          debugPrint('Error during logout API call: $e');
+          // Continue with local logout even if API call fails
+        }
+
+      // Preserve non-auth related settings before clearing storage
+      final themeMode = await _secureStorage.read(key: 'theme_mode');
+      final locale = await _secureStorage.read(key: 'app_locale');
+
+      // Clear ALL secure storage data (including TOTP accounts and signatures)
+      await _secureStorage.deleteAll();
+
+      // Clear database tokens and all related data
+
+      // Clear TOTP accounts and signature data specifically
+
+
+      // Clear additional auth-related data
+
+      // Restore non-auth related settings if needed
+      if (themeMode != null) {
+        await _secureStorage.write(key: 'theme_mode', value: themeMode);
+      }
+      if (locale != null) {
+        await _secureStorage.write(key: 'app_locale', value: locale);
+      }
+
+      // Clear streams and reset to initial state
+      // _accessTokenController.add(null);
+      // _currentUserController.add(null);
+      // _currentLoginMFas.add([]);
+      // _currentSelectedLoginMFa.add(TMfaModel.empty());
+      // _isAuthenticatedController.add(false);
+
+      // Navigate to login screen if context is provided
+      if (context != null && context.mounted) {
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          '/login',
+          (route) => false,
+        );
+      }
+
+      return true;
+    } catch (e) {
+      debugPrint('Logout error: $e');
+      return false;
+    } finally {
+      // _isLoadingController.add(false);
+    }
+  }
+
 }

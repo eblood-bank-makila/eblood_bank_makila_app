@@ -1,18 +1,36 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 /// API configuration for the E-Blood Bank application
 class ApiConfig {
-  /// Get the base URL for API calls
+  /// Get the base URL for API calls from environment variables
   static String get BASE_URL {
-    return 'https://api.eblood.com'; // Replace with your actual API URL
+    // Get base URL from .env file
+    String baseUrl = dotenv.env['BASE_API_URL'] ?? '';
+    
+    // Log for debugging
+    print('📡 API Config: Loading BASE_URL from .env: "$baseUrl"');
+    
+    // Provide fallback if environment variable is missing
+    if (baseUrl.isEmpty) {
+      const fallbackUrl = 'http://localhost:8000';
+      print('⚠️ Warning: BASE_URL not found in .env file! Using fallback URL: $fallbackUrl');
+      return fallbackUrl;
+    }
+    
+    return baseUrl;
   }
 
   /// API endpoints for blood bank operations
-  static const String bloodStock = '/blood-bank/stock';
-  static const String bloodRequests = '/blood-bank/requests';
-  static const String bloodBankStats = '/blood-bank/stats';
-  static const String bloodTypeAvailability = '/blood-bank/availability';
-  static const String expiringStock = '/blood-bank/stock/expiring';
-  static const String lowStock = '/blood-bank/stock/low';
+  static const String bloodStock = '/eblood/inventory/items/list';
+  static const String bloodStockCreate = '/eblood/inventory/items/create';
+  static const String bloodRequests = '/eblood/requests';
+  static const String bloodBankStats = '/eblood/stats/blood-inventory';
+  static const String bloodTypeAvailability = '/eblood/availability';
+  static const String expiringStock = '/eblood/stock/expiring';
+  static const String lowStock = '/eblood/stock/low';
   static const String recentActivity = '/blood-bank/activity';
+  static const String donorEligibility = '/eblood-connect/blood-donors/eligibility';
+  static const String inventorySettings = '/eblood/inventory/settings';
 
   // Request operations
   static String approveRequest(String requestId) => '/blood-bank/requests/$requestId/approve';

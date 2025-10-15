@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:get/get.dart';
 import '../config/theme/ColorPages.dart';
 import '../connect/announcements/announcements_service.dart';
 import 'package:iconsax/iconsax.dart';
@@ -105,13 +106,13 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('E-Blood Bank',
+                            Text('app_name'.tr,
                                 style: GoogleFonts.ubuntu(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
                                   color: Colors.white,
                                 )),
-                            Text('Espace client',
+                            Text('customer_space'.tr,
                                 style: GoogleFonts.ubuntu(
                                   fontSize: 12,
                                   color: Colors.white.withValues(alpha: 0.9),
@@ -173,7 +174,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
                             children: [
                               // Featured campaigns
                               if (_campaigns.isNotEmpty) ...[
-                                Text('Campagnes en vedette', style: GoogleFonts.ubuntu(fontSize: 16, fontWeight: FontWeight.w700)),
+                                Text('featured_campaigns'.tr, style: GoogleFonts.ubuntu(fontSize: 16, fontWeight: FontWeight.w700)),
                                 const SizedBox(height: 10),
                                 SizedBox(
                                   height: 150,
@@ -214,7 +215,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
                                                     borderRadius: BorderRadius.circular(20),
                                                   ),
                                                   child: Text(
-                                                    urgent ? 'Urgent' : 'Campagne',
+                                                    urgent ? 'urgent'.tr : 'campaign'.tr,
                                                     style: GoogleFonts.ubuntu(fontSize: 11, color: ColorPages.COLOR_PRINCIPAL, fontWeight: FontWeight.w600),
                                                   ),
                                                 ),
@@ -224,7 +225,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
                                             ),
                                             const SizedBox(height: 10),
                                             Text(
-                                              title.isEmpty ? 'Campagne don de sang' : title,
+                                              title.isEmpty ? 'blood_donation_campaign'.tr : title,
                                               maxLines: 2,
                                               overflow: TextOverflow.ellipsis,
                                               style: GoogleFonts.ubuntu(fontSize: 14, fontWeight: FontWeight.w600),
@@ -236,7 +237,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
                                                 const SizedBox(width: 6),
                                                 Expanded(
                                                   child: Text(
-                                                    location.isEmpty ? 'Localisation non précisée' : location,
+                                                    location.isEmpty ? 'location_unspecified'.tr : location,
                                                     maxLines: 1,
                                                     overflow: TextOverflow.ellipsis,
                                                     style: GoogleFonts.ubuntu(fontSize: 12, color: Colors.grey.shade700),
@@ -254,7 +255,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
                               ],
 
                               // Recent announcements
-                              Text('Annonces récentes', style: GoogleFonts.ubuntu(fontSize: 16, fontWeight: FontWeight.w700)),
+                              Text('recent_announcements'.tr, style: GoogleFonts.ubuntu(fontSize: 16, fontWeight: FontWeight.w700)),
                               const SizedBox(height: 10),
                               if (_recent.isEmpty)
                                 Container(
@@ -264,7 +265,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(color: Colors.grey.shade200),
                                   ),
-                                  child: Text('Aucune annonce pour le moment.', style: GoogleFonts.ubuntu(color: Colors.grey.shade700)),
+                                  child: Text('no_announcements_now'.tr, style: GoogleFonts.ubuntu(color: Colors.grey.shade700)),
                                 )
                               else
                                 ..._recent.map((a) {
@@ -305,7 +306,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
                                               Text(
-                                                title.isEmpty ? 'Annonce' : title,
+                                                title.isEmpty ? 'announcement'.tr : title,
                                                 maxLines: 2,
                                                 overflow: TextOverflow.ellipsis,
                                                 style: GoogleFonts.ubuntu(fontSize: 14, fontWeight: FontWeight.w600),

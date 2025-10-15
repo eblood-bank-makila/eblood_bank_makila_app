@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:get/get.dart';
 
 class InformationPage extends ConsumerStatefulWidget {
   const InformationPage({super.key});
@@ -18,10 +19,8 @@ class InformationPage extends ConsumerStatefulWidget {
 class _InformationPageState extends ConsumerState<InformationPage> {
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // action initiale de la page et appel d'un controleur
       var ctrl = ref.read(profileCtrlProvider.notifier);
       ctrl.getUserCode();
     });
@@ -29,13 +28,15 @@ class _InformationPageState extends ConsumerState<InformationPage> {
 
   Widget build(BuildContext context) {
     var state = ref.watch(profileCtrlProvider);
-    var username = state.user?.uUserName ?? "";
-    var email = state.user?.uCourriels ?? [];
-    var prenom = state.user?.uPrenom ?? "";
-    var nom = state.user?.uNom ?? "";
-    var phone = state.user?.uTelephones ?? [];
+    var emailList = state.user?.uCourriels ?? [];
+    final String primaryEmail = emailList.isNotEmpty ? emailList[0].email : '';
+    var prenom = state.user?.uPrenom ?? '';
+    var nom = state.user?.uNom ?? '';
+    var phoneList = state.user?.uTelephones ?? [];
+    final String primaryPhone = phoneList.isNotEmpty ? phoneList[0].phoneNumber : '';
+    var username = state.user?.uUserName ?? '';
     var accountType = state.user?.accountType;
-    var accountTypeName = state.user?.accountTypeDisplayName ?? "Non défini";
+    var accountTypeName = _localizedAccountType(accountType);
 
     return Scaffold(
       body: Container(
@@ -55,7 +56,7 @@ class _InformationPageState extends ConsumerState<InformationPage> {
           child: Column(
             children: [
               // Modern Header
-              _buildModernHeader(context, prenom, nom, email),
+              _buildModernHeader(context, prenom, nom, primaryEmail),
 
               // Content
               Expanded(
@@ -67,7 +68,7 @@ class _InformationPageState extends ConsumerState<InformationPage> {
                       topRight: Radius.circular(30),
                     ),
                   ),
-                  child: _buildProfileContent(context, prenom, nom, email, phone, username),
+                  child: _buildProfileContent(context, prenom, nom, primaryEmail, primaryPhone, username, accountType, accountTypeName),
                 ),
               ),
             ],
@@ -77,7 +78,7 @@ class _InformationPageState extends ConsumerState<InformationPage> {
     );
   }
 
-  Widget _buildModernHeader(BuildContext context, String prenom, String nom, List email) {
+  Widget _buildModernHeader(BuildContext context, String prenom, String nom, String email) {
     return Container(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -97,7 +98,7 @@ class _InformationPageState extends ConsumerState<InformationPage> {
               ),
               const SizedBox(width: 16),
               Text(
-                'Mon profil',
+                'my_profile'.tr,
                 style: GoogleFonts.ubuntu(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -178,7 +179,7 @@ class _InformationPageState extends ConsumerState<InformationPage> {
                   // Email
                   if (email.isNotEmpty)
                     Text(
-                      email[0].email ?? "",
+                      email,
                       style: GoogleFonts.ubuntu(
                         color: Colors.white.withValues(alpha: 0.9),
                         fontSize: 16,
@@ -193,7 +194,7 @@ class _InformationPageState extends ConsumerState<InformationPage> {
     );
   }
 
-  Widget _buildProfileContent(BuildContext context, String prenom, String nom, List email, List phone, String username) {
+  Widget _buildProfileContent(BuildContext context, String prenom, String nom, String email, String phone, String username, ECommonConfigType? accountType, String accountTypeName) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -203,7 +204,7 @@ class _InformationPageState extends ConsumerState<InformationPage> {
           FadeInUp(
             delay: const Duration(milliseconds: 300),
             child: Text(
-              'INFORMATIONS DU COMPTE',
+              'account_information'.tr.toUpperCase(),
               style: GoogleFonts.ubuntu(
                 fontWeight: FontWeight.bold,
                 fontSize: 14,
@@ -220,8 +221,8 @@ class _InformationPageState extends ConsumerState<InformationPage> {
             delay: const Duration(milliseconds: 400),
             child: _buildInfoCard(
               icon: Iconsax.user,
-              title: 'Nom complet',
-              value: '${prenom.capitalizeFirstLetter()} ${nom.capitalizeFirstLetter()}',
+              title: 'full_name'.tr,
+              value: '${prenom.capitalizeFirstLetter()} ${nom.capitalizeFirstLetter()}'.trim(),
               color: ColorPages.COLOR_PRINCIPAL,
             ),
           ),
@@ -232,8 +233,8 @@ class _InformationPageState extends ConsumerState<InformationPage> {
             delay: const Duration(milliseconds: 500),
             child: _buildInfoCard(
               icon: Iconsax.sms,
-              title: 'E-mail enregistré',
-              value: email.isNotEmpty ? (email[0].email ?? "Non renseigné") : "Non renseigné",
+              title: 'registered_email'.tr,
+              value: email.isNotEmpty ? email : 'no_data'.tr,
               color: Colors.blue.shade600,
             ),
           ),
@@ -244,8 +245,8 @@ class _InformationPageState extends ConsumerState<InformationPage> {
             delay: const Duration(milliseconds: 600),
             child: _buildInfoCard(
               icon: Iconsax.call,
-              title: 'Téléphone',
-              value: phone.isNotEmpty ? (phone[0].phoneNumber ?? "Non renseigné") : "Non renseigné",
+              title: 'phone_label'.tr,
+              value: phone.isNotEmpty ? phone : 'no_data'.tr,
               color: Colors.green.shade600,
             ),
           ),
@@ -256,8 +257,8 @@ class _InformationPageState extends ConsumerState<InformationPage> {
             delay: const Duration(milliseconds: 700),
             child: _buildInfoCard(
               icon: Iconsax.user_tag,
-              title: 'Nom d\'utilisateur',
-              value: username.isNotEmpty ? username : "Non renseigné",
+              title: 'username'.tr,
+              value: username.isNotEmpty ? username : 'no_data'.tr,
               color: Colors.orange.shade600,
             ),
           ),
@@ -266,7 +267,7 @@ class _InformationPageState extends ConsumerState<InformationPage> {
 
           FadeInUp(
             delay: const Duration(milliseconds: 800),
-            child: _buildAccountTypeCard(ref),
+            child: _buildAccountTypeCard(accountType, accountTypeName),
           ),
 
           const SizedBox(height: 32),
@@ -298,10 +299,9 @@ class _InformationPageState extends ConsumerState<InformationPage> {
                 child: InkWell(
                   borderRadius: BorderRadius.circular(16),
                   onTap: () {
-                    // TODO: Navigate to edit profile page
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Fonctionnalité de modification du profil à venir'),
+                        content: Text('edit_profile_coming_soon'.tr),
                         backgroundColor: ColorPages.COLOR_PRINCIPAL,
                       ),
                     );
@@ -316,7 +316,7 @@ class _InformationPageState extends ConsumerState<InformationPage> {
                       ),
                       const SizedBox(width: 12),
                       Text(
-                        'Modifier le profil',
+                        'edit_profile'.tr,
                         style: GoogleFonts.ubuntu(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -405,14 +405,10 @@ class _InformationPageState extends ConsumerState<InformationPage> {
   }
 
   /// Build account type card
-  Widget _buildAccountTypeCard(WidgetRef ref) {
-    var state = ref.watch(profileCtrlProvider);
-    var accountType = state.user?.accountType;
-    var accountTypeName = state.user?.accountTypeDisplayName ?? "Non défini";
-
+  Widget _buildAccountTypeCard(ECommonConfigType? accountType, String accountTypeName) {
     return _buildInfoCard(
       icon: _getAccountTypeIcon(accountType),
-      title: 'Type de compte',
+      title: 'account_type'.tr,
       value: accountTypeName,
       color: Color(accountType?.colorValue ?? 0xFF9CA3AF),
     );
@@ -435,6 +431,24 @@ class _InformationPageState extends ConsumerState<InformationPage> {
         return Iconsax.user;
       case ECommonConfigType.none:
         return Iconsax.profile_circle;
+    }
+  }
+
+  String _localizedAccountType(ECommonConfigType? type) {
+    if (type == null) return 'account_type_undefined'.tr;
+    switch (type) {
+      case ECommonConfigType.personal:
+        return 'personal_account'.tr;
+      case ECommonConfigType.hospital:
+        return 'hospital_account'.tr;
+      case ECommonConfigType.bloodBank:
+        return 'blood_bank_account'.tr;
+      case ECommonConfigType.deliveryPerson:
+        return 'delivery_person'.tr;
+      case ECommonConfigType.system:
+        return 'system_account'.tr;
+      case ECommonConfigType.none:
+        return 'account_type_undefined'.tr;
     }
   }
 }

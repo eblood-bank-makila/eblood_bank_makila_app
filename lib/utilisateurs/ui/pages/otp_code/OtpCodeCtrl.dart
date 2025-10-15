@@ -35,6 +35,13 @@ class OtpCodeCtrl extends _$OtpCodeCtrl {
           if (accessToken != null && accessToken.isNotEmpty) {
             final interactor = ref.read(utilisateurInteractorProvider);
             await interactor.saveTokenOtpUseCase.run(accessToken);
+            // Immediately fetch the user profile with the final token and persist locally
+            try {
+              await interactor.recuperationUtilisateurNetworkCodeUseCase.run();
+            } catch (e) {
+              // Non-fatal: ProfileCtrl has a network fallback as well
+              print('⚠️ Post-OTP user fetch failed: $e');
+            }
           }
         } catch (e) {
           // Non-fatal: navigation can still proceed if token is available elsewhere

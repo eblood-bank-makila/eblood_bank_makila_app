@@ -26,8 +26,11 @@ class EnhancedBottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 90,
+    final bottomInset = MediaQuery.of(context).padding.bottom;
+    return SafeArea(
+      top: false,
+      child: Container(
+      height: 90 + bottomInset,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: const BorderRadius.only(
@@ -62,7 +65,7 @@ class EnhancedBottomNavBar extends StatelessWidget {
           }),
         ),
       ),
-    );
+    ));
   }
 
   Widget _buildNavItem({

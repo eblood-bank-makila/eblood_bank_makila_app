@@ -12,6 +12,4 @@ for 'blood bank account':
 
 
 
-
-perfect ! let's now enchance user experience. in 'information de contact' section can you put  'votre localisation' first before email and phone number, and show phone number input only after location is selected. because we have to use country code as phone number input leading prefix.
-Note: we have also, country flag. 
+BloodBankBottomNavWidget

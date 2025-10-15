@@ -8,8 +8,9 @@ class NetworkController extends GetxController {
   // Search and filter
   final searchController = TextEditingController();
   final searchQuery = ''.obs;
-  final categories = ['All', 'Hospital', 'Blood Bank', 'Clinic', 'Emergency'].obs;
-  final selectedCategory = 'All'.obs;
+  // Display labels are translation keys; internal types remain in models
+  final categories = ['all', 'hospital', 'blood_bank', 'clinic', 'emergency'].obs;
+  final selectedCategory = 'all'.obs;
 
   // Network data
   final networks = <NetworkModel>[].obs;
@@ -82,8 +83,27 @@ class NetworkController extends GetxController {
 
   void _applyFilters() {
     var filtered = networks.toList();
-    if (selectedCategory.value != 'All') {
-      filtered = filtered.where((n) => n.type == selectedCategory.value).toList();
+    if (selectedCategory.value != 'all') {
+      String typeFilter;
+      switch (selectedCategory.value) {
+        case 'hospital':
+          typeFilter = 'Hospital';
+          break;
+        case 'blood_bank':
+          typeFilter = 'Blood Bank';
+          break;
+        case 'clinic':
+          typeFilter = 'Clinic';
+          break;
+        case 'emergency':
+          typeFilter = 'Emergency';
+          break;
+        default:
+          typeFilter = '';
+      }
+      if (typeFilter.isNotEmpty) {
+        filtered = filtered.where((n) => n.type == typeFilter).toList();
+      }
     }
     if (searchQuery.value.isNotEmpty) {
       filtered = filtered.where((n) =>
@@ -96,7 +116,7 @@ class NetworkController extends GetxController {
   }
 
   Future<void> callNetwork(NetworkModel network) async {
-    Get.snackbar('Info', 'Call ${network.phoneNumber ?? ''}');
+    Get.snackbar('info'.tr, 'call_number'.trParams({'number': network.phoneNumber ?? ''}));
   }
 }
 

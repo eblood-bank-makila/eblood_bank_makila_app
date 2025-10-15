@@ -1,9 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../service/BloodBankApiService.dart';
 import '../model/BloodStock.dart';
+import '../model/BloodEnums.dart';
 
 // API Service Provider
 final bloodBankApiServiceProvider = Provider<BloodBankApiService>((ref) {
+  // No longer need to inject UtilisateurLocalService as token management is handled by dio_client
   return BloodBankApiService();
 });
 
@@ -57,13 +59,21 @@ class BloodStockController extends StateNotifier<BloodStockState> {
   }
 
   Future<bool> addBloodStock(BloodStock stock) async {
+    print('⏳ Controller: Calling API service to add blood stock');
     final response = await _apiService.addBloodStock(stock);
+    print('📊 Controller: API response received:');
+    print('📊   - success: ${response.success}');
+    print('📊   - error: ${response.error ?? "null"}');
+    print('📊   - has data: ${response.data != null}');
     
     if (response.success && response.data != null) {
+      print('✅ Controller: Add stock successful, updating state');
       final updatedStocks = [...state.stocks, response.data!];
-      state = state.copyWith(stocks: updatedStocks);
+      state = state.copyWith(stocks: updatedStocks, error: null);
       return true;
     } else {
+      print('❌ Controller: Add stock failed');
+      print('❌ Error details: ${response.error}');
       state = state.copyWith(error: response.error ?? 'Failed to add blood stock');
       return false;
     }
@@ -105,16 +115,16 @@ class BloodStockController extends StateNotifier<BloodStockState> {
     final cutoffDate = DateTime.now().add(Duration(days: days));
     return state.stocks.where((stock) => 
       stock.expirationDate.isBefore(cutoffDate) && 
-      stock.status == BloodStockStatus.available
+      stock.status == BloodBagStatus.available
     ).toList();
   }
 
-  List<BloodStock> getLowStock({int threshold = 5}) {
-    final stockByType = <String, int>{};
+  List<BloodStock> getLowStock({double threshold = 250}) {
+    final stockByType = <String, double>{};
     
     for (final stock in state.stocks) {
-      if (stock.status == BloodStockStatus.available) {
-        stockByType[stock.bloodType] = (stockByType[stock.bloodType] ?? 0) + stock.quantity;
+      if (stock.status == BloodBagStatus.available) {
+        stockByType[stock.bloodType] = (stockByType[stock.bloodType] ?? 0) + stock.volume;
       }
     }
     
@@ -127,8 +137,10 @@ class BloodStockController extends StateNotifier<BloodStockState> {
     final stockByType = <String, int>{};
     
     for (final stock in state.stocks) {
-      if (stock.status == BloodStockStatus.available) {
-        stockByType[stock.bloodType] = (stockByType[stock.bloodType] ?? 0) + stock.quantity;
+      if (stock.status == BloodBagStatus.available) {
+        // Convert volume (ml) to units (typically 1 unit ~= 450-500ml)
+        int units = (stock.volume / 450).ceil();
+        stockByType[stock.bloodType] = (stockByType[stock.bloodType] ?? 0) + units;
       }
     }
     
@@ -136,9 +148,10 @@ class BloodStockController extends StateNotifier<BloodStockState> {
   }
 
   int getTotalStock() {
+    // Convert volume to units (typically 1 unit ~= 450-500ml)
     return state.stocks
-        .where((stock) => stock.status == BloodStockStatus.available)
-        .fold(0, (sum, stock) => sum + stock.quantity);
+        .where((stock) => stock.status == BloodBagStatus.available)
+        .fold(0, (sum, stock) => sum + (stock.volume / 450).ceil());
   }
 
   void clearError() {
@@ -290,19 +303,49 @@ class BloodBankStatsController extends StateNotifier<BloodBankStatsState> {
   BloodBankStatsController(this._apiService) : super(BloodBankStatsState());
 
   Future<void> loadStats() async {
+    if (state.isLoading) {
+      print('⏳ BloodBankStatsController: Already loading stats, skipping request');
+      return;
+    }
+    
     state = state.copyWith(isLoading: true, error: null);
     
-    final response = await _apiService.getBloodBankStats();
-    
-    if (response.success && response.data != null) {
+    print('🔍 BloodBankStatsController: Loading stats...');
+    try {
+      final response = await _apiService.getBloodBankStats();
+      
+      if (response.success && response.data != null) {
+        print('✅ BloodBankStatsController: Stats loaded successfully');
+        print('📊 Stats data: totalStock=${response.data!.totalStock}, pending=${response.data!.activeRequests}, critical=${response.data!.criticalStock}, expiring=${response.data!.expiringSoon}');
+        
+        state = state.copyWith(
+          stats: response.data!,
+          isLoading: false,
+        );
+      } else {
+        print('❌ BloodBankStatsController: Failed to load stats: ${response.error}');
+        
+        // Check if this is a permission error
+        final String errorMessage = response.error ?? 'Failed to load statistics';
+        if (errorMessage.contains('PERMISSION_DENIED') || errorMessage.contains('403')) {
+          print('🔒 BloodBankStatsController: Permission denied error detected');
+          // If permission denied, we can still use cached stats if available
+          state = state.copyWith(
+            isLoading: false,
+            error: 'Permission denied. Using cached data if available.',
+          );
+        } else {
+          state = state.copyWith(
+            isLoading: false,
+            error: errorMessage,
+          );
+        }
+      }
+    } catch (e) {
+      print('💥 BloodBankStatsController: Exception occurred while loading stats: $e');
       state = state.copyWith(
-        stats: response.data!,
         isLoading: false,
-      );
-    } else {
-      state = state.copyWith(
-        isLoading: false,
-        error: response.error ?? 'Failed to load statistics',
+        error: 'An unexpected error occurred: $e',
       );
     }
   }
@@ -343,18 +386,38 @@ final bloodTypeAvailabilityProvider = FutureProvider<Map<String, int>>((ref) asy
 });
 
 // Computed Providers
-final totalStockProvider = Provider<int>((ref) {
+final totalStockProvider = Provider<StatsValue>((ref) {
+  final statsState = ref.watch(bloodBankStatsControllerProvider);
+  
+  // If we have stats from the API, use them
+  if (statsState.stats != null) {
+    return statsState.stats!.totalStock;
+  } 
+  
+  // Fallback to calculating from stock data
   final stockState = ref.watch(bloodStockControllerProvider);
-  return stockState.stocks
-      .where((stock) => stock.status == BloodStockStatus.available)
-      .fold(0, (sum, stock) => sum + stock.quantity);
+  final totalValue = stockState.stocks
+      .where((stock) => stock.status == BloodBagStatus.available)
+      .fold(0, (sum, stock) => sum + (stock.volume / 450).ceil());
+  
+  return StatsValue(value: totalValue);
 });
 
-final pendingRequestsCountProvider = Provider<int>((ref) {
+final pendingRequestsCountProvider = Provider<StatsValue>((ref) {
+  final statsState = ref.watch(bloodBankStatsControllerProvider);
+  
+  // If we have stats from the API, use them
+  if (statsState.stats != null) {
+    return statsState.stats!.activeRequests;
+  }
+  
+  // Fallback to calculating from requests data
   final requestsState = ref.watch(bloodRequestsControllerProvider);
-  return requestsState.requests
+  final pendingCount = requestsState.requests
       .where((request) => request.status == BloodRequestStatus.pending)
       .length;
+      
+  return StatsValue(value: pendingCount);
 });
 
 final urgentRequestsCountProvider = Provider<int>((ref) {
@@ -364,25 +427,44 @@ final urgentRequestsCountProvider = Provider<int>((ref) {
       .length;
 });
 
-final expiringStockCountProvider = Provider<int>((ref) {
+final expiringStockCountProvider = Provider<StatsValue>((ref) {
+  final statsState = ref.watch(bloodBankStatsControllerProvider);
+  
+  // If we have stats from the API, use them
+  if (statsState.stats != null) {
+    return statsState.stats!.expiringSoon;
+  }
+  
+  // Fallback to calculating from stock data
   final stockState = ref.watch(bloodStockControllerProvider);
   final cutoffDate = DateTime.now().add(const Duration(days: 7));
-  return stockState.stocks
+  final expiringCount = stockState.stocks
       .where((stock) => 
         stock.expirationDate.isBefore(cutoffDate) && 
-        stock.status == BloodStockStatus.available)
+        stock.status == BloodBagStatus.available)
       .length;
+      
+  return StatsValue(value: expiringCount);
 });
 
-final criticalStockCountProvider = Provider<int>((ref) {
+final criticalStockCountProvider = Provider<StatsValue>((ref) {
+  final statsState = ref.watch(bloodBankStatsControllerProvider);
+  
+  // If we have stats from the API, use them
+  if (statsState.stats != null) {
+    return statsState.stats!.criticalStock;
+  }
+  
+  // Fallback to calculating from stock data
   final stockState = ref.watch(bloodStockControllerProvider);
-  final stockByType = <String, int>{};
+  final stockByType = <String, double>{};
   
   for (final stock in stockState.stocks) {
-    if (stock.status == BloodStockStatus.available) {
-      stockByType[stock.bloodType] = (stockByType[stock.bloodType] ?? 0) + stock.quantity;
+    if (stock.status == BloodBagStatus.available) {
+      stockByType[stock.bloodType] = (stockByType[stock.bloodType] ?? 0) + stock.volume;
     }
   }
   
-  return stockByType.values.where((quantity) => quantity <= 5).length;
+  final criticalCount = stockByType.values.where((volume) => volume <= 250).length; // 250ml is considered low for a blood type
+  return StatsValue(value: criticalCount);
 });

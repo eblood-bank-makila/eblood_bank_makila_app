@@ -4,8 +4,9 @@ import 'announcements_service.dart';
 class AnnouncementsController extends GetxController {
   final isLoading = false.obs;
   final unreadCount = 0.obs;
-  final filterTabs = ['All', 'Urgent', 'Campaigns', 'Events', 'News'].obs;
-  final selectedFilter = 'All'.obs;
+  // Display labels use translation keys; internal filter values remain English
+  final filterTabs = ['all', 'urgent', 'blood_requests', 'campaigns', 'events', 'news'].obs;
+  final selectedFilter = 'all'.obs;
   final announcements = <AnnouncementModel>[].obs;
   final filteredAnnouncements = <AnnouncementModel>[].obs;
   final urgentAnnouncements = <AnnouncementModel>[].obs;
@@ -39,6 +40,50 @@ class AnnouncementsController extends GetxController {
     }
   }
 
+  Future<void> createOrUpdate({
+    String? id,
+    required String title,
+    required String type,
+    required String location,
+    required String priority,
+    required String description,
+  }) async {
+    isLoading.value = true;
+    try {
+      if (id == null || id.isEmpty) {
+        await _service.createAnnouncement(
+          title: title,
+          type: type,
+          location: location,
+          priority: priority,
+          description: description,
+        );
+      } else {
+        await _service.updateAnnouncement(
+          id: id,
+          title: title,
+          type: type,
+          location: location,
+          priority: priority,
+          description: description,
+        );
+      }
+      await loadAnnouncements();
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> delete(String id) async {
+    isLoading.value = true;
+    try {
+      await _service.deleteAnnouncement(id);
+      await loadAnnouncements();
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   void selectFilter(String filter) {
     selectedFilter.value = filter;
     _applyFilters();
@@ -46,18 +91,21 @@ class AnnouncementsController extends GetxController {
 
   void _applyFilters() {
     var filtered = announcements.toList();
-    if (selectedFilter.value != 'All') {
+    if (selectedFilter.value != 'all') {
       switch (selectedFilter.value) {
-        case 'Urgent':
+        case 'urgent':
           filtered = filtered.where((a) => a.priority == 'urgent').toList();
           break;
-        case 'Campaigns':
+        case 'blood_requests':
+          filtered = filtered.where((a) => a.type == 'Blood Request').toList();
+          break;
+        case 'campaigns':
           filtered = filtered.where((a) => a.type == 'Campaign').toList();
           break;
-        case 'Events':
+        case 'events':
           filtered = filtered.where((a) => a.type == 'Event').toList();
           break;
-        case 'News':
+        case 'news':
           filtered = filtered.where((a) => a.type == 'News').toList();
           break;
       }

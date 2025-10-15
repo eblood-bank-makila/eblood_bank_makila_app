@@ -852,7 +852,7 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
                                 hint: 'hint_longitude'.tr,
                                 prefixIcon: Ionicons.navigate_outline,
                                 keyboardType: TextInputType.numberWithOptions(decimal: true),
-                                validator: _validateRequired,
+                                validator: _validateLongitude,
                               ),
                             ),
                             const SizedBox(width: 16),
@@ -863,7 +863,7 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
                                 hint: 'hint_latitude'.tr,
                                 prefixIcon: Ionicons.navigate_outline,
                                 keyboardType: TextInputType.numberWithOptions(decimal: true),
-                                validator: _validateRequired,
+                                validator: _validateLatitude,
                               ),
                             ),
                           ],
@@ -877,9 +877,22 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
                         duration: const Duration(milliseconds: 600),
                         delay: const Duration(milliseconds: 500),
                         child: OutlinedButton.icon(
-                          onPressed: _getCurrentLocation,
-                          icon: const Icon(Ionicons.location_outline),
-                          label: Text('use_current_location'.tr),
+                          onPressed: _isLoading ? null : _getCurrentLocation,
+                          icon: _isLoading 
+                              ? SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: ColorPages.COLOR_PRINCIPAL,
+                                  ),
+                                )
+                              : const Icon(Ionicons.location_outline),
+                          label: Text(
+                            _isLoading 
+                                ? 'obtaining_location'.tr
+                                : 'use_current_location'.tr,
+                          ),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: ColorPages.COLOR_PRINCIPAL,
                             side: BorderSide(color: ColorPages.COLOR_PRINCIPAL),
@@ -1331,6 +1344,36 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
     return null;
   }
 
+  String? _validateLatitude(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'field_required'.tr;
+    }
+    final latitude = double.tryParse(value);
+    if (latitude == null) {
+      return 'Invalid latitude format';
+    }
+    // Africa latitude bounds: approximately -35 (south) to 37 (north)
+    if (latitude < -35 || latitude > 37) {
+      return '⚠️ Latitude outside Africa (-35 to 37)';
+    }
+    return null;
+  }
+
+  String? _validateLongitude(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'field_required'.tr;
+    }
+    final longitude = double.tryParse(value);
+    if (longitude == null) {
+      return 'Invalid longitude format';
+    }
+    // Africa longitude bounds: approximately -17 (west) to 52 (east)
+    if (longitude < -17 || longitude > 52) {
+      return '⚠️ Longitude outside Africa (-17 to 52)';
+    }
+    return null;
+  }
+
   String? _validateEmail(String? value) {
     if (value == null || value.trim().isEmpty) {
       return 'email_required'.tr;
@@ -1406,13 +1449,10 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
   }
 
   Future<void> _getCurrentLocation() async {
-    // Prevent multiple simultaneous requests
-    if (_isLoading) return;
-
     setState(() => _isLoading = true);
 
     try {
-      // 1. Check if location services are enabled
+      // Check if location services are enabled
       final serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         _showSnackBar('Location services are disabled. Please enable them.', isError: true);
@@ -1420,7 +1460,7 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
         return;
       }
 
-      // 2. Check / request permission
+      // Check / request permission
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
@@ -1432,15 +1472,15 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
       }
 
       if (permission == LocationPermission.deniedForever) {
-        _showSnackBar('Location permissions permanently denied. Please enable in settings.', isError: true);
+        _showSnackBar('Location permissions are permanently denied. Please enable them in settings.', isError: true);
         await Geolocator.openAppSettings();
         return;
       }
 
-      // 3. Get current position with timeout & high accuracy
+      // Get current position
       final position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
-      ).timeout(const Duration(seconds: 12));
+      );
 
       setState(() {
         _longitudeController.text = position.longitude.toStringAsFixed(6);
@@ -1448,15 +1488,11 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
       });
 
       _showSnackBar('Location obtained successfully');
-    } on TimeoutException {
-      _showSnackBar('Timed out while obtaining location. Try again.', isError: true);
     } catch (e) {
-      print('📍 Error getting location: $e');
-      _showSnackBar('Error obtaining location', isError: true);
+      print('Error getting location: $e');
+      _showSnackBar('Failed to get location: $e', isError: true);
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      setState(() => _isLoading = false);
     }
   }
   

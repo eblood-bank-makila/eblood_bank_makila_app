@@ -6,13 +6,12 @@ part of 'QrCodeActionCtrl.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$qrCodeActionCtrlHash() =>
-    r'9f8c5b6a0d3e2f4c7b9a8e5d0c3f2b6a9e8d5c0f3b2a6e9d8c5f0b3a2e6d9c8f5';
+String _$qrCodeActionCtrlHash() => r'a60696ff583e04592412da16e64174c9a3c3a395';
 
 /// See also [QrCodeActionCtrl].
 @ProviderFor(QrCodeActionCtrl)
-final qrCodeActionCtrlProvider = AutoDisposeNotifierProvider<
-    QrCodeActionCtrl, QrCodeActionState>.internal(
+final qrCodeActionCtrlProvider =
+    AutoDisposeNotifierProvider<QrCodeActionCtrl, QrCodeActionState>.internal(
   QrCodeActionCtrl.new,
   name: r'qrCodeActionCtrlProvider',
   debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')

@@ -5,7 +5,11 @@ import 'package:iconsax/iconsax.dart';
 import 'package:animate_do/animate_do.dart';
 import '../../../apps/config/theme/ColorPages.dart';
 import '../../business/interactors/BloodBankController.dart';
+import 'AnnouncementsManagementPage.dart';
 import 'BloodBankInventoryPage.dart';
+import 'HealthStructureNetworkPage.dart';
+import 'WalletManagementPage.dart';
+import 'BloodDonorsManagementPage.dart';
 
 class BloodBankHomePage extends ConsumerStatefulWidget {
   const BloodBankHomePage({super.key});
@@ -15,42 +19,82 @@ class BloodBankHomePage extends ConsumerStatefulWidget {
 }
 
 class _BloodBankHomePageState extends ConsumerState<BloodBankHomePage> {
+  bool _isRefreshing = false;
+  
   @override
   void initState() {
     super.initState();
     // Load initial data
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(bloodStockControllerProvider.notifier).loadBloodStock();
-      ref.read(bloodRequestsControllerProvider.notifier).loadBloodRequests();
-      ref.read(bloodBankStatsControllerProvider.notifier).loadStats();
+      _loadData();
     });
+  }
+  
+  Future<void> _loadData() async {
+    if (_isRefreshing) return;
+    
+    setState(() {
+      _isRefreshing = true;
+    });
+    
+    try {
+      await Future.wait([
+        ref.read(bloodStockControllerProvider.notifier).loadBloodStock(),
+        ref.read(bloodRequestsControllerProvider.notifier).loadBloodRequests(),
+        ref.read(bloodBankStatsControllerProvider.notifier).loadStats(),
+      ]);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRefreshing = false;
+        });
+      }
+    }
+  }
+
+  // Method for pull-to-refresh
+  Future<void> _refreshData() async {
+    return _loadData();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
+      appBar: _isRefreshing ? PreferredSize(
+        preferredSize: const Size.fromHeight(2.0),
+        child: LinearProgressIndicator(
+          color: ColorPages.COLOR_PRINCIPAL,
+          backgroundColor: Colors.grey.shade200,
+        ),
+      ) : null,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              _buildHeader(),
-              const SizedBox(height: 24),
-              
-              // Stats Cards
-              _buildStatsSection(),
-              const SizedBox(height: 24),
-              
-              // Quick Actions
-              _buildQuickActionsSection(),
-              const SizedBox(height: 24),
-              
-              // Recent Activity
-              _buildRecentActivitySection(),
-            ],
+        child: RefreshIndicator(
+          onRefresh: _refreshData,
+          color: ColorPages.COLOR_PRINCIPAL,
+          backgroundColor: Colors.white,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                _buildHeader(),
+                const SizedBox(height: 24),
+                
+                // Stats Cards
+                _buildStatsSection(),
+                const SizedBox(height: 24),
+                
+                // Quick Actions
+                _buildQuickActionsSection(),
+                const SizedBox(height: 24),
+                
+                // Recent Activity
+                _buildRecentActivitySection(),
+              ],
+            ),
           ),
         ),
       ),
@@ -103,6 +147,8 @@ class _BloodBankHomePageState extends ConsumerState<BloodBankHomePage> {
   }
 
   Widget _buildStatsSection() {
+    // Get state for the stats controller to check for errors
+    final statsState = ref.watch(bloodBankStatsControllerProvider);
     final totalStock = ref.watch(totalStockProvider);
     final pendingRequests = ref.watch(pendingRequestsCountProvider);
     final criticalStock = ref.watch(criticalStockCountProvider);
@@ -111,16 +157,39 @@ class _BloodBankHomePageState extends ConsumerState<BloodBankHomePage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        FadeInUp(
-          delay: const Duration(milliseconds: 400),
-          child: Text(
-            'Statistiques',
-            style: GoogleFonts.ubuntu(
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-              color: Colors.grey.shade800,
+        Row(
+          children: [
+            Expanded(
+              child: FadeInUp(
+                delay: const Duration(milliseconds: 400),
+                child: Text(
+                  'Statistiques',
+                  style: GoogleFonts.ubuntu(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey.shade800,
+                  ),
+                ),
+              ),
             ),
-          ),
+            if (statsState.error != null)
+              GestureDetector(
+                onTap: () {
+                  // Retry loading stats
+                  _loadData();
+                },
+                child: Tooltip(
+                  message: statsState.error!.contains('Permission denied') 
+                    ? "Permission limitée. Certaines données peuvent être incomplètes."
+                    : "Erreur de chargement. Appuyez pour réessayer.",
+                  child: Icon(
+                    Iconsax.warning_2,
+                    color: Colors.orange,
+                    size: 20,
+                  ),
+                ),
+              ),
+          ],
         ),
         const SizedBox(height: 16),
         Row(
@@ -130,10 +199,10 @@ class _BloodBankHomePageState extends ConsumerState<BloodBankHomePage> {
                 delay: const Duration(milliseconds: 500),
                 child: _buildStatCard(
                   title: 'Stock Total',
-                  value: totalStock.toString(),
+                  value: totalStock.value.toString(),
                   icon: Iconsax.box,
                   color: ColorPages.COLOR_PRINCIPAL,
-                  trend: '+12%',
+                  trend: totalStock.trend,
                 ),
               ),
             ),
@@ -143,10 +212,10 @@ class _BloodBankHomePageState extends ConsumerState<BloodBankHomePage> {
                 delay: const Duration(milliseconds: 600),
                 child: _buildStatCard(
                   title: 'Demandes',
-                  value: pendingRequests.toString(),
+                  value: pendingRequests.value.toString(),
                   icon: Iconsax.document_text,
                   color: Colors.blue,
-                  trend: '+5%',
+                  trend: pendingRequests.trend,
                 ),
               ),
             ),
@@ -160,10 +229,10 @@ class _BloodBankHomePageState extends ConsumerState<BloodBankHomePage> {
                 delay: const Duration(milliseconds: 700),
                 child: _buildStatCard(
                   title: 'Expiration Proche',
-                  value: expiringStock.toString(),
+                  value: expiringStock.value.toString(),
                   icon: Iconsax.calendar,
                   color: Colors.orange,
-                  trend: '+8%',
+                  trend: expiringStock.trend,
                 ),
               ),
             ),
@@ -173,10 +242,10 @@ class _BloodBankHomePageState extends ConsumerState<BloodBankHomePage> {
                 delay: const Duration(milliseconds: 800),
                 child: _buildStatCard(
                   title: 'Stock Critique',
-                  value: criticalStock.toString(),
+                  value: criticalStock.value.toString(),
                   icon: Iconsax.warning_2,
                   color: Colors.red,
-                  trend: '-2%',
+                  trend: criticalStock.trend,
                 ),
               ),
             ),
@@ -193,6 +262,9 @@ class _BloodBankHomePageState extends ConsumerState<BloodBankHomePage> {
     required Color color,
     required String trend,
   }) {
+    final bool hasTrend = trend.isNotEmpty && trend != "0%";
+    final bool isPositiveTrend = trend.contains('+');
+    
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -224,21 +296,22 @@ class _BloodBankHomePageState extends ConsumerState<BloodBankHomePage> {
                 ),
               ),
               const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: trend.startsWith('+') ? Colors.green.shade50 : Colors.red.shade50,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  trend,
-                  style: GoogleFonts.ubuntu(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: trend.startsWith('+') ? Colors.green.shade600 : Colors.red.shade600,
+              if (hasTrend)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isPositiveTrend ? Colors.green.shade50 : Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    trend,
+                    style: GoogleFonts.ubuntu(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: isPositiveTrend ? Colors.green.shade600 : Colors.red.shade600,
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -290,7 +363,13 @@ class _BloodBankHomePageState extends ConsumerState<BloodBankHomePage> {
                   icon: Iconsax.box,
                   color: ColorPages.COLOR_PRINCIPAL,
                   onTap: () {
-                    // Navigate to inventory
+                    // Navigate to inventory page - stock tab (index 1)
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const BloodBankInventoryPage(initialTabIndex: 1),
+                      ),
+                    );
                   },
                 ),
               ),
@@ -305,7 +384,113 @@ class _BloodBankHomePageState extends ConsumerState<BloodBankHomePage> {
                   icon: Iconsax.document_text,
                   color: Colors.blue,
                   onTap: () {
-                    // Navigate to requests
+                    // Navigate to the inventory page and select the reports tab (index 2)
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const BloodBankInventoryPage(initialTabIndex: 2),
+                      ),
+                    ).then((_) {
+                      // Optional: Show a snackbar after returning to this page
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Retour de la gestion des demandes'),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    });
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: FadeInUp(
+                delay: const Duration(milliseconds: 1200),
+                child: _buildActionCard(
+                  title: 'Wallet',
+                  subtitle: 'Gestion financière',
+                  icon: Iconsax.wallet,
+                  color: Colors.green,
+                  onTap: () {
+                    // Navigate to wallet/financial management
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const WalletManagementPage(),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: FadeInUp(
+                delay: const Duration(milliseconds: 1300),
+                child: _buildActionCard(
+                  title: 'Donneurs',
+                  subtitle: 'Base de données',
+                  icon: Iconsax.people,
+                  color: Colors.purple,
+                  onTap: () {
+                    // Navigate to donor management
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const BloodDonorsManagementPage(),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: FadeInUp(
+                delay: const Duration(milliseconds: 1400),
+                child: _buildActionCard(
+                  title: 'Communications',
+                  subtitle: 'Annonces & Événements',
+                  icon: Iconsax.notification,
+                  color: Colors.amber.shade700,
+                  onTap: () {
+                    // Navigate to announcements management
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AnnouncementsManagementPage(),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: FadeInUp(
+                delay: const Duration(milliseconds: 1500),
+                child: _buildActionCard(
+                  title: 'Réseau',
+                  subtitle: 'Structures de santé',
+                  icon: Iconsax.hospital,
+                  color: Colors.teal,
+                  onTap: () {
+                    // Navigate to health structure network
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const HealthStructureNetworkPage(),
+                      ),
+                    );
                   },
                 ),
               ),

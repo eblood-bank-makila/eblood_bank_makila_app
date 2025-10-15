@@ -27,6 +27,18 @@
   "hint_longitude": "Entrez la longitude",
   "hint_latitude": "Entrez la latitude",
   "use_current_location": "Utiliser l'Emplacement Actuel",
+  "obtaining_location": "Obtention de la position",
+  
+  "location_services_disabled": "Les services de localisation sont désactivés. Veuillez les activer.",
+  "location_permission_denied": "Permission de localisation refusée",
+  "location_permission_denied_forever": "Permissions de localisation refusées définitivement. Veuillez les activer dans les paramètres.",
+  "location_timeout_error": "Délai dépassé lors de l'obtention de la position. Essayez de vous déplacer à l'extérieur.",
+  "location_error_general": "Erreur lors de l'obtention de la position",
+  "location_success_excellent": "Position obtenue avec succès (précision excellente)",
+  "location_success_good": "Position obtenue avec succès (bonne précision)",
+  "location_success_fair": "Position obtenue avec succès (précision acceptable)",
+  "location_accuracy_warning": "⚠️ Faible précision. Essayez de vous déplacer à l'extérieur pour une meilleure précision.",
+  "retry": "Réessayer",
   
   "contact_person": "Personne de Contact",
   "contact_phone": "Téléphone de Contact",

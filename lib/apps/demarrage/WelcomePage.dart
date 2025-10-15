@@ -47,27 +47,64 @@ class WelcomePage extends ConsumerWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      FadeInDown(
-                        duration: const Duration(milliseconds: 800),
-                        child: Container(
-                          width: 120,
-                          height: 120,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: ColorPages.COLOR_PRINCIPAL.withOpacity(0.1),
-                            border: Border.all(
-                              color: ColorPages.COLOR_PRINCIPAL.withOpacity(0.2),
-                              width: 2,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          FadeInDown(
+                            duration: const Duration(milliseconds: 800),
+                            child: Container(
+                              width: 60,
+                              height: 60,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: ColorPages.COLOR_BLANCHE.withOpacity(0.1),
+                                border: Border.all(
+                                  color: ColorPages.COLOR_PRINCIPAL.withOpacity(0.2),
+                                  width: 2,
+                                ),
+                              ),
+                              child: Center(
+                                child: Image.asset(
+                                  'assets/icons/cnts.png',
+                                  width: 45,
+                                  height: 45,
+                                ),
+                              ),
                             ),
                           ),
-                          child: Center(
-                            child: Image.asset(
-                              'assets/images/image4.png',
-                              width: 80,
-                              height: 80,
+                          const SizedBox(width: 20),
+                          Container(
+                            height: 60,
+                            width: 4,
+                            decoration: BoxDecoration(
+                              color: ColorPages.COLOR_PRINCIPAL,
+                              borderRadius: BorderRadius.circular(5),
                             ),
                           ),
-                        ),
+                          const SizedBox(width: 20),
+                          FadeInDown(
+                            duration: const Duration(milliseconds: 800),
+                            child: Container(
+                              width: 60,
+                              height: 60,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: ColorPages.COLOR_PRINCIPAL.withOpacity(0.1),
+                                border: Border.all(
+                                  color: ColorPages.COLOR_PRINCIPAL.withOpacity(0.2),
+                                  width: 2,
+                                ),
+                              ),
+                              child: Center(
+                                child: Image.asset(
+                                  'assets/images/image4.png',
+                                  width: 40,
+                                  height: 40,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 30),
                       

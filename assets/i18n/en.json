@@ -27,6 +27,18 @@
   "hint_longitude": "Enter longitude",
   "hint_latitude": "Enter latitude",
   "use_current_location": "Use Current Location",
+  "obtaining_location": "Obtaining location",
+  
+  "location_services_disabled": "Location services are disabled. Please enable them.",
+  "location_permission_denied": "Location permission denied",
+  "location_permission_denied_forever": "Location permissions permanently denied. Please enable in settings.",
+  "location_timeout_error": "Timed out while obtaining location. Try moving outdoors.",
+  "location_error_general": "Error obtaining location",
+  "location_success_excellent": "Location obtained successfully (excellent accuracy)",
+  "location_success_good": "Location obtained successfully (good accuracy)",
+  "location_success_fair": "Location obtained successfully (fair accuracy)",
+  "location_accuracy_warning": "⚠️ Low accuracy. Try moving outdoors for better precision.",
+  "retry": "Retry",
   
   "contact_person": "Contact Person",
   "contact_phone": "Contact Phone",

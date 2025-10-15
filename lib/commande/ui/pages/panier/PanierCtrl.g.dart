@@ -6,7 +6,7 @@ part of 'PanierCtrl.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$panierCtrlHash() => r'4331adf8fd0fc43b374e517dfed1a15889ee07cb';
+String _$panierCtrlHash() => r'b21745a8f83ecbc947f81e4a796fe29920c50b2d';
 
 /// See also [PanierCtrl].
 @ProviderFor(PanierCtrl)

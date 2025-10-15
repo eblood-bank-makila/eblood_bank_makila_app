@@ -1,3 +1,4 @@
+import 'package:animate_do/animate_do.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -37,6 +38,7 @@ class _BloodBankInventoryPageState extends ConsumerState<BloodBankInventoryPage>
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'inventory_list_add_stock_fab',
         onPressed: () {
           // Add new blood stock
         },

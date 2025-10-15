@@ -1,3 +1,6 @@
+
+import 'package:eblood_bank_mak_app/utilisateurs/business/interactors/UtilisateurInteractor.dart';
+import 'package:eblood_bank_mak_app/utilisateurs/ui/framework/AuthApiAdapter.dart';
 import 'package:eblood_bank_mak_app/apps/config/theme/ColorPages.dart';
 import 'package:eblood_bank_mak_app/apps/config/AppConfig.dart';
 import 'package:eblood_bank_mak_app/apps/services/ApiTestService.dart';
@@ -10,9 +13,7 @@ import 'package:eblood_bank_mak_app/gestionStocks/ui/framework/favoris/FavorisSe
 import 'package:eblood_bank_mak_app/gestionStocks/ui/framework/poche/PocheListeServiceNetworkImpl.dart';
 import 'package:eblood_bank_mak_app/paiement/businness/interactors/PaiementInteractor.dart';
 import 'package:eblood_bank_mak_app/paiement/ui/framework/PaiementNetworkServiceImpl.dart';
-import 'package:eblood_bank_mak_app/utilisateurs/business/interactors/UtilisateurInteractor.dart';
 import 'package:eblood_bank_mak_app/utilisateurs/ui/framework/UtilisateurLocalServiceImpl.dart';
-import 'package:eblood_bank_mak_app/utilisateurs/ui/framework/UtilisateurNetworkServiceImpl.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:flutter/material.dart';
@@ -29,6 +30,10 @@ import 'package:path_provider/path_provider.dart';
 import 'package:flutter/services.dart';
 import 'commande/ui/framework/panier/PanierServiceNetworkImpl.dart';
 import 'gestionStocks/ui/framework/recherche/RechercheListeServiceNetworkImpl.dart';
+
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -102,7 +107,11 @@ void main() async {
   }
 
   // Module utilisateur service implementations
-  var utilisateurNetworkImpl = UtilisateurNetworkServiceImpl(baseUrl);
+  // Initialize AuthApi and storage first
+  await GetStorage.init();
+  
+  // Use the new AuthApiAdapter instead of the old implementation
+  var utilisateurNetworkImpl = AuthApiAdapter(baseUrl);
   var utilisateurLocalImpl = UtilisateurLocalServiceImpl(db);
   var userInteractor =
       Utilisateurinteractor.build(utilisateurNetworkImpl, utilisateurLocalImpl);

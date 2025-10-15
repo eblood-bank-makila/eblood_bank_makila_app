@@ -4,6 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 // Use the improved Dio client that is initialized at app startup
 import '../../core/network/dio_client_improved.dart';
+import '../../utilisateurs/business/models/code_otp/DatumCodeOtpModele.dart';
 
 class AuthApi {
   AuthApi._();
@@ -14,10 +15,11 @@ class AuthApi {
 
   Dio get _dio => DioClient().dio;
 
-  static const String _loginEndpoint = '/api/v1/eblood/auth/login';
-  static const String _getOtpEndpoint = '/api/v1/eblood/auth/get-specific-otp';
-  static const String _resendOtpEndpoint = '/api/v1/eblood/auth/resend-otp';
-  static const String _validateOtpEndpoint = '/api/v1/eblood/auth/mobile-validate-otp';
+  static const String _loginEndpoint = '/eblood/auth/login';
+  static const String _getOtpEndpoint = '/eblood/auth/get-specific-otp';
+  static const String _resendOtpEndpoint = '/eblood/auth/resend-otp';
+  static const String _validateOtpEndpoint = '/eblood/auth/mobile-validate-otp';
+  static const String _userProfileEndpoint = '/auth/user-profile';
 
   Future<Map<String, dynamic>> login({
     required String email,
@@ -276,7 +278,7 @@ class AuthApi {
               // personal/simple user/health_structure -> hospital navigation
               accountType = 'hospital';
             }
-          }
+          } 
         }
 
         await _storage.write('account_type', accountType);
@@ -302,6 +304,184 @@ class AuthApi {
             ? (e.response!.data['message']?.toString() ?? 'Invalid OTP')
             : 'Invalid OTP',
       };
+    }
+  }
+  
+  /// Fetches user profile information after successful authentication
+  /// Uses the current auth token from secure storage
+  Future<DatumCodeOtpModele?> getUserProfile() async {
+    try {
+      final String? token = await _secureStorage.read(key: 'auth_token');
+      if (token == null || token.isEmpty) {
+        print("⚠️ getUserProfile called with empty token");
+        return null;
+      }
+
+      final response = await _dio.get(
+        _userProfileEndpoint,
+        options: Options(
+          headers: {
+            "Authorization": "Bearer $token",
+            "Content-Type": "application/json",
+            // Required by middleware
+            "eblood-lockkeys": "0af4ebc066accceff45fad9ee6f2e9a9a24f6051ddb59b73f188dff0326c1e31",
+          },
+        ),
+      );
+
+      print('💾 API RESPNSED with ${response.data} entries');
+
+      // Fast exit on non-200 responses
+      if (response.statusCode != 200) {
+        print("❌ Failed to fetch user profile: ${response.statusCode}");
+        return null;
+      }
+
+      final Map<String, dynamic> responseData = response.data as Map<String, dynamic>;
+
+      // Expected response format: { user: {...}, user_profils: [...] }
+      final dynamic userRaw = responseData['user'];
+      if (userRaw is! Map) {
+        print("⚠️ Unexpected profile payload, 'user' is missing or invalid");
+        return null;
+      }
+
+      // Store user profiles for routing compatibility
+      final dynamic profilsRaw = responseData['user_profils'];
+      if (profilsRaw is List) {
+        await _storage.write('user_profils', profilsRaw);
+        await _storage.write('user_profiles', profilsRaw); // legacy key
+        print('💾 Stored user_profils with ${profilsRaw.length} entries');
+      }
+
+      final Map<String, dynamic> userMap = userRaw.cast<String, dynamic>();
+      
+      // Map API user payload to our DatumCodeOtpModele structure
+      final String userId = userMap['id']?.toString() ?? '';
+      final String email = userMap['email_address']?.toString() ?? '';
+      final String phone = userMap['phone_number']?.toString() ?? '';
+
+      // Extract profile type information from the first profile if available
+      String profilTypeFlag = '';
+      String profilTypeName = '';
+      if (profilsRaw is List && profilsRaw.isNotEmpty) {
+        final firstProfile = profilsRaw[0] as Map<dynamic, dynamic>;
+        profilTypeFlag = firstProfile['profil_type_flag']?.toString() ?? '';
+        profilTypeName = firstProfile['profil_type_name']?.toString() ?? '';
+      }
+
+      // Choose where the login token was received from (best-effort)
+      String uReceveLoginTokenBy = '';
+      if (email.isNotEmpty) {
+        uReceveLoginTokenBy = 'email';
+      } else if (phone.isNotEmpty) {
+        uReceveLoginTokenBy = 'phone';
+      }
+
+      // Create the data structure needed for DatumCodeOtpModele
+      final Map<String, dynamic> mappedData = {
+        // Required auth + identity
+        "authBarear": token,
+        "uSocket": userMap['user_account_socket_hash']?.toString() ?? '',
+        "uUserName": userMap['username']?.toString() ?? '',
+        "uNom": userMap['last_name']?.toString() ?? '',
+        "uPrenom": userMap['first_name']?.toString() ?? '',
+        "uSexe": userMap['gender']?.toString() ?? '',
+        // Delivery method for OTP (optional hint)
+        "uReceveLoginTokenBy": uReceveLoginTokenBy,
+        // Contacts
+        "uCourriels": email.isNotEmpty
+            ? [
+                {"email": email, "_id": userId}
+              ]
+            : [],
+        "uTelephones": phone.isNotEmpty
+            ? [
+                {"phone_number": phone, "_id": userId}
+              ]
+            : [],
+        // Additional fields
+        "uAccountType": userMap['account_type']?.toString() ?? '',
+        "uAccountFrom": userMap['uAccountFrom']?.toString() ?? '',
+        "country_id": userMap['country_id']?.toString() ?? '',
+        "city": userMap['city']?.toString() ?? '',
+        "uAdresse": userMap['address']?.toString() ?? '',
+        // Include profile type information
+        "profil_type_flag": profilTypeFlag,
+        "profil_type_name": profilTypeName,
+        // Use current timestamp
+        "uLastUpdate": DateTime.now().toIso8601String(),
+        // Default country and coordinates (if missing)
+        "country": {
+          "id": "",
+          "countryCode": "",
+          "countryName": "",
+          "countryFlag": "",
+          "nationality": "",
+          "currencies": [],
+          "minPhoneNumberChars": 0,
+          "maxPhoneNumberChars": 0,
+          "phoneNumberPrefixes": [],
+          "countryCodes": [],
+          "isActivated": false,
+          "homeCountryId": ""
+        },
+        "cordonates": {
+          "longitude": 0.0,
+          "latitude": 0.0
+        }
+      };
+
+      // Create the DatumCodeOtpModele instance
+      final user = DatumCodeOtpModele.fromJson(mappedData);
+      return user;
+    } catch (e) {
+      print("💥 Error in getUserProfile: $e");
+      return null;
+    }
+  }
+  
+  /// Log out the current user
+  /// Clears all tokens and user data from storage
+  Future<bool> logout() async {
+    try {
+      final token = await _secureStorage.read(key: 'auth_token');
+      
+      if (token != null && token.isNotEmpty) {
+        try {
+          // Attempt server-side logout
+          await _dio.get(
+            '/auth/logout',
+            options: Options(
+              headers: {
+                "Authorization": "Bearer $token",
+                "Content-Type": "application/json",
+                "eblood-lockkeys": "0af4ebc066accceff45fad9ee6f2e9a9a24f6051ddb59b73f188dff0326c1e31"
+              },
+            ),
+          );
+        } catch (e) {
+          // Continue with local logout even if server-side fails
+          print("Warning: Server-side logout failed: $e");
+        }
+      }
+
+      // Clear local storage
+      await _secureStorage.delete(key: 'auth_token');
+      await _secureStorage.delete(key: 'refresh_token');
+      
+      await _storage.remove('auth_token');
+      await _storage.remove('refresh_token');
+      await _storage.remove('user_data');
+      await _storage.remove('user_profiles');
+      await _storage.remove('user_profils');
+      await _storage.remove('account_type');
+      await _storage.remove('socket_hash');
+      
+      return true;
+    } catch (e) {
+      print("💥 Error during logout: $e");
+      return false;
     }
   }
 }

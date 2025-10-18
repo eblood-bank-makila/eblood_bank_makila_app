@@ -1,7 +1,6 @@
 import 'package:animate_do/animate_do.dart';
 import 'package:eblood_bank_mak_app/apps/config/theme/ColorPages.dart';
-import 'package:eblood_bank_mak_app/apps/config/utils/Utils.dart';
-import 'package:eblood_bank_mak_app/apps/widgets/DetailsPocheBanqueWidget.dart';
+import 'package:eblood_bank_mak_app/apps/widgets/PocheBanqueWidget.dart';
 import 'package:eblood_bank_mak_app/gestionStocks/business/model/banque/BanqueModele.dart';
 import 'package:eblood_bank_mak_app/gestionStocks/business/model/poche/PocheModel.dart';
 import 'package:eblood_bank_mak_app/gestionStocks/ui/pages/recherchePoche/RechercheCtrl.dart';
@@ -13,8 +12,9 @@ import '../../../business/model/recherche/DatumRecherchePocheModel.dart';
 
 class Recherchepage extends ConsumerStatefulWidget {
   final String query;
+  final bool isModal; // True if opened as modal/route, false if part of bottom nav
 
-  const Recherchepage({super.key, required this.query});
+  const Recherchepage({super.key, required this.query, this.isModal = false});
 
   @override
   ConsumerState createState() => _RecherchepageState();
@@ -169,15 +169,18 @@ class _RecherchepageState extends ConsumerState<Recherchepage> {
               ),
               child: IconButton(
                 onPressed: () {
-                  // Clear search and close the search screen
+                  // Clear search
                   FocusScope.of(context).requestFocus(FocusNode());
                   _searchController.clear();
                   setState(() {
                     _results.clear();
                     _isLoading = false;
                   });
-                  // Navigate back to previous screen
-                  Navigator.of(context).pop();
+
+                  // Only pop if this screen was opened as a modal/route (not part of bottom nav)
+                  if (widget.isModal) {
+                    Navigator.of(context).pop();
+                  }
                 },
                 icon: Icon(
                   Iconsax.close_circle,
@@ -228,118 +231,44 @@ class _RecherchepageState extends ConsumerState<Recherchepage> {
       return _buildInitialState();
     }
 
-    return ListView.builder(
-      itemCount: _results.length,
-      itemBuilder: (context, index) {
-        final item = _results[index];
+    return FadeInUp(
+      delay: const Duration(milliseconds: 500),
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        itemCount: _results.length,
+        itemBuilder: (context, index) {
+          final item = _results[index];
 
-        // Convert DatumRecherchePocheModel to PocheModel
-        PocheModel poche =
-            PocheModel.fromRecherche(item); // Ensure this method exists
+          // Convert DatumRecherchePocheModel to PocheModel
+          PocheModel poche =
+              PocheModel.fromRecherche(item); // Ensure this method exists
 
-        // Convert BloodBankRecherchePocheModel to BanqueModele
-        BanqueModele banque = BanqueModele.fromRecherche(
-            item.bloodBank); // Ensure this method exists
+          // Convert BloodBankRecherchePocheModel to BanqueModele
+          BanqueModele banque = BanqueModele.fromRecherche(
+              item.bloodBank); // Ensure this method exists
 
-        return FadeInUp(
-          duration: const Duration(milliseconds: 700),
-          child: GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => DetailPocheBanqueWidget(
-                    poche: poche, // Now using the correct type
-                    banqueNom: banque.blood_bank_name,
-                    banque: banque, // Now using the correct type
+          return FadeInUp(
+            delay: Duration(milliseconds: 600 + (index * 100)),
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
                   ),
-                ),
-              );
-            },
-            child: Column(
-              children: [
-                SizedBox(
-                  height: 15,
-                ),
-                Container(
-                  margin: EdgeInsets.symmetric(horizontal: 20),
-                  decoration: BoxDecoration(
-                    border:
-                        Border.all(width: 0.1, color: ColorPages.COLOR_BLANCHE),
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: Card(
-                    color: ColorPages.COLOR_CARD,
-                    elevation: 0,
-                    margin:
-                        EdgeInsets.symmetric(vertical: 0.0, horizontal: 1.0),
-                    child: Padding(
-                      padding: EdgeInsets.all(16.0),
-                      child: Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 25,
-                            backgroundColor: ColorPages.COLOR_TRANSPARENT,
-                            child: ClipOval(
-                              child: Image.network(
-                                banque.blood_bank_logo,
-                                fit: BoxFit.cover,
-                                width: 300,
-                                errorBuilder: (BuildContext context,
-                                    Object error, StackTrace? stackTrace) {
-                                  return CircleAvatar(
-                                    backgroundColor: ColorPages.COLOR_BLANCHE,
-                                    backgroundImage: AssetImage(
-                                      'assets/images/image8.png',
-                                    ),
-                                    radius: 20,
-                                  );
-                                },
-                              ),
-                            ),
-                          ),
-                          SizedBox(width: 16.0),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  item.bloodBank.bloodBankName
-                                      .capitalizeFirstLetter(),
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 11.0,
-                                  ),
-                                ),
-                                Text(
-                                  "Poche ${item.bloodBagInfo.bloodTypeInfo.bloodTypeName} ${item.bloodBagInfo.bloodRhesusInfo.bloodRheususName}",
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 9.0,
-                                    color: ColorPages.COLOR_GRIS,
-                                  ),
-                                ),
-                                Text(
-                                  "${item.bloodStockCount} poche en stock",
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 10.0,
-                                    color: ColorPages.COLOR_PRINCIPAL,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+                ],
+              ),
+              child: PocheBanqueWidget(
+                poches: poche,
+                banque: banque,
+              ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 
@@ -511,7 +440,7 @@ class _RecherchepageState extends ConsumerState<Recherchepage> {
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: ['A+', 'O-', 'B+', 'AB+', 'O+'].map((type) {
+                children: ['A+', 'O-', 'B+', 'AB+', 'O+','A-','B-','AB-'].map((type) {
                   return GestureDetector(
                     onTap: () {
                       _searchController.text = type;

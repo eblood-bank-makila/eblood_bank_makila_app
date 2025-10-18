@@ -20,6 +20,7 @@ class BanqueModele {
   final double latitude;
   final String? distance; // Distance from user location
   final bool isFavorite; // Favorite status
+  final Map<String, dynamic>? inventorySummary; // Inventory summary from API
 
   BanqueModele({
     required this.id,
@@ -31,9 +32,35 @@ class BanqueModele {
     required this.townInfo,
     this.distance,
     this.isFavorite = false,
+    this.inventorySummary,
   });
 
-
+  // CopyWith method to create a new instance with updated fields
+  BanqueModele copyWith({
+    String? id,
+    String? identifier,
+    String? blood_bank_name,
+    String? blood_bank_logo,
+    TownInfoModel? townInfo,
+    double? longitude,
+    double? latitude,
+    String? distance,
+    bool? isFavorite,
+    Map<String, dynamic>? inventorySummary,
+  }) {
+    return BanqueModele(
+      id: id ?? this.id,
+      identifier: identifier ?? this.identifier,
+      blood_bank_name: blood_bank_name ?? this.blood_bank_name,
+      blood_bank_logo: blood_bank_logo ?? this.blood_bank_logo,
+      townInfo: townInfo ?? this.townInfo,
+      longitude: longitude ?? this.longitude,
+      latitude: latitude ?? this.latitude,
+      distance: distance ?? this.distance,
+      isFavorite: isFavorite ?? this.isFavorite,
+      inventorySummary: inventorySummary ?? this.inventorySummary,
+    );
+  }
 
   // Constructeur à partir de BloodBankRecherchePocheModel
   factory BanqueModele.fromRecherche(
@@ -61,9 +88,12 @@ class BanqueModele {
         longitude: double.tryParse(json['longitude']?.toString() ?? '0') ?? 0.0,
         distance: json['distance']?.toString(), // Distance from backend
         isFavorite: json['is_favorite'] ?? false, // Favorite status from backend
-        townInfo: json["town_info"] != null
+        inventorySummary: json['inventory_summary'] is Map
+            ? Map<String, dynamic>.from(json['inventory_summary'])
+            : null, // Safely parse inventory data
+        townInfo: json["town_info"] != null && json["town_info"] is Map
             ? TownInfoModel.fromJson(json["town_info"])
-            : TownInfoModel.fromTownName(json["town_name"] ?? ''), // Handle town_name from server
+            : TownInfoModel.fromTownName(json["town_name"]?.toString() ?? ''), // Handle town_name from server
       );
 
   Map<String, dynamic> toJson() => {
@@ -75,6 +105,7 @@ class BanqueModele {
         'latitude': latitude,
         'distance': distance,
         'is_favorite': isFavorite,
+        'inventory_summary': inventorySummary,
         "town_info": townInfo.toJson(),
       };
 }

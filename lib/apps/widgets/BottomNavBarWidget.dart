@@ -139,7 +139,7 @@ class _BottomNavBarWidgetState extends ConsumerState<BottomNavBarWidget> {
         return [
           NavItemConfig(icon: CustomSvgIcons.home, label: 'blood_banks'.tr),
           NavItemConfig(icon: CustomSvgIcons.heart, label: 'search'.tr),
-          NavItemConfig(icon: CustomSvgIcons.bank, label: 'cart'.tr),
+          NavItemConfig(icon: CustomSvgIcons.shoppingCart, label: 'cart'.tr),
           NavItemConfig(icon: CustomSvgIcons.profile, label: 'profile'.tr),
         ];
       }

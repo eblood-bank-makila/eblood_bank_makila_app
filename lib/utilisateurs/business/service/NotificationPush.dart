@@ -1,11 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:eblood_bank_mak_app/utilisateurs/business/service/utilisateurLocalService.dart';
-import 'package:http/http.dart' as http;
+import 'package:eblood_bank_mak_app/apps/config/api/dio_client.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class PushNotificationService {
   UtilisateurLocalService local;
@@ -22,33 +21,31 @@ class PushNotificationService {
 
   _sendUserToken(token) async {
     try {
-      String baseUrl = dotenv.env['BASE_URL'] ?? '';
-      var tokens=await local.recupererTokenOtp();
-      final response = await http.post(Uri.parse("$baseUrl/data/firebase-messaging"),
-          headers: {
-            "eblood-lockkeys":
-            "0af4ebc066accceff45fad9ee6f2e9a9a24f6051ddb59b73f188dff0326c1e31",
-            "Authorization": "Bearer $tokens"
-          }, body: {
-        "platform": Platform.isIOS ? 'ios' : 'android',
-        "fcm_token": "$token",
-        "fcm_topic": "hopital"
-      });
+      final response = await postWithDio(
+        '/eblood-connect/firebase-messaging',
+        body: {
+          "platform": Platform.isIOS ? 'ios' : 'android',
+          "fcm_token": "$token",
+          "fcm_topic": "hopital"
+        },
+      );
+
       if (kDebugMode) {
-        debugPrint("fcm token saved :${response.body}");
+        debugPrint("FCM token response: ${response.message}");
       }
-      if (response.statusCode == 200) {
+
+      if (response.success) {
         if (kDebugMode) {
-          debugPrint("fcm token saved ::");
+          debugPrint("FCM token saved successfully");
         }
       } else {
         if (kDebugMode) {
-          debugPrint("fcm token no saved ::");
+          debugPrint("FCM token not saved: ${response.message}");
         }
       }
     } catch (e) {
       if (kDebugMode) {
-        debugPrint("fcm err :: $e");
+        debugPrint("FCM error: $e");
       }
     }
   }

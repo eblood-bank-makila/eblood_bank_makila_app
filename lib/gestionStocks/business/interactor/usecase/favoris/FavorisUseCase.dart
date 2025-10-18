@@ -8,9 +8,9 @@ class FavorisUseCase {
 
   FavorisUseCase(this.network, this.local);
 
-  Future<dynamic> run(FavorisModele favorite) async {
+  Future<Map<String, dynamic>> run(FavorisModele favorite) async {
     var token = await local.recupererTokenOtp();
-    await network.ajouterFavoris(token ?? "", favorite);
+    return await network.ajouterFavoris(token ?? "", favorite);
   }
 
 // Future<void> call(BloodBank bloodBank) async {

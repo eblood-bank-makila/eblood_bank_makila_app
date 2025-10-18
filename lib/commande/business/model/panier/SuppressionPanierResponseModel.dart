@@ -25,9 +25,9 @@ class SuppressionPanierResponseModel {
 
   factory SuppressionPanierResponseModel.fromJson(Map<String, dynamic> json) =>
       SuppressionPanierResponseModel(
-        sms: json["sms"],
-        statusCode: json["status_code"],
-        success: json["success"],
+        sms: json["sms"] ?? json["message"] ?? '',  // ← FIXED: Handle both "sms" and "message" fields, with fallback to empty string
+        statusCode: json["status_code"] ?? 200,
+        success: json["success"] ?? false,
       );
 
   Map<String, dynamic> toJson() => {

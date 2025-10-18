@@ -310,8 +310,34 @@ class AppTranslations extends Translations {
       // Blood Components
       'whole_blood': 'Sang Complet',
       'red_cells': 'Globules Rouges',
+      'red_blood_cells': 'Globules Rouges',
+      'white_blood_cells': 'Globules Blancs',
       'plasma': 'Plasma',
       'platelets': 'Plaquettes',
+
+      // Blood Bag Status
+      'available': 'Disponible',
+      'reserved': 'Réservé',
+      'expired': 'Expiré',
+      'used': 'Utilisé',
+      'tested_safe': 'Testé Sûr',
+
+      // Blood Bag Condition
+      'excellent': 'Excellent',
+      'good': 'Bon',
+      'fair': 'Passable',
+      'poor': 'Mauvais',
+
+      // Blood Bag Details
+      'volume': 'Volume',
+      'batch': 'Lot',
+      'expires_in': 'Expire dans',
+      'expires_in_days': 'Expire dans @days jours',
+      'expires_in_day': 'Expire dans 1 jour',
+      'expired_label': 'Expiré',
+      'expires_critical': 'Expire dans @days jours (Critique)',
+      'expires_soon': 'Expire dans @days jours (Bientôt)',
+      'condition': 'Condition',
 
       // Statistics
       'quick_statistics': 'Statistiques Rapides',
@@ -349,13 +375,13 @@ class AppTranslations extends Translations {
       'add_stock': 'Ajouter Stock',
       'no_stock_to_display': 'Aucun stock disponible',
       'add_stock_to_start': 'Ajoutez du stock pour commencer',
-      'available': 'disponibles',
+      'available_units': 'disponibles',
       'critical_types': 'Types Critiques',
       'less_than_10_units': '< 10 unités',
       'expiration_near': 'Expiration Proche',
       'less_than_7_days': '< 7 jours',
       'quality': 'Qualité',
-      'expired': 'Expiré',
+      'expired_status': 'Expiré',
       'days_remaining': 'J-@days',
       'collection_date': 'Date de collecte',
       'expiration_date': 'Date d\'expiration',
@@ -889,7 +915,39 @@ class AppTranslations extends Translations {
       'blood_type_ab_negative': 'AB-',
       'blood_type_o_positive': 'O+',
       'blood_type_o_negative': 'O-',
-      
+
+      // Blood Components (English)
+      'whole_blood': 'Whole Blood',
+      'red_cells': 'Red Blood Cells',
+      'red_blood_cells': 'Red Blood Cells',
+      'white_blood_cells': 'White Blood Cells',
+      'plasma': 'Plasma',
+      'platelets': 'Platelets',
+
+      // Blood Bag Status (English)
+      'available': 'Available',
+      'reserved': 'Reserved',
+      'expired': 'Expired',
+      'used': 'Used',
+      'tested_safe': 'Tested Safe',
+
+      // Blood Bag Condition (English)
+      'excellent': 'Excellent',
+      'good': 'Good',
+      'fair': 'Fair',
+      'poor': 'Poor',
+
+      // Blood Bag Details (English)
+      'volume': 'Volume',
+      'batch': 'Batch',
+      'expires_in': 'Expires in',
+      'expires_in_days': 'Expires in @days days',
+      'expires_in_day': 'Expires in 1 day',
+      'expired_label': 'Expired',
+      'expires_critical': 'Expires in @days days (Critical)',
+      'expires_soon': 'Expires in @days days (Soon)',
+      'condition': 'Condition',
+
       // Information categories
       'blood_information': 'Blood Information',
       'account_security': 'Account Security',
@@ -1124,6 +1182,38 @@ class AppTranslations extends Translations {
       'blood_type_ab_negative': 'AB-',
       'blood_type_o_positive': 'O+',
       'blood_type_o_negative': 'O-',
+
+      // Blood Components (Spanish)
+      'whole_blood': 'Sangre Completa',
+      'red_cells': 'Glóbulos Rojos',
+      'red_blood_cells': 'Glóbulos Rojos',
+      'white_blood_cells': 'Glóbulos Blancos',
+      'plasma': 'Plasma',
+      'platelets': 'Plaquetas',
+
+      // Blood Bag Status (Spanish)
+      'available': 'Disponible',
+      'reserved': 'Reservado',
+      'expired': 'Expirado',
+      'used': 'Usado',
+      'tested_safe': 'Probado Seguro',
+
+      // Blood Bag Condition (Spanish)
+      'excellent': 'Excelente',
+      'good': 'Bueno',
+      'fair': 'Regular',
+      'poor': 'Malo',
+
+      // Blood Bag Details (Spanish)
+      'volume': 'Volumen',
+      'batch': 'Lote',
+      'expires_in': 'Expira en',
+      'expires_in_days': 'Expira en @days días',
+      'expires_in_day': 'Expira en 1 día',
+      'expired_label': 'Expirado',
+      'expires_critical': 'Expira en @days días (Crítico)',
+      'expires_soon': 'Expira en @days días (Pronto)',
+      'condition': 'Condición',
 
       // Navigation
       'home': 'Inicio',

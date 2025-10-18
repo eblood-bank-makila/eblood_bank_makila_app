@@ -138,6 +138,12 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
   Widget _buildCurrencyPaymentButtons(int totalPrice) {
     final currencyExchangeAsync = ref.watch(currencyExchangeProvider);
 
+    // Get currency from cart data
+    var state = ref.watch(panierCtrlProvider);
+    final cartCurrency = state.paniers?.data.isNotEmpty == true
+        ? state.paniers!.data[0].currency
+        : 'CDF';
+
     return currencyExchangeAsync.when(
       loading: () {
         debugPrint('🔄 Currency Exchange: Loading state');
@@ -163,27 +169,28 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
           return _buildDefaultPaymentButton(totalPrice);
         }
 
-        // Find the USD to other currency conversion (not the reverse)
-        // We want to convert FROM USD TO another currency
-        final usdConversion = currencyResponse.data.firstWhere(
-          (currency) => currency.currencyFromCode.toLowerCase() == 'usd',
+        // Find the conversion from cart currency to other currency
+        // We want to convert FROM cart currency TO another currency
+        final currencyConversion = currencyResponse.data.firstWhere(
+          (currency) => currency.currencyFromCode.toLowerCase() == cartCurrency.toLowerCase(),
           orElse: () => currencyResponse.data.first,
         );
 
-        final convertedAmount = totalPrice.toDouble() * usdConversion.exchangedValue;
+        final convertedAmount = totalPrice.toDouble() * currencyConversion.exchangedValue;
 
         debugPrint('💱 Currency conversion:');
+        debugPrint('💱 Cart currency: $cartCurrency');
         debugPrint('💱 Available currencies: ${currencyResponse.data.length}');
         for (var currency in currencyResponse.data) {
           debugPrint('💱   ${currency.currencyFromCode} → ${currency.currencyToCode}: ${currency.exchangedValue}');
           debugPrint('💱     From ID: ${currency.currencyFrom}, To ID: ${currency.currencyTo}');
         }
-        debugPrint('💱 Selected conversion: ${usdConversion.currencyFromCode} → ${usdConversion.currencyToCode}');
-        debugPrint('💱 Rate: ${usdConversion.exchangedValue}');
-        debugPrint('💱 Original amount: \$${totalPrice.toStringAsFixed(2)} USD');
-        debugPrint('💱 Converted amount: ${convertedAmount.toStringAsFixed(2)} ${usdConversion.currencyToCode.toUpperCase()}');
-        debugPrint('💱 Currency IDs: From=${usdConversion.currencyFrom}, To=${usdConversion.currencyTo}');
-        debugPrint('💱 Will send transactional_currency_id: ${usdConversion.currencyTo}');
+        debugPrint('💱 Selected conversion: ${currencyConversion.currencyFromCode} → ${currencyConversion.currencyToCode}');
+        debugPrint('💱 Rate: ${currencyConversion.exchangedValue}');
+        debugPrint('💱 Original amount: $cartCurrency ${totalPrice.toStringAsFixed(2)}');
+        debugPrint('💱 Converted amount: ${convertedAmount.toStringAsFixed(2)} ${currencyConversion.currencyToCode.toUpperCase()}');
+        debugPrint('💱 Currency IDs: From=${currencyConversion.currencyFrom}, To=${currencyConversion.currencyTo}');
+        debugPrint('💱 Will send transactional_currency_id: ${currencyConversion.currencyTo}');
 
         return Column(
           children: [
@@ -206,7 +213,7 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Taux de change: 1 USD = ${usdConversion.exchangedValue.toStringAsFixed(4)} ${usdConversion.currencyToCode.toUpperCase()}',
+                      'Taux de change: 1 ${cartCurrency.toUpperCase()} = ${currencyConversion.exchangedValue.toStringAsFixed(4)} ${currencyConversion.currencyToCode.toUpperCase()}',
                       style: GoogleFonts.ubuntu(
                         fontSize: 14,
                         color: Colors.blue.shade700,
@@ -223,12 +230,12 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
             // Two payment buttons
             Row(
               children: [
-                // Blood request currency button (USD)
+                // Blood request currency button (from cart)
                 Expanded(
                   child: _buildPaymentButton(
-                    label: 'Payer \$${totalPrice.toStringAsFixed(2)}',
-                    subtitle: 'USD (Original)',
-                    onPressed: () => _processPaymentWithCurrency(null), // null = USD default
+                    label: 'Payer $cartCurrency ${totalPrice.toStringAsFixed(2)}',
+                    subtitle: '${cartCurrency.toUpperCase()} (Original)',
+                    onPressed: () => _processPaymentWithCurrency(null), // null = cart currency default
                     isPrimary: true,
                   ),
                 ),
@@ -238,9 +245,9 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
                 // Converted currency button
                 Expanded(
                   child: _buildPaymentButton(
-                    label: 'Payer ${_formatCurrency(convertedAmount, usdConversion.currencyToCode)}',
-                    subtitle: '${usdConversion.currencyToCode.toUpperCase()} (Converti)',
-                    onPressed: () => _processPaymentWithCurrency(usdConversion.currencyTo),
+                    label: 'Payer ${_formatCurrency(convertedAmount, currencyConversion.currencyToCode)}',
+                    subtitle: '${currencyConversion.currencyToCode.toUpperCase()} (Converti)',
+                    onPressed: () => _processPaymentWithCurrency(currencyConversion.currencyTo),
                     isPrimary: false,
                   ),
                 ),
@@ -599,6 +606,11 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
         ? state.paniers!.data[0].totalPrice
         : 0;
 
+    // Get currency from cart data
+    final currency = state.paniers?.data.isNotEmpty == true
+        ? state.paniers!.data[0].currency
+        : 'CDF';
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -630,7 +642,7 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
                 ),
               ),
               Text(
-                '\$ ${totalPrice.toStringAsFixed(2)}',
+                '$currency ${totalPrice.toStringAsFixed(2)}',
                 style: GoogleFonts.ubuntu(
                   fontSize: 16,
                   color: Colors.grey.shade700,
@@ -676,7 +688,7 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  '\$ ${totalPrice.toStringAsFixed(2)}',
+                  '$currency ${totalPrice.toStringAsFixed(2)}',
                   style: GoogleFonts.ubuntu(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -939,6 +951,12 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
   }
 
   Widget _buildDefaultPaymentButton(int totalPrice) {
+    // Get currency from cart data
+    var state = ref.watch(panierCtrlProvider);
+    final currency = state.paniers?.data.isNotEmpty == true
+        ? state.paniers!.data[0].currency
+        : 'CDF';
+
     return SizedBox(
       width: double.infinity,
       height: 56,
@@ -981,7 +999,7 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
                   const Icon(Iconsax.card, size: 20),
                   const SizedBox(width: 12),
                   Text(
-                    'Payer \$${totalPrice.toStringAsFixed(2)}',
+                    'Payer $currency ${totalPrice.toStringAsFixed(2)}',
                     style: GoogleFonts.ubuntu(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,

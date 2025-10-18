@@ -47,157 +47,7 @@ class _PanierWidgetState extends ConsumerState<PanierWidget> {
     quantity = widget.paniers.cartItems[widget.index].quantity;
   }
 
-  void increaseQuantity() async {
-    setState(() {
-      quantity++;
-      _isLoading = true;
-    });
-
-    // Update quantity on backend
-    await _updateQuantityOnBackend(quantity);
-  }
-
-  void decreaseQuantity() async {
-    if (quantity > 1) {
-      setState(() {
-        quantity--;
-        _isLoading = true;
-      });
-
-      // Update quantity on backend
-      await _updateQuantityOnBackend(quantity);
-    }
-  }
-
-  Future<void> _updateQuantityOnBackend(int newQuantity) async {
-    try {
-      var cartItem = widget.paniers.cartItems[widget.index];
-      print("🔄 Updating quantity to $newQuantity for item ${cartItem.bloodBagInfo.id}");
-
-      var controller = ref.read(panierCtrlProvider.notifier);
-
-      bool success = await controller.updateCartItemQuantity(cartItem, newQuantity);
-
-      setState(() {
-        _isLoading = false;
-      });
-
-      if (success) {
-        print("✅ Quantity updated successfully");
-        // Notify parent component about successful update
-        widget.onQuantityChanged?.call();
-
-        // Show success feedback
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  Icon(
-                    Iconsax.tick_circle,
-                    color: Colors.white,
-                    size: 18,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    "Quantité mise à jour",
-                    style: GoogleFonts.ubuntu(
-                      fontSize: 14,
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
-              backgroundColor: Colors.green.shade600,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-              duration: const Duration(seconds: 1),
-            ),
-          );
-        }
-      } else {
-        print("❌ Failed to update quantity, reverting...");
-        // Revert quantity on failure
-        setState(() {
-          quantity = widget.paniers.cartItems[widget.index].quantity;
-        });
-
-        // Show error feedback
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  Icon(
-                    Iconsax.warning_2,
-                    color: Colors.white,
-                    size: 18,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    "Erreur lors de la mise à jour",
-                    style: GoogleFonts.ubuntu(
-                      fontSize: 14,
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
-              backgroundColor: Colors.red.shade600,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-              duration: const Duration(seconds: 2),
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      print("💥 Exception updating quantity: $e");
-      setState(() {
-        _isLoading = false;
-        // Revert quantity on error
-        quantity = widget.paniers.cartItems[widget.index].quantity;
-      });
-
-      // Show error feedback
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Icon(
-                  Iconsax.wifi_square,
-                  color: Colors.white,
-                  size: 18,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  "Erreur de connexion",
-                  style: GoogleFonts.ubuntu(
-                    fontSize: 14,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
-            ),
-            backgroundColor: Colors.red.shade600,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
-    }
-  }
-
-  // Get the current quantity (for parent component to access)
-  int getCurrentQuantity() => quantity;
+  // Removed quantity controls - each blood bag is unique and cannot be incremented
 
   @override
   Widget build(BuildContext context) {
@@ -235,57 +85,292 @@ class _PanierWidgetState extends ConsumerState<PanierWidget> {
     final volume = '$volumeName $volumeUnit';
 
     final totalPrice = quantity * cartItem.price;
- 
+
     return FadeInUp(
       duration: const Duration(milliseconds: 300),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: Colors.grey.shade200,
-            width: 1,
+      child: Dismissible(
+        key: Key(cartItem.id),
+        direction: DismissDirection.endToStart,
+        background: Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: Colors.red.shade400,
+            borderRadius: BorderRadius.circular(16),
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          alignment: Alignment.centerRight,
+          padding: const EdgeInsets.only(right: 20),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Blood Bag Image
-              _buildBloodBagImage(),
-
-              const SizedBox(width: 16),
-
-              // Product Info and Quantity Controls
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Blood Type and Bank Name
-                    _buildProductInfo(bloodType, bankName, volume),
-
-                    const SizedBox(height: 16),
-
-                    // Quantity Controls
-                    _buildQuantityControls(),
-                  ],
+              Icon(
+                Iconsax.trash,
+                color: Colors.white,
+                size: 28,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Supprimer',
+                style: GoogleFonts.ubuntu(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
                 ),
               ),
-
-              const SizedBox(width: 12),
-
-              // Price and Delete
-              _buildPriceAndActions(totalPrice),
             ],
+          ),
+        ),
+        confirmDismiss: (direction) async {
+          // Show confirmation dialog
+          return await showDialog<bool>(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                title: Row(
+                  children: [
+                    Icon(
+                      Iconsax.warning_2,
+                      color: Colors.orange.shade600,
+                      size: 24,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Confirmer',
+                      style: GoogleFonts.ubuntu(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                content: Text(
+                  'Voulez-vous vraiment supprimer cette poche du panier ?',
+                  style: GoogleFonts.ubuntu(
+                    fontSize: 14,
+                    color: Colors.grey.shade700,
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: Text(
+                      'Annuler',
+                      style: GoogleFonts.ubuntu(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ),
+                  ElevatedButton(
+                    onPressed: () => Navigator.of(context).pop(true),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red.shade400,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: Text(
+                      'Supprimer',
+                      style: GoogleFonts.ubuntu(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+        onDismissed: (direction) async {
+          // Delete item from cart
+          try {
+            var controller = ref.read(panierCtrlProvider.notifier);
+            final result = await controller.supprimer_panier(
+              widget.paniers,
+              cartItem,
+            );
+
+            // Show success message
+            if (result?.success == true) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Row(
+                      children: [
+                        Icon(
+                          Iconsax.tick_circle,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Poche supprimée du panier',
+                          style: GoogleFonts.ubuntu(
+                            fontSize: 14,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                    backgroundColor: Colors.green.shade600,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              }
+            } else {
+              // Show error message
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Row(
+                      children: [
+                        Icon(
+                          Iconsax.warning_2,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Erreur lors de la suppression',
+                          style: GoogleFonts.ubuntu(
+                            fontSize: 14,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                    backgroundColor: Colors.red.shade600,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              }
+            }
+          } catch (e) {
+            debugPrint("❌ Error deleting item: $e");
+            // Show error message
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Row(
+                    children: [
+                      Icon(
+                        Iconsax.warning_2,
+                        color: Colors.white,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Erreur de connexion',
+                        style: GoogleFonts.ubuntu(
+                          fontSize: 14,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                  backgroundColor: Colors.red.shade600,
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            }
+          }
+        },
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: Colors.grey.shade200,
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Blood Bag Image
+                _buildBloodBagImage(),
+
+                const SizedBox(width: 16),
+
+                // Product Info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Blood Type and Bank Name
+                      _buildProductInfo(bloodType, bankName, volume),
+
+                      const SizedBox(height: 8),
+
+                      // Unique Item Badge
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Iconsax.box,
+                              size: 12,
+                              color: ColorPages.COLOR_PRINCIPAL,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Unité unique',
+                              style: GoogleFonts.ubuntu(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: ColorPages.COLOR_PRINCIPAL,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(width: 12),
+
+                // Price and Delete
+                _buildPriceAndActions(totalPrice, cartItem.currency),
+              ],
+            ),
           ),
         ),
       ),
@@ -363,109 +448,9 @@ class _PanierWidgetState extends ConsumerState<PanierWidget> {
     );
   }
 
-  Widget _buildQuantityControls() {
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Colors.grey.shade200,
-          width: 1,
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Decrease Button
-          _buildQuantityButton(
-            icon: Iconsax.minus,
-            onPressed: _isLoading ? null : decreaseQuantity,
-            isEnabled: quantity > 1 && !_isLoading,
-          ),
+  // Removed _buildQuantityControls and _buildQuantityButton - each blood bag is unique
 
-          const SizedBox(width: 16),
-
-          // Quantity Display
-          _isLoading
-              ? SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      ColorPages.COLOR_PRINCIPAL,
-                    ),
-                  ),
-                )
-              : Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: Colors.grey.shade300,
-                      width: 1,
-                    ),
-                  ),
-                  child: Text(
-                    '$quantity',
-                    style: GoogleFonts.ubuntu(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                  ),
-                ),
-
-          const SizedBox(width: 16),
-
-          // Increase Button
-          _buildQuantityButton(
-            icon: Iconsax.add,
-            onPressed: _isLoading ? null : increaseQuantity,
-            isEnabled: !_isLoading,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQuantityButton({
-    required IconData icon,
-    required VoidCallback? onPressed,
-    required bool isEnabled,
-  }) {
-    return Container(
-      width: 36,
-      height: 36,
-      decoration: BoxDecoration(
-        color: isEnabled
-            ? ColorPages.COLOR_PRINCIPAL
-            : Colors.grey.shade300,
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: isEnabled ? [
-          BoxShadow(
-            color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.3),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ] : null,
-      ),
-      child: IconButton(
-        onPressed: onPressed,
-        icon: Icon(
-          icon,
-          size: 18,
-          color: isEnabled ? Colors.white : Colors.grey.shade500,
-        ),
-        padding: EdgeInsets.zero,
-        constraints: const BoxConstraints(),
-      ),
-    );
-  }
-
-  Widget _buildPriceAndActions(int totalPrice) {
+  Widget _buildPriceAndActions(int totalPrice, String currency) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
@@ -503,23 +488,12 @@ class _PanierWidgetState extends ConsumerState<PanierWidget> {
             borderRadius: BorderRadius.circular(6),
           ),
           child: Text(
-            '\$ $totalPrice',
+            '$currency $totalPrice',
             style: GoogleFonts.ubuntu(
               fontSize: 14,
               fontWeight: FontWeight.bold,
               color: ColorPages.COLOR_PRINCIPAL,
             ),
-          ),
-        ),
-
-        const SizedBox(height: 4),
-
-        // Quantity Info
-        Text(
-          'Qty: $quantity',
-          style: GoogleFonts.ubuntu(
-            fontSize: 11,
-            color: Colors.grey.shade600,
           ),
         ),
       ],

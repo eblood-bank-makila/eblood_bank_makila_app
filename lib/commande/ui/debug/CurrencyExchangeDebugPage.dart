@@ -388,15 +388,16 @@ class _CurrencyExchangeDebugPageState extends ConsumerState<CurrencyExchangeDebu
               ],
             ),
             const SizedBox(height: 8),
-            Text('Endpoint: /data/currencies-exchange'),
+            Text('Endpoint: /eblood-connect/currencies-exchange'),
             Text('Method: GET'),
-            Text('Expected Response: Single currency object or array'),
+            Text('Expected Response: currency_exchanges array'),
             const SizedBox(height: 8),
             const Text(
               'If you see "No currency data available", check:\n'
               '• Backend has currency exchanges configured\n'
               '• User authentication is working\n'
-              '• API endpoint is accessible',
+              '• API endpoint is accessible\n'
+              '• Entity has currencies configured',
               style: TextStyle(fontSize: 12, color: Colors.grey),
             ),
           ],

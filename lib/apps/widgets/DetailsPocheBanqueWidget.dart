@@ -485,8 +485,9 @@ class _DetailPocheBanqueWidgetState
                 SizedBox(height: 10),
                 Center(
                   child: Text(
-                    'Le groupe sanguin A+ possède l\'antigène A et le facteur Rhésus positif (Rh+). Les personnes avec ce groupe sanguin peuvent recevoir du sang des groupes A+ et O+, et sont donneurs pour les groupes A+ et AB+.',
+                    widget.poche.description ?? 'Aucune description disponible.',
                     style: TextStyle(color: Colors.grey[700]),
+                    textAlign: TextAlign.justify,
                   ),
                 ),
                 SizedBox(height: 30),
@@ -697,7 +698,7 @@ class _DetailPocheBanqueWidgetState
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    '\$${_totalPrice.toStringAsFixed(2)}',
+                    '${(widget.poche.currencySymbol ?? '\$').toUpperCase()}${_totalPrice.toStringAsFixed(2)}',
                     style: GoogleFonts.ubuntu(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -833,7 +834,7 @@ class _DetailPocheBanqueWidgetState
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'Quantité: $_quantity × \$${widget.poche.price}',
+                    'Quantité: $_quantity × ${(widget.poche.currencySymbol ?? '\$').toUpperCase()}${widget.poche.price}',
                     style: GoogleFonts.ubuntu(
                       fontSize: 12,
                       color: Colors.grey.shade600,
@@ -851,7 +852,7 @@ class _DetailPocheBanqueWidgetState
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
-                '\$${_totalPrice.toStringAsFixed(2)}',
+                '${(widget.poche.currencySymbol ?? '\$').toUpperCase()}${_totalPrice.toStringAsFixed(2)}',
                 style: GoogleFonts.ubuntu(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -955,6 +956,15 @@ class _DetailPocheBanqueWidgetState
               return;
             }
 
+            // Check if quantity exceeds stock
+            if (_quantity > widget.poche.bloodStockCount) {
+              showCustomSnackBar(
+                'Quantité demandée supérieure au stock disponible',
+                Icons.warning,
+              );
+              return;
+            }
+
             setState(() {
               _isLoading = true;
             });
@@ -963,7 +973,14 @@ class _DetailPocheBanqueWidgetState
               final usecase = ref.read(commandeInteractorProvider).panierusecase;
               await usecase.run(widget.poche, widget.banque, quantity: _quantity);
 
-              showCustomSnackBar('Poche ajoutée au panier', Icons.check);
+              // Refresh cart count
+              final panierCtrl = ref.read(panierCtrlProvider.notifier);
+              await panierCtrl.listepanier();
+
+              // Show success modal
+              if (mounted) {
+                _showSuccessModal();
+              }
             } catch (e) {
               showCustomSnackBar('Erreur lors de l\'ajout au panier', Icons.error);
             } finally {
@@ -999,7 +1016,7 @@ class _DetailPocheBanqueWidgetState
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Ajouter',
+                      'Ajouter au panier',
                       style: GoogleFonts.ubuntu(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -1007,6 +1024,121 @@ class _DetailPocheBanqueWidgetState
                     ),
                   ],
                 ),
+        ),
+      ),
+    );
+  }
+
+  void _showSuccessModal() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
+          ),
+        ),
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Success icon
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: Colors.green.shade50,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.check_circle,
+                color: Colors.green,
+                size: 48,
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Success message
+            Text(
+              'Ajouté au panier !',
+              style: GoogleFonts.ubuntu(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey.shade800,
+              ),
+            ),
+            const SizedBox(height: 8),
+
+            Text(
+              '$_quantity poche(s) ajoutée(s) à votre panier',
+              style: GoogleFonts.ubuntu(
+                fontSize: 14,
+                color: Colors.grey.shade600,
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Action buttons
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      side: BorderSide(color: Colors.grey.shade300),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      'Continuer',
+                      style: GoogleFonts.ubuntu(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => PanierPage(),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: ColorPages.COLOR_PRINCIPAL,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      'Voir le panier',
+                      style: GoogleFonts.ubuntu(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

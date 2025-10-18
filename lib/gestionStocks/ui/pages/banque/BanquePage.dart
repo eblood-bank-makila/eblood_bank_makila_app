@@ -340,7 +340,10 @@ class _BanquepageState extends ConsumerState<Banquepage> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => Recherchepage(query: searchController.text),
+                    builder: (context) => Recherchepage(
+                      query: searchController.text,
+                      isModal: true, // Opened as modal from first tab
+                    ),
                   ),
                 );
               },

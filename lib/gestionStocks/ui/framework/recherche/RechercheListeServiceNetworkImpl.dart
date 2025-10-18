@@ -1,99 +1,79 @@
-import 'dart:convert';
-import 'dart:io';
 import 'package:eblood_bank_mak_app/gestionStocks/business/model/recherche/DatumRecherchePocheModel.dart';
-import 'package:http/http.dart' as http;
-
+import 'package:flutter/foundation.dart';
 import '../../../business/service/recherche/RechercheListeNetworkService.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:eblood_bank_mak_app/apps/config/api/dio_client.dart';
 
 class RechercheListeNetworkServiceImpl implements RechercheListeNetworkService {
   String baseURL;
 
   RechercheListeNetworkServiceImpl(this.baseURL);
 
-
-
   @override
   Future<List<DatumRecherchePocheModel>> recuperationRechercheListeBanque(String searchKey, String authBearer) async {
-    print('🌐 Making search API call to: $baseURL/data/blood-bags?search_key=$searchKey');
-    print('🔑 Auth token: ${authBearer.isNotEmpty ? "Present (${authBearer.length} chars)" : "Empty"}');
-
-    var res = await http.get(Uri.parse("$baseURL/data/blood-bags?search_key=$searchKey"),
-        headers: {
-      "Authorization": "Bearer $authBearer",
-      "Content-Type":"application/json",
-      "eblood-lockkeys":
-      "0af4ebc066accceff45fad9ee6f2e9a9a24f6051ddb59b73f188dff0326c1e31"
-    });
-
-    print("📡 Response status: ${res.statusCode}");
-    print("📄 Response body: ${res.body}");
-
-    if (res.statusCode != 200) {
-      print("❌ API Error: Status ${res.statusCode}");
-      return [];
-    }
-
     try {
-      var reponseMap = json.decode(res.body) as Map;
-      print("🗂️ Response map keys: ${reponseMap.keys.toList()}");
+      debugPrint('🔍 Searching blood bags with keyword: "$searchKey"');
 
-      if (!reponseMap.containsKey('data')) {
-        print("❌ No 'data' key in response");
-        return [];
+      // Call the new backend endpoint using DioClient
+      final response = await getWithDio(
+        '/eblood-connect/blood-bags/search-simple',
+        queryParams: {
+          'search_key': searchKey,
+          'page': 0,
+          'limit': 50,
+        },
+      );
+
+      debugPrint("📡 Search API response: ${response.message}");
+
+      if (!response.success) {
+        debugPrint("⚠️ Failed to search blood bags: ${response.message}");
+        return <DatumRecherchePocheModel>[];
       }
 
-      var data = reponseMap['data'] as List;
-      print("📊 Data array length: ${data.length}");
+      // Parse the response data
+      final dynamic responseData = response.data;
+      List<dynamic> items = <dynamic>[];
 
-      if (data.isEmpty) {
-        print("⚠️ Data array is empty");
-        return [];
-      }
-
-      print("📋 First item keys: ${data.first.keys.toList()}");
-      print("🔍 First item content: ${data.first}");
-
-      var responseFinal = <DatumRecherchePocheModel>[];
-      for (int i = 0; i < data.length; i++) {
-        try {
-          print("🔄 Parsing item $i...");
-          var item = DatumRecherchePocheModel.fromJson(data[i]);
-          responseFinal.add(item);
-          print("✅ Successfully parsed item $i");
-        } catch (e) {
-          print("💥 Error parsing item $i: $e");
-          print("📄 Item $i content: ${data[i]}");
+      if (responseData is List) {
+        // Direct list response
+        items = responseData;
+      } else if (responseData is Map) {
+        // Check for data key
+        if (responseData.containsKey('data')) {
+          final data = responseData['data'];
+          if (data is List) {
+            items = data;
+          }
         }
       }
 
-      print("✅ Successfully parsed ${responseFinal.length} items out of ${data.length}");
+      debugPrint("📊 Found ${items.length} blood bags");
+
+      if (items.isEmpty) {
+        debugPrint("⚠️ No blood bags found for search: $searchKey");
+        return <DatumRecherchePocheModel>[];
+      }
+
+      // Parse items into DatumRecherchePocheModel
+      final responseFinal = <DatumRecherchePocheModel>[];
+      for (int i = 0; i < items.length; i++) {
+        try {
+          if (items[i] is Map) {
+            final item = DatumRecherchePocheModel.fromJson(items[i] as Map<String, dynamic>);
+            responseFinal.add(item);
+          }
+        } catch (e) {
+          debugPrint("⚠️ Error parsing blood bag $i: $e");
+          debugPrint("⚠️ Problematic data: ${items[i]}");
+        }
+      }
+
+      debugPrint("✅ Successfully parsed ${responseFinal.length} blood bags");
 
       return responseFinal;
     } catch (e) {
-      print("💥 Error parsing response: $e");
-      return [];
+      debugPrint("❌ Error searching blood bags: $e");
+      return <DatumRecherchePocheModel>[];
     }
   }
-}
-
-class MyHttpOverrides extends HttpOverrides {
-  @override
-  HttpClient createHttpClient(SecurityContext? context) {
-    return super.createHttpClient(context)
-      ..badCertificateCallback =
-          (X509Certificate cert, String host, int port) => true;
-  }
-}
-
-void main() {
-  HttpOverrides.global = new MyHttpOverrides();
-  String baseUrl = dotenv.env['BASE_URL'] ?? '';
-  var impl = RechercheListeNetworkServiceImpl(baseUrl);
-//  var data = BanqueListeModele(page: "0");
-  var token =
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1X2lkIjoiNjZkNzE5MDk3NWQ5MGE3YmMyMjgwYjkxIiwiaWV3IjoiMjAyNC0wOS0xOVQxMjoxMTo0Ny4yMTVaIiwiaWF0IjoxNzI2NzQ3NjA3LCJleHAiOjE3MjcwMDY4MDd9.0-IMlUwcOFsgGVnIkFzfgP-YbTBMoOZ7TybzBWPYiO4';
-  // impl.authenticate(data);
-  String searchKey="c";
-  impl.recuperationRechercheListeBanque(searchKey, token);
 }

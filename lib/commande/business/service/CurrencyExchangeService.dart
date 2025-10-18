@@ -1,9 +1,6 @@
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../apps/config/AppConfig.dart';
-import '../../../utilisateurs/business/interactors/UtilisateurInteractor.dart';
+import '../../../core/network/dio_client.dart';
 import '../model/CurrencyExchangeModel.dart';
 
 abstract class CurrencyExchangeService {
@@ -11,54 +8,46 @@ abstract class CurrencyExchangeService {
 }
 
 class CurrencyExchangeServiceImpl implements CurrencyExchangeService {
-  final String baseUrl;
-  final Utilisateurinteractor userInteractor;
+  final DioClient dioClient;
 
   CurrencyExchangeServiceImpl({
-    required this.baseUrl,
-    required this.userInteractor,
+    required this.dioClient,
   });
 
   @override
   Future<CurrencyExchangeResponse> getCurrencyExchanges() async {
     try {
-      // Get authentication token
-      final token = await userInteractor.recuperationTokenOtpUseCase.run();
+      debugPrint('🌍 Fetching currency exchanges from: /eblood-connect/currencies-exchange');
 
-      final url = '$baseUrl/data/currencies-exchange';
-      debugPrint('🌍 Fetching currency exchanges from: $url');
-      debugPrint('🔑 Token available: ${token != null && token.isNotEmpty ? "Yes (${token.length} chars)" : "No"}');
-
-      final headers = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
-        'eblood-lockkeys': '0af4ebc066accceff45fad9ee6f2e9a9a24f6051ddb59b73f188dff0326c1e31',
-      };
-
-      debugPrint('📤 Request headers: $headers');
-
-      final response = await http.get(
-        Uri.parse(url),
-        headers: headers,
+      final response = await dioClient.get<Map<String, dynamic>>(
+        '/eblood-connect/currencies-exchange',
       );
 
-      debugPrint('🌍 Currency exchange response status: ${response.statusCode}');
-      debugPrint('🌍 Currency exchange response headers: ${response.headers}');
-      debugPrint('🌍 Currency exchange response body: ${response.body}');
+      debugPrint('🌍 Currency exchange response: $response');
 
-      if (response.statusCode == 200) {
+      if (response != null) {
         debugPrint('✅ Successful response, parsing JSON...');
-        final jsonData = json.decode(response.body);
-        debugPrint('📋 Parsed JSON structure: ${jsonData.runtimeType}');
-        debugPrint('📋 JSON keys: ${jsonData is Map ? jsonData.keys.toList() : "Not a Map"}');
+        debugPrint('📋 Parsed JSON structure: ${response.runtimeType}');
+        debugPrint('📋 JSON keys: ${response is Map ? response.keys.toList() : "Not a Map"}');
 
-        if (jsonData is Map && jsonData.containsKey('data')) {
-          debugPrint('📋 Data field type: ${jsonData['data'].runtimeType}');
-          debugPrint('📋 Data field content: ${jsonData['data']}');
+        if (response is Map && response.containsKey('data')) {
+          debugPrint('📋 Data field type: ${response['data'].runtimeType}');
+          debugPrint('📋 Data field content: ${response['data']}');
         }
 
-        final currencyResponse = CurrencyExchangeResponse.fromJson(jsonData);
+        if (response is Map && response.containsKey('currency_exchanges')) {
+          debugPrint('📋 Currency exchanges field type: ${response['currency_exchanges'].runtimeType}');
+          debugPrint('📋 Currency exchanges field content: ${response['currency_exchanges']}');
+        }
+
+        // Parse currency_exchanges field if it exists, otherwise use data field
+        final currencyExchangesData = response['currency_exchanges'] ?? response['data'];
+
+        final currencyResponse = CurrencyExchangeResponse.fromJson({
+          'success': response['success'] ?? true,
+          'message': response['message'] ?? 'Currency exchanges fetched successfully',
+          'data': currencyExchangesData,
+        });
 
         debugPrint('✅ Successfully parsed response:');
         debugPrint('✅ Success: ${currencyResponse.success}');
@@ -72,12 +61,11 @@ class CurrencyExchangeServiceImpl implements CurrencyExchangeService {
 
         return currencyResponse;
       } else {
-        debugPrint('❌ Failed to fetch currency exchanges: ${response.statusCode}');
-        debugPrint('❌ Response body: ${response.body}');
+        debugPrint('❌ Failed to fetch currency exchanges: null response');
         return CurrencyExchangeResponse(
           success: false,
           data: [],
-          message: 'Failed to fetch currency exchanges: ${response.statusCode}',
+          message: 'Failed to fetch currency exchanges: null response',
         );
       }
     } catch (e) {
@@ -93,12 +81,10 @@ class CurrencyExchangeServiceImpl implements CurrencyExchangeService {
 
 // Provider for the currency exchange service
 final currencyExchangeServiceProvider = Provider<CurrencyExchangeService>((ref) {
-  final userInteractor = ref.read(utilisateurInteractorProvider);
-  final baseUrl = AppConfig.instance.baseUrl;
-  
+  final dioClient = DioClient();
+
   return CurrencyExchangeServiceImpl(
-    baseUrl: baseUrl,
-    userInteractor: userInteractor,
+    dioClient: dioClient,
   );
 });
 

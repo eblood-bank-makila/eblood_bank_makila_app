@@ -118,29 +118,43 @@ class PanierCtrl extends _$PanierCtrl {
   // }
 
   Future<SuppressionPanierResponseModel?> supprimer_panier(
-      DatumModel card_id, CartItemPanierModel blood_bag_id) async {
+      DatumModel card_id, CartItemPanierModel cart_item) async {
     state = state.copyWith(isLoading: true);
     var usecase =
         ref.watch(commandeInteractorProvider).supprimerPochePanierUseCase;
 
-    var id_not = card_id.id;
-    var blood = blood_bag_id.bloodBagId; // ← Fixed: Use bloodBagId instead of id
-    print("🗑️ Deleting cart item: cartId=$id_not, bloodBagId=$blood");
+    var cartId = card_id.id;
+    var cartItemId = cart_item.id; // ← FIXED: Use cart item's id (not bloodBagId)
+
+    print("🗑️ [CTRL] Deleting cart item:");
+    print("   card_id object: ${card_id.toJson()}");
+    print("   cart_item object: ${cart_item.toJson()}");
+    print("   cartId type: ${cartId.runtimeType}, value: '$cartId'");
+    print("   cartItemId type: ${cartItemId.runtimeType}, value: '$cartItemId'");
+    print("   cartId isEmpty: ${cartId.isEmpty}");
+    print("   cartItemId isEmpty: ${cartItemId.isEmpty}");
 
     try {
-      var res = await usecase.run(id_not, blood);
-      print("✅ Deletion response: ${res?.success}");
+      var res = await usecase.run(cartId, cartItemId);
+      print("✅ Deletion response received:");
+      print("   success: ${res?.success}");
+      print("   statusCode: ${res?.statusCode}");
+      print("   message: ${res?.sms}");
 
       if (res?.success == true) {
         // Refresh cart data after successful deletion
         print("🔄 Refreshing cart data after deletion...");
         await listepanier();
+        print("✅ Cart refreshed successfully");
+      } else {
+        print("⚠️ Deletion response indicates failure");
       }
 
       state = state.copyWith(supprimer_panier: res, isLoading: false);
       return res;
-    } catch (e) {
+    } catch (e, stackTrace) {
       print("💥 Error deleting cart item: $e");
+      print("📍 Stack trace: $stackTrace");
       state = state.copyWith(isLoading: false);
       return null;
     }
@@ -169,10 +183,10 @@ class PanierCtrl extends _$PanierCtrl {
       for (final cart in currentCart!.data) {
         for (final item in cart.cartItems) {
           totalItems++;
-          print("🗑️ Deleting item ${deletedItems + 1}/$totalItems: ${item.bloodBagId}");
+          print("🗑️ Deleting item ${deletedItems + 1}/$totalItems: cartItemId=${item.id}");
 
           try {
-            final result = await usecase.run(cart.id, item.bloodBagId);
+            final result = await usecase.run(cart.id, item.id); // ← FIXED: Use item.id (cart_item_id)
             if (result?.success == true) {
               deletedItems++;
               print("✅ Item deleted successfully");

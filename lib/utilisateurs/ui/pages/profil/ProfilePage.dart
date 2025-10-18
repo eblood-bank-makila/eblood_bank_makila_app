@@ -119,7 +119,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: IconButton(
-                  icon: const Icon(Icons.settings, color: Colors.white),
+                  icon: const Icon(Iconsax.setting_2, color: Colors.white),
                   onPressed: () {
                     Navigator.push(context,
                         MaterialPageRoute(builder: (context) => const ParametrePage()));
@@ -213,9 +213,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                       ),
                     ),
                     const Icon(
-                      Icons.arrow_forward_ios,
+                      Iconsax.arrow_right_3,
                       color: Colors.white,
-                      size: 16,
+                      size: 18,
                     ),
                   ],
                 ),
@@ -241,7 +241,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           _buildAccountTypeListTile(),
 
           _buildModernListTile(
-            icon: Icons.favorite_border,
+            icon: Iconsax.heart,
             title: 'favorites'.tr,
             onTap: () {
               Navigator.push(
@@ -251,7 +251,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           ),
 
           _buildModernListTile(
-            icon: Icons.notifications_none,
+            icon: Iconsax.notification,
             title: 'notifications'.tr,
             onTap: () {
               Navigator.push(
@@ -270,7 +270,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           const SizedBox(height: 16),
 
           _buildModernListTile(
-            icon: Icons.info_outline,
+            icon: Iconsax.info_circle,
             title: 'about'.tr,
             onTap: () {
               Navigator.push(
@@ -280,7 +280,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           ),
 
           _buildModernListTile(
-            icon: Icons.help_outline_rounded,
+            icon: Iconsax.message_question,
             title: 'help'.tr,
             onTap: () {
               Navigator.push(context,
@@ -295,7 +295,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           const SizedBox(height: 16),
 
           _buildModernListTile(
-            icon: Icons.phone,
+            icon: Iconsax.call,
             title: 'contact_us'.tr,
             onTap: () {
               Navigator.push(context,
@@ -304,7 +304,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           ),
 
           _buildModernListTile(
-            icon: Icons.reviews_outlined,
+            icon: Iconsax.star,
             title: 'rate_app'.tr,
             onTap: () async {
               final Uri url = Uri.parse(
@@ -316,7 +316,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           ),
 
           _buildModernListTile(
-            icon: Icons.share,
+            icon: Iconsax.share,
             title: 'share_app'.tr + ' E-Blood Bank',
             onTap: () {
               Share.share('https://play.google.com/store/apps/e-blood');
@@ -330,7 +330,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           const SizedBox(height: 16),
 
           _buildModernListTile(
-            icon: Icons.security,
+            icon: Iconsax.shield_tick,
             title: 'privacy'.tr,
             onTap: () {
               Navigator.push(context,
@@ -339,7 +339,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           ),
 
           _buildModernListTile(
-            icon: Icons.info_outline_rounded,
+            icon: Iconsax.document_text,
             title: 'terms'.tr,
             onTap: () {
               Navigator.push(context,
@@ -412,8 +412,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         ),
         trailing: showTrailing
             ? Icon(
-                Icons.arrow_forward_ios,
-                size: 16,
+                Iconsax.arrow_right_3,
+                size: 18,
                 color: Colors.grey.shade400,
               )
             : null,
@@ -557,7 +557,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const Icon(
-                  Icons.logout,
+                  Iconsax.logout,
                   color: Colors.white,
                   size: 20,
                 ),
@@ -596,7 +596,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
-                  Icons.logout,
+                  Iconsax.logout,
                   color: Colors.red.shade600,
                   size: 20,
                 ),

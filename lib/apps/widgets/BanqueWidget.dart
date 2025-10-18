@@ -4,6 +4,7 @@ import 'package:eblood_bank_mak_app/apps/config/theme/ColorPages.dart';
 import 'package:eblood_bank_mak_app/apps/config/utils/Utils.dart';
 import 'package:eblood_bank_mak_app/gestionStocks/business/model/banque/BanqueModele.dart';
 import 'package:eblood_bank_mak_app/gestionStocks/business/model/favoris/FavorisModel.dart';
+import 'package:eblood_bank_mak_app/gestionStocks/ui/pages/banque/BanqueCtrl.dart';
 import 'package:eblood_bank_mak_app/gestionStocks/ui/pages/favoris/FavorisCtrl.dart';
 import 'package:eblood_bank_mak_app/gestionStocks/ui/pages/poche/ListePocheBanquePage.dart';
 import 'package:flutter/material.dart';
@@ -237,8 +238,14 @@ class BanqueWidget extends ConsumerWidget {
                             // ),
                           ],
                         ),
-              
-              
+
+                        // Inventory Summary Section (if available)
+                        if (banque.inventorySummary != null) ...[
+                          const SizedBox(height: 12),
+                          _buildInventorySummary(banque.inventorySummary!),
+                        ],
+
+
                         // Icône de favori
                         // Positioned(
                         //   top: 8,
@@ -329,44 +336,141 @@ class BanqueWidget extends ConsumerWidget {
   /// Toggle favorite status for a bank
   void _toggleFavorite(BanqueModele banque, WidgetRef ref, BuildContext context) async {
     try {
-      if (!banque.isFavorite) {
-        // Add to favorites
-        await ref.read(favorisCtrlProvider.notifier).ajouterFavoris(
-            "", FavorisModele(blood_bank_id: banque.id));
+      // Optimistically update the UI immediately
+      final newFavoriteStatus = !banque.isFavorite;
+      ref.read(banqueCtrlProvider.notifier).updateBankFavoriteStatus(
+        banque.id,
+        newFavoriteStatus,
+      );
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${banque.blood_bank_name} ajouté aux favoris'),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 2),
-          ),
+      // Call the toggle endpoint (it handles both add and remove)
+      final result = await ref.read(favorisCtrlProvider.notifier).ajouterFavoris(
+          "", FavorisModele(blood_bank_id: banque.id));
+
+      // Get action from result
+      final action = result['action'] ?? 'added';
+
+      // Verify the action matches our optimistic update
+      final expectedFavorite = action == 'added';
+      if (expectedFavorite != newFavoriteStatus) {
+        // If backend returned different result, correct the UI
+        ref.read(banqueCtrlProvider.notifier).updateBankFavoriteStatus(
+          banque.id,
+          expectedFavorite,
         );
-      } else {
-        // Remove from favorites
-        await ref.read(favorisCtrlProvider.notifier).supprimerFavoris(
-            FavorisModele(blood_bank_id: banque.id));
+      }
 
+      // Show appropriate message based on action
+      if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${banque.blood_bank_name} retiré des favoris'),
-            backgroundColor: Colors.orange,
+            content: Text(action == 'added'
+                ? '${banque.blood_bank_name} ajouté aux favoris'
+                : '${banque.blood_bank_name} retiré des favoris'),
+            backgroundColor: action == 'added' ? Colors.green : Colors.orange,
             duration: const Duration(seconds: 2),
           ),
         );
       }
 
-      // Toggle the provider state
-      ref.read(favoriteProvider(banque.id).notifier).toggleFavorite();
-
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erreur: ${e.toString()}'),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 2),
-        ),
+      // Revert the optimistic update on error
+      ref.read(banqueCtrlProvider.notifier).updateBankFavoriteStatus(
+        banque.id,
+        banque.isFavorite, // Revert to original state
       );
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
     }
+  }
+
+  /// Build inventory summary widget
+  Widget _buildInventorySummary(Map<String, dynamic> inventorySummary) {
+    final totalBags = inventorySummary['total_bags'] ?? 0;
+    final bloodTypes = (inventorySummary['available_blood_types'] as List?)?.cast<String>() ?? [];
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.1),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header with total bags (no label, just badge and blood types)
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: ColorPages.COLOR_PRINCIPAL,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Iconsax.health,
+                      color: Colors.white,
+                      size: 14,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      '$totalBags bags',
+                      style: GoogleFonts.ubuntu(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              if (bloodTypes.isNotEmpty)
+                Expanded(
+                  child: Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: bloodTypes.map((type) => Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: Colors.red.shade200,
+                          width: 1,
+                        ),
+                      ),
+                      child: Text(
+                        type,
+                        style: GoogleFonts.ubuntu(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.red.shade700,
+                        ),
+                      ),
+                    )).toList(),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }
 

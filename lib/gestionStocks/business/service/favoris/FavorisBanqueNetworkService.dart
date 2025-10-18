@@ -5,7 +5,7 @@ import 'package:eblood_bank_mak_app/gestionStocks/business/model/favoris/Favoris
 import '../../model/favoris/SupprimerFavorisModel.dart';
 
 abstract class FavorisBanqueNetworkService {
-  Future<void> ajouterFavoris(String authBarear, FavorisModele favorite);
+  Future<Map<String, dynamic>> ajouterFavoris(String authBarear, FavorisModele favorite);
 
   Future<List<BanqueModele>> recupererFavorites();
 

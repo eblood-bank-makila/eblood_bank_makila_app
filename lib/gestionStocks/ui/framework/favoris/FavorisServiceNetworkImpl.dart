@@ -1,10 +1,10 @@
-import 'dart:convert';
 import 'dart:io';
 import 'package:eblood_bank_mak_app/gestionStocks/business/model/banque/BanqueModele.dart';
 import 'package:eblood_bank_mak_app/gestionStocks/business/model/favoris/DactumFavorisModel.dart';
 import 'package:eblood_bank_mak_app/gestionStocks/business/model/favoris/FavorisModel.dart';
 import 'package:eblood_bank_mak_app/gestionStocks/business/service/favoris/FavorisBanqueNetworkService.dart';
-import 'package:http/http.dart' as http;
+import 'package:eblood_bank_mak_app/apps/config/api/dio_client.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import '../../../business/model/favoris/SupprimerFavorisModel.dart';
@@ -15,50 +15,40 @@ class FavorisNetworkServiceImpl implements FavorisBanqueNetworkService {
   FavorisNetworkServiceImpl(this.baseURL);
 
   @override
-  // Future<AuthentificationModel> ajouterFavorisd(
-  //     AuthenticateRequestBody data) async {
-  //   var res = await http.post(Uri.parse("$baseURL/data/blood-bank-favory"),
-  //       body: data.toJson(),
-  //       headers: {
-  //         "eblood-lockkeys":
-  //             "0af4ebc066accceff45fad9ee6f2e9a9a24f6051ddb59b73f188dff0326c1e31"
-  //       });
-  //   print("gggggggggggggggggggg $res");
-  //   print("jjjjjjjjjjjjjjjj ${res.body}");
-  //   print("status coode ${res.statusCode}");
-  //   var reponseMap = json.decode(res.body) as Map;
-  //
-  //   print("responseMap USER $reponseMap");
-  //   var reponseFinal = AuthentificationModel.fromJson(reponseMap['data']);
-  //   return reponseFinal;
-  // }
-
-  Future<void> ajouterFavoris(String authBearer, FavorisModele favorite) async {
+  
+  
+  Future<Map<String, dynamic>> ajouterFavoris(String authBearer, FavorisModele favorite) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseURL/data/blood-bank-favory'),
-        headers: {
-          "eblood-lockkeys":
-              "0af4ebc066accceff45fad9ee6f2e9a9a24f6051ddb59b73f188dff0326c1e31",
-          'Authorization': 'Bearer $authBearer', // Utiliser authBearer ici
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
-          'blood_bank_id': favorite.blood_bank_id,
-          // Utiliser l'ID de l'objet FavorisModele
-        }),
-      );
-      print("gggggggggggggggggggg $response");
-      print("jjjjjjjjjjjjjjjj ${response.body}");
+      debugPrint("📤 Toggling favorite: ${favorite.blood_bank_id}");
 
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body); // Retourne les données de la réponse
-      } else {
-        throw Exception(
-            'Erreur lors de l\'ajout aux favoris : ${response.body}');
+      final response = await postWithDio(
+        '/eblood-connect/blood-bank-favory',
+        body: {
+          'blood_bank_id': favorite.blood_bank_id,
+        },
+      );
+
+      // Check if the response was successful
+      if (response.success != true) {
+        debugPrint("❌ Backend returned error: ${response.message}");
+        throw Exception(response.message ?? 'Erreur lors de l\'opération');
       }
+
+      // Extract action and message from response
+      final data = response.data as Map<String, dynamic>? ?? {};
+      final action = data['action'] ?? 'added';
+      final message = response.message ?? 'Opération réussie';
+
+      debugPrint("✅ Favorite $action: $message");
+
+      return {
+        'action': action,
+        'message': message,
+        'data': data,
+      };
     } catch (e) {
-      throw Exception('Erreur de connexion : $e');
+      debugPrint("❌ Error toggling favorite: $e");
+      throw Exception('Erreur lors de l\'opération : $e');
     }
   }
 
@@ -81,64 +71,51 @@ class FavorisNetworkServiceImpl implements FavorisBanqueNetworkService {
   }
 
   @override
-  // Future<List<FavorisRecupererModel>?> recuperationFavorisBanque(String authBarear) async {
-  //   var res = await http
-  //       .get(Uri.parse("$baseURL/data/blood-bank-favory?page=0"), headers: {
-  //     "Authorization": "Bearer $authBarear",
-  //     "Content-Type": "application/json",
-  //     "eblood-lockkeys":
-  //         "0af4ebc066accceff45fad9ee6f2e9a9a24f6051ddb59b73f188dff0326c1e31"
-  //   });
-  //   print("body response getuser: ${res.body}");
-  //   var reponseMap = json.decode(res.body) as Map;
-  //   print("responseMap $reponseMap");
-  //   var data = reponseMap['data'] as List;
-  //   var responseFinal =
-  //       data.map((e) => FavorisRecupererModel.fromJson(e)).toList();
-  //   return responseFinal;
-  // }
+  
+  
   Future<List<DactumFavorisModel>?> recuperationFavorisBanque(String authBarear) async {
-    var res = await http.get(
-      Uri.parse("$baseURL/data/blood-bank-favory?page=0"),
-      headers: {
-        "Authorization": "Bearer $authBarear",
-        "Content-Type": "application/json",
-        "eblood-lockkeys":
-            "0af4ebc066accceff45fad9ee6f2e9a9a24f6051ddb59b73f188dff0326c1e31"
-      },
-    );
+    try {
+      debugPrint("📥 Fetching favorites list");
 
-    print("body response getuser: ${res.body}");
-    var reponseMap = json.decode(res.body) as Map<String, dynamic>;
-    print("responseMap $reponseMap");
+      final response = await getWithDio(
+        '/eblood-connect/blood-bank-favory',
+        queryParams: {'page': '0'},
+      );
 
-    var data =
-        reponseMap['data'] as List? ?? []; // Gérer le cas où data est nul
-    var responseFinal =
-        data.map((e) => DactumFavorisModel.fromJson(e)).toList();
+      debugPrint("✅ Favorites response: ${response.message}");
 
-    return responseFinal;
+      var data = response.data as List? ?? [];
+      var responseFinal = data.map((e) => DactumFavorisModel.fromJson(e)).toList();
+
+      debugPrint("✅ Parsed ${responseFinal.length} favorites");
+      return responseFinal;
+    } catch (e) {
+      debugPrint("❌ Error fetching favorites: $e");
+      throw Exception('Erreur lors de la récupération des favoris : $e');
+    }
   }
 
   @override
   Future<SupprimerFavorisModel> removeFavorite(String id, String authBearer) async {
-    var res = await http.delete(
-      Uri.parse("$baseURL/data/blood-bank-favory/$id"),
-      headers: {
-        "Authorization": "Bearer $authBearer",
-        "Content-Type": "application/json",
-        "eblood-lockkeys":
-            "0af4ebc066accceff45fad9ee6f2e9a9a24f6051ddb59b73f188dff0326c1e31"
-      },
-    );
+    try {
+      debugPrint("🗑️ Removing favorite: $id");
 
-    print("body response panier suppression: ${res.body}");
-    var reponseMap = json.decode(res.body) as Map;
-    print("responseMap $reponseMap");
-    if (res.statusCode == 200 || res.statusCode == 204) {
-      return supprimerFavorisModelFromJson(res.body);
-    } else {
-      throw Exception('Erreur lors de la suppression de la notification');
+      final response = await deleteWithDio(
+        '/eblood-connect/blood-bank-favory',
+        queryParams: {'favorite_id': id},
+      );
+
+      debugPrint("✅ Favorite removed successfully: ${response.message}");
+
+      // Return a success model
+      return SupprimerFavorisModel(
+        statusCode: response.statusCode ?? 200,
+        success: response.success,
+        sms: response.message ?? 'Favori supprimé avec succès',
+      );
+    } catch (e) {
+      debugPrint("❌ Error removing favorite: $e");
+      throw Exception('Erreur lors de la suppression du favori : $e');
     }
   }
 }

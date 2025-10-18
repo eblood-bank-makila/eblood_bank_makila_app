@@ -48,6 +48,7 @@ class _PanierPageState extends ConsumerState<PanierPage> {
     var state = ref.watch(panierCtrlProvider);
     int total = _calculateTotalPrice(state);
     final itemCount = state.paniers?.data[0].cartItems.length ?? 0;
+    final currency = state.paniers?.data[0].currency ?? 'CDF';
 
     showModalBottomSheet(
       backgroundColor: Colors.transparent,
@@ -129,7 +130,7 @@ class _PanierPageState extends ConsumerState<PanierPage> {
                             ),
                           ),
                           Text(
-                            '\$ $total',
+                            '$currency $total',
                             style: GoogleFonts.ubuntu(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
@@ -157,7 +158,7 @@ class _PanierPageState extends ConsumerState<PanierPage> {
                             ),
                           ),
                           Text(
-                            '\$ $total',
+                            '$currency $total',
                             style: GoogleFonts.ubuntu(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -460,6 +461,7 @@ class _PanierPageState extends ConsumerState<PanierPage> {
   Widget _buildModernBottomBar(BuildContext context, PanierPageState state) {
     final total = _calculateTotalPrice(state);
     final itemCount = state.paniers!.data[0].cartItems.length;
+    final currency = state.paniers?.data[0].currency ?? 'CDF';
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -519,7 +521,7 @@ class _PanierPageState extends ConsumerState<PanierPage> {
                             ),
                           ),
                           Text(
-                            '\$ $total',
+                            '$currency $total',
                             style: GoogleFonts.ubuntu(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,

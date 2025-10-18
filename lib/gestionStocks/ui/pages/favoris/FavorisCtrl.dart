@@ -15,8 +15,8 @@ class FavorisCtrl extends _$FavorisCtrl {
 
 
 
-  // Ajout d'un favori
-  Future<void> ajouterFavoris(String token, FavorisModele  favorite) async {
+  // Toggle favorite (add or remove)
+  Future<Map<String, dynamic>> ajouterFavoris(String token, FavorisModele  favorite) async {
     state = state.copyWith(isLoading: true);
 
     var usecase = ref.watch(gestionstockInteractorProvider);

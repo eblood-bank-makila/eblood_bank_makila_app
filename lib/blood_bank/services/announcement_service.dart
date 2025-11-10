@@ -1,21 +1,8 @@
-import 'package:dio/dio.dart';
+import '../../apps/config/api/dio_client.dart';
 import '../models/announcement_model.dart';
 
 class AnnouncementService {
-  final Dio _dio;
-  final String baseUrl;
-
-  AnnouncementService({
-    required Dio dio,
-    required this.baseUrl,
-  }) : _dio = dio;
-
-  String _getUrl(String path) {
-    if (baseUrl.isEmpty) {
-      return path;
-    }
-    return '$baseUrl$path';
-  }
+  AnnouncementService();
 
   Future<Map<String, dynamic>> createAnnouncement({
     required String title,
@@ -32,9 +19,9 @@ class AnnouncementService {
     String? imageUrl,
   }) async {
     try {
-      final response = await _dio.post(
-        _getUrl('/eblood/announcements'),
-        data: {
+      final response = await postWithDio(
+        '/eblood/announcements',
+        body: {
           'title': title,
           'description': description,
           'announcement_type': _announcementTypeToString(announcementType),
@@ -50,17 +37,19 @@ class AnnouncementService {
         },
       );
 
-      return {
-        'success': true,
-        'data': response.data['data'],
-        'message': response.data['message'] ?? 'Announcement created successfully',
-      };
-    } on DioException catch (e) {
-      return {
-        'success': false,
-        'message': e.response?.data['message'] ?? 'Failed to create announcement',
-        'error': e.message,
-      };
+      if (response.success) {
+        return {
+          'success': true,
+          'data': response.data,
+          'message': response.message ?? 'Announcement created successfully',
+        };
+      } else {
+        return {
+          'success': false,
+          'message': response.message ?? 'Failed to create announcement',
+          'error': response.message,
+        };
+      }
     } catch (e) {
       return {
         'success': false,
@@ -95,14 +84,14 @@ class AnnouncementService {
         queryParams['search'] = search;
       }
 
-      final response = await _dio.get(
-        _getUrl('/eblood/announcements'),
-        queryParameters: queryParams,
+      final response = await getWithDio(
+        '/eblood/announcements',
+        queryParams: queryParams,
       );
 
       final List<AnnouncementModel> announcements = [];
-      if (response.data['data'] != null) {
-        final data = response.data['data'];
+      if (response.success && response.data != null) {
+        final data = response.data;
         if (data is List) {
           for (var item in data) {
             announcements.add(AnnouncementModel.fromJson(item));
@@ -111,15 +100,9 @@ class AnnouncementService {
       }
 
       return {
-        'success': true,
+        'success': response.success,
         'data': announcements,
-        'message': response.data['message'] ?? 'Announcements retrieved successfully',
-      };
-    } on DioException catch (e) {
-      return {
-        'success': false,
-        'message': e.response?.data['message'] ?? 'Failed to retrieve announcements',
-        'error': e.message,
+        'message': response.message ?? 'Announcements retrieved successfully',
       };
     } catch (e) {
       return {
@@ -132,21 +115,22 @@ class AnnouncementService {
 
   Future<Map<String, dynamic>> getAnnouncementById(String announcementId) async {
     try {
-      final response = await _dio.get(
-        _getUrl('/eblood/announcements/$announcementId'),
+      final response = await getWithDio(
+        '/eblood/announcements/$announcementId',
       );
 
-      return {
-        'success': true,
-        'data': AnnouncementModel.fromJson(response.data['data']),
-        'message': response.data['message'] ?? 'Announcement retrieved successfully',
-      };
-    } on DioException catch (e) {
-      return {
-        'success': false,
-        'message': e.response?.data['message'] ?? 'Failed to retrieve announcement',
-        'error': e.message,
-      };
+      if (response.success && response.data != null) {
+        return {
+          'success': true,
+          'data': AnnouncementModel.fromJson(response.data),
+          'message': response.message ?? 'Announcement retrieved successfully',
+        };
+      } else {
+        return {
+          'success': false,
+          'message': response.message ?? 'Failed to retrieve announcement',
+        };
+      }
     } catch (e) {
       return {
         'success': false,
@@ -193,22 +177,23 @@ class AnnouncementService {
       if (targetAudience != null) updateData['target_audience'] = targetAudience;
       if (imageUrl != null) updateData['image_url'] = imageUrl;
 
-      final response = await _dio.put(
-        _getUrl('/eblood/announcements?announcementId=$announcementId'),
-        data: updateData,
+      final response = await putWithDio(
+        '/eblood/announcements?announcementId=$announcementId',
+        body: updateData,
       );
 
-      return {
-        'success': true,
-        'data': response.data['data'],
-        'message': response.data['message'] ?? 'Announcement updated successfully',
-      };
-    } on DioException catch (e) {
-      return {
-        'success': false,
-        'message': e.response?.data['message'] ?? 'Failed to update announcement',
-        'error': e.message,
-      };
+      if (response.success) {
+        return {
+          'success': true,
+          'data': response.data,
+          'message': response.message ?? 'Announcement updated successfully',
+        };
+      } else {
+        return {
+          'success': false,
+          'message': response.message ?? 'Failed to update announcement',
+        };
+      }
     } catch (e) {
       return {
         'success': false,
@@ -220,21 +205,22 @@ class AnnouncementService {
 
   Future<Map<String, dynamic>> deleteAnnouncement(String announcementId) async {
     try {
-      final response = await _dio.delete(
-        _getUrl('/eblood/announcements?announcementId=$announcementId'),
+      final response = await deleteWithDio(
+        '/eblood/announcements?announcementId=$announcementId',
       );
 
-      return {
-        'success': true,
-        'data': response.data['data'],
-        'message': response.data['message'] ?? 'Announcement deleted successfully',
-      };
-    } on DioException catch (e) {
-      return {
-        'success': false,
-        'message': e.response?.data['message'] ?? 'Failed to delete announcement',
-        'error': e.message,
-      };
+      if (response.success) {
+        return {
+          'success': true,
+          'data': response.data,
+          'message': response.message ?? 'Announcement deleted successfully',
+        };
+      } else {
+        return {
+          'success': false,
+          'message': response.message ?? 'Failed to delete announcement',
+        };
+      }
     } catch (e) {
       return {
         'success': false,
@@ -246,13 +232,13 @@ class AnnouncementService {
 
   Future<Map<String, dynamic>> getActiveEmergencies() async {
     try {
-      final response = await _dio.get(
-        _getUrl('/eblood/announcements/emergencies/active'),
+      final response = await getWithDio(
+        '/eblood/announcements/emergencies/active',
       );
 
       final List<AnnouncementModel> announcements = [];
-      if (response.data['data'] != null) {
-        final data = response.data['data'];
+      if (response.success && response.data != null) {
+        final data = response.data;
         if (data is List) {
           for (var item in data) {
             announcements.add(AnnouncementModel.fromJson(item));
@@ -261,15 +247,9 @@ class AnnouncementService {
       }
 
       return {
-        'success': true,
+        'success': response.success,
         'data': announcements,
-        'message': response.data['message'] ?? 'Active emergencies retrieved successfully',
-      };
-    } on DioException catch (e) {
-      return {
-        'success': false,
-        'message': e.response?.data['message'] ?? 'Failed to retrieve emergencies',
-        'error': e.message,
+        'message': response.message ?? 'Active emergencies retrieved successfully',
       };
     } catch (e) {
       return {

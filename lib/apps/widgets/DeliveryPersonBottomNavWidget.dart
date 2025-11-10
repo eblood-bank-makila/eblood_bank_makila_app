@@ -235,18 +235,18 @@ class DeliveryPersonBottomNavBar extends StatelessWidget {
     return Container(
       height: 90,
       decoration: BoxDecoration(
-        color: Colors.white,
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Colors.red.shade50,
+            Colors.white,
+          ],
+        ),
         borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(25),
           topRight: Radius.circular(25),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 20,
-            offset: const Offset(0, -5),
-          ),
-        ],
       ),
       child: ClipRRect(
         borderRadius: const BorderRadius.only(
@@ -301,7 +301,7 @@ class DeliveryPersonBottomNavBar extends StatelessWidget {
               width: isSelected ? 45 : 38,
               height: isSelected ? 45 : 38,
               decoration: BoxDecoration(
-                color: isSelected 
+                color: isSelected
                     ? ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.15)
                     : Colors.transparent,
                 borderRadius: BorderRadius.circular(isSelected ? 12 : 10),
@@ -309,23 +309,23 @@ class DeliveryPersonBottomNavBar extends StatelessWidget {
               child: Icon(
                 icon,
                 size: isSelected ? 24 : 22,
-                color: isSelected 
-                    ? ColorPages.COLOR_PRINCIPAL 
-                    : Colors.grey.shade500,
+                color: isSelected
+                    ? ColorPages.COLOR_PRINCIPAL
+                    : Colors.black,
               ),
             ),
-            
+
             const SizedBox(height: 4),
-            
+
             // Label with animation
             AnimatedDefaultTextStyle(
               duration: const Duration(milliseconds: 300),
               style: GoogleFonts.ubuntu(
                 fontSize: isSelected ? 12 : 11,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                color: isSelected 
-                    ? ColorPages.COLOR_PRINCIPAL 
-                    : Colors.grey.shade500,
+                color: isSelected
+                    ? ColorPages.COLOR_PRINCIPAL
+                    : Colors.black,
               ),
               child: Text(label),
             ),

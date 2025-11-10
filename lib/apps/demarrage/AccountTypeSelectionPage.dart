@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:ionicons/ionicons.dart';
 import '../config/theme/ColorPages.dart';
+import '../components/SponsorFooter.dart';
 
 class AccountTypeSelectionPage extends StatelessWidget {
   final Map<String, dynamic>? extra;
@@ -16,10 +17,10 @@ class AccountTypeSelectionPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: ColorPages.COLOR_PRINCIPAL,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.black87),
+          icon: const Icon(Icons.arrow_back_ios, color: ColorPages.COLOR_BLANCHE),
           onPressed: () => context.pop(),
         ),
         title: Text(
@@ -27,7 +28,7 @@ class AccountTypeSelectionPage extends StatelessWidget {
           style: GoogleFonts.ubuntu(
             fontSize: 20,
             fontWeight: FontWeight.w600,
-            color: Colors.black87,
+            color: ColorPages.COLOR_BLANCHE,
           ),
         ),
         centerTitle: true,
@@ -51,9 +52,9 @@ class AccountTypeSelectionPage extends StatelessWidget {
                   textAlign: TextAlign.center,
                 ),
               ),
-              
+
               const SizedBox(height: 40),
-              
+
               // Account type cards
               Expanded(
                 child: Column(
@@ -71,9 +72,9 @@ class AccountTypeSelectionPage extends StatelessWidget {
                         onTap: () => _navigateToRegistration(context, 'personal'),
                       ),
                     ),
-                    
+
                     const SizedBox(height: 20),
-                    
+
                     // Hospital Account
                     FadeInUp(
                       duration: const Duration(milliseconds: 600),
@@ -83,13 +84,13 @@ class AccountTypeSelectionPage extends StatelessWidget {
                         icon: Ionicons.medical_outline,
                         title: 'health_structure_account'.tr,
                         description: 'health_structure_account_description'.tr,
-                        color: Colors.blue[600]!,
+                        color: ColorPages.COLOR_PRINCIPAL,
                         onTap: () => _navigateToRegistration(context, 'hospital'),
                       ),
                     ),
-                    
+
                     const SizedBox(height: 20),
-                    
+
                     // Blood Bank Account
                     // FadeInUp(
                     //   duration: const Duration(milliseconds: 600),
@@ -105,6 +106,15 @@ class AccountTypeSelectionPage extends StatelessWidget {
                     // ),
                   ],
                 ),
+              ),
+
+              const SizedBox(height: 24),
+
+              // Sponsor Footer
+              const SponsorFooter(
+                labelKey: 'accompanied_by',
+                logoHeight: 50,
+                logoSpacing: 16,
               ),
             ],
           ),
@@ -129,10 +139,10 @@ class AccountTypeSelectionPage extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey[200]!),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: color.withValues(alpha: 0.1),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -145,7 +155,7 @@ class AccountTypeSelectionPage extends StatelessWidget {
               width: 60,
               height: 60,
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
@@ -154,9 +164,9 @@ class AccountTypeSelectionPage extends StatelessWidget {
                 color: color,
               ),
             ),
-            
+
             const SizedBox(width: 20),
-            
+
             // Content
             Expanded(
               child: Column(
@@ -167,7 +177,7 @@ class AccountTypeSelectionPage extends StatelessWidget {
                     style: GoogleFonts.ubuntu(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
-                      color: Colors.black87,
+                      color: color,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -182,12 +192,12 @@ class AccountTypeSelectionPage extends StatelessWidget {
                 ],
               ),
             ),
-            
+
             // Arrow
             Icon(
               Icons.arrow_forward_ios,
               size: 16,
-              color: Colors.grey[400],
+              color: color,
             ),
           ],
         ),
@@ -207,6 +217,8 @@ class AccountTypeSelectionPage extends StatelessWidget {
         'google_email': extra?['google_email'],
         'google_display_name': extra?['google_display_name'],
         'google_photo_url': extra?['google_photo_url'],
+        'google_id_token': extra?['google_id_token'],
+        'google_user': extra?['google_user'],
       }
     };
     

@@ -90,6 +90,31 @@ class BloodRequestUseCase {
         return await getInProgressDeliveryRequests(page);
       case BloodRequestStatus.delivered:
         return await getDeliveredRequests(page);
+      case BloodRequestStatus.completed:
+        return await getCompletedRequests(page);
+    }
+  }
+
+  /// Fetches completed requests (used blood bags)
+  Future<BloodRequestResponseModel?> getCompletedRequests(int page) async {
+    try {
+      final token = await local.recupererTokenOtp();
+      if (token == null || token.isEmpty) {
+        return BloodRequestResponseModel(
+          success: false,
+          message: "Token d'authentification manquant. Veuillez vous reconnecter.",
+          data: [],
+        );
+      }
+
+      return await network.getCompletedRequests(page, token);
+    } catch (e) {
+      print("💥 Error in getCompletedRequests: $e");
+      return BloodRequestResponseModel(
+        success: false,
+        message: "Erreur lors de la récupération des demandes complétées: $e",
+        data: [],
+      );
     }
   }
 
@@ -102,6 +127,8 @@ class BloodRequestUseCase {
         return const Color(0xFF2196F3); // Blue
       case BloodRequestStatus.delivered:
         return const Color(0xFF4CAF50); // Green
+      case BloodRequestStatus.completed:
+        return const Color(0xFF9C27B0); // Purple
     }
   }
 
@@ -114,6 +141,8 @@ class BloodRequestUseCase {
         return Icons.local_shipping;
       case BloodRequestStatus.delivered:
         return Icons.check_circle;
+      case BloodRequestStatus.completed:
+        return Icons.check_circle_outline;
     }
   }
 

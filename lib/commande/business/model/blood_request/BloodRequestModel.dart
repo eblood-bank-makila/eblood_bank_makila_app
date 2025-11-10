@@ -4,6 +4,7 @@ enum BloodRequestStatus {
   pendingDelivery,
   inProgressDelivery,
   delivered,
+  completed,
 }
 
 extension BloodRequestStatusExtension on BloodRequestStatus {
@@ -15,6 +16,8 @@ extension BloodRequestStatusExtension on BloodRequestStatus {
         return 'inprogress-delivery';
       case BloodRequestStatus.delivered:
         return 'delivered';
+      case BloodRequestStatus.completed:
+        return 'completed';
     }
   }
 
@@ -26,6 +29,8 @@ extension BloodRequestStatusExtension on BloodRequestStatus {
         return 'Livraison en cours';
       case BloodRequestStatus.delivered:
         return 'Livré';
+      case BloodRequestStatus.completed:
+        return 'Utilisé';
     }
   }
 
@@ -51,13 +56,18 @@ extension BloodRequestStatusExtension on BloodRequestStatus {
         print("✅ Mapped to: inProgressDelivery");
         return BloodRequestStatus.inProgressDelivery;
       case 'delivered':
-      case 'completed':
       case 'livré':
       case 'livrée':
       case 'success':
       case 'successed':
         print("✅ Mapped to: delivered");
         return BloodRequestStatus.delivered;
+      case 'completed':
+      case 'used':
+      case 'utilisé':
+      case 'utilisée':
+        print("✅ Mapped to: completed");
+        return BloodRequestStatus.completed;
       default:
         print("⚠️ Unknown status '$status', defaulting to: pendingDelivery");
         return BloodRequestStatus.pendingDelivery;
@@ -224,7 +234,7 @@ class BloodRequestModel {
     return {
       'id': id,
       'request_id': requestId,
-      'hospital_id': hospitalId,
+
       'hospital_name': hospitalName,
       'blood_type': bloodType,
       'quantity': quantity,

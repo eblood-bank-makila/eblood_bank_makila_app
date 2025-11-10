@@ -5,28 +5,20 @@ import 'package:eblood_bank_mak_app/gestionStocks/ui/pages/banque/BanquePage.dar
 import 'package:eblood_bank_mak_app/utilisateurs/business/service/NotificationPush.dart';
 import 'package:eblood_bank_mak_app/utilisateurs/ui/framework/UtilisateurLocalServiceImpl.dart';
 import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/profil/ProfilePage.dart';
+import 'package:eblood_bank_mak_app/apps/home/hospital_home_page.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import 'package:sembast/sembast.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:iconsax/iconsax.dart';
 import 'package:sembast/sembast_io.dart';
-import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
-
-import 'EnhancedBottomNavBar.dart';
 import 'package:path/path.dart';
-import '../connect/network/network_screen.dart';
-import '../connect/announcements/announcements_screen.dart';
-import '../connect/announcements/create_announcements_screen.dart';
-import '../home/customer_home_page.dart';
-import '../home/blood_bank_homepage.dart';
-import '../home/blood_donor_screen.dart';
-import 'package:get_storage/get_storage.dart';
 import '../../gestionStocks/ui/pages/recherchePoche/RecherchePochePage.dart';
 import '../../commande/ui/pages/panier/PanierPage.dart';
-import 'svg_icons/CustomSvgIcons.dart';
 import 'package:get/get.dart';
 
 @pragma('vm:entry-point')
@@ -38,23 +30,51 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   print('Handling a background message ${message.messageId}');
 }
 
-class BottomNavBarWidget extends ConsumerStatefulWidget {
-  const BottomNavBarWidget({super.key});
+class HospitalBottomNavBarWidget extends ConsumerStatefulWidget {
+  const HospitalBottomNavBarWidget({super.key});
 
   @override
-  ConsumerState createState() => _BottomNavBarWidgetState();
+  ConsumerState createState() => _HospitalBottomNavBarWidgetState();
 }
 
-class _BottomNavBarWidgetState extends ConsumerState<BottomNavBarWidget> {
-  //int currentIndex = 0;
-  //
-  // // List of pages to display
-  // final List<Widget> pages = [
-  //   Banquepage(),
-  //   Recherchepage(),
-  //   PanierPage(),
-  //   ProfilePage(),
-  // ];
+class _HospitalBottomNavBarWidgetState extends ConsumerState<HospitalBottomNavBarWidget> {
+  int _currentIndex = 0;
+
+  final List<Widget> _pages = [
+    const HospitalHomePage(),
+    Banquepage(),
+    Recherchepage(query: ''),
+    PanierPage(),
+    ProfilePage(),
+  ];
+
+  final List<BottomNavItem> _navItems = [
+    BottomNavItem(
+      icon: Iconsax.home,
+      activeIcon: Iconsax.home_15,
+      label: 'home',
+    ),
+    BottomNavItem(
+      icon: Iconsax.bank,
+      activeIcon: Iconsax.bank5,
+      label: 'blood_banks',
+    ),
+    BottomNavItem(
+      icon: Iconsax.search_normal,
+      activeIcon: Iconsax.search_normal_15,
+      label: 'search',
+    ),
+    BottomNavItem(
+      icon: Iconsax.shopping_cart,
+      activeIcon: Iconsax.shopping_cart5,
+      label: 'cart',
+    ),
+    BottomNavItem(
+      icon: Iconsax.profile_circle,
+      activeIcon: Iconsax.profile_circle5,
+      label: 'profile',
+    ),
+  ];
 
   void initiateFCMApp() async {
     await dotenv.load(fileName: ".env");
@@ -72,40 +92,8 @@ class _BottomNavBarWidgetState extends ConsumerState<BottomNavBarWidget> {
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   }
 
-  int selectedIndex = 0;
-  late List<Widget> page;
-
   @override
   void initState() {
-    // Build tabs based on account_type
-    final storage = GetStorage();
-    final accountType = (storage.read('account_type') as String?)?.toLowerCase().trim() ?? 'hospital';
-
-    if (accountType == 'customer') {
-      // Customer bottom nav (consumer: simple user / donor)
-      page = [
-        CustomerHomePage(),
-        const AnnouncementsScreen(),
-        const NetworkScreen(),
-        ProfilePage(),
-      ];
-    } else if (accountType == 'blood_bank') {
-      // Customer bottom nav (consumer: simple user / donor)
-      page = [
-        BloodBankHomepage(),
-        const BloodDonorScreen(),
-        const CreateAnnouncementsScreen(),
-        ProfilePage(),
-      ];
-    } else {
-      // Hospital/blood bank default stack (original behavior)
-      page = [
-        Banquepage(),
-        Recherchepage(query: ''),
-        PanierPage(),
-        ProfilePage(),
-      ];
-    }
     Future.delayed(const Duration(seconds: 10), () {
       initiateFCMApp();
     });
@@ -116,69 +104,132 @@ class _BottomNavBarWidgetState extends ConsumerState<BottomNavBarWidget> {
   Widget build(BuildContext context) {
     var state = ref.watch(panierCtrlProvider);
     final cartItemCount = state.paniers?.data.isNotEmpty == true ? state.paniers!.data[0].cartItems.length : 0;
-    final storage = GetStorage();
-    final accountType = (storage.read('account_type') as String?)?.toLowerCase().trim() ?? 'hospital';
 
-    // Build dynamic nav labels/icons per account type
-    final navItems = () {
-      if (accountType == 'customer') {
-        return [
-          NavItemConfig(icon: CustomSvgIcons.home, label: 'home'.tr),
-          NavItemConfig(icon: CustomSvgIcons.heart, label: 'announcements'.tr),
-          NavItemConfig(icon: CustomSvgIcons.bank, label: 'medical_network'.tr),
-          NavItemConfig(icon: CustomSvgIcons.profile, label: 'profile'.tr),
-        ];
-      } else if (accountType == 'blood_bank') {
-        return [
-          NavItemConfig(icon: CustomSvgIcons.home, label: 'dashboard'.tr),
-          NavItemConfig(icon: CustomSvgIcons.heart, label: 'donors'.tr),
-          NavItemConfig(icon: CustomSvgIcons.bank, label: 'announcements'.tr),
-          NavItemConfig(icon: CustomSvgIcons.profile, label: 'profile'.tr),
-        ];
-      } else {
-        return [
-          NavItemConfig(icon: CustomSvgIcons.home, label: 'blood_banks'.tr),
-          NavItemConfig(icon: CustomSvgIcons.heart, label: 'search'.tr),
-          NavItemConfig(icon: CustomSvgIcons.shoppingCart, label: 'cart'.tr),
-          NavItemConfig(icon: CustomSvgIcons.profile, label: 'profile'.tr),
-        ];
-      }
-    }();
-
-    return Scaffold(
-      body: page[selectedIndex],
-      extendBody: true,
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 20),
-        child: EnhancedQRFab(
-          onPressed: () {
-            print("🔍 QR Scanner FAB pressed!");
-            _showQRActionBottomSheet(context);
-          },
-        ),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark, // Dark icons for light background
+        statusBarBrightness: Brightness.light, // For iOS
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: EnhancedBottomNavBar(
-        currentIndex: selectedIndex,
-        cartItemCount: cartItemCount,
-        items: navItems,
-        onTap: (value) {
-          setState(() {
-            selectedIndex = value;
-          });
-        },
+      child: Scaffold(
+        body: IndexedStack(
+          index: _currentIndex,
+          children: _pages,
+        ),
+        bottomNavigationBar: _buildBottomNavigationBar(cartItemCount),
       ),
     );
   }
 
-  navBarPage(iconName) {
-    return Center(
-      child: Icon(
-        iconName,
-        size: 100,
-        color: ColorPages.COLOR_PRINCIPAL,
+  Widget _buildBottomNavigationBar(int cartItemCount) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Colors.red.shade50,
+            Colors.white,
+          ],
+        ),
+      ),
+      child: SafeArea(
+        child: Container(
+          height: 70,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: _navItems.asMap().entries.map((entry) {
+              final index = entry.key;
+              final item = entry.value;
+              final isSelected = _currentIndex == index;
+              final isCartTab = item.label == 'cart';
+
+              return GestureDetector(
+                onTap: () => _onItemTapped(index),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.1)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 200),
+                            child: Icon(
+                              isSelected ? item.activeIcon : item.icon,
+                              key: ValueKey(isSelected),
+                              color: isSelected
+                                  ? ColorPages.COLOR_PRINCIPAL
+                                  : Colors.black,
+                              size: 24,
+                            ),
+                          ),
+                          // Badge for cart items
+                          if (isCartTab && cartItemCount > 0)
+                            Positioned(
+                              top: -4,
+                              right: -4,
+                              child: Container(
+                                constraints: const BoxConstraints(minWidth: 16),
+                                height: 16,
+                                padding: const EdgeInsets.symmetric(horizontal: 4),
+                                decoration: BoxDecoration(
+                                  color: ColorPages.COLOR_PRINCIPAL,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: Colors.white, width: 1.5),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    cartItemCount > 99 ? '99+' : cartItemCount.toString(),
+                                    style: GoogleFonts.ubuntu(
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      AnimatedDefaultTextStyle(
+                        duration: const Duration(milliseconds: 200),
+                        style: GoogleFonts.ubuntu(
+                          fontSize: 12,
+                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                          color: isSelected
+                              ? ColorPages.COLOR_PRINCIPAL
+                              : Colors.black,
+                        ),
+                        child: Text(item.label.tr),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
       ),
     );
+  }
+
+  void _onItemTapped(int index) {
+    if (_currentIndex != index) {
+      setState(() {
+        _currentIndex = index;
+      });
+    }
   }
 
   void _showQRActionBottomSheet(BuildContext context) {
@@ -343,4 +394,16 @@ class _BottomNavBarWidgetState extends ConsumerState<BottomNavBarWidget> {
       ),
     );
   }
+}
+
+class BottomNavItem {
+  final IconData icon;
+  final IconData activeIcon;
+  final String label;
+
+  BottomNavItem({
+    required this.icon,
+    required this.activeIcon,
+    required this.label,
+  });
 }

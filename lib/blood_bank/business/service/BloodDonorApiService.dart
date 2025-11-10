@@ -105,10 +105,17 @@ class BloodDonorApiService {
   // Helper method to get the authentication token
   Future<String> _getAuthToken() async {
     try {
+      debugPrint('🔍 BloodDonorApiService: Reading auth token from secure storage...');
       final token = await _secureStorage.read(key: 'auth_token');
-      return token != null ? 'Bearer $token' : '';
+      if (token != null && token.isNotEmpty) {
+        debugPrint('✅ BloodDonorApiService: Token found: ${token.substring(0, 20)}...');
+        return 'Bearer $token';
+      } else {
+        debugPrint('⚠️ BloodDonorApiService: No token found in secure storage');
+        return '';
+      }
     } catch (e) {
-      debugPrint('Error retrieving auth token: $e');
+      debugPrint('❌ BloodDonorApiService: Error retrieving auth token: $e');
       return '';
     }
   }

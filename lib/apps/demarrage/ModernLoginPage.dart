@@ -9,7 +9,7 @@ import '../config/theme/ColorPages.dart';
 import '../widgets/ModernInputWidget.dart';
 import '../widgets/ModernSpinnerWidget.dart';
 import '../../utilisateurs/ui/pages/authentification/AuthentificationCtrl.dart';
-import '../../utilisateurs/ui/pages/otp_code/OtpCodePage.dart';
+
 import '../../utilisateurs/ui/pages/motdepasse/ReinitialiserMotDePassePage.dart';
 import '../../utilisateurs/business/interactors/UtilisateurInteractor.dart';
 
@@ -83,12 +83,7 @@ class _ModernLoginPageState extends ConsumerState<ModernLoginPage> {
         if (result != null && result.token.isNotEmpty && mounted) {
           if (result.token == 'mfa') {
             debugPrint('✅ Login successful, MFA required → navigating to OTP page');
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const OtpCodePage(),
-              ),
-            );
+            context.go('/auth/OtpCodePage');
           } else {
             debugPrint('✅ Login successful without MFA → navigating to main app');
             context.go('/app/MainApp');

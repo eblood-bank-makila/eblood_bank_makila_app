@@ -1,20 +1,13 @@
-import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:get_storage/get_storage.dart';
+
+import '../../../../apps/config/api/ApiConfig.dart';
+import '../../../../apps/config/api/dio_client.dart';
 import '../../../business/model/blood_request/BloodRequestModel.dart';
 import '../../../business/service/blood_request/BloodRequestNetworkService.dart';
 
-class MyHttpOverrides extends HttpOverrides {
-  @override
-  HttpClient createHttpClient(SecurityContext? context) {
-    return super.createHttpClient(context)
-      ..badCertificateCallback = (X509Certificate cert, String host, int port) => true;
-  }
-}
-
 class BloodRequestNetworkServiceImpl implements BloodRequestNetworkService {
-  final String baseURL;
+  final String baseURL; // kept for backward compatibility, not used with Dio-based client
 
   BloodRequestNetworkServiceImpl(this.baseURL);
 
@@ -55,64 +48,145 @@ class BloodRequestNetworkServiceImpl implements BloodRequestNetworkService {
   }
 
   @override
+  Future<BloodRequestResponseModel?> getCompletedRequests(
+    int page,
+    String authToken,
+  ) async {
+    return await getBloodRequestsByStatus(
+      BloodRequestStatus.completed,
+      page,
+      authToken,
+    );
+  }
+
+  Future<String?> _getDefaultHospitalId() async {
+    try {
+      final storage = GetStorage();
+      final dynamic storedProfiles = storage.read('user_profiles') ?? storage.read('user_profils');
+      String? sysOrgId;
+      if (storedProfiles is List) {
+        for (final p in storedProfiles) {
+          if (p is Map) {
+            final candidate = (p['sys_organization_id'] ?? p['organization_id'] ?? p['org_id'])?.toString();
+            if (candidate != null && candidate.isNotEmpty) {
+              sysOrgId = candidate;
+              break;
+            }
+          }
+        }
+      } else if (storedProfiles is Map) {
+        sysOrgId = (storedProfiles['sys_organization_id'] ?? storedProfiles['organization_id'])?.toString();
+      }
+
+      if (sysOrgId == null || sysOrgId.isEmpty) {
+        final userData = storage.read('user_data');
+        if (userData is Map) {
+          sysOrgId = (userData['sys_organization_id'] ?? userData['organization_id'])?.toString();
+        }
+      }
+
+      if (sysOrgId == null || sysOrgId.isEmpty) return null;
+
+      final res = await getWithDio(
+        ApiConfig.hospitalsList,
+        queryParams: {
+          'filter__sys_organization_id': sysOrgId,
+          'limit': 1,
+          'page': 0,
+        },
+      );
+      if (res.success) {
+        final data = res.data;
+        if (data is Map && data['data'] is List && (data['data'] as List).isNotEmpty) {
+          final first = Map<String, dynamic>.from(data['data'][0] as Map);
+          return first['id']?.toString() ?? first['_id']?.toString();
+        }
+        if (data is List && data.isNotEmpty) {
+          final first = Map<String, dynamic>.from(data.first as Map);
+          return first['id']?.toString() ?? first['_id']?.toString();
+        }
+      }
+    } catch (e) {
+      debugPrint('Error resolving hospital id: $e');
+    }
+    return null;
+  }
+
+  @override
   Future<BloodRequestResponseModel?> getBloodRequestsByStatus(
     BloodRequestStatus status,
     int page,
     String authToken,
   ) async {
     try {
-      final endpoint = "$baseURL/blood-requested/${status.value}/$page";
-      print("🚀 Fetching blood requests: $endpoint");
-      print("📄 Status: ${status.displayName}");
-      print("📄 Page: $page");
-      print("🔑 Auth token: ${authToken.isNotEmpty ? "Present (${authToken.length} chars)" : "Empty"}");
+      final hospitalId = await _getDefaultHospitalId();
+      final bool isHospitalContext = hospitalId != null && hospitalId.isNotEmpty;
+      final endpoint = isHospitalContext
+          ? ApiConfig.hospitalBloodRequestsList
+          : ApiConfig.bankBloodRequestsList;
 
-      final response = await http.get(
-        Uri.parse(endpoint),
-        headers: {
-          "Authorization": "Bearer $authToken",
-          "Content-Type": "application/json",
-          "eblood-lockkeys": "0af4ebc066accceff45fad9ee6f2e9a9a24f6051ddb59b73f188dff0326c1e31",
-        },
-      );
+      // Build query parameters; send multiple keys to be compatible with various backends
+      const int limit = 20;
+      final query = <String, dynamic>{
+        'page': page,
+        'limit': limit,
+        'status': status.value,
+        'delivery_status': status.value,
+        'blood_request_status': status.value,
 
-      print("📡 HTTP Response status: ${response.statusCode}");
-      debugPrint("📄 Response body: ${response.body}", wrapWidth: 1024);
+      };
 
-      if (response.statusCode == 200) {
-        final responseMap = json.decode(response.body) as Map<String, dynamic>;
-        print("✅ Response parsed successfully");
-        
-        return BloodRequestResponseModel.fromJson(responseMap);
-      } else {
-        print("❌ HTTP Error: ${response.statusCode} - ${response.reasonPhrase}");
+      debugPrint('🚀 Fetching blood requests: $endpoint');
+      debugPrint('📄 Status: ${status.displayName}');
+      debugPrint('📄 Page: $page');
+
+      final res = await getWithDio(endpoint, queryParams: query);
+      if (!res.success) {
         return BloodRequestResponseModel(
           success: false,
-          message: "Erreur HTTP: ${response.statusCode} - ${response.reasonPhrase}",
+          message: res.message ?? 'Request failed',
           data: [],
+          currentPage: page,
+          totalPages: 0,
+          totalItems: 0,
         );
       }
+
+      // Extract list data safely
+      List<dynamic> list = [];
+      if (res.data is List) {
+        list = List<dynamic>.from(res.data as List);
+      } else if (res.data is Map && (res.data as Map).containsKey('data')) {
+        final d = (res.data as Map)['data'];
+        if (d is List) list = List<dynamic>.from(d);
+      }
+
+      final items = list
+          .whereType<Map>()
+          .map((m) => Map<String, dynamic>.from(m))
+          .map(BloodRequestModel.fromJson)
+          .toList();
+
+      final total = res.total ?? 0;
+      final currentPage = res.page ?? page;
+      final usedLimit = res.limit ?? limit;
+      final totalPages = usedLimit > 0 ? ((total + usedLimit - 1) / usedLimit).floor() : 0;
+
+      return BloodRequestResponseModel(
+        success: true,
+        message: 'OK',
+        data: items,
+        currentPage: currentPage,
+        totalPages: totalPages,
+        totalItems: total,
+      );
     } catch (e) {
-      print("💥 Exception during blood request fetch: $e");
+      debugPrint('💥 Exception during blood request fetch: $e');
       return BloodRequestResponseModel(
         success: false,
-        message: "Erreur de connexion: $e",
+        message: 'Erreur de connexion: $e',
         data: [],
       );
     }
   }
-}
-
-// Test function
-void main() {
-  HttpOverrides.global = MyHttpOverrides();
-  
-  var baseUrlTest = "http://192.168.30.132:3101/eblood-hstdapi/v1";
-  var impl = BloodRequestNetworkServiceImpl(baseUrlTest);
-  var token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1X2lkIjoiNjZkNzE5MDk3NWQ5MGE3YmMyMjgwYjkxIiwiaWV3IjoiMjAyNC0wOS0xOVQxMjoxMTo0Ny4yMTVaIiwiaWF0IjoxNzI2NzQ3NjA3LCJleHAiOjE3MjcwMDY4MDd9.0-IMlUwcOFsgGVnIkFzfgP-YbTBMoOZ7TybzBWPYiO4';
-  
-  // Test all endpoints
-  impl.getPendingDeliveryRequests(0, token);
-  impl.getInProgressDeliveryRequests(0, token);
-  impl.getDeliveredRequests(0, token);
 }

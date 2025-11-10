@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:animate_do/animate_do.dart';
+import 'package:get/get.dart';
 import '../../../apps/config/theme/ColorPages.dart';
 import '../../business/interactors/BloodBankController.dart';
 import 'AnnouncementsManagementPage.dart';
@@ -20,7 +21,7 @@ class BloodBankHomePage extends ConsumerStatefulWidget {
 
 class _BloodBankHomePageState extends ConsumerState<BloodBankHomePage> {
   bool _isRefreshing = false;
-  
+
   @override
   void initState() {
     super.initState();
@@ -29,14 +30,14 @@ class _BloodBankHomePageState extends ConsumerState<BloodBankHomePage> {
       _loadData();
     });
   }
-  
+
   Future<void> _loadData() async {
     if (_isRefreshing) return;
-    
+
     setState(() {
       _isRefreshing = true;
     });
-    
+
     try {
       await Future.wait([
         ref.read(bloodStockControllerProvider.notifier).loadBloodStock(),
@@ -56,6 +57,19 @@ class _BloodBankHomePageState extends ConsumerState<BloodBankHomePage> {
   Future<void> _refreshData() async {
     return _loadData();
   }
+
+  String _relativeTimeFrom(DateTime timestamp) {
+    final now = DateTime.now();
+    final diff = now.difference(timestamp);
+    if (diff.inMinutes < 60) {
+      return 'minutes_ago'.trParams({'minutes': diff.inMinutes.toString()});
+    } else if (diff.inHours < 24) {
+      return 'hours_ago'.trParams({'hoursh': '${diff.inHours}h'});
+    } else {
+      return 'days_ago'.trParams({'days': diff.inDays.toString()});
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -82,15 +96,15 @@ class _BloodBankHomePageState extends ConsumerState<BloodBankHomePage> {
                 // Header
                 _buildHeader(),
                 const SizedBox(height: 24),
-                
+
                 // Stats Cards
                 _buildStatsSection(),
                 const SizedBox(height: 24),
-                
+
                 // Quick Actions
                 _buildQuickActionsSection(),
                 const SizedBox(height: 24),
-                
+
                 // Recent Activity
                 _buildRecentActivitySection(),
               ],
@@ -111,7 +125,7 @@ class _BloodBankHomePageState extends ConsumerState<BloodBankHomePage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Banque de Sang',
+                  'blood_bank'.tr,
                   style: GoogleFonts.ubuntu(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
@@ -120,7 +134,7 @@ class _BloodBankHomePageState extends ConsumerState<BloodBankHomePage> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Tableau de bord',
+                  'dashboard_title'.tr,
                   style: GoogleFonts.ubuntu(
                     fontSize: 16,
                     color: Colors.grey.shade600,
@@ -163,7 +177,7 @@ class _BloodBankHomePageState extends ConsumerState<BloodBankHomePage> {
               child: FadeInUp(
                 delay: const Duration(milliseconds: 400),
                 child: Text(
-                  'Statistiques',
+                  'statistics'.tr,
                   style: GoogleFonts.ubuntu(
                     fontSize: 20,
                     fontWeight: FontWeight.w600,
@@ -179,9 +193,9 @@ class _BloodBankHomePageState extends ConsumerState<BloodBankHomePage> {
                   _loadData();
                 },
                 child: Tooltip(
-                  message: statsState.error!.contains('Permission denied') 
-                    ? "Permission limitée. Certaines données peuvent être incomplètes."
-                    : "Erreur de chargement. Appuyez pour réessayer.",
+                  message: statsState.error!.contains('Permission denied')
+                    ? 'limited_permission_warning'.tr
+                    : 'loading_error_retry'.tr,
                   child: Icon(
                     Iconsax.warning_2,
                     color: Colors.orange,
@@ -198,7 +212,7 @@ class _BloodBankHomePageState extends ConsumerState<BloodBankHomePage> {
               child: FadeInUp(
                 delay: const Duration(milliseconds: 500),
                 child: _buildStatCard(
-                  title: 'Stock Total',
+                  title: 'total_stock'.tr,
                   value: totalStock.value.toString(),
                   icon: Iconsax.box,
                   color: ColorPages.COLOR_PRINCIPAL,
@@ -211,7 +225,7 @@ class _BloodBankHomePageState extends ConsumerState<BloodBankHomePage> {
               child: FadeInUp(
                 delay: const Duration(milliseconds: 600),
                 child: _buildStatCard(
-                  title: 'Demandes',
+                  title: 'requests'.tr,
                   value: pendingRequests.value.toString(),
                   icon: Iconsax.document_text,
                   color: Colors.blue,
@@ -228,7 +242,7 @@ class _BloodBankHomePageState extends ConsumerState<BloodBankHomePage> {
               child: FadeInUp(
                 delay: const Duration(milliseconds: 700),
                 child: _buildStatCard(
-                  title: 'Expiration Proche',
+                  title: 'expiring_soon'.tr,
                   value: expiringStock.value.toString(),
                   icon: Iconsax.calendar,
                   color: Colors.orange,
@@ -241,7 +255,7 @@ class _BloodBankHomePageState extends ConsumerState<BloodBankHomePage> {
               child: FadeInUp(
                 delay: const Duration(milliseconds: 800),
                 child: _buildStatCard(
-                  title: 'Stock Critique',
+                  title: 'critical_stock'.tr,
                   value: criticalStock.value.toString(),
                   icon: Iconsax.warning_2,
                   color: Colors.red,
@@ -264,7 +278,7 @@ class _BloodBankHomePageState extends ConsumerState<BloodBankHomePage> {
   }) {
     final bool hasTrend = trend.isNotEmpty && trend != "0%";
     final bool isPositiveTrend = trend.contains('+');
-    
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -343,7 +357,7 @@ class _BloodBankHomePageState extends ConsumerState<BloodBankHomePage> {
         FadeInUp(
           delay: const Duration(milliseconds: 900),
           child: Text(
-            'Actions Rapides',
+            'quick_actions'.tr,
             style: GoogleFonts.ubuntu(
               fontSize: 20,
               fontWeight: FontWeight.w600,
@@ -358,8 +372,8 @@ class _BloodBankHomePageState extends ConsumerState<BloodBankHomePage> {
               child: FadeInUp(
                 delay: const Duration(milliseconds: 1000),
                 child: _buildActionCard(
-                  title: 'Gérer Stock',
-                  subtitle: 'Inventaire',
+                  title: 'manage_stock'.tr,
+                  subtitle: 'inventory'.tr,
                   icon: Iconsax.box,
                   color: ColorPages.COLOR_PRINCIPAL,
                   onTap: () {
@@ -379,8 +393,8 @@ class _BloodBankHomePageState extends ConsumerState<BloodBankHomePage> {
               child: FadeInUp(
                 delay: const Duration(milliseconds: 1100),
                 child: _buildActionCard(
-                  title: 'Demandes',
-                  subtitle: 'Voir tout',
+                  title: 'requests'.tr,
+                  subtitle: 'view_all'.tr,
                   icon: Iconsax.document_text,
                   color: Colors.blue,
                   onTap: () {
@@ -391,11 +405,11 @@ class _BloodBankHomePageState extends ConsumerState<BloodBankHomePage> {
                         builder: (context) => const BloodBankInventoryPage(initialTabIndex: 2),
                       ),
                     ).then((_) {
-                      // Optional: Show a snackbar after returning to this page
+                      if (!mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Retour de la gestion des demandes'),
-                          duration: Duration(seconds: 2),
+                        SnackBar(
+                          content: Text('return_from_request_management'.tr),
+                          duration: const Duration(seconds: 2),
                         ),
                       );
                     });
@@ -412,8 +426,8 @@ class _BloodBankHomePageState extends ConsumerState<BloodBankHomePage> {
               child: FadeInUp(
                 delay: const Duration(milliseconds: 1200),
                 child: _buildActionCard(
-                  title: 'Wallet',
-                  subtitle: 'Gestion financière',
+                  title: 'wallet'.tr,
+                  subtitle: 'financial_management'.tr,
                   icon: Iconsax.wallet,
                   color: Colors.green,
                   onTap: () {
@@ -433,8 +447,8 @@ class _BloodBankHomePageState extends ConsumerState<BloodBankHomePage> {
               child: FadeInUp(
                 delay: const Duration(milliseconds: 1300),
                 child: _buildActionCard(
-                  title: 'Donneurs',
-                  subtitle: 'Base de données',
+                  title: 'donors'.tr,
+                  subtitle: 'database'.tr,
                   icon: Iconsax.people,
                   color: Colors.purple,
                   onTap: () {
@@ -458,8 +472,8 @@ class _BloodBankHomePageState extends ConsumerState<BloodBankHomePage> {
               child: FadeInUp(
                 delay: const Duration(milliseconds: 1400),
                 child: _buildActionCard(
-                  title: 'Communications',
-                  subtitle: 'Annonces & Événements',
+                  title: 'communications'.tr,
+                  subtitle: 'announcements_events'.tr,
                   icon: Iconsax.notification,
                   color: Colors.amber.shade700,
                   onTap: () {
@@ -479,8 +493,8 @@ class _BloodBankHomePageState extends ConsumerState<BloodBankHomePage> {
               child: FadeInUp(
                 delay: const Duration(milliseconds: 1500),
                 child: _buildActionCard(
-                  title: 'Réseau',
-                  subtitle: 'Structures de santé',
+                  title: 'network'.tr,
+                  subtitle: 'health_structures'.tr,
                   icon: Iconsax.hospital,
                   color: Colors.teal,
                   onTap: () {
@@ -568,7 +582,7 @@ class _BloodBankHomePageState extends ConsumerState<BloodBankHomePage> {
         FadeInUp(
           delay: const Duration(milliseconds: 1200),
           child: Text(
-            'Activité Récente',
+            'recent_activity'.tr,
             style: GoogleFonts.ubuntu(
               fontSize: 20,
               fontWeight: FontWeight.w600,
@@ -594,25 +608,25 @@ class _BloodBankHomePageState extends ConsumerState<BloodBankHomePage> {
             child: Column(
               children: [
                 _buildActivityItem(
-                  title: 'Nouvelle demande reçue',
-                  subtitle: 'Hôpital Central - O+ (2 unités)',
-                  time: 'Il y a 5 min',
+                  title: 'new_request_received'.tr,
+                  subtitle: 'request_from_facility_blood_units'.trParams({'facility': 'Hôpital Central', 'blood': 'O+', 'count': '2'}),
+                  time: _relativeTimeFrom(DateTime.now().subtract(const Duration(minutes: 5))),
                   icon: Iconsax.document_text,
                   color: Colors.blue,
                 ),
                 const Divider(height: 1),
                 _buildActivityItem(
-                  title: 'Stock ajouté',
-                  subtitle: 'A+ (10 unités)',
-                  time: 'Il y a 1h',
+                  title: 'stock_added'.tr,
+                  subtitle: 'blood_units_count'.trParams({'blood': 'A+', 'count': '10'}),
+                  time: _relativeTimeFrom(DateTime.now().subtract(const Duration(hours: 1))),
                   icon: Iconsax.add_circle,
                   color: Colors.green,
                 ),
                 const Divider(height: 1),
                 _buildActivityItem(
-                  title: 'Livraison confirmée',
-                  subtitle: 'Clinique Saint-Joseph - B+ (1 unité)',
-                  time: 'Il y a 2h',
+                  title: 'delivery_confirmed'.tr,
+                  subtitle: 'request_from_facility_blood_units'.trParams({'facility': 'Clinique Saint-Joseph', 'blood': 'B+', 'count': '1'}),
+                  time: _relativeTimeFrom(DateTime.now().subtract(const Duration(hours: 2))),
                   icon: Iconsax.tick_circle,
                   color: Colors.orange,
                 ),

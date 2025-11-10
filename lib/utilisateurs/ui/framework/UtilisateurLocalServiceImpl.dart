@@ -4,6 +4,8 @@ import 'package:eblood_bank_mak_app/utilisateurs/business/service/utilisateurLoc
 import 'package:sembast/sembast.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class UtilisateurLocalServiceImpl implements UtilisateurLocalService {
   Database db;
@@ -82,7 +84,19 @@ class UtilisateurLocalServiceImpl implements UtilisateurLocalService {
       print('⚠️ SecureStorage clear on logout failed: $e');
     }
 
-    print("🔐 User disconnected - All tokens and session flags cleared");
+    // Sign out from Firebase Auth (Google Sign-In)
+    try {
+      final firebaseAuth = FirebaseAuth.instance;
+      final googleSignIn = GoogleSignIn();
+      await googleSignIn.signOut();
+      await firebaseAuth.signOut();
+      print('🔐 Firebase sign-out successful');
+    } catch (e) {
+      print('⚠️ Firebase sign-out failed: $e');
+      // Continue with logout even if Firebase sign-out fails
+    }
+
+    print("🔐 User disconnected - All tokens, session flags, and Firebase auth cleared");
     return true;
   }
 

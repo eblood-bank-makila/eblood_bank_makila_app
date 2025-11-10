@@ -9,6 +9,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
+import 'package:get/get.dart';
 import '../../../apps/config/theme/ColorPages.dart';
 import '../../data/models/HealthStructureModel.dart';
 
@@ -140,7 +141,7 @@ class _HealthStructureDetailPageState extends State<HealthStructureDetailPage> w
             setState(() {
               if (isUnreasonableDistance) {
                 // Show warning instead of large distance
-                _distanceText = 'Coordonnées incorrectes';
+                _distanceText = 'invalid_coordinates'.tr;
                 _durationText = null;
               } else {
                 _distanceText = distanceInMeters < 1000
@@ -167,8 +168,8 @@ class _HealthStructureDetailPageState extends State<HealthStructureDetailPage> w
                   int durationMinutes = (durationHours * 60).round();
                   setState(() {
                     _durationText = durationMinutes < 60
-                        ? '$durationMinutes min'
-                        : '${(durationMinutes / 60).toStringAsFixed(1)} h';
+                        ? '$durationMinutes ${'minutes_short'.tr}'
+                        : '${(durationMinutes / 60).toStringAsFixed(1)} ${'hours_short'.tr}';
                   });
                 }
               } catch (e) {
@@ -403,11 +404,11 @@ class _HealthStructureDetailPageState extends State<HealthStructureDetailPage> w
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     decoration: BoxDecoration(
-                      color: _distanceText == 'Coordonnées incorrectes'
+                      color: _distanceText == 'invalid_coordinates'.tr
                           ? Colors.orange.shade50.withValues(alpha: 0.95)
                           : Colors.white.withValues(alpha: 0.95),
                       borderRadius: BorderRadius.circular(16),
-                      border: _distanceText == 'Coordonnées incorrectes'
+                      border: _distanceText == 'invalid_coordinates'.tr
                           ? Border.all(color: Colors.orange, width: 1.5)
                           : null,
                       boxShadow: [
@@ -423,11 +424,11 @@ class _HealthStructureDetailPageState extends State<HealthStructureDetailPage> w
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
-                              _distanceText == 'Coordonnées incorrectes'
+                              _distanceText == 'invalid_coordinates'.tr
                                   ? Iconsax.warning_2
                                   : Iconsax.routing,
                               size: 16,
-                              color: _distanceText == 'Coordonnées incorrectes'
+                              color: _distanceText == 'invalid_coordinates'.tr
                                   ? Colors.orange
                                   : ColorPages.COLOR_PRINCIPAL,
                             ),
@@ -435,9 +436,9 @@ class _HealthStructureDetailPageState extends State<HealthStructureDetailPage> w
                             Text(
                               _distanceText!,
                               style: GoogleFonts.ubuntu(
-                                fontSize: _distanceText == 'Coordonnées incorrectes' ? 12 : 16,
+                                fontSize: _distanceText == 'invalid_coordinates'.tr ? 12 : 16,
                                 fontWeight: FontWeight.bold,
-                                color: _distanceText == 'Coordonnées incorrectes'
+                                color: _distanceText == 'invalid_coordinates'.tr
                                     ? Colors.orange.shade800
                                     : Colors.black87,
                               ),
@@ -537,19 +538,19 @@ class _HealthStructureDetailPageState extends State<HealthStructureDetailPage> w
               children: [
                 _buildStatusBadge(
                   icon: Iconsax.status,
-                  label: widget.structure.isActivated ? 'Actif' : 'Inactif',
+                  label: widget.structure.isActivated ? 'active'.tr : 'inactive'.tr,
                   color: widget.structure.isActivated ? Colors.green : Colors.grey,
                 ),
                 if (widget.structure.isVerified)
                   _buildStatusBadge(
                     icon: Iconsax.verify,
-                    label: 'Vérifié',
+                    label: 'verified'.tr,
                     color: Colors.blue,
                   ),
                 if (widget.structure.hasEmergencyServices)
                   _buildStatusBadge(
                     icon: Iconsax.warning_2,
-                    label: 'Urgences 24/7',
+                    label: 'emergency_24_7'.tr,
                     color: Colors.red,
                   ),
               ],
@@ -561,7 +562,7 @@ class _HealthStructureDetailPageState extends State<HealthStructureDetailPage> w
 
             // Quick Info
             Text(
-              'Informations de contact',
+              'contact_information'.tr,
               style: GoogleFonts.ubuntu(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -573,7 +574,7 @@ class _HealthStructureDetailPageState extends State<HealthStructureDetailPage> w
             if (widget.structure.address != null)
               _buildContactInfo(
                 icon: Iconsax.location,
-                label: 'Adresse',
+                label: 'address'.tr,
                 value: widget.structure.address!,
                 onTap: _openInMaps,
               ),
@@ -581,7 +582,7 @@ class _HealthStructureDetailPageState extends State<HealthStructureDetailPage> w
             if (widget.structure.phoneNumber != null)
               _buildContactInfo(
                 icon: Iconsax.call,
-                label: 'Téléphone',
+                label: 'phone'.tr,
                 value: widget.structure.phoneNumber!,
                 onTap: () => _makePhoneCall(widget.structure.phoneNumber!),
               ),
@@ -589,7 +590,7 @@ class _HealthStructureDetailPageState extends State<HealthStructureDetailPage> w
             if (widget.structure.email != null)
               _buildContactInfo(
                 icon: Iconsax.sms,
-                label: 'Email',
+                label: 'email'.tr,
                 value: widget.structure.email!,
                 onTap: () => _sendEmail(widget.structure.email!),
               ),
@@ -741,14 +742,14 @@ class _HealthStructureDetailPageState extends State<HealthStructureDetailPage> w
                 ),
                 indicatorColor: ColorPages.COLOR_PRINCIPAL,
                 indicatorWeight: 3,
-                tabs: const [
+                tabs: [
                   Tab(
                     icon: Icon(Iconsax.info_circle),
-                    text: 'Détails',
+                    text: 'details'.tr,
                   ),
                   Tab(
                     icon: Icon(Iconsax.map),
-                    text: 'Localisation',
+                    text: 'location'.tr,
                   ),
                 ],
               ),
@@ -778,27 +779,27 @@ class _HealthStructureDetailPageState extends State<HealthStructureDetailPage> w
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildDetailSection(
-            title: 'Identifiant',
+            title: 'identifier'.tr,
             icon: Iconsax.code_circle,
             content: widget.structure.identifier,
           ),
           
           if (widget.structure.latitude != null && widget.structure.longitude != null)
             _buildDetailSection(
-              title: 'Coordonnées GPS',
+              title: 'gps_coordinates'.tr,
               icon: Iconsax.location,
-              content: 'Lat: ${widget.structure.latitude!.toStringAsFixed(6)}\nLon: ${widget.structure.longitude!.toStringAsFixed(6)}${_isCoordinatesInWrongRegion() ? '\n⚠️ Ces coordonnées semblent incorrectes (hors d\'Afrique)' : ''}',
+              content: "${'latitude'.tr}: ${widget.structure.latitude!.toStringAsFixed(6)}\n${'longitude'.tr}: ${widget.structure.longitude!.toStringAsFixed(6)}${_isCoordinatesInWrongRegion() ? '\n${'coordinates_out_of_region_warning'.tr}' : ''}",
             ),
 
           _buildDetailSection(
-            title: 'Type de structure',
+            title: 'structure_type'.tr,
             icon: Iconsax.category,
             content: widget.structure.healthStructureTypeFlag.label,
           ),
 
           if (widget.structure.altitude != null)
             _buildDetailSection(
-              title: 'Altitude',
+              title: 'altitude'.tr,
               icon: Iconsax.trend_up,
               content: '${widget.structure.altitude!.toStringAsFixed(0)} m',
             ),
@@ -806,7 +807,7 @@ class _HealthStructureDetailPageState extends State<HealthStructureDetailPage> w
           // Additional Info Section
           const SizedBox(height: 16),
           Text(
-            'État de la structure',
+            'structure_status'.tr,
             style: GoogleFonts.ubuntu(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -816,20 +817,20 @@ class _HealthStructureDetailPageState extends State<HealthStructureDetailPage> w
           const SizedBox(height: 12),
 
           _buildInfoRow(
-            label: 'Statut d\'activation',
-            value: widget.structure.isActivated ? 'Activée' : 'Désactivée',
+            label: 'activation_status'.tr,
+            value: widget.structure.isActivated ? 'active'.tr : 'inactive'.tr,
             valueColor: widget.structure.isActivated ? Colors.green : Colors.grey,
           ),
 
           _buildInfoRow(
-            label: 'Vérification',
-            value: widget.structure.isVerified ? 'Vérifiée' : 'Non vérifiée',
+            label: 'verification'.tr,
+            value: widget.structure.isVerified ? 'verified'.tr : 'not_verified'.tr,
             valueColor: widget.structure.isVerified ? Colors.blue : Colors.orange,
           ),
 
           _buildInfoRow(
-            label: 'Services d\'urgence',
-            value: widget.structure.hasEmergencyServices ? 'Disponibles' : 'Non disponibles',
+            label: 'emergency_services'.tr,
+            value: widget.structure.hasEmergencyServices ? 'available'.tr : 'not_available'.tr,
             valueColor: widget.structure.hasEmergencyServices ? Colors.green : Colors.grey,
           ),
         ],
@@ -934,7 +935,7 @@ class _HealthStructureDetailPageState extends State<HealthStructureDetailPage> w
             ),
             const SizedBox(height: 16),
             Text(
-              'Chargement de la carte...',
+              'map_loading'.tr,
               style: GoogleFonts.ubuntu(
                 color: Colors.grey.shade600,
               ),
@@ -956,7 +957,7 @@ class _HealthStructureDetailPageState extends State<HealthStructureDetailPage> w
             ),
             const SizedBox(height: 16),
             Text(
-              'Carte non disponible',
+              'map_unavailable'.tr,
               style: GoogleFonts.ubuntu(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -965,7 +966,7 @@ class _HealthStructureDetailPageState extends State<HealthStructureDetailPage> w
             ),
             const SizedBox(height: 8),
             Text(
-              'Coordonnées GPS manquantes',
+              'gps_coords_missing'.tr,
               style: GoogleFonts.ubuntu(
                 fontSize: 14,
                 color: Colors.grey.shade500,
@@ -1016,7 +1017,7 @@ class _HealthStructureDetailPageState extends State<HealthStructureDetailPage> w
               backgroundColor: ColorPages.COLOR_PRINCIPAL,
               icon: const Icon(Iconsax.routing_2, color: Colors.white),
               label: Text(
-                'Itinéraire',
+                'directions'.tr,
                 style: GoogleFonts.ubuntu(
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
@@ -1049,7 +1050,7 @@ class _HealthStructureDetailPageState extends State<HealthStructureDetailPage> w
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Coordonnées GPS non disponibles',
+            'gps_coords_unavailable'.tr,
             style: GoogleFonts.ubuntu(),
           ),
           backgroundColor: Colors.orange,
@@ -1077,7 +1078,7 @@ class _HealthStructureDetailPageState extends State<HealthStructureDetailPage> w
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Impossible d\'ouvrir l\'application de cartes',
+            'open_maps_app_failed'.tr,
             style: GoogleFonts.ubuntu(),
           ),
           backgroundColor: Colors.red,
@@ -1108,10 +1109,11 @@ class _HealthStructureDetailPageState extends State<HealthStructureDetailPage> w
   }
 
   Future<void> _sendEmail(String email) async {
+    final subject = Uri.encodeComponent('information_request'.tr);
     final Uri emailUri = Uri(
       scheme: 'mailto',
       path: email,
-      query: 'subject=Demande d\'information',
+      query: 'subject=$subject',
     );
     try {
       if (await canLaunchUrl(emailUri)) {
@@ -1123,7 +1125,7 @@ class _HealthStructureDetailPageState extends State<HealthStructureDetailPage> w
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Impossible d\'envoyer l\'email',
+            'email_send_failed'.tr,
             style: GoogleFonts.ubuntu(),
           ),
           backgroundColor: Colors.red,

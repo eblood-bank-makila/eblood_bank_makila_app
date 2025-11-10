@@ -5,10 +5,13 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../config/theme/ColorPages.dart';
 import '../services/FirstLaunchService.dart';
 import '../services/FirebaseAuthService.dart';
 import '../../utilisateurs/business/interactors/UtilisateurInteractor.dart';
+import '../services/AuthApi.dart';
 
 class ModernSplashPage extends ConsumerStatefulWidget {
   const ModernSplashPage({super.key});
@@ -81,28 +84,59 @@ class _ModernSplashPageState extends ConsumerState<ModernSplashPage>
       final isFirstLaunch = ref.read(firstLaunchServiceProvider);
 
       // Get tokens with proper error handling
-      String? tokenOTP;
+  String? tokenOTP;
+  String? jwtToken;
       bool isFirebaseSignedIn = false;
 
       try {
         tokenOTP = await authProvider.recuperationTokenOtpUseCase.run();
         isFirebaseSignedIn = firebaseAuthService.isSignedIn;
+        // Read persisted JWT token (fast cache + secure)
+        final storage = GetStorage();
+        final cached = storage.read('auth_token');
+        if (cached is String && cached.isNotEmpty) {
+          jwtToken = cached;
+        } else {
+          const secure = FlutterSecureStorage();
+          jwtToken = await secure.read(key: 'auth_token');
+        }
       } catch (e) {
         debugPrint('🚀 ModernSplash: Error checking auth status: $e');
         // Clear any corrupted tokens
         await _clearAllTokens(authProvider);
         tokenOTP = null;
         isFirebaseSignedIn = false;
+        jwtToken = null;
       }
 
-      debugPrint('🚀 ModernSplash: tokenOTP=${tokenOTP != null}, firebase=$isFirebaseSignedIn, firstLaunch=$isFirstLaunch');
+  debugPrint('🚀 ModernSplash: tokenOTP=${tokenOTP != null}, jwt=${(jwtToken ?? '').isNotEmpty}, firebase=$isFirebaseSignedIn, firstLaunch=$isFirstLaunch');
 
       if (mounted) {
-        // Only consider user authenticated if we have valid tokens
-        final isAuthenticated = (tokenOTP != null && tokenOTP.isNotEmpty) || isFirebaseSignedIn;
+        // Only consider user authenticated if we have valid BACKEND tokens
+        // Firebase sign-in alone is NOT enough - user must complete registration
+        final isAuthenticated = (tokenOTP != null && tokenOTP.isNotEmpty) || ((jwtToken ?? '').isNotEmpty);
+
+        // If Firebase is signed in but no backend token, sign out from Firebase
+        // This handles the case where user canceled registration after Google sign-in
+        if (isFirebaseSignedIn && !isAuthenticated) {
+          debugPrint('🚨 ModernSplash: Firebase signed in but no backend token - signing out from Firebase');
+          try {
+            await firebaseAuthService.signOut();
+          } catch (e) {
+            debugPrint('⚠️ ModernSplash: Failed to sign out from Firebase: $e');
+          }
+        }
 
         if (isAuthenticated) {
           debugPrint('🚀 ModernSplash: User authenticated, going to main app');
+          // Hydrate profile and account_type for routing/UI if we have a JWT
+          try {
+            if ((jwtToken ?? '').isNotEmpty) {
+              await AuthApi.instance.getUserProfile();
+            }
+          } catch (e) {
+            debugPrint('⚠️ ModernSplash: getUserProfile failed (proceeding): $e');
+          }
           context.go('/app/MainApp');
         }
         // If it's first launch and not authenticated, show intro slides

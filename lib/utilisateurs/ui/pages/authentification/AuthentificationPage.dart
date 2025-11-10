@@ -3,7 +3,7 @@ import 'package:eblood_bank_mak_app/apps/config/theme/ColorPages.dart';
 import 'package:eblood_bank_mak_app/apps/widgets/ModernSpinnerWidget.dart';
 import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/authentification/AuthentificationCtrl.dart';
 import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/motdepasse/ReinitialiserMotDePassePage.dart';
-import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/otp_code/OtpCodePage.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -190,11 +190,7 @@ class _AuthentificationPageState extends ConsumerState<AuthentificationPage> {
                           if (resultat != null && resultat.token.isNotEmpty) {
                             print('✅ Login successful, redirecting to OTP page');
                             if (mounted) {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) => const OtpCodePage()),
-                              );
+                              context.go('/auth/OtpCodePage');
                             }
                           } else {
                             print('❌ Login failed, showing error message');

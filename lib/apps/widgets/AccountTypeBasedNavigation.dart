@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../utilisateurs/business/interactors/UtilisateurInteractor.dart';
 import 'BottomNavBarWidget.dart';
 import '../../blood_bank/ui/widgets/BloodBankBottomNavWidget.dart';
-import 'DeliveryPersonBottomNavWidget.dart';
+import 'CustomerBottomNavWidget.dart';
 import 'package:get_storage/get_storage.dart';
 
 enum AccountType {
@@ -11,6 +11,7 @@ enum AccountType {
   bloodBank,
   deliveryPerson,
   customer,
+  bloodDonor,
   unknown,
 }
 
@@ -33,28 +34,61 @@ class _AccountTypeBasedNavigationState extends ConsumerState<AccountTypeBasedNav
 
   Future<void> _determineAccountType() async {
     try {
+      // 1) Strongest signal: use stored user_profiles flags (all profiles)
+      // The 'enabled' field will be used later to disable actions, not to hide profiles
+      final storage = GetStorage();
+      final dynamic storedProfiles = storage.read('user_profiles') ?? storage.read('user_profils');
+      if (storedProfiles is List && storedProfiles.isNotEmpty) {
+        final allProfiles = storedProfiles
+            .whereType<Map>()
+            .toList();
+        final flags = allProfiles
+            .map((e) => (e['profil'] ?? e['flag'] ?? '').toString())
+            .where((s) => s.isNotEmpty)
+            .toSet();
+
+        AccountType? fromProfiles;
+        if (flags.contains('mobile_app_blood_bank_profil')) {
+          fromProfiles = AccountType.bloodBank;
+        } else if (flags.contains('mobile_app_health_structure_profil')) {
+          fromProfiles = AccountType.hospital;
+        } else if (flags.contains('mobile_app_simple_user_profil') ||
+            flags.contains('mobile_app_blood_donor_profil') ||
+            flags.contains('mobile_app_delivery_person_profil')) {
+          fromProfiles = AccountType.customer;
+        }
+
+        if (fromProfiles != null) {
+          setState(() {
+            _accountType = fromProfiles;
+            _isLoading = false;
+          });
+          debugPrint('🧭 AccountType from profiles flags: ${_accountType!.name}');
+          return; // Done
+        }
+      }
+
+      // 2) Next: try local persisted user model's uAccountType
       final userInteractor = ref.read(utilisateurInteractorProvider);
       final userData = await userInteractor.getUserLocalCodeUseCase.run();
-      
-  if (userData != null && userData.uAccountType.isNotEmpty) {
+      if (userData != null && userData.uAccountType.isNotEmpty) {
         final accountType = _parseAccountType(userData.uAccountType);
         setState(() {
           _accountType = accountType;
           _isLoading = false;
         });
-        
-        debugPrint('🏥 Account Type Determined: ${accountType.name}');
-      } else {
-        // Fallback to a value persisted by AuthApi from user_profiles
-        final storage = GetStorage();
-        final stored = (storage.read('account_type') as String?) ?? '';
-        final accountType = _parseAccountType(stored.isNotEmpty ? stored : null);
-        setState(() {
-          _accountType = accountType;
-          _isLoading = false;
-        });
-        debugPrint('ℹ️ Using stored account_type fallback: ${accountType.name}');
+        debugPrint('🏥 Account Type Determined from uAccountType: ${accountType.name}');
+        return;
       }
+
+      // 3) Fallback: use value persisted by AuthApi from profile derivation
+      final stored = (storage.read('account_type') as String?) ?? '';
+      final accountType = _parseAccountType(stored.isNotEmpty ? stored : null);
+      setState(() {
+        _accountType = accountType;
+        _isLoading = false;
+      });
+      debugPrint('ℹ️ Using stored account_type fallback: ${accountType.name}');
     } catch (e) {
       debugPrint('❌ Error determining account type: $e');
       setState(() {
@@ -66,11 +100,11 @@ class _AccountTypeBasedNavigationState extends ConsumerState<AccountTypeBasedNav
 
   AccountType _parseAccountType(String? accountTypeString) {
     if (accountTypeString == null || accountTypeString.isEmpty) {
-      return AccountType.hospital; // Default to hospital
+      return AccountType.customer; // Default to customer (consumer)
     }
-    
+
     final lowerType = accountTypeString.toLowerCase().trim();
-    
+
     // Map different possible account type values
     switch (lowerType) {
       case 'hospital':
@@ -91,9 +125,16 @@ class _AccountTypeBasedNavigationState extends ConsumerState<AccountTypeBasedNav
       case 'livreur':
       case 'deliverer':
         return AccountType.deliveryPerson;
+      case 'blood_donor':
+      case 'blood donor':
+      case 'blooddonor':
+      case 'donneur':
+      case 'donneur_sang':
+      case 'donneur de sang':
+        return AccountType.bloodDonor;
       default:
-        debugPrint('🤔 Unknown account type: $accountTypeString, defaulting to hospital');
-        return AccountType.hospital;
+        debugPrint('🤔 Unknown account type: $accountTypeString, defaulting to customer');
+        return AccountType.customer;
     }
   }
 
@@ -125,17 +166,21 @@ class _AccountTypeBasedNavigationState extends ConsumerState<AccountTypeBasedNav
     }
 
     // Route to appropriate navigation based on account type
+    // Note: customer, bloodDonor, and deliveryPerson all use CustomerBottomNavWidget
+    // with conditional UI features based on user profiles
     switch (_accountType!) {
       case AccountType.hospital:
-        return const BottomNavBarWidget(); // Current hospital navigation
+        return const HospitalBottomNavBarWidget(); // Hospital-specific navigation
       case AccountType.bloodBank:
-        return const BloodBankBottomNavWidget();
-      case AccountType.deliveryPerson:
-        return const DeliveryPersonBottomNavWidget();
+        return const BloodBankBottomNavWidget(); // Blood bank-specific navigation
       case AccountType.customer:
-        return const BottomNavBarWidget(); // Consumer UI
+      case AccountType.bloodDonor:
+      case AccountType.deliveryPerson:
+        // ✅ All consumer types use CustomerBottomNavWidget
+        // Features are conditionally shown based on user profiles
+        return const CustomerBottomNavWidget();
       case AccountType.unknown:
-        return const BottomNavBarWidget(); // Fallback to hospital navigation
+        return const CustomerBottomNavWidget(); // Fallback to customer navigation
     }
   }
 }
@@ -152,11 +197,13 @@ extension AccountTypeExtension on AccountType {
         return 'Livreur';
       case AccountType.customer:
         return 'Client';
+      case AccountType.bloodDonor:
+        return 'Donneur de Sang';
       case AccountType.unknown:
-        return 'Inconnu';
+        return 'Visiteur';
     }
   }
-  
+
   String get description {
     switch (this) {
       case AccountType.hospital:
@@ -167,6 +214,8 @@ extension AccountTypeExtension on AccountType {
         return 'Livraison et suivi des commandes';
       case AccountType.customer:
         return 'Espace client: commandes et demandes de sang';
+      case AccountType.bloodDonor:
+        return 'Profil de donneur de sang avec historique de dons';
       case AccountType.unknown:
         return 'Type de compte non défini';
     }

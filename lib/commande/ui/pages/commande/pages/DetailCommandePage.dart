@@ -21,6 +21,7 @@ import '../widgets/PhoneNumberBottomSheet.dart';
 import 'PaymentStatusPage.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:go_router/go_router.dart';
+import 'BloodRequestConfigDialog.dart';
 
 import '../../../../business/service/CurrencyExchangeService.dart';
 import '../../../debug/CurrencyExchangeDebugPage.dart';
@@ -38,6 +39,13 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
   bool _isAnimating = false;
   List<Widget> _listOfPages = [];
   bool _isLoading = false;
+
+  // Blood request config captured before payment
+  String? _requestFor;
+  String? _requestReason;
+  String? _patientId;
+  String? _requestType;
+  String? _urgencyLevel;
 
 
   String apiResponseMessage = "";
@@ -84,13 +92,32 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
   void _initializeCurrencyExchange() {
     debugPrint('🚀 Initializing currency exchange in initState');
 
-    // This will trigger the currencyExchangeProvider to fetch data immediately
+    // Trigger the currencyExchangeProvider with current cart amount and currency
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         try {
+          final cartState = ref.read(panierCtrlProvider);
+          final totalAmount = cartState.paniers?.data.isNotEmpty == true
+              ? cartState.paniers!.data[0].totalPrice.toDouble()
+              : 0.0;
+          final cart = cartState.paniers?.data.isNotEmpty == true ? cartState.paniers!.data[0] : null;
+          final itemCurrencyId = (cart?.cartItems.isNotEmpty == true) ? cart!.cartItems[0].currencyId : '';
+          final currencyId = itemCurrencyId.isNotEmpty ? itemCurrencyId : (cart?.refCurrencyId ?? '');
+
+          // Skip if currencyId is empty
+          if (currencyId.trim().isEmpty) {
+            debugPrint('⚠️ Skipping currency exchange fetch: ref_currency_id is empty');
+            debugPrint('🔎 Cart debug: itemCurrencyId="$itemCurrencyId", cart.refCurrencyId="${cart?.refCurrencyId ?? ''}", cart.currency="${cart?.currency ?? ''}"');
+            return;
+          }
+
           // Force the provider to fetch data immediately by reading it
-          final asyncValue = ref.read(currencyExchangeProvider);
-          debugPrint('🔄 Currency exchange provider triggered');
+          final asyncValue = ref.read(
+            currencyExchangeProvider(
+              CurrencyExchangeParams(amount: totalAmount, refCurrencyId: currencyId),
+            ),
+          );
+          debugPrint('🔄 Currency exchange provider triggered with amount=$totalAmount, ref_currency_id=$currencyId');
           debugPrint('📊 Initial state: ${asyncValue.runtimeType}');
 
           // Check the current state
@@ -136,13 +163,21 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
   }
 
   Widget _buildCurrencyPaymentButtons(int totalPrice) {
-    final currencyExchangeAsync = ref.watch(currencyExchangeProvider);
-
-    // Get currency from cart data
+    // Get cart state and derive params
     var state = ref.watch(panierCtrlProvider);
     final cartCurrency = state.paniers?.data.isNotEmpty == true
         ? state.paniers!.data[0].currency
         : 'CDF';
+    final cart = state.paniers?.data.isNotEmpty == true ? state.paniers!.data[0] : null;
+    final itemCurrencyId = (cart?.cartItems.isNotEmpty == true) ? cart!.cartItems[0].currencyId : '';
+    final currencyId = itemCurrencyId.isNotEmpty ? itemCurrencyId : (cart?.refCurrencyId ?? '');
+
+    // Watch provider with params (POST /amount-exchances)
+    final currencyExchangeAsync = ref.watch(
+      currencyExchangeProvider(
+        CurrencyExchangeParams(amount: totalPrice.toDouble(), refCurrencyId: currencyId),
+      ),
+    );
 
     return currencyExchangeAsync.when(
       loading: () {
@@ -169,14 +204,15 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
           return _buildDefaultPaymentButton(totalPrice);
         }
 
-        // Find the conversion from cart currency to other currency
-        // We want to convert FROM cart currency TO another currency
-        final currencyConversion = currencyResponse.data.firstWhere(
-          (currency) => currency.currencyFromCode.toLowerCase() == cartCurrency.toLowerCase(),
-          orElse: () => currencyResponse.data.first,
+        // Prefer a conversion that changes currency (FROM cart currency TO another)
+        final exchanges = currencyResponse.data;
+        final convertedOption = exchanges.firstWhere(
+          (c) => c.currencyFromCode.toLowerCase() == cartCurrency.toLowerCase() &&
+                 c.currencyToCode.toLowerCase() != cartCurrency.toLowerCase(),
+          orElse: () => exchanges.first,
         );
 
-        final convertedAmount = totalPrice.toDouble() * currencyConversion.exchangedValue;
+        final convertedAmount = convertedOption.convertedAmount;
 
         debugPrint('💱 Currency conversion:');
         debugPrint('💱 Cart currency: $cartCurrency');
@@ -185,12 +221,12 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
           debugPrint('💱   ${currency.currencyFromCode} → ${currency.currencyToCode}: ${currency.exchangedValue}');
           debugPrint('💱     From ID: ${currency.currencyFrom}, To ID: ${currency.currencyTo}');
         }
-        debugPrint('💱 Selected conversion: ${currencyConversion.currencyFromCode} → ${currencyConversion.currencyToCode}');
-        debugPrint('💱 Rate: ${currencyConversion.exchangedValue}');
+        debugPrint('💱 Selected conversion: ${convertedOption.currencyFromCode} → ${convertedOption.currencyToCode}');
+        debugPrint('💱 Rate: ${convertedOption.exchangedValue}');
         debugPrint('💱 Original amount: $cartCurrency ${totalPrice.toStringAsFixed(2)}');
-        debugPrint('💱 Converted amount: ${convertedAmount.toStringAsFixed(2)} ${currencyConversion.currencyToCode.toUpperCase()}');
-        debugPrint('💱 Currency IDs: From=${currencyConversion.currencyFrom}, To=${currencyConversion.currencyTo}');
-        debugPrint('💱 Will send transactional_currency_id: ${currencyConversion.currencyTo}');
+        debugPrint('💱 Converted amount: ${convertedAmount.toStringAsFixed(2)} ${convertedOption.currencyToCode.toUpperCase()}');
+        debugPrint('💱 Currency IDs: From=${convertedOption.currencyFrom}, To=${convertedOption.currencyTo}');
+        debugPrint('💱 Will send transactional_currency_id: ${convertedOption.currencyTo}');
 
         return Column(
           children: [
@@ -213,7 +249,7 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Taux de change: 1 ${cartCurrency.toUpperCase()} = ${currencyConversion.exchangedValue.toStringAsFixed(4)} ${currencyConversion.currencyToCode.toUpperCase()}',
+                      'Taux de change: 1 ${cartCurrency.toUpperCase()} = ${convertedOption.exchangedValue.toStringAsFixed(4)} ${convertedOption.currencyToCode.toUpperCase()}',
                       style: GoogleFonts.ubuntu(
                         fontSize: 14,
                         color: Colors.blue.shade700,
@@ -245,9 +281,9 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
                 // Converted currency button
                 Expanded(
                   child: _buildPaymentButton(
-                    label: 'Payer ${_formatCurrency(convertedAmount, currencyConversion.currencyToCode)}',
-                    subtitle: '${currencyConversion.currencyToCode.toUpperCase()} (Converti)',
-                    onPressed: () => _processPaymentWithCurrency(currencyConversion.currencyTo),
+                    label: 'Payer ${_formatCurrency(convertedAmount, convertedOption.currencyToCode)}',
+                    subtitle: '${convertedOption.currencyToCode.toUpperCase()} (Converti)',
+                    onPressed: () => _processPaymentWithCurrency(convertedOption.currencyTo),
                     isPrimary: false,
                   ),
                 ),
@@ -364,15 +400,15 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                ColorPages.COLOR_PRINCIPAL,
-                ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.8),
-                Colors.grey.shade50,
+                Colors.red.shade100,
+                Colors.red.shade50,
+                Colors.white,
               ],
-              stops: const [0.0, 0.15, 1.0],
             ),
           ),
           child: SafeArea(
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 // Enhanced Header
                 _buildModernHeader(context),
@@ -870,7 +906,18 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
                 if (context.canPop()) {
                   context.pop();
                 }
-                ref.invalidate(currencyExchangeProvider);
+                final cartState = ref.read(panierCtrlProvider);
+                final totalAmount = cartState.paniers?.data.isNotEmpty == true
+                    ? cartState.paniers!.data[0].totalPrice.toDouble()
+                    : 0.0;
+                final cart = cartState.paniers?.data.isNotEmpty == true ? cartState.paniers!.data[0] : null;
+                final itemCurrencyId = (cart?.cartItems.isNotEmpty == true) ? cart!.cartItems[0].currencyId : '';
+                final currencyId = itemCurrencyId.isNotEmpty ? itemCurrencyId : (cart?.refCurrencyId ?? '');
+                ref.invalidate(
+                  currencyExchangeProvider(
+                    CurrencyExchangeParams(amount: totalAmount, refCurrencyId: currencyId),
+                  ),
+                );
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
@@ -1057,7 +1104,7 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
                     style: GoogleFonts.ubuntu(
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
-                      color: isPrimary ? Colors.white70 : ColorPages.COLOR_PRINCIPAL.withOpacity(0.7),
+                      color: isPrimary ? Colors.white70 : ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.7),
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -1067,8 +1114,30 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
     );
   }
 
-  void _processPaymentWithCurrency(String? currencyId) {
+  Future<void> _processPaymentWithCurrency(String? currencyId) async {
     debugPrint('💳 Processing payment with currency ID: $currencyId');
+
+    // 1) Ask for blood request configuration (patient/storage, reason, etc.)
+    final config = await showDialog<Map<String, String?>>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const BloodRequestConfigDialog(),
+    );
+
+    if (config == null) {
+      debugPrint('❌ Payment cancelled: no configuration provided');
+      return;
+    }
+
+    setState(() {
+      _requestFor = config['request_for'];
+      _patientId = config['patient_id'];
+      _requestType = config['request_type'];
+      _urgencyLevel = config['urgency_level'];
+      _requestReason = config['request_reason'];
+    });
+
+    // 2) Ask for phone number and proceed
     _showPhoneNumberBottomSheet(currencyId);
   }
 
@@ -1090,16 +1159,16 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
                 width: 45,
                 height: 45,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.3),
+                    color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.12),
                     width: 1,
                   ),
                 ),
                 child: Icon(
                   Iconsax.arrow_left_2,
-                  color: Colors.white,
+                  color: ColorPages.COLOR_PRINCIPAL,
                   size: 20,
                 ),
               ),
@@ -1117,12 +1186,12 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.2),
+                          color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Icon(
                           Iconsax.verify,
-                          color: Colors.white,
+                          color: ColorPages.COLOR_PRINCIPAL,
                           size: 20,
                         ),
                       ),
@@ -1132,7 +1201,7 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
                         style: GoogleFonts.ubuntu(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: ColorPages.COLOR_PRINCIPAL,
                         ),
                       ),
                     ],
@@ -1141,14 +1210,14 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
+                      color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
                       'Vérifiez votre commande avant paiement',
                       style: GoogleFonts.ubuntu(
                         fontSize: 12,
-                        color: Colors.white.withValues(alpha: 0.9),
+                        color: ColorPages.COLOR_PRINCIPAL,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -1279,19 +1348,24 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
         widget.paiement,
         phoneNumber: phoneNumber,
         transactionalCurrencyId: currencyId,
+        requestFor: _requestFor,
+        requestReason: _requestReason,
+        patientId: _patientId,
+        requestType: _requestType,
+        urgencyLevel: _urgencyLevel,
       );
 
-      print("🎯 Payment result: $resultat");
-      print("✅ Success: ${resultat?.success}");
-      print("📄 Message: ${resultat?.sms}");
-      print("🔗 SystemRef: ${resultat?.data?.systemRef}");
+      debugPrint("🎯 Payment result: $resultat");
+      debugPrint("✅ Success: ${resultat?.success}");
+      debugPrint("📄 Message: ${resultat?.sms}");
+      debugPrint("🔗 SystemRef: ${resultat?.data?.systemRef}");
 
       setState(() {
         _isLoading = false;
       });
 
       if (resultat?.success == true && resultat?.data?.systemRef != null) {
-        print("🎉 Payment initiated successfully, navigating to status page...");
+        debugPrint("🎉 Payment initiated successfully, navigating to status page...");
 
         // Navigate to payment status page
         String baseUrl = dotenv.env['BASE_URL'] ?? 'http://192.168.30.132:3101/eblood-hstdapi/v1';
@@ -1309,7 +1383,7 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
           );
         }
       } else {
-        print("❌ Payment failed: ${resultat?.sms}");
+        debugPrint("❌ Payment failed: ${resultat?.sms}");
 
         // Show error message
         if (mounted) {
@@ -1327,8 +1401,8 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
         _isLoading = false;
       });
 
-      print("💥 Payment error: $e");
-      print("📍 Stack trace: $stackTrace");
+      debugPrint("💥 Payment error: $e");
+      debugPrint("📍 Stack trace: $stackTrace");
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

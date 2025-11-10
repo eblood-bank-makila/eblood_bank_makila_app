@@ -7,6 +7,8 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'translations/AppTranslations.dart';
 import 'services/LanguageService.dart';
 
+import 'package:eblood_bank_mak_app/core/widgets/network_status_widget.dart';
+
 class MonApplication extends ConsumerWidget {
   const MonApplication({super.key});
 
@@ -16,6 +18,23 @@ class MonApplication extends ConsumerWidget {
 
     return GetMaterialApp.router(
       title: 'E-Blood Bank Makila',
+
+      // Wrap app to close keyboard when tapping outside inputs
+      builder: (context, child) {
+        final base = GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: () {
+            FocusManager.instance.primaryFocus?.unfocus();
+          },
+          child: child ?? const SizedBox.shrink(),
+        );
+        return NetworkStatusWidget(
+          child: base,
+          offlineMessage: 'backend_unavailable'.tr,
+          preserveSpace: true,
+          absorbPointerWhenOffline: false,
+        );
+      },
 
       // Internationalization configuration
       translations: AppTranslations(),

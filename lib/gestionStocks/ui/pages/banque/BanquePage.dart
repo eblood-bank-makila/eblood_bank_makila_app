@@ -144,9 +144,9 @@ import 'package:eblood_bank_mak_app/gestionStocks/ui/pages/banque/BanqueCtrl.dar
 import 'package:eblood_bank_mak_app/gestionStocks/ui/pages/recherchePoche/RecherchePochePage.dart';
 import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/notification/NotificationPage.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:eblood_bank_mak_app/apps/config/theme/ColorPages.dart';
-import 'package:shimmer/shimmer.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 
@@ -186,18 +186,28 @@ class _BanquepageState extends ConsumerState<Banquepage> {
   Widget build(BuildContext context) {
     var state = ref.watch(banqueCtrlProvider);
 
+    // Set status bar style to dark (black icons/text)
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark, // Dark icons for light background
+        statusBarBrightness: Brightness.light, // For iOS
+      ),
+    );
+
     return Scaffold(
       body: Container(
+        width: double.infinity,
+        height: double.infinity,
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              ColorPages.COLOR_PRINCIPAL,
-              ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.8),
-              Colors.grey.shade50,
+              Colors.red.shade100,
+              Colors.red.shade50,
+              Colors.white,
             ],
-            stops: const [0.0, 0.15, 1.0],
           ),
         ),
         child: SafeArea(
@@ -206,15 +216,11 @@ class _BanquepageState extends ConsumerState<Banquepage> {
               // Modern Header
               _buildModernHeader(context),
 
-              // Content
+              // Content - no rounded corners, transparent background
               Expanded(
                 child: Container(
                   decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(20),
-                      topRight: Radius.circular(20),
-                    ),
+                    color: Colors.transparent,
                   ),
                   child: _buildHomeContent(context, state),
                 ),
@@ -227,7 +233,7 @@ class _BanquepageState extends ConsumerState<Banquepage> {
   }
 
   Widget _buildModernHeader(BuildContext context) {
-    return Container(
+    return Padding(
       padding: const EdgeInsets.all(20),
       child: Column(
         children: [
@@ -238,48 +244,38 @@ class _BanquepageState extends ConsumerState<Banquepage> {
               // Logo and Welcome Text
               Row(
                 children: [
-                  Container(
-                    width: 50,
-                    height: 50,
-                    padding: const EdgeInsets.all(5),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(10),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.1),
-                          blurRadius: 10,
-                          offset: const Offset(0, 5),
-                        ),
-                      ],
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: Center(
-                        child: Image.asset(
-                          'assets/icons/app_icon.png',
-                          fit: BoxFit.contain,
-                        ),
-                      ),
-                    ),
+                   // Cart Icon
+                Container(
+                  width: 50,
+                  height: 50,
+                  padding: const EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
                   ),
+                  child: Icon(
+                    Iconsax.bank,
+                    color: ColorPages.COLOR_PRINCIPAL,
+                    size: 24,
+                  ),
+                ), 
                   const SizedBox(width: 12),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'E-Blood Bank',
+                        'Banques de sang',
                         style: GoogleFonts.ubuntu(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: ColorPages.COLOR_PRINCIPAL,
                         ),
                       ),
                       Text(
                         'Trouvez du sang rapidement',
                         style: GoogleFonts.ubuntu(
                           fontSize: 12,
-                          color: Colors.white.withValues(alpha: 0.9),
+                          color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.7),
                         ),
                       ),
                     ],
@@ -290,7 +286,7 @@ class _BanquepageState extends ConsumerState<Banquepage> {
               // Notification Button
               Container(
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
+                  color: ColorPages.COLOR_BLANCHE.withValues(alpha: 0.4),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Stack(
@@ -306,9 +302,9 @@ class _BanquepageState extends ConsumerState<Banquepage> {
                           ),
                         );
                       },
-                      icon: const Icon(
+                      icon: Icon(
                         Iconsax.notification,
-                        color: Colors.white,
+                        color: ColorPages.COLOR_PRINCIPAL,
                         size: 24,
                       ),
                     ),
@@ -319,7 +315,7 @@ class _BanquepageState extends ConsumerState<Banquepage> {
                         width: 8,
                         height: 8,
                         decoration: const BoxDecoration(
-                          color: Colors.orange,
+                          color: ColorPages.COLOR_PRINCIPAL,
                           shape: BoxShape.circle,
                         ),
                       ),
@@ -354,9 +350,9 @@ class _BanquepageState extends ConsumerState<Banquepage> {
                   borderRadius: BorderRadius.circular(25),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
+                      color: Colors.black.withValues(alpha: 0.08),
                       blurRadius: 10,
-                      offset: const Offset(0, 5),
+                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),
@@ -406,71 +402,67 @@ class _BanquepageState extends ConsumerState<Banquepage> {
     return RefreshIndicator(
       color: ColorPages.COLOR_PRINCIPAL,
       onRefresh: _fetchBanqueList,
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Carousel Section
-            FadeInUp(
-              delay: const Duration(milliseconds: 300),
-              child: CarouselPage(),
-            ),
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+        children: [
+          // Carousel Section
+          FadeInUp(
+            delay: const Duration(milliseconds: 300),
+            child: CarouselPage(),
+          ),
 
-            const SizedBox(height: 24),
+          const SizedBox(height: 24),
 
-            // Section Header
-            FadeInUp(
-              delay: const Duration(milliseconds: 400),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Banques de sang',
-                        style: GoogleFonts.ubuntu(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      Text(
-                        'Les plus proches de vous',
-                        style: GoogleFonts.ubuntu(
-                          fontSize: 14,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                    ],
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      // Add "voir tout" functionality if needed
-                    },
-                    child: Text(
-                      'Voir tout',
+          // Section Header
+          FadeInUp(
+            delay: const Duration(milliseconds: 400),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Banques de sang',
                       style: GoogleFonts.ubuntu(
-                        color: ColorPages.COLOR_PRINCIPAL,
-                        fontWeight: FontWeight.w600,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
                       ),
                     ),
+                    Text(
+                      'Les plus proches de vous',
+                      style: GoogleFonts.ubuntu(
+                        fontSize: 14,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+                TextButton(
+                  onPressed: () {
+                    // Add "voir tout" functionality if needed
+                  },
+                  child: Text(
+                    'Voir tout',
+                    style: GoogleFonts.ubuntu(
+                      color: ColorPages.COLOR_PRINCIPAL,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
+          ),
 
-            const SizedBox(height: 16),
+          const SizedBox(height: 16),
 
-            // Blood Banks List
-            FadeInUp(
-              delay: const Duration(milliseconds: 500),
-              child: _buildBanksList(state),
-            ),
-          ],
-        ),
+          // Blood Banks List
+          FadeInUp(
+            delay: const Duration(milliseconds: 500),
+            child: _buildBanksList(state),
+          ),
+        ],
       ),
     );
   }
@@ -484,59 +476,54 @@ class _BanquepageState extends ConsumerState<Banquepage> {
       return _buildEmptyState();
     }
 
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: state.banques.length,
-      itemBuilder: (context, index) {
-        final banque = state.banques[index];
-        return FadeInUp(
-          delay: Duration(milliseconds: 600 + (index * 100)),
-          child: Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+    return Column(
+      children: List.generate(
+        state.banques.length,
+        (index) {
+          final banque = state.banques[index];
+          return FadeInUp(
+            delay: Duration(milliseconds: 600 + (index * 100)),
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              child: BanqueWidget(
+                banque: banque,
+                authToken: '',
+              ),
             ),
-            child: BanqueWidget(
-              banque: banque,
-              authToken: '',
-            ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 
   Widget _buildEmptyState() {
     return Container(
       padding: const EdgeInsets.all(40),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
       child: Column(
         children: [
           Container(
             width: 80,
             height: 80,
             decoration: BoxDecoration(
-              color: Colors.grey.shade100,
+              color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(40),
             ),
             child: Icon(
               Iconsax.bank,
               size: 40,
-              color: Colors.grey.shade400,
+              color: ColorPages.COLOR_PRINCIPAL,
             ),
           ),
           const SizedBox(height: 16),
           Text(
             'Aucune banque disponible',
             style: GoogleFonts.ubuntu(
-              fontSize: 18,
+              fontSize: 16,
               fontWeight: FontWeight.w600,
               color: Colors.grey.shade700,
             ),
@@ -546,7 +533,7 @@ class _BanquepageState extends ConsumerState<Banquepage> {
             'Tirez vers le bas pour actualiser',
             style: GoogleFonts.ubuntu(
               fontSize: 14,
-              color: Colors.grey.shade500,
+              color: Colors.grey.shade600,
             ),
           ),
         ],

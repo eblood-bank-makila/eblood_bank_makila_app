@@ -20,6 +20,7 @@ import 'package:animate_do/animate_do.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 
 // String extension for text formatting
 extension StringExtension on String {
@@ -63,11 +64,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              ColorPages.COLOR_PRINCIPAL,
-              ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.8),
+              Colors.red.shade100,
+              Colors.red.shade50,
               Colors.white,
             ],
-            stops: const [0.0, 0.3, 1.0],
           ),
         ),
         child: SafeArea(
@@ -80,11 +80,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               Expanded(
                 child: Container(
                   decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(30),
-                      topRight: Radius.circular(30),
-                    ),
+                    color: Colors.transparent,
                   ),
                   child: _buildProfileContent(context),
                 ),
@@ -110,16 +106,16 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 style: GoogleFonts.ubuntu(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: Colors.black,
                 ),
               ),
               Container(
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
+                  color: Colors.white.withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: IconButton(
-                  icon: const Icon(Iconsax.setting_2, color: Colors.white),
+                  icon: const Icon(Iconsax.setting_2, color: ColorPages.COLOR_PRINCIPAL),
                   onPressed: () {
                     Navigator.push(context,
                         MaterialPageRoute(builder: (context) => const ParametrePage()));
@@ -133,7 +129,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
           // Profile Avatar and Info
           FadeInUp(
-            delay: const Duration(milliseconds: 200),
+            delay: const Duration(milliseconds: 300),
+            duration: const Duration(milliseconds: 100),
+            from: 70,
             child: GestureDetector(
               onTap: () {
                 Navigator.push(
@@ -147,7 +145,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   color: Colors.white.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.3),
+                    color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.3),
                     width: 1,
                   ),
                 ),
@@ -171,7 +169,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                         ],
                       ),
                       child: const CircleAvatar(
-                        backgroundImage: AssetImage('assets/images/image8.png'),
+                        backgroundImage: AssetImage('assets/images/logo.png'),
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -186,7 +184,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                                 style: GoogleFonts.ubuntu(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 18,
-                                  color: Colors.white,
+                                  color: ColorPages.COLOR_PRINCIPAL,
                                 ),
                               ),
                               const SizedBox(width: 5),
@@ -195,7 +193,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                                 style: GoogleFonts.ubuntu(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 18,
-                                  color: Colors.white,
+                                  color: ColorPages.COLOR_PRINCIPAL,
                                 ),
                               ),
                             ],
@@ -205,7 +203,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                             Text(
                               email,
                               style: GoogleFonts.ubuntu(
-                                color: Colors.white.withValues(alpha: 0.9),
+                                color: Colors.black.withValues(alpha: 0.9),
                                 fontSize: 14,
                               ),
                             ),
@@ -214,7 +212,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                     ),
                     const Icon(
                       Iconsax.arrow_right_3,
-                      color: Colors.white,
+                      color: ColorPages.COLOR_PRINCIPAL,
                       size: 18,
                     ),
                   ],
@@ -380,12 +378,18 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: Colors.white.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.grey.shade200,
+          color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.2),
           width: 1,
         ),
+        // color: Colors.grey.shade50,
+        // borderRadius: BorderRadius.circular(16),
+        // border: Border.all(
+        //   color: Colors.grey.shade200,
+        //   width: 1,
+        // ),
       ),
       child: ListTile(
         onTap: onTap,
@@ -424,16 +428,27 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
   Widget _buildAccountTypeListTile() {
     var state = ref.watch(profileCtrlProvider);
+
+    // First try to get account type from user data
     var accountType = state.user?.accountType ?? ECommonConfigType.none;
+
+    // If still undefined, try to get from stored account_type (same logic as AccountTypeBasedNavigation)
+    if (accountType == ECommonConfigType.none) {
+      final storage = GetStorage();
+      final storedAccountType = (storage.read('account_type') as String?)?.toLowerCase().trim() ?? '';
+      accountType = _parseStoredAccountType(storedAccountType);
+    }
+
     var accountTypeName = _localizedAccountType(accountType);
+    var accountTypeColor = _getAccountTypeColor(accountType);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: Colors.white.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.grey.shade200,
+          color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.2),
           width: 1,
         ),
       ),
@@ -442,13 +457,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: Color(accountType.colorValue).withValues(alpha: 0.1),
+            color: accountTypeColor.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(
             _getAccountTypeIcon(accountType),
             size: 20,
-            color: Color(accountType.colorValue),
+            color: accountTypeColor,
           ),
         ),
         title: Text(
@@ -470,10 +485,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         trailing: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            color: Color(accountType.colorValue).withValues(alpha: 0.1),
+            color: accountTypeColor.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: Color(accountType.colorValue).withValues(alpha: 0.3),
+              color: accountTypeColor.withValues(alpha: 0.3),
               width: 1,
             ),
           ),
@@ -482,7 +497,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             style: GoogleFonts.ubuntu(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: Color(accountType.colorValue),
+              color: accountTypeColor,
             ),
           ),
         ),
@@ -523,6 +538,67 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         return 'system_account'.tr;
       case ECommonConfigType.none:
         return 'account_type_undefined'.tr;
+    }
+  }
+
+  /// Parse stored account type string to ECommonConfigType
+  /// Uses the same logic as AccountTypeBasedNavigation
+  ECommonConfigType _parseStoredAccountType(String? accountTypeString) {
+    if (accountTypeString == null || accountTypeString.isEmpty) {
+      return ECommonConfigType.personal; // Default to personal
+    }
+
+    final lowerType = accountTypeString.toLowerCase().trim();
+
+    switch (lowerType) {
+      case 'hospital':
+      case 'hopital':
+      case 'hôpital':
+        return ECommonConfigType.hospital;
+      case 'blood_bank':
+      case 'bloodbank':
+      case 'banque_sang':
+      case 'banque_de_sang':
+        return ECommonConfigType.bloodBank;
+      case 'customer':
+      case 'consommateur':
+      case 'consumer':
+      case 'personal':
+        return ECommonConfigType.personal;
+      case 'delivery':
+      case 'delivery_person':
+      case 'livreur':
+      case 'deliverer':
+        return ECommonConfigType.deliveryPerson;
+      case 'blood_donor':
+      case 'blood donor':
+      case 'blooddonor':
+      case 'donneur':
+      case 'donneur_sang':
+      case 'donneur de sang':
+        // Blood donor is treated as personal account type with donor profile
+        return ECommonConfigType.personal;
+      default:
+        debugPrint('🤔 Unknown account type: $accountTypeString, defaulting to personal');
+        return ECommonConfigType.personal;
+    }
+  }
+
+  /// Get color for account type
+  Color _getAccountTypeColor(ECommonConfigType type) {
+    switch (type) {
+      case ECommonConfigType.personal:
+        return Colors.blue.shade600;
+      case ECommonConfigType.hospital:
+        return Colors.red.shade600;
+      case ECommonConfigType.bloodBank:
+        return Colors.orange.shade600;
+      case ECommonConfigType.deliveryPerson:
+        return Colors.green.shade600;
+      case ECommonConfigType.system:
+        return Colors.purple.shade600;
+      case ECommonConfigType.none:
+        return Colors.grey.shade600;
     }
   }
 
@@ -657,12 +733,17 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   void _handleLogout(BuildContext context) async {
     Navigator.of(context).pop(); // Close dialog
 
+    // Save all context-dependent references before async operations
+    final navigator = Navigator.of(context);
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final goRouter = GoRouter.of(context);
+
     try {
       // Show loading
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => Center(
+        builder: (dialogContext) => Center(
           child: Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
@@ -693,20 +774,20 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       final ctrl = ref.read(profileCtrlProvider.notifier);
       await ctrl.disconnect();
 
-      // Close loading dialog
+      // Close loading dialog using saved navigator
       if (mounted) {
-        Navigator.of(context).pop();
+        navigator.pop();
 
-        // Navigate to welcome page
-        context.go('/welcome');
+        // Navigate to welcome page using saved router
+        goRouter.go('/welcome');
       }
     } catch (e) {
-      // Close loading dialog
+      // Close loading dialog using saved navigator
       if (mounted) {
-        Navigator.of(context).pop();
+        navigator.pop();
 
-        // Show error message
-        ScaffoldMessenger.of(context).showSnackBar(
+        // Show error message using saved scaffold messenger
+        scaffoldMessenger.showSnackBar(
           SnackBar(
             content: Text('${'error'.tr}: $e'),
             backgroundColor: Colors.red,

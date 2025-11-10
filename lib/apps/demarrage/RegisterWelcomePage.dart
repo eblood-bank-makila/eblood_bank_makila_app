@@ -373,12 +373,20 @@ class RegisterWelcomePage extends ConsumerWidget {
 
       if (userCredential != null && context.mounted) {
         final user = userCredential.user;
+        final idToken = await authService.getIdToken();
         // Navigate to account type selection carrying google info
         context.push('/account-type-selection', extra: {
           'registration_mode': 'google',
           'google_email': user?.email,
           'google_display_name': user?.displayName,
           'google_photo_url': user?.photoURL,
+          'google_id_token': idToken,
+          'google_user': {
+            'email': user?.email,
+            'displayName': user?.displayName,
+            'photoURL': user?.photoURL,
+            'uid': user?.uid,
+          }
         });
       }
     } catch (e) {

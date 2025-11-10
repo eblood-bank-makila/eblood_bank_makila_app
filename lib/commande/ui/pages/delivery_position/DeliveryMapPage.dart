@@ -8,6 +8,8 @@ import 'package:iconsax/iconsax.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:http/http.dart' as http;
 
+import 'package:get/get.dart';
+
 import '../../../../apps/config/theme/ColorPages.dart';
 import '../../../business/model/blood_request/BloodRequestModel.dart';
 import '../../../business/model/delivery/DeliveryPositionModel.dart';
@@ -218,7 +220,7 @@ class _DeliveryMapPageState extends ConsumerState<DeliveryMapPage> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Chargement de l\'itinéraire...',
+                      'loading_route'.tr,
                       style: GoogleFonts.ubuntu(fontSize: 12),
                     ),
                   ],
@@ -317,7 +319,7 @@ class _DeliveryMapPageState extends ConsumerState<DeliveryMapPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Position de livraison',
+                    'delivery_position'.tr,
                     style: GoogleFonts.ubuntu(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -325,7 +327,7 @@ class _DeliveryMapPageState extends ConsumerState<DeliveryMapPage> {
                     ),
                   ),
                   Text(
-                    'Demande #${widget.request.requestId}',
+                    'request_number'.trParams({'id': widget.request.requestId.toString()}),
                     style: GoogleFonts.ubuntu(
                       fontSize: 14,
                       color: Colors.grey.shade600,
@@ -344,7 +346,7 @@ class _DeliveryMapPageState extends ConsumerState<DeliveryMapPage> {
     return Consumer(
       builder: (context, ref, child) {
         final state = ref.watch(deliveryPositionCtrlProvider);
-        
+
         return Positioned(
           bottom: 0,
           left: 0,
@@ -369,7 +371,7 @@ class _DeliveryMapPageState extends ConsumerState<DeliveryMapPage> {
                   ? _buildLoadingContent()
                   : state.hasValidPosition
                       ? _buildPositionContent(state)
-                      : _buildErrorContent(state.error ?? 'Position non disponible'),
+                      : _buildErrorContent(state.error ?? 'position_unavailable'.tr),
             ),
           ),
         );
@@ -390,7 +392,7 @@ class _DeliveryMapPageState extends ConsumerState<DeliveryMapPage> {
         ),
         const SizedBox(width: 16),
         Text(
-          'Chargement de la position...',
+          'loading_position'.tr,
           style: GoogleFonts.ubuntu(
             fontSize: 16,
             color: Colors.grey.shade600,
@@ -402,7 +404,7 @@ class _DeliveryMapPageState extends ConsumerState<DeliveryMapPage> {
 
   Widget _buildPositionContent(DeliveryPositionState state) {
     final info = state.positionInfo!;
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -429,7 +431,7 @@ class _DeliveryMapPageState extends ConsumerState<DeliveryMapPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Livreur',
+                    'delivery_person'.tr,
                     style: GoogleFonts.ubuntu(
                       fontSize: 12,
                       color: Colors.grey.shade600,
@@ -467,9 +469,9 @@ class _DeliveryMapPageState extends ConsumerState<DeliveryMapPage> {
             ),
           ],
         ),
-        
+
         const SizedBox(height: 16),
-        
+
         // Status message
         Container(
           width: double.infinity,

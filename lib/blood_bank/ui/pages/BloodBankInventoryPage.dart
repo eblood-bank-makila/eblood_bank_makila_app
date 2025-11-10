@@ -310,7 +310,7 @@ class _BloodBankInventoryPageState extends ConsumerState<BloodBankInventoryPage>
               ),
             ),
             SizedBox(width: 16),
-            Text('Génération du rapport en cours...'),
+            Text('generating_report'.tr),
           ],
         ),
         duration: Duration(seconds: 3),
@@ -428,7 +428,7 @@ class _BloodBankInventoryPageState extends ConsumerState<BloodBankInventoryPage>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Gestion d\'Inventaire',
+                    'inventory_management'.tr,
                     style: GoogleFonts.ubuntu(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
@@ -437,7 +437,7 @@ class _BloodBankInventoryPageState extends ConsumerState<BloodBankInventoryPage>
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Banque de Sang Makila',
+                    'blood_bank_makila'.tr,
                     style: GoogleFonts.ubuntu(
                       fontSize: 14,
                       color: Colors.grey.shade600,
@@ -761,7 +761,7 @@ class _BloodBankInventoryPageState extends ConsumerState<BloodBankInventoryPage>
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      '$quantity unités',
+                      "$quantity ${'units'.tr}",
                       style: GoogleFonts.ubuntu(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -928,7 +928,7 @@ class _BloodBankInventoryPageState extends ConsumerState<BloodBankInventoryPage>
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
-              child: const Text('Réessayer'),
+              child: Text('retry'.tr),
             ),
           ],
         ),
@@ -977,7 +977,7 @@ class _BloodBankInventoryPageState extends ConsumerState<BloodBankInventoryPage>
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
-              child: const Text('Ajouter du Stock'),
+              child: Text('add_stock'.tr),
             ),
           ],
         ),
@@ -1135,9 +1135,9 @@ class _BloodBankInventoryPageState extends ConsumerState<BloodBankInventoryPage>
             children: [
               Expanded(
                 child: _buildSummaryCard(
-                  title: 'Stock Total',
+                  title: 'total_stock'.tr,
                   value: totalUnits.toString(),
-                  subtitle: 'unités',
+                  subtitle: 'units'.tr,
                   icon: Iconsax.box,
                   color: ColorPages.COLOR_PRINCIPAL,
                 ),
@@ -1411,7 +1411,7 @@ class _BloodBankInventoryPageState extends ConsumerState<BloodBankInventoryPage>
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
-                            '$productUnits unités',
+                            "$productUnits ${'units'.tr}",
                             style: GoogleFonts.ubuntu(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
@@ -1643,7 +1643,7 @@ class _BloodBankInventoryPageState extends ConsumerState<BloodBankInventoryPage>
                 ref.read(inventorySettingsProvider.notifier).refreshSettings();
               },
               icon: const Icon(Iconsax.refresh),
-              label: const Text('Réessayer'),
+              label: Text('retry'.tr),
               style: ElevatedButton.styleFrom(
                 backgroundColor: ColorPages.COLOR_PRINCIPAL,
                 foregroundColor: Colors.white,
@@ -1845,7 +1845,7 @@ class _BloodBankInventoryPageState extends ConsumerState<BloodBankInventoryPage>
                     onPressed: () {
                       // Navigate to detailed threshold configuration
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Configuration détaillée des seuils à venir')),
+                        SnackBar(content: Text('detailed_threshold_config_coming'.tr)),
                       );
                     },
                     style: OutlinedButton.styleFrom(
@@ -1853,7 +1853,7 @@ class _BloodBankInventoryPageState extends ConsumerState<BloodBankInventoryPage>
                       minimumSize: const Size(double.infinity, 45),
                     ),
                     child: Text(
-                      'Configurer tous les types sanguins',
+                      'configure_all_blood_types'.tr,
                       style: GoogleFonts.ubuntu(
                         color: Colors.orange.shade700,
                         fontWeight: FontWeight.w500,
@@ -1867,7 +1867,7 @@ class _BloodBankInventoryPageState extends ConsumerState<BloodBankInventoryPage>
 
             // Expiration settings
             _buildSettingsSection(
-              title: 'Paramètres d\'Expiration',
+              title: 'expiration_settings'.tr,
               icon: Iconsax.calendar,
               color: Colors.red,
               children: [
@@ -1882,7 +1882,7 @@ class _BloodBankInventoryPageState extends ConsumerState<BloodBankInventoryPage>
                     // Save setting
                     _saveSetting('expirationAlerts', value);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Alertes d\'expiration: ${value ? 'activées' : 'désactivées'}')),
+                      SnackBar(content: Text(value ? 'expiration_alerts_enabled'.tr : 'expiration_alerts_disabled'.tr)),
                     );
                   },
                 ),
@@ -1919,7 +1919,7 @@ class _BloodBankInventoryPageState extends ConsumerState<BloodBankInventoryPage>
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        '7 jours',
+                        'seven_days'.tr,
                         style: GoogleFonts.ubuntu(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -1941,13 +1941,13 @@ class _BloodBankInventoryPageState extends ConsumerState<BloodBankInventoryPage>
                   },
                 ),
                 _buildSettingsItemWithValue(
-                  title: 'Durée de validité',
-                  subtitle: 'Configurer la durée de validité par type de produit',
-                  value: 'Configuration',
+                  title: 'validity_period'.tr,
+                  subtitle: 'configure_validity_by_product'.tr,
+                  value: 'configuration'.tr,
                   icon: Iconsax.setting,
                   onTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Configuration des durées de validité à venir')),
+                      SnackBar(content: Text('validity_duration_config_coming'.tr)),
                     );
                   },
                 ),
@@ -1992,12 +1992,12 @@ class _BloodBankInventoryPageState extends ConsumerState<BloodBankInventoryPage>
                   },
                 ),
                 _buildSettingsItem(
-                  title: 'Canaux de notification',
-                  subtitle: 'Configurer où recevoir les alertes (email, SMS, etc.)',
+                  title: 'notification_channels'.tr,
+                  subtitle: 'configure_notification_channels'.tr,
                   icon: Iconsax.sms,
                   onTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Configuration des canaux de notification à venir')),
+                      SnackBar(content: Text('notification_channels_config_coming'.tr)),
                     );
                   },
                 ),
@@ -2021,7 +2021,7 @@ class _BloodBankInventoryPageState extends ConsumerState<BloodBankInventoryPage>
                       Icon(Iconsax.info_circle, color: Colors.blue.shade700, size: 20),
                       const SizedBox(width: 8),
                       Text(
-                        'Note',
+                        'note'.tr,
                         style: GoogleFonts.ubuntu(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -2118,7 +2118,7 @@ class _BloodBankInventoryPageState extends ConsumerState<BloodBankInventoryPage>
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                '${units} unités - ${stock.productType.displayName}',
+                "${units} ${'units'.tr} - ${stock.productType.displayName}",
                 style: GoogleFonts.ubuntu(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
@@ -2132,7 +2132,7 @@ class _BloodBankInventoryPageState extends ConsumerState<BloodBankInventoryPage>
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
-                'Exp: ${daysUntilExpiration <= 0 ? "Expiré" : "J-$daysUntilExpiration"}',
+                "${'exp'.tr}: ${daysUntilExpiration <= 0 ? 'expired'.tr : 'J-$daysUntilExpiration'}",
                 style: GoogleFonts.ubuntu(
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
@@ -2151,12 +2151,12 @@ class _BloodBankInventoryPageState extends ConsumerState<BloodBankInventoryPage>
         ),
         children: [
           // Additional details
-          _buildDetailRow('ID', stock.id.substring(0, min(8, stock.id.length)) + '...'),
+          _buildDetailRow('id'.tr, stock.id.substring(0, min(8, stock.id.length)) + '...'),
           _buildDetailRow('collection_date'.tr, _formatDate(stock.collectionDate)),
           _buildDetailRow('expiration_date'.tr, _formatDate(stock.expirationDate)),
           if (stock.batchNumber.isNotEmpty) _buildDetailRow('batch_number'.tr, stock.batchNumber),
           if (stock.description != null && stock.description!.isNotEmpty) 
-            _buildDetailRow('Description', stock.description!),
+            _buildDetailRow('description'.tr, stock.description!),
         ],
       ),
     );
@@ -2251,7 +2251,7 @@ class _BloodBankInventoryPageState extends ConsumerState<BloodBankInventoryPage>
                       ),
                       const SizedBox(width: 12),
                       Text(
-                        'Dernier 30 jours',
+                        'last_30_days'.tr,
                         style: GoogleFonts.ubuntu(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
@@ -2555,7 +2555,7 @@ class _BloodBankInventoryPageState extends ConsumerState<BloodBankInventoryPage>
                       Row(
                         children: [
                           Text(
-                            'Tendance de l\'Inventaire',
+                            'inventory_trend'.tr,
                             style: GoogleFonts.ubuntu(
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
@@ -2643,7 +2643,7 @@ class _BloodBankInventoryPageState extends ConsumerState<BloodBankInventoryPage>
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Text(
-                    'Aucune donnée de tendance disponible pour cette période',
+                    'no_trend_data_period'.tr,
                     style: TextStyle(color: Colors.grey.shade600),
                     textAlign: TextAlign.center,
                   ),
@@ -2869,7 +2869,7 @@ class _BloodBankInventoryPageState extends ConsumerState<BloodBankInventoryPage>
             SizedBox(
               width: 50,
               child: Text(
-                'Type',
+                'type'.tr,
                 style: GoogleFonts.ubuntu(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -3103,7 +3103,7 @@ class _BloodBankInventoryPageState extends ConsumerState<BloodBankInventoryPage>
                   child: Row(
                     children: [
                       Text(
-                        'Format:',
+                        "${'format'.tr}:",
                         style: GoogleFonts.ubuntu(
                           fontSize: 12,
                           color: Colors.grey.shade800,
@@ -3272,7 +3272,7 @@ class _BloodBankInventoryPageState extends ConsumerState<BloodBankInventoryPage>
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    'Exporter',
+                    'export'.tr,
                     style: GoogleFonts.ubuntu(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,

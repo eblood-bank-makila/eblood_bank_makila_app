@@ -6,7 +6,7 @@ part of 'BanqueCtrl.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$banqueCtrlHash() => r'10e2b2d2f862150b4aeefb5b4e8ee305c4975906';
+String _$banqueCtrlHash() => r'bc0f94e58581b9ee11ddb9cc487f4bb46cd60a99';
 
 /// See also [BanqueCtrl].
 @ProviderFor(BanqueCtrl)

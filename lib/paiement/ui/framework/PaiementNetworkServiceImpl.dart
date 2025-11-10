@@ -1,9 +1,8 @@
-import 'dart:convert';
 import 'dart:io';
 import 'package:eblood_bank_mak_app/paiement/businness/models/PaiementModel.dart';
 import 'package:eblood_bank_mak_app/paiement/businness/models/PaiementResponseModel.dart';
 import 'package:eblood_bank_mak_app/paiement/businness/service/PaiementNetworkService.dart';
-import 'package:http/http.dart' as http;
+import 'package:eblood_bank_mak_app/apps/config/api/dio_client.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class PaiementServiceNetworkImpl implements PaiementNetworkService {
@@ -14,28 +13,45 @@ class PaiementServiceNetworkImpl implements PaiementNetworkService {
   @override
   Future<PaiementResponseModel?> ajouterPaiement(
       PaiementModel data, String authBearer) async {
-    final response = await http.post(
-      Uri.parse('$baseURL/data/blood-request'),
-      headers: {
-        "Authorization": "Bearer $authBearer",
-        "Content-Type": "application/json",
-        "eblood-lockkeys":
-            "0af4ebc066accceff45fad9ee6f2e9a9a24f6051ddb59b73f188dff0326c1e31",
-      },
-      body: jsonEncode({
-        'cart_id': data.cartId,
-        if (data.phoneNumber != null) 'phone_number': data.phoneNumber,
-        if (data.transactionalCurrencyId != null) 'transactional_currency_id': data.transactionalCurrencyId,
-      }),
-    );
+    try {
+      // Use dio_client for automatic auth header injection
+      final response = await postWithDio(
+        '/eblood-connect/cart/submit-payment',
+        body: {
+          'cart_id': data.cartId,
+          if (data.phoneNumber != null) 'phone_number': data.phoneNumber,
+          if (data.transactionalCurrencyId != null)
+            'transactional_currency_id': data.transactionalCurrencyId,
+          if (data.requestFor != null) 'request_for': data.requestFor,
+          if (data.requestReason != null) 'request_reason': data.requestReason,
+          if (data.patientId != null) 'patient_id': data.patientId,
+          if (data.requestType != null) 'request_type': data.requestType,
+          if (data.urgencyLevel != null) 'urgency_level': data.urgencyLevel,
+        },
+      );
 
-    if (response.statusCode == 200) {
-      var responseMap = json.decode(response.body) as Map<String, dynamic>;
-      print("Response Map: $responseMap");
-      var responseFinal = PaiementResponseModel.fromJson(responseMap);
-      return responseFinal;
-    } else {
-      // Gérer les erreurs ici
+      if (response.success && response.data != null) {
+        print("✅ Payment Response: ${response.message}");
+
+        // Extract data from IApiResponse
+        final responseData = response.data as Map<String, dynamic>?;
+
+        if (responseData != null) {
+          // Create PaiementResponseModel from new response format
+          var responseFinal = PaiementResponseModel.fromJson({
+            'success': true,
+            'message': response.message ?? 'Payment submitted successfully',
+            'data': responseData,
+          });
+          return responseFinal;
+        }
+      }
+
+      print("❌ Payment failed: ${response.message ?? 'Invalid response'}");
+      return null;
+
+    } catch (e) {
+      print("❌ Payment error: $e");
       return null;
     }
   }

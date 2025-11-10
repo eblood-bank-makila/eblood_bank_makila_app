@@ -3,15 +3,17 @@ import 'package:eblood_bank_mak_app/apps/config/route/Routes.dart';
 import 'package:eblood_bank_mak_app/apps/demarrage/ModernSplashPage.dart';
 import 'package:eblood_bank_mak_app/apps/demarrage/IntroSlidePage.dart';
 import 'package:eblood_bank_mak_app/apps/demarrage/WelcomePage.dart';
+import 'package:eblood_bank_mak_app/apps/demarrage/VisitorEntitySelectionPage.dart';
 import 'package:eblood_bank_mak_app/apps/demarrage/ModernLoginPage.dart';
 import 'package:eblood_bank_mak_app/apps/demarrage/RegisterWelcomePage.dart';
 import 'package:eblood_bank_mak_app/apps/demarrage/AccountTypeSelectionPage.dart';
-import 'package:eblood_bank_mak_app/apps/demarrage/PersonalRegistrationPage.dart';
-import 'package:eblood_bank_mak_app/apps/demarrage/HealthStructureRegistrationPage.dart';
+import 'package:eblood_bank_mak_app/apps/demarrage/PersonalRegistrationStepperPage.dart';
+import 'package:eblood_bank_mak_app/apps/demarrage/HealthStructureRegistrationStepperPage.dart';
 import 'package:eblood_bank_mak_app/apps/demarrage/BloodBankRegistrationPage.dart';
 import 'package:eblood_bank_mak_app/apps/debug/FirstLaunchDebugScreen.dart';
 import 'package:eblood_bank_mak_app/apps/widgets/AccountTypeBasedNavigation.dart';
 import 'package:eblood_bank_mak_app/apps/widgets/ConsumerMainApp.dart';
+import 'package:eblood_bank_mak_app/apps/screens/location_permission_warning_screen.dart';
 import 'package:eblood_bank_mak_app/blood_bank/ui/widgets/BloodBankBottomNavWidget.dart';
 import 'package:eblood_bank_mak_app/apps/widgets/DetailsPocheBanqueWidget.dart';
 import 'package:eblood_bank_mak_app/commande/ui/pages/MessageCommadePage.dart';
@@ -26,6 +28,7 @@ import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/authentification/Authe
 import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/changerPassword/ChangerPasswordPage.dart';
 import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/motdepasse/ReinitialiserMotDePassePage.dart';
 import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/profil/ProfilePage.dart';
+import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/otp_code/OtpCodePage.dart';
 
 import 'package:eblood_bank_mak_app/apps/services/FirebaseAuthService.dart';
 import 'package:flutter/material.dart';
@@ -100,6 +103,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             const MaterialPage(child: ModernLoginPage()),
       ),
 
+  // Visitor entity selection route
+  GoRoute(
+    path: '/visitor/select-entity',
+    pageBuilder: (context, state) =>
+    const MaterialPage(child: VisitorEntitySelectionPage()),
+  ),
+
       // Register welcome page route
       GoRoute(
         path: '/register',
@@ -111,21 +121,29 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/account-type-selection',
         pageBuilder: (context, state) =>
-            const MaterialPage(child: AccountTypeSelectionPage()),
+            MaterialPage(child: AccountTypeSelectionPage(extra: state.extra as Map<String, dynamic>?)),
       ),
 
-      // Personal registration page route
+      // Personal registration page route (using stepper)
       GoRoute(
         path: '/personal-registration',
         pageBuilder: (context, state) =>
-            const MaterialPage(child: PersonalRegistrationPage()),
+            MaterialPage(
+              child: PersonalRegistrationStepperPage(
+                extra: state.extra as Map<String, dynamic>?,
+              ),
+            ),
       ),
 
-      // Health Structure registration page route
+      // Health Structure registration page route (using stepper)
       GoRoute(
         path: '/hospital-registration',
         pageBuilder: (context, state) =>
-            const MaterialPage(child: HealthStructureRegistrationPage()),
+            MaterialPage(
+              child: HealthStructureRegistrationStepperPage(
+                extra: state.extra as Map<String, dynamic>?,
+              ),
+            ),
       ),
 
       // Blood bank registration page route
@@ -168,8 +186,9 @@ final goRouterProvider = Provider<GoRouter>((ref) {
 
       GoRoute(
           path: '/auth',
+          // Use a neutral shell for auth routes to avoid ModernSplash redirects from firing
           pageBuilder: (context, state) =>
-              const MaterialPage(child: ModernSplashPage()),
+              const MaterialPage(child: SizedBox.shrink()),
           routes: [
             GoRoute(
               path: 'AuthentificationPage',
@@ -182,6 +201,12 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               name: motDePasseOubiePage,
               pageBuilder: (context, state) =>
                   const MaterialPage(child: ReinitialiserMotDePassePage()),
+            ),
+            // OTP page (use GoRouter to avoid mixed Navigator stacks)
+            GoRoute(
+              path: 'OtpCodePage',
+              pageBuilder: (context, state) =>
+                  const MaterialPage(child: OtpCodePage()),
             ),
           ]),
       GoRoute(
@@ -310,6 +335,12 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               name: changerPasswordPage,
               pageBuilder: (context, state) =>
                   MaterialPage(child: ChangerPasswordPage()),
+            ),
+            GoRoute(
+              path: 'LocationPermissionWarning',
+              name: locationPermissionWarningPage,
+              pageBuilder: (context, state) =>
+                  MaterialPage(child: LocationPermissionWarningScreen()),
             ),
           ]),
     ],

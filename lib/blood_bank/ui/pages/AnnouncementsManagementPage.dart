@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:get/get.dart';
+import 'package:intl/intl.dart';
+
 import '../../../apps/config/theme/ColorPages.dart';
 import '../../models/announcement_model.dart';
 import '../../providers/announcement_provider.dart';
@@ -15,17 +18,17 @@ class AnnouncementsManagementPage extends ConsumerStatefulWidget {
 
 class _AnnouncementsManagementPageState extends ConsumerState<AnnouncementsManagementPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
-    
+
     // Load initial data
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadDataForCurrentTab();
     });
-    
+
     // Listen to tab changes
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) {
@@ -33,7 +36,7 @@ class _AnnouncementsManagementPageState extends ConsumerState<AnnouncementsManag
       }
     });
   }
-  
+
   void _loadDataForCurrentTab() {
     switch (_tabController.index) {
       case 0:
@@ -62,24 +65,20 @@ class _AnnouncementsManagementPageState extends ConsumerState<AnnouncementsManag
     _tabController.dispose();
     super.dispose();
   }
-  
+
   String _formatDate(DateTime date) {
+    final locale = Get.locale?.toLanguageTag() ?? Localizations.localeOf(context).toLanguageTag();
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final yesterday = today.subtract(const Duration(days: 1));
     final dateToCheck = DateTime(date.year, date.month, date.day);
-    
+
     if (dateToCheck == today) {
-      return "Aujourd'hui";
+      return 'today'.tr;
     } else if (dateToCheck == yesterday) {
-      return "Hier";
+      return 'yesterday'.tr;
     } else {
-      // Format as "14 Juin, 2025"
-      const months = [
-        'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-        'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
-      ];
-      return '${date.day} ${months[date.month - 1]}, ${date.year}';
+      return DateFormat.yMMMMd(locale).format(date);
     }
   }
 
@@ -88,7 +87,7 @@ class _AnnouncementsManagementPageState extends ConsumerState<AnnouncementsManag
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Communications',
+          'communications'.tr,
           style: GoogleFonts.ubuntu(
             fontWeight: FontWeight.w600,
           ),
@@ -98,19 +97,19 @@ class _AnnouncementsManagementPageState extends ConsumerState<AnnouncementsManag
           isScrollable: true,
           tabs: [
             Tab(
-              text: 'Événements',
+              text: 'events'.tr,
               icon: const Icon(Iconsax.calendar),
             ),
             Tab(
-              text: 'Campagnes',
+              text: 'campaigns'.tr,
               icon: const Icon(Iconsax.activity),
             ),
             Tab(
-              text: 'Actualités',
+              text: 'news'.tr,
               icon: const Icon(Iconsax.notification),
             ),
             Tab(
-              text: 'Urgences',
+              text: 'emergencies'.tr,
               icon: const Icon(Iconsax.warning_2),
             ),
           ],
@@ -141,7 +140,7 @@ class _AnnouncementsManagementPageState extends ConsumerState<AnnouncementsManag
   Widget _buildEventsTab() {
     final events = ref.watch(eventsProvider);
     final isLoading = ref.watch(announcementProvider).isLoading;
-    
+
     return RefreshIndicator(
       onRefresh: () async {
         await ref.read(announcementProvider.notifier).fetchAnnouncements(
@@ -149,10 +148,10 @@ class _AnnouncementsManagementPageState extends ConsumerState<AnnouncementsManag
         );
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Données mises à jour'),
+            SnackBar(
+              content: Text('data_updated'.tr),
               backgroundColor: Colors.green,
-              duration: Duration(seconds: 1),
+              duration: const Duration(seconds: 1),
             ),
           );
         }
@@ -167,7 +166,7 @@ class _AnnouncementsManagementPageState extends ConsumerState<AnnouncementsManag
   Widget _buildCampaignsTab() {
     final campaigns = ref.watch(campaignsProvider);
     final isLoading = ref.watch(announcementProvider).isLoading;
-    
+
     return RefreshIndicator(
       onRefresh: () async {
         await ref.read(announcementProvider.notifier).fetchAnnouncements(
@@ -175,10 +174,10 @@ class _AnnouncementsManagementPageState extends ConsumerState<AnnouncementsManag
         );
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Données mises à jour'),
+            SnackBar(
+              content: Text('data_updated'.tr),
               backgroundColor: Colors.green,
-              duration: Duration(seconds: 1),
+              duration: const Duration(seconds: 1),
             ),
           );
         }
@@ -193,7 +192,7 @@ class _AnnouncementsManagementPageState extends ConsumerState<AnnouncementsManag
   Widget _buildNewsTab() {
     final news = ref.watch(newsProvider);
     final isLoading = ref.watch(announcementProvider).isLoading;
-    
+
     return RefreshIndicator(
       onRefresh: () async {
         await ref.read(announcementProvider.notifier).fetchAnnouncements(
@@ -201,10 +200,10 @@ class _AnnouncementsManagementPageState extends ConsumerState<AnnouncementsManag
         );
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Données mises à jour'),
+            SnackBar(
+              content: Text('data_updated'.tr),
               backgroundColor: Colors.green,
-              duration: Duration(seconds: 1),
+              duration: const Duration(seconds: 1),
             ),
           );
         }
@@ -219,16 +218,16 @@ class _AnnouncementsManagementPageState extends ConsumerState<AnnouncementsManag
   Widget _buildEmergenciesTab() {
     final emergencies = ref.watch(emergenciesProvider);
     final isLoading = ref.watch(announcementProvider).isLoading;
-    
+
     return RefreshIndicator(
       onRefresh: () async {
         await ref.read(announcementProvider.notifier).fetchActiveEmergencies();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Données mises à jour'),
+            SnackBar(
+              content: Text('data_updated'.tr),
               backgroundColor: Colors.green,
-              duration: Duration(seconds: 1),
+              duration: const Duration(seconds: 1),
             ),
           );
         }
@@ -253,7 +252,7 @@ class _AnnouncementsManagementPageState extends ConsumerState<AnnouncementsManag
             ),
             const SizedBox(height: 16),
             Text(
-              'Aucune communication disponible',
+              'no_announcements_available'.tr,
               style: GoogleFonts.ubuntu(
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
@@ -262,7 +261,7 @@ class _AnnouncementsManagementPageState extends ConsumerState<AnnouncementsManag
             ),
             const SizedBox(height: 8),
             Text(
-              'Appuyez sur + pour en créer une nouvelle',
+              'press_plus_to_create_new'.tr,
               style: GoogleFonts.ubuntu(
                 fontSize: 14,
                 color: Colors.grey.shade500,
@@ -272,7 +271,7 @@ class _AnnouncementsManagementPageState extends ConsumerState<AnnouncementsManag
         ),
       );
     }
-    
+
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: items.length,
@@ -290,7 +289,7 @@ class _AnnouncementsManagementPageState extends ConsumerState<AnnouncementsManag
     final description = announcement.description ?? '';
     final type = announcement.announcementType;
     final status = announcement.status;
-    
+
     // Format date
     String dateText = '';
     if (announcement.startDate != null) {
@@ -306,10 +305,10 @@ class _AnnouncementsManagementPageState extends ConsumerState<AnnouncementsManag
     } else if (announcement.createdAt != null) {
       dateText = _formatDate(announcement.createdAt!);
     }
-    
+
     IconData icon;
     Color color;
-    
+
     // Determine icon and color based on type
     switch (type) {
       case AnnouncementType.event:
@@ -329,54 +328,54 @@ class _AnnouncementsManagementPageState extends ConsumerState<AnnouncementsManag
         color = Colors.red;
         break;
     }
-    
+
     // Status tag and color
     String statusText;
     Color statusColor;
-    
+
     switch (status) {
       case AnnouncementStatus.upcoming:
-        statusText = 'À venir';
+        statusText = 'ann_status_upcoming'.tr;
         statusColor = Colors.blue;
         break;
       case AnnouncementStatus.active:
-        statusText = 'En cours';
+        statusText = 'ann_status_active'.tr;
         statusColor = Colors.green;
         break;
       case AnnouncementStatus.past:
-        statusText = 'Passé';
+        statusText = 'ann_status_past'.tr;
         statusColor = Colors.grey;
         break;
       case AnnouncementStatus.ended:
-        statusText = 'Terminé';
+        statusText = 'ann_status_ended'.tr;
         statusColor = Colors.grey;
         break;
       case AnnouncementStatus.published:
-        statusText = 'Publié';
+        statusText = 'ann_status_published'.tr;
         statusColor = Colors.purple;
         break;
       case AnnouncementStatus.critical:
-        statusText = 'Critique';
+        statusText = 'ann_status_critical'.tr;
         statusColor = Colors.red;
         break;
       case AnnouncementStatus.resolved:
-        statusText = 'Résolu';
+        statusText = 'ann_status_resolved'.tr;
         statusColor = Colors.teal;
         break;
       case AnnouncementStatus.ongoing:
-        statusText = 'En cours';
+        statusText = 'ann_status_ongoing'.tr;
         statusColor = Colors.orange;
         break;
       case AnnouncementStatus.draft:
-        statusText = 'Brouillon';
+        statusText = 'ann_status_draft'.tr;
         statusColor = Colors.grey;
         break;
       case AnnouncementStatus.archived:
-        statusText = 'Archivé';
+        statusText = 'ann_status_archived'.tr;
         statusColor = Colors.grey.shade400;
         break;
     }
-    
+
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 2,
@@ -523,7 +522,7 @@ class _AnnouncementsManagementPageState extends ConsumerState<AnnouncementsManag
                       children: [
                         Expanded(
                           child: Text(
-                            'Nouvelle Communication',
+                            'new_announcement'.tr,
                             style: GoogleFonts.ubuntu(
                               fontSize: 20,
                               fontWeight: FontWeight.w600,
@@ -542,7 +541,7 @@ class _AnnouncementsManagementPageState extends ConsumerState<AnnouncementsManag
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Nouvelle Communication',
+                          'new_announcement'.tr,
                           style: GoogleFonts.ubuntu(
                             fontSize: 20,
                             fontWeight: FontWeight.w600,
@@ -555,50 +554,50 @@ class _AnnouncementsManagementPageState extends ConsumerState<AnnouncementsManag
                       ],
                     ),
                     const SizedBox(height: 24),
-                    
+
                     // Title field
                     TextField(
                       controller: titleController,
-                      decoration: const InputDecoration(
-                        labelText: 'Titre',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.title),
+                      decoration: InputDecoration(
+                        labelText: 'title'.tr,
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.title),
                       ),
                     ),
                     const SizedBox(height: 16),
-                    
+
                     // Description field
                     TextField(
                       controller: descriptionController,
                       maxLines: 4,
-                      decoration: const InputDecoration(
-                        labelText: 'Description',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.description),
+                      decoration: InputDecoration(
+                        labelText: 'description'.tr,
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.description),
                         alignLabelWithHint: true,
                       ),
                     ),
                     const SizedBox(height: 16),
-                    
+
                     // Type dropdown
                     DropdownButtonFormField<AnnouncementType>(
-                      decoration: const InputDecoration(
-                        labelText: 'Type',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.category),
+                      decoration: InputDecoration(
+                        labelText: 'type'.tr,
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.category),
                       ),
                       value: selectedType,
-                      items: const [
-                        DropdownMenuItem(value: AnnouncementType.event, child: Text('Événement')),
-                        DropdownMenuItem(value: AnnouncementType.campaign, child: Text('Campagne')),
-                        DropdownMenuItem(value: AnnouncementType.news, child: Text('Actualité')),
-                        DropdownMenuItem(value: AnnouncementType.emergency, child: Text('Urgence')),
+                      items: [
+                        DropdownMenuItem(value: AnnouncementType.event, child: Text('event'.tr)),
+                        DropdownMenuItem(value: AnnouncementType.campaign, child: Text('campaigns'.tr)),
+                        DropdownMenuItem(value: AnnouncementType.news, child: Text('news'.tr)),
+                        DropdownMenuItem(value: AnnouncementType.emergency, child: Text('emergency'.tr)),
                       ],
                       onChanged: (value) {
                         if (value != null) {
                           setState(() {
                             selectedType = value;
-                            
+
                             // Update status options based on type
                             switch (value) {
                               case AnnouncementType.event:
@@ -619,13 +618,13 @@ class _AnnouncementsManagementPageState extends ConsumerState<AnnouncementsManag
                       },
                     ),
                     const SizedBox(height: 16),
-                    
+
                     // Status dropdown
                     DropdownButtonFormField<AnnouncementStatus>(
-                      decoration: const InputDecoration(
-                        labelText: 'Statut',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.info_outline),
+                      decoration: InputDecoration(
+                        labelText: 'status'.tr,
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.info_outline),
                       ),
                       value: selectedStatus,
                       items: _getStatusItemsForType(selectedType),
@@ -638,7 +637,7 @@ class _AnnouncementsManagementPageState extends ConsumerState<AnnouncementsManag
                       },
                     ),
                     const SizedBox(height: 24),
-                    
+
                     // Action buttons
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
@@ -646,7 +645,7 @@ class _AnnouncementsManagementPageState extends ConsumerState<AnnouncementsManag
                         TextButton(
                           onPressed: () => Navigator.pop(context),
                           child: Text(
-                            'Annuler',
+                            'cancel'.tr,
                             style: GoogleFonts.ubuntu(),
                           ),
                         ),
@@ -660,15 +659,15 @@ class _AnnouncementsManagementPageState extends ConsumerState<AnnouncementsManag
                           onPressed: () async {
                             if (titleController.text.isNotEmpty && descriptionController.text.isNotEmpty) {
                               Navigator.pop(context);
-                              
+
                               // Show loading
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Création en cours...'),
-                                  duration: Duration(seconds: 1),
+                                SnackBar(
+                                  content: Text('creating_in_progress'.tr),
+                                  duration: const Duration(seconds: 1),
                                 ),
                               );
-                              
+
                               // Create announcement via API
                               final success = await ref.read(announcementProvider.notifier).createAnnouncement(
                                 title: titleController.text,
@@ -676,16 +675,16 @@ class _AnnouncementsManagementPageState extends ConsumerState<AnnouncementsManag
                                 announcementType: selectedType,
                                 status: selectedStatus,
                               );
-                              
+
                               if (mounted) {
                                 if (success) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Communication créée avec succès'),
+                                    SnackBar(
+                                      content: Text('announcement_created_success'.tr),
                                       backgroundColor: Colors.green,
                                     ),
                                   );
-                                  
+
                                   // Update the tab controller to show the newly created announcement
                                   switch (selectedType) {
                                     case AnnouncementType.event:
@@ -702,7 +701,7 @@ class _AnnouncementsManagementPageState extends ConsumerState<AnnouncementsManag
                                       break;
                                   }
                                 } else {
-                                  final error = ref.read(announcementProvider).error ?? 'Erreur lors de la création';
+                                  final error = ref.read(announcementProvider).error ?? 'error_during_creation'.tr;
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text(error),
@@ -713,15 +712,15 @@ class _AnnouncementsManagementPageState extends ConsumerState<AnnouncementsManag
                               }
                             } else {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Veuillez remplir tous les champs'),
+                                SnackBar(
+                                  content: Text('please_fill_all_required_fields'.tr),
                                   backgroundColor: Colors.red,
                                 ),
                               );
                             }
                           },
                           child: Text(
-                            'Créer',
+                            'create'.tr,
                             style: GoogleFonts.ubuntu(
                               fontWeight: FontWeight.w600,
                             ),
@@ -771,7 +770,7 @@ class _AnnouncementsManagementPageState extends ConsumerState<AnnouncementsManag
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Modifier la Communication',
+                          'edit_announcement'.tr,
                           style: GoogleFonts.ubuntu(
                             fontSize: 20,
                             fontWeight: FontWeight.w600,
@@ -784,44 +783,44 @@ class _AnnouncementsManagementPageState extends ConsumerState<AnnouncementsManag
                       ],
                     ),
                     const SizedBox(height: 24),
-                    
+
                     // Title field
                     TextField(
                       controller: titleController,
-                      decoration: const InputDecoration(
-                        labelText: 'Titre',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.title),
+                      decoration: InputDecoration(
+                        labelText: 'title'.tr,
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.title),
                       ),
                     ),
                     const SizedBox(height: 16),
-                    
+
                     // Description field
                     TextField(
                       controller: descriptionController,
                       maxLines: 4,
-                      decoration: const InputDecoration(
-                        labelText: 'Description',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.description),
+                      decoration: InputDecoration(
+                        labelText: 'description'.tr,
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.description),
                         alignLabelWithHint: true,
                       ),
                     ),
                     const SizedBox(height: 16),
-                    
+
                     // Type dropdown
                     DropdownButtonFormField<AnnouncementType>(
-                      decoration: const InputDecoration(
-                        labelText: 'Type',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.category),
+                      decoration: InputDecoration(
+                        labelText: 'type'.tr,
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.category),
                       ),
                       value: selectedType,
-                      items: const [
-                        DropdownMenuItem(value: AnnouncementType.event, child: Text('Événement')),
-                        DropdownMenuItem(value: AnnouncementType.campaign, child: Text('Campagne')),
-                        DropdownMenuItem(value: AnnouncementType.news, child: Text('Actualité')),
-                        DropdownMenuItem(value: AnnouncementType.emergency, child: Text('Urgence')),
+                      items: [
+                        DropdownMenuItem(value: AnnouncementType.event, child: Text('event'.tr)),
+                        DropdownMenuItem(value: AnnouncementType.campaign, child: Text('campaigns'.tr)),
+                        DropdownMenuItem(value: AnnouncementType.news, child: Text('news'.tr)),
+                        DropdownMenuItem(value: AnnouncementType.emergency, child: Text('emergency'.tr)),
                       ],
                       onChanged: (value) {
                         if (value != null) {
@@ -832,13 +831,13 @@ class _AnnouncementsManagementPageState extends ConsumerState<AnnouncementsManag
                       },
                     ),
                     const SizedBox(height: 16),
-                    
+
                     // Status dropdown
                     DropdownButtonFormField<AnnouncementStatus>(
-                      decoration: const InputDecoration(
-                        labelText: 'Statut',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.info_outline),
+                      decoration: InputDecoration(
+                        labelText: 'status'.tr,
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.info_outline),
                       ),
                       value: selectedStatus,
                       items: _getStatusItemsForType(selectedType),
@@ -851,7 +850,7 @@ class _AnnouncementsManagementPageState extends ConsumerState<AnnouncementsManag
                       },
                     ),
                     const SizedBox(height: 24),
-                    
+
                     // Action buttons
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
@@ -859,7 +858,7 @@ class _AnnouncementsManagementPageState extends ConsumerState<AnnouncementsManag
                         TextButton(
                           onPressed: () => Navigator.pop(context),
                           child: Text(
-                            'Annuler',
+                            'cancel'.tr,
                             style: GoogleFonts.ubuntu(),
                           ),
                         ),
@@ -873,15 +872,15 @@ class _AnnouncementsManagementPageState extends ConsumerState<AnnouncementsManag
                           onPressed: () async {
                             if (titleController.text.isNotEmpty && descriptionController.text.isNotEmpty) {
                               Navigator.pop(context);
-                              
+
                               // Show loading
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Mise à jour en cours...'),
-                                  duration: Duration(seconds: 1),
+                                SnackBar(
+                                  content: Text('updating_in_progress'.tr),
+                                  duration: const Duration(seconds: 1),
                                 ),
                               );
-                              
+
                               // Update announcement via API
                               final success = await ref.read(announcementProvider.notifier).updateAnnouncement(
                                 announcementId: announcement.id!,
@@ -890,17 +889,17 @@ class _AnnouncementsManagementPageState extends ConsumerState<AnnouncementsManag
                                 announcementType: selectedType,
                                 status: selectedStatus,
                               );
-                              
+
                               if (mounted) {
                                 if (success) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Communication mise à jour avec succès'),
+                                    SnackBar(
+                                      content: Text('announcement_updated_success'.tr),
                                       backgroundColor: Colors.green,
                                     ),
                                   );
                                 } else {
-                                  final error = ref.read(announcementProvider).error ?? 'Erreur lors de la mise à jour';
+                                  final error = ref.read(announcementProvider).error ?? 'error_during_update'.tr;
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text(error),
@@ -911,15 +910,15 @@ class _AnnouncementsManagementPageState extends ConsumerState<AnnouncementsManag
                               }
                             } else {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Veuillez remplir tous les champs'),
+                                SnackBar(
+                                  content: Text('please_fill_all_required_fields'.tr),
                                   backgroundColor: Colors.red,
                                 ),
                               );
                             }
                           },
                           child: Text(
-                            'Mettre à jour',
+                            'update'.tr,
                             style: GoogleFonts.ubuntu(
                               fontWeight: FontWeight.w600,
                             ),
@@ -943,13 +942,13 @@ class _AnnouncementsManagementPageState extends ConsumerState<AnnouncementsManag
       builder: (context) {
         return AlertDialog(
           title: Text(
-            'Supprimer la communication',
+            'delete_announcement'.tr,
             style: GoogleFonts.ubuntu(
               fontWeight: FontWeight.w600,
             ),
           ),
           content: Text(
-            'Êtes-vous sûr de vouloir supprimer "${announcement.title}" ? Cette action est irréversible.',
+            'delete_announcement_confirm'.trParams({'title': announcement.title}),
             style: GoogleFonts.ubuntu(),
           ),
           actions: [
@@ -958,7 +957,7 @@ class _AnnouncementsManagementPageState extends ConsumerState<AnnouncementsManag
                 Navigator.pop(context);
               },
               child: Text(
-                'Annuler',
+                'cancel'.tr,
                 style: GoogleFonts.ubuntu(),
               ),
             ),
@@ -969,21 +968,21 @@ class _AnnouncementsManagementPageState extends ConsumerState<AnnouncementsManag
               ),
               onPressed: () async {
                 Navigator.pop(context);
-                
+
                 // Show loading
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Suppression en cours...'),
-                    duration: Duration(seconds: 1),
+                  SnackBar(
+                    content: Text('deleting_in_progress'.tr),
+                    duration: const Duration(seconds: 1),
                   ),
                 );
-                
+
                 // Delete announcement via API
                 final success = await ref.read(announcementProvider.notifier).deleteAnnouncement(
                   announcement.id!,
                   announcement.announcementType,
                 );
-                
+
                 if (mounted) {
                   if (success) {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -993,7 +992,7 @@ class _AnnouncementsManagementPageState extends ConsumerState<AnnouncementsManag
                       ),
                     );
                   } else {
-                    final error = ref.read(announcementProvider).error ?? 'Erreur lors de la suppression';
+                    final error = ref.read(announcementProvider).error ?? 'error_during_delete'.tr;
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(error),
@@ -1004,7 +1003,7 @@ class _AnnouncementsManagementPageState extends ConsumerState<AnnouncementsManag
                 }
               },
               child: Text(
-                'Supprimer',
+                'delete'.tr,
                 style: GoogleFonts.ubuntu(),
               ),
             ),
@@ -1017,28 +1016,28 @@ class _AnnouncementsManagementPageState extends ConsumerState<AnnouncementsManag
   List<DropdownMenuItem<AnnouncementStatus>> _getStatusItemsForType(AnnouncementType type) {
     switch (type) {
       case AnnouncementType.event:
-        return const [
-          DropdownMenuItem(value: AnnouncementStatus.upcoming, child: Text('À venir')),
-          DropdownMenuItem(value: AnnouncementStatus.ongoing, child: Text('En cours')),
-          DropdownMenuItem(value: AnnouncementStatus.past, child: Text('Passé')),
+        return [
+          DropdownMenuItem(value: AnnouncementStatus.upcoming, child: Text('ann_status_upcoming'.tr)),
+          DropdownMenuItem(value: AnnouncementStatus.ongoing, child: Text('ann_status_ongoing'.tr)),
+          DropdownMenuItem(value: AnnouncementStatus.past, child: Text('ann_status_past'.tr)),
         ];
       case AnnouncementType.campaign:
-        return const [
-          DropdownMenuItem(value: AnnouncementStatus.upcoming, child: Text('À venir')),
-          DropdownMenuItem(value: AnnouncementStatus.active, child: Text('En cours')),
-          DropdownMenuItem(value: AnnouncementStatus.ended, child: Text('Terminé')),
+        return [
+          DropdownMenuItem(value: AnnouncementStatus.upcoming, child: Text('ann_status_upcoming'.tr)),
+          DropdownMenuItem(value: AnnouncementStatus.active, child: Text('ann_status_active'.tr)),
+          DropdownMenuItem(value: AnnouncementStatus.ended, child: Text('ann_status_ended'.tr)),
         ];
       case AnnouncementType.news:
-        return const [
-          DropdownMenuItem(value: AnnouncementStatus.draft, child: Text('Brouillon')),
-          DropdownMenuItem(value: AnnouncementStatus.published, child: Text('Publié')),
-          DropdownMenuItem(value: AnnouncementStatus.archived, child: Text('Archivé')),
+        return [
+          DropdownMenuItem(value: AnnouncementStatus.draft, child: Text('ann_status_draft'.tr)),
+          DropdownMenuItem(value: AnnouncementStatus.published, child: Text('ann_status_published'.tr)),
+          DropdownMenuItem(value: AnnouncementStatus.archived, child: Text('ann_status_archived'.tr)),
         ];
       case AnnouncementType.emergency:
-        return const [
-          DropdownMenuItem(value: AnnouncementStatus.critical, child: Text('Critique')),
-          DropdownMenuItem(value: AnnouncementStatus.ongoing, child: Text('En cours')),
-          DropdownMenuItem(value: AnnouncementStatus.resolved, child: Text('Résolu')),
+        return [
+          DropdownMenuItem(value: AnnouncementStatus.critical, child: Text('ann_status_critical'.tr)),
+          DropdownMenuItem(value: AnnouncementStatus.ongoing, child: Text('ann_status_ongoing'.tr)),
+          DropdownMenuItem(value: AnnouncementStatus.resolved, child: Text('ann_status_resolved'.tr)),
         ];
     }
   }

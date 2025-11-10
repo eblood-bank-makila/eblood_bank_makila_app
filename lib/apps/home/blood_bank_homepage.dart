@@ -7,6 +7,7 @@ import 'package:iconsax/iconsax.dart';
 import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/notification/NotificationPage.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:shimmer/shimmer.dart';
+import '../widgets/advertisement/AdvertisementCarousel.dart';
 
 class BloodBankHomepage extends StatefulWidget {
   const BloodBankHomepage({super.key});
@@ -60,11 +61,10 @@ class _BloodBankHomepageState extends State<BloodBankHomepage> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              ColorPages.COLOR_PRINCIPAL,
-              ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.8),
-              Colors.grey.shade50,
+              Colors.red.shade100,
+              Colors.red.shade50,
+              Colors.white,
             ],
-            stops: const [0.0, 0.15, 1.0],
           ),
         ),
         child: SafeArea(
@@ -73,15 +73,11 @@ class _BloodBankHomepageState extends State<BloodBankHomepage> {
               // Modern header section with animations
               _buildModernHeader(context),
 
-              // Content container
+              // Content container - no rounded corners, no shadow
               Expanded(
                 child: Container(
                   decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(20),
-                      topRight: Radius.circular(20),
-                    ),
+                    color: Colors.transparent,
                   ),
                   child: _buildContentSection(),
                 ),
@@ -234,6 +230,17 @@ class _BloodBankHomepageState extends State<BloodBankHomepage> {
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
               children: [
+                // Advertisement Carousel
+                const AdvertisementCarousel(
+                  targetAudience: 'blood_bank',
+                  height: 180,
+                  autoPlay: true,
+                  showIndicators: true,
+                  useMockData: false, // Using real API now!
+                ),
+
+                const SizedBox(height: 20),
+
                 // Dashboard cards with animations
                 FadeInUp(
                   delay: const Duration(milliseconds: 300),

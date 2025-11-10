@@ -8,6 +8,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart' as getx;
 
 import '../config/app_config.dart';
+import '../services/location_tracking_service.dart';
 
 /// Improved DioClient that consolidates functionality from multiple implementations
 class DioClient {
@@ -117,6 +118,9 @@ class DioClient {
           
           // Add device info
           await _addDeviceInfo(options.headers);
+
+          // Add user location headers (latitude & longitude)
+          await _addLocationHeaders(options.headers);
           
           // Log request in debug mode
           if (kDebugMode) {
@@ -201,9 +205,11 @@ class DioClient {
     try {
       if (headers['mobile_device_infos'] == null) {
         String deviceInfo = '';
-        
+        String? deviceIdHeader;
+
         if (Platform.isAndroid) {
           final AndroidDeviceInfo androidInfo = await _deviceInfoPlugin.androidInfo;
+          deviceIdHeader = androidInfo.id;
           deviceInfo = jsonEncode({
             'manufacturer': androidInfo.manufacturer,
             'model': androidInfo.model,
@@ -216,6 +222,7 @@ class DioClient {
           });
         } else if (Platform.isIOS) {
           final IosDeviceInfo iosInfo = await _deviceInfoPlugin.iosInfo;
+          deviceIdHeader = iosInfo.identifierForVendor;
           deviceInfo = jsonEncode({
             'manufacturer': 'Apple',
             'name': iosInfo.name,
@@ -227,13 +234,36 @@ class DioClient {
             'brand': 'Apple',
           });
         }
-        
+
         if (deviceInfo.isNotEmpty) {
           headers['mobile_device_infos'] = deviceInfo;
+        }
+        if (deviceIdHeader != null && deviceIdHeader.isNotEmpty) {
+          headers['device_id'] = deviceIdHeader;
         }
       }
     } catch (e) {
       print('⚠️ Error setting device info: $e');
+    }
+  }
+
+  /// Add location information to headers without blocking
+  /// Uses cached location synchronously to avoid delaying requests/startup.
+  Future<void> _addLocationHeaders(Map<String, dynamic> headers) async {
+    try {
+      // Non-blocking: read cached location and trigger background refresh
+      final location = LocationTrackingService().getCachedLocationSync();
+      final latitude = location['latitude'];
+      final longitude = location['longitude'];
+
+      if (latitude is double && latitude.isFinite && !headers.containsKey('latitude')) {
+        headers['latitude'] = latitude.toString();
+      }
+      if (longitude is double && longitude.isFinite && !headers.containsKey('longitude')) {
+        headers['longitude'] = longitude.toString();
+      }
+    } catch (e) {
+      print('⚠️ Error setting location headers (non-blocking): $e');
     }
   }
 
@@ -304,7 +334,7 @@ class DioClient {
       print('🔄 Testing API connection...');
       
       // Use a simple endpoint to test connection
-      final url = '/system-countries/countries/fetch/registration-system-countries';
+      final url = '/health';
       print('🔄 Testing connection to: ${_dio.options.baseUrl}$url');
       
       // Use a shorter timeout for this test to avoid blocking app startup

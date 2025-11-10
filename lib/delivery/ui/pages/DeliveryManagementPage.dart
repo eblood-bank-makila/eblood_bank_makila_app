@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:animate_do/animate_do.dart';
@@ -7,22 +8,20 @@ import '../../../apps/config/theme/ColorPages.dart';
 import '../../business/interactors/DeliveryController.dart';
 import '../../business/model/DeliveryModels.dart';
 
-enum DeliveryFilter {
-  all,
-  inProgress,
-  delivered,
-  urgent,
-}
+enum DeliveryFilter { all, inProgress, delivered, urgent }
 
 class DeliveryManagementPage extends ConsumerStatefulWidget {
   const DeliveryManagementPage({super.key});
 
   @override
-  ConsumerState<DeliveryManagementPage> createState() => _DeliveryManagementPageState();
+  ConsumerState<DeliveryManagementPage> createState() =>
+      _DeliveryManagementPageState();
 }
 
-class _DeliveryManagementPageState extends ConsumerState<DeliveryManagementPage> {
-  DeliveryFilter _selectedFilter = DeliveryFilter.inProgress; // Default to in-progress
+class _DeliveryManagementPageState
+    extends ConsumerState<DeliveryManagementPage> {
+  DeliveryFilter _selectedFilter =
+      DeliveryFilter.inProgress; // Default to in-progress
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
 
@@ -45,21 +44,50 @@ class _DeliveryManagementPageState extends ConsumerState<DeliveryManagementPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Header
-            _buildHeader(),
-            
-            // Search and Filter
-            _buildSearchAndFilter(),
-            
-            // Deliveries List
-            Expanded(
-              child: _buildDeliveriesList(),
-            ),
-          ],
+      backgroundColor: Colors.transparent,
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Colors.red.shade100, Colors.red.shade50, Colors.white],
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(padding: const EdgeInsets.all(20), child: _buildHeader()),
+              const SizedBox(height: 12),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: _buildSearchAndFilter(),
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: Container(
+                  margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(28),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.06),
+                        blurRadius: 18,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(28),
+                    child: _buildDeliveriesList(),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -68,60 +96,71 @@ class _DeliveryManagementPageState extends ConsumerState<DeliveryManagementPage>
   Widget _buildHeader() {
     final inProgressCount = ref.watch(inProgressDeliveriesCountProvider);
     final deliveredCount = ref.watch(deliveredDeliveriesCountProvider);
-    
+
     return FadeInDown(
       delay: const Duration(milliseconds: 200),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 2),
+      child: Row(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Mes Livraisons',
-                    style: GoogleFonts.ubuntu(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey.shade800,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '$inProgressCount en cours • $deliveredCount livrées',
-                    style: GoogleFonts.ubuntu(
-                      fontSize: 14,
-                      color: Colors.grey.shade600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                Iconsax.truck,
+            child: IconButton(
+              icon: const Icon(
+                Iconsax.arrow_left_2,
                 color: ColorPages.COLOR_PRINCIPAL,
-                size: 24,
               ),
+              onPressed: () => Navigator.of(context).maybePop(),
             ),
-          ],
-        ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'delivery_title'.tr,
+                  style: GoogleFonts.ubuntu(
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey.shade800,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'delivery_header_counts'.trParams({
+                    'inProgress': inProgressCount.toString(),
+                    'delivered': deliveredCount.toString(),
+                  }),
+                  style: GoogleFonts.ubuntu(
+                    fontSize: 14,
+                    color: Colors.grey.shade700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              Iconsax.truck,
+              color: ColorPages.COLOR_PRINCIPAL,
+              size: 24,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -131,14 +170,25 @@ class _DeliveryManagementPageState extends ConsumerState<DeliveryManagementPage>
       delay: const Duration(milliseconds: 300),
       child: Container(
         padding: const EdgeInsets.all(20),
-        color: Colors.white,
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.95),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 18,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
         child: Column(
           children: [
             // Search Bar
             Container(
               decoration: BoxDecoration(
-                color: Colors.grey.shade100,
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade200),
               ),
               child: TextField(
                 controller: _searchController,
@@ -148,10 +198,8 @@ class _DeliveryManagementPageState extends ConsumerState<DeliveryManagementPage>
                   });
                 },
                 decoration: InputDecoration(
-                  hintText: 'Rechercher par hôpital ou type de sang...',
-                  hintStyle: GoogleFonts.ubuntu(
-                    color: Colors.grey.shade600,
-                  ),
+                  hintText: 'delivery_search_hint'.tr,
+                  hintStyle: GoogleFonts.ubuntu(color: Colors.grey.shade600),
                   prefixIcon: Icon(
                     Iconsax.search_normal,
                     color: Colors.grey.shade600,
@@ -162,7 +210,7 @@ class _DeliveryManagementPageState extends ConsumerState<DeliveryManagementPage>
               ),
             ),
             const SizedBox(height: 16),
-            
+
             // Filter Chips
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
@@ -179,14 +227,22 @@ class _DeliveryManagementPageState extends ConsumerState<DeliveryManagementPage>
                           _selectedFilter = filter;
                         });
                       },
-                      backgroundColor: Colors.grey.shade100,
-                      selectedColor: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.1),
+                      backgroundColor: Colors.white,
+                      selectedColor: ColorPages.COLOR_PRINCIPAL.withValues(
+                        alpha: 0.12,
+                      ),
                       labelStyle: GoogleFonts.ubuntu(
-                        color: isSelected ? ColorPages.COLOR_PRINCIPAL : Colors.grey.shade700,
-                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                        color: isSelected
+                            ? ColorPages.COLOR_PRINCIPAL
+                            : Colors.grey.shade700,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.w500,
                       ),
                       side: BorderSide(
-                        color: isSelected ? ColorPages.COLOR_PRINCIPAL : Colors.transparent,
+                        color: isSelected
+                            ? ColorPages.COLOR_PRINCIPAL
+                            : Colors.grey.shade200,
                       ),
                     ),
                   );
@@ -202,81 +258,82 @@ class _DeliveryManagementPageState extends ConsumerState<DeliveryManagementPage>
   Widget _buildDeliveriesList() {
     final deliveryState = ref.watch(deliveryControllerProvider);
     final filteredDeliveries = _getFilteredDeliveries();
-    
+
     if (deliveryState.isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
-    
+
     if (deliveryState.error != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Iconsax.warning_2,
-              size: 64,
-              color: Colors.red.shade400,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Erreur de chargement',
-              style: GoogleFonts.ubuntu(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey.shade800,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              deliveryState.error!,
-              style: GoogleFonts.ubuntu(
-                fontSize: 14,
-                color: Colors.grey.shade600,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                ref.read(deliveryControllerProvider.notifier).loadDeliveries();
-              },
-              child: const Text('Réessayer'),
-            ),
-          ],
-        ),
-      );
-    }
-    
-    if (filteredDeliveries.isEmpty) {
-      return FadeInUp(
-        delay: const Duration(milliseconds: 400),
+      return Padding(
+        padding: const EdgeInsets.all(24),
         child: Center(
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                Iconsax.truck,
-                size: 64,
-                color: Colors.grey.shade400,
-              ),
+              Icon(Iconsax.warning_2, size: 64, color: Colors.red.shade400),
               const SizedBox(height: 16),
               Text(
-                'Aucune livraison trouvée',
+                'delivery_error_title'.tr,
                 style: GoogleFonts.ubuntu(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
-                  color: Colors.grey.shade600,
+                  color: Colors.grey.shade800,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
-                'Essayez de modifier vos filtres',
+                deliveryState.error!,
                 style: GoogleFonts.ubuntu(
                   fontSize: 14,
-                  color: Colors.grey.shade500,
+                  color: Colors.grey.shade600,
                 ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () {
+                  ref
+                      .read(deliveryControllerProvider.notifier)
+                      .loadDeliveries();
+                },
+                child: Text('retry'.tr),
               ),
             ],
+          ),
+        ),
+      );
+    }
+
+    if (filteredDeliveries.isEmpty) {
+      return FadeInUp(
+        delay: const Duration(milliseconds: 400),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Iconsax.truck, size: 64, color: Colors.grey.shade400),
+                const SizedBox(height: 16),
+                Text(
+                  'delivery_empty_title'.tr,
+                  style: GoogleFonts.ubuntu(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'delivery_empty_desc'.tr,
+                  style: GoogleFonts.ubuntu(
+                    fontSize: 14,
+                    color: Colors.grey.shade500,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
           ),
         ),
       );
@@ -289,7 +346,10 @@ class _DeliveryManagementPageState extends ConsumerState<DeliveryManagementPage>
           await ref.read(deliveryControllerProvider.notifier).loadDeliveries();
         },
         child: ListView.builder(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
+          physics: const BouncingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics(),
+          ),
           itemCount: filteredDeliveries.length,
           itemBuilder: (context, index) {
             final delivery = filteredDeliveries[index];
@@ -312,8 +372,8 @@ class _DeliveryManagementPageState extends ConsumerState<DeliveryManagementPage>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: delivery.isUrgent || delivery.isEmergency 
-            ? Border.all(color: Colors.red.shade300, width: 2) 
+        border: delivery.isUrgent || delivery.isEmergency
+            ? Border.all(color: Colors.red.shade300, width: 2)
             : null,
         boxShadow: [
           BoxShadow(
@@ -346,9 +406,14 @@ class _DeliveryManagementPageState extends ConsumerState<DeliveryManagementPage>
                         if (delivery.isUrgent || delivery.isEmergency) ...[
                           const SizedBox(width: 8),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
-                              color: priorityInfo['color'].withValues(alpha: 0.1),
+                              color: priorityInfo['color'].withValues(
+                                alpha: 0.1,
+                              ),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
@@ -375,7 +440,10 @@ class _DeliveryManagementPageState extends ConsumerState<DeliveryManagementPage>
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: statusInfo['color'].withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
@@ -392,7 +460,7 @@ class _DeliveryManagementPageState extends ConsumerState<DeliveryManagementPage>
             ],
           ),
           const SizedBox(height: 16),
-          
+
           // Blood Type and Quantity
           Row(
             children: [
@@ -420,7 +488,9 @@ class _DeliveryManagementPageState extends ConsumerState<DeliveryManagementPage>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '${delivery.quantity} unités',
+                      'delivery_units'.trParams({
+                        'count': delivery.quantity.toString(),
+                      }),
                       style: GoogleFonts.ubuntu(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -441,11 +511,7 @@ class _DeliveryManagementPageState extends ConsumerState<DeliveryManagementPage>
                 ),
               ),
               if (delivery.isInProgress) ...[
-                Icon(
-                  Iconsax.clock,
-                  size: 16,
-                  color: Colors.orange,
-                ),
+                Icon(Iconsax.clock, size: 16, color: Colors.orange),
                 const SizedBox(width: 4),
                 Text(
                   delivery.estimatedDeliveryTime,
@@ -459,7 +525,7 @@ class _DeliveryManagementPageState extends ConsumerState<DeliveryManagementPage>
             ],
           ),
           const SizedBox(height: 16),
-          
+
           // Action Buttons
           _buildActionButtons(delivery),
         ],
@@ -476,7 +542,7 @@ class _DeliveryManagementPageState extends ConsumerState<DeliveryManagementPage>
             onPressed: () => _startDelivery(delivery),
             icon: const Icon(Iconsax.play, size: 16),
             label: Text(
-              'Commencer la livraison',
+              'delivery_action_start'.tr,
               style: GoogleFonts.ubuntu(fontWeight: FontWeight.w600),
             ),
             style: ElevatedButton.styleFrom(
@@ -488,7 +554,7 @@ class _DeliveryManagementPageState extends ConsumerState<DeliveryManagementPage>
             ),
           ),
         );
-      
+
       case DeliveryStatus.inProgress:
         return Row(
           children: [
@@ -497,7 +563,7 @@ class _DeliveryManagementPageState extends ConsumerState<DeliveryManagementPage>
                 onPressed: () => _showLocationDialog(delivery),
                 icon: const Icon(Iconsax.location, size: 16),
                 label: Text(
-                  'Localisation',
+                  'delivery_action_location'.tr,
                   style: GoogleFonts.ubuntu(fontWeight: FontWeight.w600),
                 ),
                 style: OutlinedButton.styleFrom(
@@ -515,7 +581,7 @@ class _DeliveryManagementPageState extends ConsumerState<DeliveryManagementPage>
                 onPressed: () => _completeDelivery(delivery),
                 icon: const Icon(Iconsax.tick_circle, size: 16),
                 label: Text(
-                  'Terminer',
+                  'delivery_action_complete'.tr,
                   style: GoogleFonts.ubuntu(fontWeight: FontWeight.w600),
                 ),
                 style: ElevatedButton.styleFrom(
@@ -529,7 +595,7 @@ class _DeliveryManagementPageState extends ConsumerState<DeliveryManagementPage>
             ),
           ],
         );
-      
+
       case DeliveryStatus.delivered:
         return Container(
           width: double.infinity,
@@ -542,14 +608,10 @@ class _DeliveryManagementPageState extends ConsumerState<DeliveryManagementPage>
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Iconsax.tick_circle,
-                color: Colors.green.shade600,
-                size: 16,
-              ),
+              Icon(Iconsax.tick_circle, color: Colors.green.shade600, size: 16),
               const SizedBox(width: 8),
               Text(
-                'Livraison terminée',
+                'delivery_completed_label'.tr,
                 style: GoogleFonts.ubuntu(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -559,7 +621,7 @@ class _DeliveryManagementPageState extends ConsumerState<DeliveryManagementPage>
             ],
           ),
         );
-      
+
       default:
         return const SizedBox.shrink();
     }
@@ -568,39 +630,42 @@ class _DeliveryManagementPageState extends ConsumerState<DeliveryManagementPage>
   String _getFilterLabel(DeliveryFilter filter) {
     switch (filter) {
       case DeliveryFilter.all:
-        return 'Toutes';
+        return 'delivery_filter_all'.tr;
       case DeliveryFilter.inProgress:
-        return 'En cours';
+        return 'delivery_filter_in_progress'.tr;
       case DeliveryFilter.delivered:
-        return 'Livrées';
+        return 'delivery_filter_delivered'.tr;
       case DeliveryFilter.urgent:
-        return 'Urgentes';
+        return 'delivery_filter_urgent'.tr;
     }
   }
 
   Map<String, dynamic> _getStatusInfo(DeliveryStatus status) {
     switch (status) {
       case DeliveryStatus.pending:
-        return {'label': 'En attente', 'color': Colors.grey};
+        return {'label': 'delivery_status_pending'.tr, 'color': Colors.grey};
       case DeliveryStatus.assigned:
-        return {'label': 'Assignée', 'color': Colors.blue};
+        return {'label': 'delivery_status_assigned'.tr, 'color': Colors.blue};
       case DeliveryStatus.inProgress:
-        return {'label': 'En cours', 'color': Colors.orange};
+        return {
+          'label': 'delivery_status_in_progress'.tr,
+          'color': Colors.orange,
+        };
       case DeliveryStatus.delivered:
-        return {'label': 'Livrée', 'color': Colors.green};
+        return {'label': 'delivery_status_delivered'.tr, 'color': Colors.green};
       case DeliveryStatus.cancelled:
-        return {'label': 'Annulée', 'color': Colors.red};
+        return {'label': 'delivery_status_cancelled'.tr, 'color': Colors.red};
     }
   }
 
   Map<String, dynamic> _getPriorityInfo(DeliveryPriority priority) {
     switch (priority) {
       case DeliveryPriority.normal:
-        return {'label': 'Normal', 'color': Colors.blue};
+        return {'label': 'delivery_priority_normal'.tr, 'color': Colors.blue};
       case DeliveryPriority.urgent:
-        return {'label': 'Urgent', 'color': Colors.orange};
+        return {'label': 'delivery_priority_urgent'.tr, 'color': Colors.orange};
       case DeliveryPriority.emergency:
-        return {'label': 'Urgence', 'color': Colors.red};
+        return {'label': 'delivery_priority_emergency'.tr, 'color': Colors.red};
     }
   }
 
@@ -616,21 +681,30 @@ class _DeliveryManagementPageState extends ConsumerState<DeliveryManagementPage>
     // Apply filter - Focus on in-progress and delivered as requested
     switch (_selectedFilter) {
       case DeliveryFilter.inProgress:
-        deliveries = deliveries.where((d) => d.status == DeliveryStatus.inProgress).toList();
+        deliveries = deliveries
+            .where((d) => d.status == DeliveryStatus.inProgress)
+            .toList();
         break;
       case DeliveryFilter.delivered:
-        deliveries = deliveries.where((d) => d.status == DeliveryStatus.delivered).toList();
+        deliveries = deliveries
+            .where((d) => d.status == DeliveryStatus.delivered)
+            .toList();
         break;
       case DeliveryFilter.urgent:
-        deliveries = deliveries.where((d) => d.isUrgent || d.isEmergency).toList();
+        deliveries = deliveries
+            .where((d) => d.isUrgent || d.isEmergency)
+            .toList();
         break;
       case DeliveryFilter.all:
         // Show only in-progress and delivered as requested
-        deliveries = deliveries.where((d) =>
-          d.status == DeliveryStatus.inProgress ||
-          d.status == DeliveryStatus.delivered ||
-          d.status == DeliveryStatus.assigned
-        ).toList();
+        deliveries = deliveries
+            .where(
+              (d) =>
+                  d.status == DeliveryStatus.inProgress ||
+                  d.status == DeliveryStatus.delivered ||
+                  d.status == DeliveryStatus.assigned,
+            )
+            .toList();
         break;
     }
 
@@ -759,12 +833,14 @@ class _DeliveryManagementPageState extends ConsumerState<DeliveryManagementPage>
   }
 
   Future<void> _startDelivery(Delivery delivery) async {
-    final success = await ref.read(deliveryControllerProvider.notifier).startDelivery(delivery.id);
-    
+    final success = await ref
+        .read(deliveryControllerProvider.notifier)
+        .startDelivery(delivery.id);
+
     if (success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Livraison ${delivery.id} commencée'),
+          content: Text('delivery_start_success'.trParams({'id': delivery.id})),
           backgroundColor: Colors.green,
           behavior: SnackBarBehavior.floating,
         ),
@@ -772,7 +848,7 @@ class _DeliveryManagementPageState extends ConsumerState<DeliveryManagementPage>
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Erreur lors du démarrage de la livraison'),
+          content: Text('delivery_start_error'.tr),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
         ),
@@ -781,12 +857,16 @@ class _DeliveryManagementPageState extends ConsumerState<DeliveryManagementPage>
   }
 
   Future<void> _completeDelivery(Delivery delivery) async {
-    final success = await ref.read(deliveryControllerProvider.notifier).completeDelivery(delivery.id);
-    
+    final success = await ref
+        .read(deliveryControllerProvider.notifier)
+        .completeDelivery(delivery.id);
+
     if (success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Livraison ${delivery.id} terminée avec succès'),
+          content: Text(
+            'delivery_complete_success'.trParams({'id': delivery.id}),
+          ),
           backgroundColor: Colors.green,
           behavior: SnackBarBehavior.floating,
         ),
@@ -794,7 +874,7 @@ class _DeliveryManagementPageState extends ConsumerState<DeliveryManagementPage>
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Erreur lors de la finalisation de la livraison'),
+          content: Text('delivery_complete_error'.tr),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
         ),
@@ -806,12 +886,12 @@ class _DeliveryManagementPageState extends ConsumerState<DeliveryManagementPage>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Localisation'),
-        content: const Text('Fonctionnalité de localisation à implémenter'),
+        title: Text('delivery_location_title'.tr),
+        content: Text('delivery_location_not_implemented'.tr),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Fermer'),
+            child: Text('close'.tr),
           ),
         ],
       ),

@@ -14,8 +14,7 @@ import 'package:iconsax/iconsax.dart';
 import 'package:ionicons/ionicons.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:local_auth/error_codes.dart' as auth_error;
-import 'package:local_auth_android/local_auth_android.dart';
-import 'package:local_auth_ios/types/auth_messages_ios.dart';
+
 
 import '../../../../apps/config/utils/AppFullContentSpin.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -45,16 +44,7 @@ class _AuthentificationEmpreintePageState
       });
       authenticated = await auth.authenticate(
         localizedReason: 'Accéder à l\'application par votre empreinte',
-        authMessages: [
-          const IOSAuthMessages(
-            cancelButton: 'Annuler',
-            localizedFallbackTitle: 'Authentification',
-          ),
-          const AndroidAuthMessages(
-            cancelButton: 'Annuler',
-            signInTitle: 'Authentification',
-          ),
-        ],
+
         options: const AuthenticationOptions(
           stickyAuth: true,
         ),
@@ -106,7 +96,7 @@ class _AuthentificationEmpreintePageState
       // Navigate to the new page directly
       Navigator.of(_ctx).pushReplacement(
         CupertinoPageRoute(
-          builder: (BuildContext context) => BottomNavBarWidget(),
+          builder: (BuildContext context) => HospitalBottomNavBarWidget(),
           fullscreenDialog: true,
         ),
       );

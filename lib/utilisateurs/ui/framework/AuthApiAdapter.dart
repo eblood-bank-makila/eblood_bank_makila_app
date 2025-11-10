@@ -16,6 +16,8 @@ import 'package:eblood_bank_mak_app/utilisateurs/business/service/utilisateurNet
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart' as http;
+import 'package:eblood_bank_mak_app/apps/config/api/dio_client.dart';
+
 import 'dart:convert';
 
 import '../../../utilisateurs/business/models/notification/SuppressionDatumNotificationModel.dart';
@@ -27,7 +29,7 @@ class AuthApiAdapter implements UtilisateurNetworkService {
   final GetStorage _storage = GetStorage();
   final String baseURL;
 
-  AuthApiAdapter(String initialBaseURL) 
+  AuthApiAdapter(String initialBaseURL)
       : baseURL = dotenv.env['BASE_URL'] ?? initialBaseURL {
     print("🔧 AuthApiAdapter initialized with baseURL: $baseURL");
   }
@@ -42,7 +44,13 @@ class AuthApiAdapter implements UtilisateurNetworkService {
 
       if (result['success'] == true) {
         if (result['requiresMfa'] == true) {
-          // MFA is required, return the temporary token
+          // Auto-send OTP for the default MFA type, then return the temporary MFA token
+          final mfaType = _storage.read('mfa_type') ?? 'email';
+          try {
+            await _authApi.getOtp(mfaType: mfaType);
+          } catch (e) {
+            print("💥 Auto-send OTP failed: $e");
+          }
           return AuthentificationModel(
             token: _storage.read('mfa_access_token') ?? '',
             datetime: DateTime.now(),
@@ -72,11 +80,11 @@ class AuthApiAdapter implements UtilisateurNetworkService {
     try {
       var res = await http
           .post(Uri.parse("$baseURL/api/getnameuser"), body: {"name": name});
-      
+
       if (res.statusCode != 200) {
         return [];
       }
-      
+
       List<dynamic> decodedResponse = json.decode(res.body) as List<dynamic>;
       List<String> nameList =
           decodedResponse.map((item) => item.toString()).toList();
@@ -122,12 +130,12 @@ class AuthApiAdapter implements UtilisateurNetworkService {
   Future<DatumCodeOtpModele?> verifyOtp(OtpModele data, String token) async {
     try {
       final String mfaType = _storage.read('mfa_type') ?? 'email';
-      
+
       final result = await _authApi.validateOtp(
         otpCode: data.code,
         mfaType: mfaType,
       );
-      
+
       if (result['success'] == true) {
         // After successful OTP validation, fetch user profile
         return await _authApi.getUserProfile();
@@ -144,9 +152,9 @@ class AuthApiAdapter implements UtilisateurNetworkService {
   Future<String> renvoiCode(String token) async {
     try {
       final String mfaType = _storage.read('mfa_type') ?? 'email';
-      
+
       final result = await _authApi.resendOtp(mfaType: mfaType);
-      
+
       if (result['success'] == true) {
         return result['message'] ?? 'OTP resent successfully';
       } else {
@@ -169,21 +177,23 @@ class AuthApiAdapter implements UtilisateurNetworkService {
   Future<OtpCodeReinitialiserModele?> verifyOtpPassword(
       OtpReinitialiserModele data, String token) async {
     try {
-      var res = await http.post(Uri.parse("$baseURL/auth/check-otp-existance"),
-          body: data.toJson(),
-          headers: {
-            "Authorization": "Bearer $token",
-            "eblood-lockkeys":
-                "0af4ebc066accceff45fad9ee6f2e9a9a24f6051ddb59b73f188dff0326c1e31"
-          });
-      
-      if (res.statusCode != 200) {
+      final resp = await postWithDio(
+        '/eblood/auth/mobile-verify-reset-password-otp',
+        body: {"otp": data.code},
+        headers: {
+          "Authorization": "Bearer $token",
+          "eblood-lockkeys": "0af4ebc066accceff45fad9ee6f2e9a9a24f6051ddb59b73f188dff0326c1e31",
+        },
+      );
+      if (!resp.success || (resp.statusCode ?? 0) != 200) {
         return null;
       }
-      
-      var reponseMap = json.decode(res.body);
-      var reponseFinal = OtpCodeReinitialiserModele.fromJson(reponseMap);
-      return reponseFinal;
+      final tokenStr = (resp.data is String) ? resp.data as String : (resp.data?.toString() ?? '');
+      return OtpCodeReinitialiserModele(
+        data: tokenStr,
+        statusCode: resp.statusCode ?? 200,
+        success: resp.success,
+      );
     } catch (e) {
       print("💥 Error in verifyOtpPassword: $e");
       return null;
@@ -208,9 +218,9 @@ class AuthApiAdapter implements UtilisateurNetworkService {
       if (res.statusCode != 200) {
         return null;
       }
-      
+
       var responseMap = json.decode(res.body) as Map;
-      
+
       if (responseMap['data'] != null) {
         return PasswordChangerModel.fromJson(responseMap['data']);
       } else {
@@ -234,11 +244,11 @@ class AuthApiAdapter implements UtilisateurNetworkService {
               "0af4ebc066accceff45fad9ee6f2e9a9a24f6051ddb59b73f188dff0326c1e31"
         },
       );
-      
+
       if (res.statusCode != 200) {
         return "Failed to resend code: ${res.statusCode}";
       }
-      
+
       return res.body;
     } catch (e) {
       print("💥 Error in renvoiCodePassword: $e");
@@ -249,20 +259,30 @@ class AuthApiAdapter implements UtilisateurNetworkService {
   @override
   Future<MotDePasseModele?> reinitialiserPassword(MotDePasseOublieModele data) async {
     try {
-      var res = await http.post(Uri.parse("$baseURL/auth/c-username"),
-          body: data.toJson(),
-          headers: {
-            "eblood-lockkeys":
-                "0af4ebc066accceff45fad9ee6f2e9a9a24f6051ddb59b73f188dff0326c1e31"
-          });
-      
-      if (res.statusCode != 200) {
+      final resp = await postWithDio(
+        '/eblood/auth/mobile-init-reset-password',
+        body: data.toJson(),
+        headers: {
+          "eblood-lockkeys": "0af4ebc066accceff45fad9ee6f2e9a9a24f6051ddb59b73f188dff0326c1e31",
+        },
+      );
+      if (!resp.success || (resp.statusCode ?? 0) != 200) {
         return null;
       }
-      
-      var reponseMap = json.decode(res.body) as Map;
-      var reponseFinal = MotDePasseModele.fromJson(reponseMap['data']);
-      return reponseFinal;
+      final String token = (resp.accessToken != null && resp.accessToken!.isNotEmpty)
+          ? resp.accessToken!
+          : (resp.data is String ? resp.data as String : '');
+      if (token.isEmpty) {
+        return null;
+      }
+      final String email = (resp.username != null && resp.username!.isNotEmpty)
+          ? resp.username!
+          : data.username;
+      return MotDePasseModele(
+        token: token,
+        datetime: DateTime.now().toIso8601String(),
+        email: email,
+      );
     } catch (e) {
       print("💥 Error in reinitialiserPassword: $e");
       return null;
@@ -273,24 +293,28 @@ class AuthApiAdapter implements UtilisateurNetworkService {
   Future<ReinitialiserModele?> passwordReinitialiser(
       ReinitialiserPasswordModele data, String token) async {
     try {
-      var response = await http.post(
-        Uri.parse("$baseURL/auth/initiate-password"),
+      final resp = await postWithDio(
+        '/eblood/auth/mobile-reset-password',
+        body: {
+          "password": data.password,
+          "repeted_password": data.password2,
+        },
         headers: {
           "Authorization": "Bearer $token",
-          "Content-Type": "application/json",
-          "eblood-lockkeys":
-              "0af4ebc066accceff45fad9ee6f2e9a9a24f6051ddb59b73f188dff0326c1e31",
+          "eblood-lockkeys": "0af4ebc066accceff45fad9ee6f2e9a9a24f6051ddb59b73f188dff0326c1e31",
         },
-        body: jsonEncode(data.toJson()),
       );
-
-      if (response.statusCode != 200) {
+      if (!resp.success || (resp.statusCode ?? 0) != 200) {
         return null;
       }
-      
-      var responseMap = json.decode(response.body) as Map<String, dynamic>;
-      var responseFinal = ReinitialiserModele.fromJson(responseMap);
-      return responseFinal;
+      final String sms = (resp.raw is Map<String, dynamic> && (resp.raw['sms'] != null))
+          ? (resp.raw['sms'] as String)
+          : (resp.message ?? '');
+      return ReinitialiserModele(
+        sms: sms,
+        statusCode: resp.statusCode ?? 200,
+        success: resp.success,
+      );
     } catch (e) {
       print("💥 Error in passwordReinitialiser: $e");
       return null;
@@ -318,11 +342,11 @@ class AuthApiAdapter implements UtilisateurNetworkService {
         "eblood-lockkeys":
             "0af4ebc066accceff45fad9ee6f2e9a9a24f6051ddb59b73f188dff0326c1e31"
       });
-      
+
       if (res.statusCode != 200) {
         return [];
       }
-      
+
       var reponseMap = json.decode(res.body) as Map;
       var data = reponseMap['data'] as List;
       var responseFinal =
@@ -345,11 +369,11 @@ class AuthApiAdapter implements UtilisateurNetworkService {
         "eblood-lockkeys":
             "0af4ebc066accceff45fad9ee6f2e9a9a24f6051ddb59b73f188dff0326c1e31"
       });
-      
+
       if (res.statusCode != 200 && res.statusCode != 204) {
         throw Exception('Failed to delete notification: ${res.statusCode}');
       }
-      
+
       return suppresionDatumNotificationModelFromJson(res.body);
     } catch (e) {
       print("💥 Error in suppressionNotification: $e");

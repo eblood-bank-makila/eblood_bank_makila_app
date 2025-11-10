@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:get/get.dart';
+
 import '../../../../apps/config/theme/ColorPages.dart';
 import '../../../business/model/blood_request/BloodRequestModel.dart';
 import '../../../business/interactor/usecase/delivery_position/DeliveryPositionUseCase.dart';
@@ -51,7 +53,7 @@ class _DeliveryPositionPageState extends ConsumerState<DeliveryPositionPage> {
       foregroundColor: Colors.white,
       elevation: 0,
       title: Text(
-        'Position de livraison',
+        'delivery_position'.tr,
         style: GoogleFonts.ubuntu(
           fontSize: 18,
           fontWeight: FontWeight.bold,
@@ -62,7 +64,7 @@ class _DeliveryPositionPageState extends ConsumerState<DeliveryPositionPage> {
         IconButton(
           onPressed: _fetchPosition,
           icon: const Icon(Iconsax.refresh),
-          tooltip: 'Actualiser',
+          tooltip: 'refresh'.tr,
         ),
       ],
     );
@@ -79,9 +81,9 @@ class _DeliveryPositionPageState extends ConsumerState<DeliveryPositionPage> {
           children: [
             // Request Info Card
             _buildRequestInfoCard(),
-            
+
             const SizedBox(height: 16),
-            
+
             // Position Status Card
             _buildPositionStatusCard(),
           ],
@@ -151,7 +153,7 @@ class _DeliveryPositionPageState extends ConsumerState<DeliveryPositionPage> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: widget.request.status == BloodRequestStatus.pendingDelivery 
+                    color: widget.request.status == BloodRequestStatus.pendingDelivery
                         ? Colors.orange.shade600
                         : Colors.blue.shade600,
                     borderRadius: BorderRadius.circular(20),
@@ -167,9 +169,9 @@ class _DeliveryPositionPageState extends ConsumerState<DeliveryPositionPage> {
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             Row(
               children: [
                 Expanded(
@@ -235,7 +237,7 @@ class _DeliveryPositionPageState extends ConsumerState<DeliveryPositionPage> {
     return Consumer(
       builder: (context, ref, child) {
         final state = ref.watch(deliveryPositionCtrlProvider);
-        
+
         return FadeInUp(
           duration: const Duration(milliseconds: 400),
           child: Container(
@@ -272,9 +274,9 @@ class _DeliveryPositionPageState extends ConsumerState<DeliveryPositionPage> {
                     ),
                   ],
                 ),
-                
+
                 const SizedBox(height: 16),
-                
+
                 if (state.isLoading)
                   _buildLoadingContent()
                 else if (state.error != null)

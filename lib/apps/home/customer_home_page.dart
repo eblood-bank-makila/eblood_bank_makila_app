@@ -1,10 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:get/get.dart';
 import '../config/theme/ColorPages.dart';
 import '../connect/announcements/announcements_service.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/notification/NotificationPage.dart';
+
+import 'package:get_storage/get_storage.dart';
+import '../../gestionStocks/ui/pages/recherchePoche/RecherchePochePage.dart';
+// Removed from quick actions per requirement
+// import '../../commande/ui/pages/blood_request/BloodRequestPage.dart';
+import '../../delivery/ui/pages/DeliveryPersonHomePage.dart';
+import '../widgets/advertisement/AdvertisementCarousel.dart';
+import 'nearby_blood_banks_page.dart';
+import 'top_donors_page.dart';
+import 'my_blood_donor_profile_page.dart';
+import 'donation_history_page.dart';
+import 'volunteer_donor_dashboard_page.dart';
+import '../volunteer/benevol_donor_landing_page.dart';
+import '../donor/donor_landing_page.dart';
+
+import '../ins/ins_landing_page.dart';
+
+import '../services/AuthService.dart';
+import '../ins/ins_request_details_page.dart';
+
 
 class CustomerHomePage extends StatefulWidget {
   const CustomerHomePage({super.key});
@@ -13,28 +34,158 @@ class CustomerHomePage extends StatefulWidget {
   State<CustomerHomePage> createState() => _CustomerHomePageState();
 }
 
-class _CustomerHomePageState extends State<CustomerHomePage> {
+class _CustomerHomePageState extends State<CustomerHomePage> with WidgetsBindingObserver {
   final _service = AnnouncementsService();
   bool _loading = true;
   List<Map<String, dynamic>> _all = [];
 
+  final _box = GetStorage();
+  bool _isDonor = false;
+  bool _isDelivery = false;
+  bool _isVolunteerDonor = false;
+  String _firstName = '';
+  final _auth = AuthService();
+  bool _hasInsRequest = false;
+  Map<String, dynamic>? _insRequestData;
+
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _loadProfileFlags();
+    _subscribeToProfileUpdates();
+    _checkInsRequest();
     _load();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      debugPrint('🔄 CustomerHome - app resumed, refreshing profile flags');
+      _loadProfileFlags();
+    }
+  }
+
+  void _subscribeToProfileUpdates() {
+    final handler = (dynamic value) {
+      debugPrint('📢 CustomerHome - storage update detected for key, value: $value');
+      _loadProfileFlags();
+    };
+    _box.listenKey('user_profiles', handler);
+    _box.listenKey('user_profils', handler);
+    _box.listenKey('user_data', handler);
+    debugPrint('✅ CustomerHome - subscribed to profile updates');
   }
 
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
-      final list = await _service.fetchAll();
+      final list = await _service.fetchAll().timeout(
+        const Duration(seconds: 10),
+        onTimeout: () => <Map<String, dynamic>>[],
+      );
       setState(() => _all = list);
+      // Also refresh profile flags when user pulls to refresh
+      _loadProfileFlags();
+      await _checkInsRequest();
     } catch (_) {
       setState(() => _all = []);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
+
+  void _loadProfileFlags() {
+    bool newIsDonor = _isDonor;
+    bool newIsDelivery = _isDelivery;
+    bool newIsVolunteerDonor = _isVolunteerDonor;
+    String newFirstName = _firstName;
+
+    try {
+      final profiles = _box.read('user_profiles') ?? _box.read('user_profils') ?? [];
+      debugPrint('🔍 CustomerHome _loadProfileFlags - profiles: $profiles');
+
+      if (profiles is List) {
+        // Extract ALL profiles regardless of 'enabled' status
+        // The 'enabled' field will be used later to disable actions, not to hide profiles
+        final allProfiles = profiles.whereType<Map>().toList();
+        debugPrint('🔍 CustomerHome - all profiles: $allProfiles');
+
+        final flags = allProfiles
+            .map((e) => (e['profil'] ?? e['flag'] ?? '').toString())
+            .where((s) => s.isNotEmpty)
+            .toSet();
+        debugPrint('🔍 CustomerHome - extracted flags: $flags');
+
+        newIsDonor = flags.contains('mobile_app_blood_donor_profil');
+        newIsDelivery = flags.contains('mobile_app_delivery_person_profil');
+        newIsVolunteerDonor = flags.contains('mobile_app_volonteer_blood_donor_profil');
+
+        debugPrint('🔍 CustomerHome - newIsDonor: $newIsDonor, newIsDelivery: $newIsDelivery, newIsVolunteerDonor: $newIsVolunteerDonor');
+      }
+
+      final user = _box.read('user_data');
+      if (user is Map) {
+        newFirstName = (user['first_name'] ?? user['uPrenom'] ?? user['username'] ?? '').toString();
+      }
+    } catch (e) {
+      debugPrint('⚠️ CustomerHome _loadProfileFlags error: $e');
+    }
+
+    if (!mounted) {
+      _isDonor = newIsDonor;
+      _isDelivery = newIsDelivery;
+      _isVolunteerDonor = newIsVolunteerDonor;
+      _firstName = newFirstName;
+      return;
+    }
+
+    debugPrint('🔍 CustomerHome - comparing: old isDonor=$_isDonor vs new=$newIsDonor, old isVolunteerDonor=$_isVolunteerDonor vs new=$newIsVolunteerDonor');
+    if (newIsDonor != _isDonor || newIsDelivery != _isDelivery || newIsVolunteerDonor != _isVolunteerDonor || newFirstName != _firstName) {
+      debugPrint('✅ CustomerHome - updating state: isDonor=$newIsDonor, isDelivery=$newIsDelivery, isVolunteerDonor=$newIsVolunteerDonor');
+      setState(() {
+        _isDonor = newIsDonor;
+        _isDelivery = newIsDelivery;
+        _isVolunteerDonor = newIsVolunteerDonor;
+        _firstName = newFirstName;
+      });
+    } else {
+      debugPrint('ℹ️ CustomerHome - no state change needed');
+    }
+  }
+  Future<void> _checkInsRequest() async {
+    try {
+      final resp = await _auth.getMyInsRequest();
+      if (!mounted) return;
+      if (resp.success && resp.data is Map) {
+        setState(() {
+          _hasInsRequest = true;
+          _insRequestData = Map<String, dynamic>.from(resp.data as Map);
+        });
+      } else {
+        final code = resp.statusCode ?? 0;
+        if (code == 404) {
+          if (_hasInsRequest || _insRequestData != null) {
+            setState(() {
+              _hasInsRequest = false;
+              _insRequestData = null;
+            });
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('⚠️ _checkInsRequest error: $e');
+    }
+  }
+
+
 
   List<Map<String, dynamic>> get _campaigns {
     return _all.where((e) {
@@ -48,8 +199,183 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
     return _all.take(10).toList();
   }
 
+  Widget _buildModernHeader(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        children: [
+          // Top Row with Logo and Notifications
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Logo and Welcome Text
+              Row(
+                children: [
+                  Container(
+                    width: 50,
+                    height: 50,
+                    padding: const EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Center(
+                        child: Image.asset(
+                          'assets/icons/app_icon.png',
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'E-Blood Bank',
+                        style: GoogleFonts.ubuntu(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: ColorPages.COLOR_PRINCIPAL,
+                        ),
+                      ),
+                      Text(
+                        'Trouvez du sang rapidement',
+                        style: GoogleFonts.ubuntu(
+                          fontSize: 12,
+                          color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.7),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+
+              // Notification Button
+              Container(
+                decoration: BoxDecoration(
+                  color: ColorPages.COLOR_BLANCHE.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Stack(
+                  children: [
+                    IconButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => NotificationPage(
+                              notification: [],
+                            ),
+                          ),
+                        );
+                      },
+                      icon: Icon(
+                        Iconsax.notification,
+                        color: ColorPages.COLOR_PRINCIPAL,
+                        size: 24,
+                      ),
+                    ),
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          color: ColorPages.COLOR_PRINCIPAL,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 20),
+
+          // Modern Search Bar
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => Recherchepage(
+                    query: '',
+                    isModal: true,
+                  ),
+                ),
+              );
+            },
+            child: Container(
+              height: 50,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(25),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  const SizedBox(width: 20),
+                  Icon(
+                    Iconsax.search_normal,
+                    color: Colors.grey.shade400,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 15),
+                  Expanded(
+                    child: Text(
+                      'Rechercher une poche... ex. A+',
+                      style: GoogleFonts.ubuntu(
+                        color: Colors.grey.shade500,
+                        fontSize: 14,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    margin: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: ColorPages.COLOR_PRINCIPAL,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Icon(
+                      Iconsax.search_normal,
+                      color: Colors.white,
+                      size: 16,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Set status bar style to dark (black icons/text)
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark, // Dark icons for light background
+        statusBarBrightness: Brightness.light, // For iOS
+      ),
+    );
+
     return Scaffold(
       body: Container(
         width: double.infinity,
@@ -59,111 +385,23 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              ColorPages.COLOR_PRINCIPAL,
-              ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.8),
-              Colors.grey.shade50,
+              Colors.red.shade100,
+              Colors.red.shade50,
+              Colors.white,
             ],
-            stops: const [0.0, 0.15, 1.0],
           ),
         ),
         child: SafeArea(
           child: Column(
             children: [
-              // Top header (match Banquepage style)
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 50,
-                          height: 50,
-                          padding: const EdgeInsets.all(5),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(10),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.1),
-                                blurRadius: 10,
-                                offset: const Offset(0, 5),
-                              ),
-                            ],
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: Center(
-                              child: Image.asset(
-                                'assets/icons/app_icon.png',
-                                fit: BoxFit.contain,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('app_name'.tr,
-                                style: GoogleFonts.ubuntu(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                )),
-                            Text('customer_space'.tr,
-                                style: GoogleFonts.ubuntu(
-                                  fontSize: 12,
-                                  color: Colors.white.withValues(alpha: 0.9),
-                                )),
-                          ],
-                        ),
-                      ],
-                    ),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Stack(
-                        children: [
-                          IconButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => NotificationPage(notification: []),
-                                ),
-                              );
-                            },
-                            icon: const Icon(Iconsax.notification, color: Colors.white, size: 24),
-                          ),
-                          Positioned(
-                            right: 8,
-                            top: 8,
-                            child: Container(
-                              width: 8,
-                              height: 8,
-                              decoration: const BoxDecoration(color: Colors.orange, shape: BoxShape.circle),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              // Modern Header
+              _buildModernHeader(context),
 
-              // Content container
+              // Content container - no rounded corners, no shadow
               Expanded(
                 child: Container(
                   decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(20),
-                      topRight: Radius.circular(20),
-                    ),
+                    color: Colors.transparent,
                   ),
                   child: RefreshIndicator(
                     onRefresh: _load,
@@ -172,6 +410,38 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
                         : ListView(
                             padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
                             children: [
+                              // Advertisement Carousel (top of content)
+                              const AdvertisementCarousel(
+                                targetAudience: 'all',
+                                height: 180,
+                                autoPlay: true,
+                                autoPlayDuration: Duration(seconds: 10),
+                                showIndicators: true,
+                                useMockData: false,
+                              ),
+                              const SizedBox(height: 24),
+
+                              const SizedBox(height: 8),
+                              if (_firstName.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 8),
+                                  child: Text(
+                                    '${'welcome'.tr}, \u200E\u200E\u200E\u200E\u200E\u200E\u200E\u200E\u200E\u200E\u200E\u200E\u200E\u200E\u200E\u200E\u200E\u200E\u200E\u200E\u200E\u200E\u200E\u200E\u200E\u200E\u200E\u200E\u200E\u200E\u200E\u200E\u200E\u200E\u200E$_firstName',
+                                    style: GoogleFonts.ubuntu(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: ColorPages.COLOR_PRINCIPAL,
+                                    ),
+                                  ),
+                                ),
+                              // Primary CTA buttons on top of quick actions
+                              const SizedBox(height: 18),
+                              _buildPrimaryCTASection(context),
+                              const SizedBox(height: 28),
+                              Text('quick_actions'.tr, style: GoogleFonts.ubuntu(fontSize: 16, fontWeight: FontWeight.w700)),
+                              const SizedBox(height: 8),
+                              _buildQuickActionsSection(context),
+                              const SizedBox(height: 16),
                               // Featured campaigns
                               if (_campaigns.isNotEmpty) ...[
                                 Text('featured_campaigns'.tr, style: GoogleFonts.ubuntu(fontSize: 16, fontWeight: FontWeight.w700)),
@@ -339,7 +609,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
                                       ],
                                     ),
                                   );
-                                }).toList(),
+                                }),
                             ],
                           ),
                   ),
@@ -351,4 +621,278 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
       ),
     );
   }
+
+  Widget _buildPrimaryCTASection(BuildContext context) {
+    // Show volunteer donor dashboard for existing volunteer donors
+    if (_isVolunteerDonor) {
+      return Row(
+        children: [
+          Expanded(
+            child: _buildPrimaryButton(
+              title: 'my_volunteer_dashboard'.tr,
+              icon: Icons.volunteer_activism,
+              color: Colors.green.shade600,
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const VolunteerDonorDashboardPage()),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _buildPrimaryButton(
+              title: _hasInsRequest ? 'view_my_ins_request'.tr : 'request_your_ins'.tr,
+              icon: Icons.badge_outlined,
+              color: Colors.indigo,
+              onTap: () {
+                if (_hasInsRequest && _insRequestData != null) {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => InsRequestDetailsPage(data: _insRequestData!)),
+                  );
+                } else {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const InsLandingPage()),
+                  );
+                }
+              },
+            ),
+          ),
+        ],
+      );
+    }
+
+    // Show both buttons for non-volunteer donors
+    return Row(
+      children: [
+        Expanded(
+          child: _buildPrimaryButton(
+            title: 'become_benevol_donor'.tr,
+            icon: Icons.volunteer_activism,
+            color: ColorPages.COLOR_PRINCIPAL,
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const BenevolDonorLandingPage()),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildPrimaryButton(
+            title: _hasInsRequest ? 'view_my_ins_request'.tr : 'request_your_ins'.tr,
+            icon: Icons.badge_outlined,
+            color: Colors.indigo,
+            onTap: () {
+              if (_hasInsRequest && _insRequestData != null) {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => InsRequestDetailsPage(data: _insRequestData!)),
+                );
+              } else {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const InsLandingPage()),
+                );
+              }
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPrimaryButton({
+    required String title,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        height: 64,
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: Colors.white, size: 20),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.ubuntu(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickActionsSection(BuildContext context) {
+    final cards = <Widget>[];
+
+    // Become Donor (only if user is not a donor)
+    if (!_isDonor) {
+      cards.add(_buildActionCard(
+        title: 'become_donor'.tr,
+        subtitle: 'blood_donor'.tr,
+        icon: Iconsax.heart_add,
+        color: Colors.redAccent,
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const DonorLandingPage()),
+        ),
+      ));
+    }
+
+    // Top Donors
+    cards.add(_buildActionCard(
+      title: 'top_donors'.tr,
+      subtitle: 'donors'.tr,
+      icon: Iconsax.crown,
+      color: Colors.orange,
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const CustomerTopDonorsPage()),
+      ),
+    ));
+
+    // Delivery Dashboard
+    if (_isDelivery) {
+      cards.add(_buildActionCard(
+        title: 'delivery_dashboard'.tr,
+        subtitle: 'dashboard'.tr,
+        icon: Iconsax.truck,
+        color: Colors.teal,
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => const DeliveryPersonHomePage(),
+          ),
+        ),
+      ));
+    }
+
+    // Find Blood
+    cards.add(_buildActionCard(
+      title: 'find_blood'.tr,
+      subtitle: 'search'.tr,
+      icon: Iconsax.search_normal_1,
+      color: Colors.indigo,
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => const Recherchepage(query: '', isModal: true),
+        ),
+      ),
+    ));
+
+
+    // Nearby Blood Banks (customer-specific, no cart features)
+    cards.add(_buildActionCard(
+      title: 'nearby_blood_banks'.tr,
+      subtitle: 'medical_network'.tr,
+      icon: Iconsax.hospital,
+      color: Colors.green,
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const CustomerNearbyBloodBanksPage()),
+      ),
+    ));
+
+    // Donor-only actions
+    if (_isDonor) {
+      cards.add(_buildActionCard(
+        title: 'my_blood_donor_profile'.tr,
+        subtitle: 'blood_donor'.tr,
+        icon: Iconsax.profile_circle,
+        color: Colors.redAccent,
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const MyBloodDonorProfilePage()),
+        ),
+      ));
+      cards.add(_buildActionCard(
+        title: 'donation_history'.tr,
+        subtitle: 'my_donations'.tr,
+        icon: Iconsax.activity,
+        color: Colors.blueGrey,
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const DonationHistoryPage()),
+        ),
+      ));
+    }
+
+    return GridView.count(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisCount: 2,
+      crossAxisSpacing: 12,
+      mainAxisSpacing: 12,
+      childAspectRatio: 1.25,
+      children: cards,
+    );
+  }
+
+  Widget _buildActionCard({
+    required String title,
+    String? subtitle,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: color, size: 22),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.ubuntu(fontSize: 14, fontWeight: FontWeight.w700),
+            ),
+            if (subtitle != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.ubuntu(fontSize: 12, color: Colors.grey.shade600),
+              ),
+            ]
+          ],
+        ),
+      ),
+    );
+  }
+
 }

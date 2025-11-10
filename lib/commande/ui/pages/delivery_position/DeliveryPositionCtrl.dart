@@ -3,6 +3,7 @@ import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sembast/sembast.dart';
 import 'package:sembast/sembast_io.dart';
+import 'package:get/get.dart';
 
 import '../../../business/interactor/usecase/delivery_position/DeliveryPositionUseCase.dart';
 import '../../../business/model/delivery/DeliveryPositionModel.dart';
@@ -51,7 +52,7 @@ class DeliveryPositionCtrl extends StateNotifier<DeliveryPositionState> {
         state = state.copyWith(
           isLoading: false,
           isSuccess: false,
-          error: result?.message ?? "Erreur lors de la récupération de la position",
+          error: result?.message ?? 'error_fetching_position'.tr,
         );
       }
 
@@ -60,7 +61,7 @@ class DeliveryPositionCtrl extends StateNotifier<DeliveryPositionState> {
       state = state.copyWith(
         isLoading: false,
         isSuccess: false,
-        error: "Erreur lors de la récupération de la position: $e",
+        error: 'error_fetching_position_details'.trParams({'error': e.toString()}),
       );
       return null;
     }
@@ -72,7 +73,7 @@ class DeliveryPositionCtrl extends StateNotifier<DeliveryPositionState> {
       state = state.copyWith(
         isLoading: false,
         isSuccess: false,
-        error: "Aucune donnée d'action disponible pour cette demande",
+        error: 'no_action_data_available'.tr,
       );
       return null;
     }
@@ -150,12 +151,12 @@ class DeliveryPositionState {
 
   /// Get formatted distance string
   String get formattedDistance {
-    return positionInfo?.formattedDistance ?? 'N/A';
+    return positionInfo?.formattedDistance ?? 'not_available_short'.tr;
   }
 
   /// Get distance status message
   String get distanceStatus {
-    if (positionInfo == null) return 'Position non disponible';
+    if (positionInfo == null) return 'position_unavailable'.tr;
     return DeliveryPositionUseCase.getDistanceStatus(positionInfo!.distance);
   }
 

@@ -7,7 +7,7 @@ part of 'AuthentificationCtrl.dart';
 // **************************************************************************
 
 String _$authentificationCtrlHash() =>
-    r'51f70ac1024a68666a618c45d337cac717dc5ea2';
+    r'53a84d5dacd027b6025018683dda0c8a54f1d4d2';
 
 /// See also [AuthentificationCtrl].
 @ProviderFor(AuthentificationCtrl)

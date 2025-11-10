@@ -1,15 +1,14 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:http/http.dart' as http;
 import 'package:confetti/confetti.dart';
+import 'package:get/get.dart';
 import '../../../../../apps/config/theme/ColorPages.dart';
 import '../../../../../apps/widgets/BottomNavBarWidget.dart';
 import '../../../../../paiement/ui/pages/message/MessagePaiementReussiPage.dart';
 import '../../../../../paiement/ui/pages/message/MessagePaiementEchouer.dart';
-import '../../../../../utilisateurs/business/interactors/UtilisateurInteractor.dart';
 import '../../panier/PanierCtrl.dart';
+import '../../../../../apps/config/api/dio_client.dart';
 
 class PaymentStatusPage extends ConsumerStatefulWidget {
   final String systemRef;
@@ -120,9 +119,9 @@ class _PaymentStatusPageState extends ConsumerState<PaymentStatusPage>
       // If we've reached 90% (9 checks) and still no definitive response,
       // force completion after 2 more attempts
       if (newProgress >= 0.90 && _checkCount >= 11) {
-        debugPrint('🔄 Reached 90% progress for too long, forcing completion');
+        debugPrint('⏰ Reached 90% progress for too long, treating as timeout/failure');
         _statusTimer?.cancel();
-        _handlePaymentSuccess('Votre paiement n\'a pas réussi !');
+        _handlePaymentFailure('Le paiement a expiré ou n’a pas été confirmé');
         return;
       }
     });
@@ -174,26 +173,26 @@ class _PaymentStatusPageState extends ConsumerState<PaymentStatusPage>
     try {
       print('🔍 Checking payment status for systemRef: ${widget.systemRef}');
 
-      // Get the authentication token
-      final token = await ref.read(utilisateurInteractorProvider).recuperationTokenOtpUseCase.run();
-
-      final response = await http.get(
-        Uri.parse('${widget.baseUrl}/payment-status/checking/${widget.systemRef}?percent=$percent'),
-        headers: {
-          "Authorization": "Bearer ${token ?? ''}",
-          "Content-Type": "application/json",
-          "eblood-lockkeys": "0af4ebc066accceff45fad9ee6f2e9a9a24f6051ddb59b73f188dff0326c1e31",
-        },
+      // Use dio_client for automatic auth header injection
+      final response = await getWithDio(
+        '/eblood-connect/payment-status/checking?identifier=${widget.systemRef}&percent=$percent',
       );
 
       print('📡 Payment status response: ${response.statusCode}');
-      print('📄 Response body: ${response.body}');
+      print('📄 Response success: ${response.success}');
+      print('📄 Response data: ${response.data}');
 
-      if (response.statusCode == 200) {
-        final responseData = json.decode(response.body);
-        _handleStatusResponse(responseData);
+      if (response.success && response.data != null) {
+        // Extract the actual data from IApiResponse
+        final responseData = response.data as Map<String, dynamic>?;
+        if (responseData != null) {
+          _handleStatusResponse(responseData);
+        } else {
+          print('❌ Response data is null');
+          _updateStatusMessage('Vérification du statut...');
+        }
       } else {
-        print('❌ Error checking payment status: ${response.statusCode}');
+        print('❌ Error checking payment status: ${response.message}');
         _updateStatusMessage('Vérification du statut...');
       }
     } catch (e) {
@@ -205,15 +204,63 @@ class _PaymentStatusPageState extends ConsumerState<PaymentStatusPage>
   void _handleStatusResponse(Map<String, dynamic> response) {
     debugPrint('📊 Full payment response: $response');
 
-    final status = response['status']?.toString().toLowerCase();
+    // Accept both shapes:
+    // 1) Top-level API envelope: {success, message, data: {...}}
+    // 2) Direct data payload: {status, state, ...}
     final message = response['message'] ?? '';
     final success = response['success'];
-    final data = response['data'];
+    final Map<String, dynamic> data = (response['data'] is Map<String, dynamic>)
+        ? Map<String, dynamic>.from(response['data'] as Map)
+        : Map<String, dynamic>.from(response);
 
-    debugPrint('📊 Payment status: $status');
     debugPrint('📊 Success field: $success');
     debugPrint('📊 Message: $message');
     debugPrint('📊 Data: $data');
+
+    // Extract status from data object (backend now returns it there)
+    String? status;
+    String? failureReason;
+    String? bloodRequestId;
+    String? systemIdentifier;
+
+    // Extra details for UI
+    String? amountText;
+    String? successRef; // Onafriq ref when available
+    String? failureRef; // System reference
+    List<String>? errorMessages;
+
+    // Normalize status from either 'status' or 'state'
+    status = data['status']?.toString().toLowerCase() ?? data['state']?.toString().toLowerCase();
+    failureReason = data['failure_reason']?.toString();
+    debugPrint('📊 Payment status from data: $status');
+    if (failureReason != null) {
+      debugPrint('📊 Failure reason: $failureReason');
+    }
+
+      // Amount and currency formatting
+      final amountVal = data['amount'];
+      final currency = data['currency']?.toString();
+      if (amountVal != null && currency != null) {
+        if (amountVal is num) {
+          amountText = '${amountVal.toStringAsFixed(2)} $currency';
+        } else {
+          amountText = '${amountVal.toString()} $currency';
+        }
+      }
+
+      // IDs and references
+      bloodRequestId = data['blood_request_id']?.toString();
+      systemIdentifier = data['blood_request_identifier']?.toString();
+
+      // References
+      successRef = data['onafriq_transaction_ref']?.toString();
+      failureRef = systemIdentifier;
+
+      // Error messages list
+      final em = data['onafriq_error_messages'];
+      if (em is List) {
+        errorMessages = em.map((e) => e.toString()).toList();
+      }
 
     // Check multiple possible success indicators
     bool isSuccess = false;
@@ -233,24 +280,19 @@ class _PaymentStatusPageState extends ConsumerState<PaymentStatusPage>
         case 'rejected':
         case 'cancelled':
         case 'error':
+        case 'timeout':
           isFailure = true;
           break;
         case 'pending':
         case 'processing':
-          // If we've been pending/processing for too long, assume success
-          if (_checkCount >= 8) {
-            debugPrint('⏰ Payment pending/processing for too long, assuming success');
-            isSuccess = true;
-          } else {
-            _updateStatusMessage('Paiement en cours de traitement...');
-            return;
-          }
-          break;
+          // Continue checking - backend will handle timeout at >98%
+          _updateStatusMessage('Paiement en cours de traitement...');
+          return;
       }
     }
 
     // Check success field (boolean or string)
-    if (success != null) {
+    if (success != null && !isSuccess && !isFailure) {
       if (success is bool && success) {
         isSuccess = true;
       } else if (success.toString().toLowerCase() == 'true') {
@@ -263,25 +305,31 @@ class _PaymentStatusPageState extends ConsumerState<PaymentStatusPage>
     // Handle the result
     if (isSuccess) {
       debugPrint('✅ Payment confirmed as successful');
-      _handlePaymentSuccess(message);
+      _handlePaymentSuccess(
+        message,
+        amountText: amountText,
+        ref: successRef,
+        bloodRequestId: bloodRequestId,
+        systemIdentifier: systemIdentifier,
+      );
     } else if (isFailure) {
       debugPrint('❌ Payment confirmed as failed');
-      _handlePaymentFailure(message);
+      String failureMessage = failureReason ?? message;
+      if (failureMessage.isEmpty) {
+        failureMessage = 'Une erreur est survenue lors du traitement de votre paiement';
+      }
+      _handlePaymentFailure(
+        failureMessage,
+        ref: failureRef,
+        errorMessages: errorMessages,
+      );
     } else {
       debugPrint('🔄 Payment status unclear, continuing to check...');
-
-      // If we've been checking for a while and still no clear status,
-      // assume success (common with mobile money)
-      if (_checkCount >= 8) {
-        debugPrint('⏰ Long wait detected, assuming payment success');
-        _handlePaymentSuccess('Paiement n\'a pas réussi');
-      } else {
-        _updateStatusMessage('Vérification du statut...');
-      }
+      _updateStatusMessage('Vérification du statut...');
     }
   }
 
-  void _handlePaymentSuccess(String message) {
+  void _handlePaymentSuccess(String message, {String? amountText, String? ref, String? bloodRequestId, String? systemIdentifier}) {
     _statusTimer?.cancel();
     _updateProgress(1.0);
 
@@ -321,9 +369,13 @@ class _PaymentStatusPageState extends ConsumerState<PaymentStatusPage>
               backgroundColor: Colors.white,
               body: SafeArea(
                 child: OpsSuccessScreen(
-                  message: message.isNotEmpty ? message : 'Votre paiement a été traité avec succès',
-                  title: 'Paiement Réussi',
+                  message: message.isNotEmpty ? message : 'payment_processed_successfully'.tr,
+                  title: 'payment_successful'.tr,
                   hidde_all_btn: false,
+                  ref: ref,
+                  amountText: amountText,
+                  bloodRequestId: bloodRequestId,
+                  systemIdentifier: systemIdentifier,
                   onClosing: () {
                     debugPrint('🔘 PaymentStatusPage: onClosing callback triggered');
                     // Use a post-frame callback to ensure navigation happens after current frame
@@ -332,7 +384,7 @@ class _PaymentStatusPageState extends ConsumerState<PaymentStatusPage>
                         if (mounted) {
                           debugPrint('🔘 PaymentStatusPage: Widget is mounted, attempting navigation');
                           Navigator.of(context).pushAndRemoveUntil(
-                            MaterialPageRoute(builder: (context) => const BottomNavBarWidget()),
+                            MaterialPageRoute(builder: (context) => const HospitalBottomNavBarWidget()),
                             (route) => false,
                           );
                           debugPrint('✅ PaymentStatusPage: Navigation completed successfully');
@@ -353,17 +405,17 @@ class _PaymentStatusPageState extends ConsumerState<PaymentStatusPage>
     });
   }
 
-  void _handlePaymentFailure(String message) {
+  void _handlePaymentFailure(String message, {String? ref, List<String>? errorMessages}) {
     _statusTimer?.cancel();
-    
+
     setState(() {
       _isCompleted = true;
       _isSuccess = false;
       _statusMessage = 'Paiement échoué';
     });
-    
+
     _pulseController.stop();
-    
+
     // Navigate to failure page after a short delay
     Future.delayed(const Duration(seconds: 2), () {
       if (mounted) {
@@ -373,17 +425,19 @@ class _PaymentStatusPageState extends ConsumerState<PaymentStatusPage>
               backgroundColor: Colors.white,
               body: SafeArea(
                 child: OpsErrorScreen(
-                  message: message.isNotEmpty ? message : 'Une erreur est survenue lors du traitement de votre paiement',
-                  title: 'Paiement Échoué',
+                  message: message.isNotEmpty ? message : 'payment_processing_failed'.tr,
+                  title: 'payment_failed'.tr,
                   hidde_all_btn: false,
                   can_show_go_back_btn: false,
                   goBack: () {},
+                  ref: ref,
+                  errorMessages: errorMessages,
                   onClosing: () {
                     // Use a post-frame callback to ensure navigation happens after current frame
                     WidgetsBinding.instance.addPostFrameCallback((_) {
                       if (mounted && Navigator.of(context).canPop()) {
                         Navigator.of(context).pushAndRemoveUntil(
-                          MaterialPageRoute(builder: (context) => const BottomNavBarWidget()),
+                          MaterialPageRoute(builder: (context) => const HospitalBottomNavBarWidget()),
                           (route) => false,
                         );
                       }
@@ -403,74 +457,13 @@ class _PaymentStatusPageState extends ConsumerState<PaymentStatusPage>
 
     debugPrint('⏰ Payment status check timeout reached');
     debugPrint('🔍 Check count: $_checkCount, Max checks: $_maxChecks');
+    debugPrint('💭 Treating timeout as failure (backend handles final resolution)');
 
-    // For mobile money payments, timeout often means success
-    // since the user has already confirmed on their phone
-    debugPrint('💭 Assuming payment success due to mobile money timeout behavior');
-
-    setState(() {
-      _isCompleted = true;
-      _isSuccess = true;
-      _statusMessage = 'Paiement traité avec succès';
-    });
-
-    _pulseController.stop();
+    // Finalize progress for UX
     _updateProgress(1.0);
 
-    // Clear cart after assumed successful payment
-    _clearCartAfterPayment();
-
-    // Call onPaymentResult callback if provided
-    if (widget.onPaymentResult != null) {
-      debugPrint('🎉 Calling onPaymentResult for timeout (assumed success)');
-      widget.onPaymentResult!(
-        page: 2, // Success page (page 2 in DetailCommandePage)
-        title: 'Paiement Réussi',
-        message: 'Votre paiement a été traité avec succès',
-        paymentSucceed: true,
-      );
-      return; // Don't navigate here, let the parent handle it
-    }
-
-    // Navigate to success page (fallback if no callback)
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => Scaffold(
-              backgroundColor: Colors.white,
-              body: SafeArea(
-                child: OpsSuccessScreen(
-                  message: 'Votre paiement a été traité avec succès',
-                  title: 'Paiement Réussi',
-                  hidde_all_btn: false,
-                  onClosing: () {
-                    debugPrint('🔘 PaymentStatusPage: onClosing callback triggered (timeout success)');
-                    // Use a post-frame callback to ensure navigation happens after current frame
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      try {
-                        if (mounted) {
-                          debugPrint('🔘 PaymentStatusPage: Widget is mounted, attempting navigation');
-                          Navigator.of(context).pushAndRemoveUntil(
-                            MaterialPageRoute(builder: (context) => const BottomNavBarWidget()),
-                            (route) => false,
-                          );
-                          debugPrint('✅ PaymentStatusPage: Navigation completed successfully');
-                        } else {
-                          debugPrint('❌ PaymentStatusPage: Widget is not mounted, skipping navigation');
-                        }
-                      } catch (e) {
-                        debugPrint('❌ PaymentStatusPage: Navigation error: $e');
-                      }
-                    });
-                  },
-                ),
-              ),
-            ),
-          ),
-        );
-      }
-    });
+    // Delegate to failure handler (no confetti, no cart clearing)
+    _handlePaymentFailure('Le paiement a expiré ou n’a pas été confirmé');
   }
 
   /// Clears the cart after successful payment
@@ -519,18 +512,17 @@ class _PaymentStatusPageState extends ConsumerState<PaymentStatusPage>
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
-        // Prevent back navigation during payment processing
-        if (!_isCompleted) {
+    return PopScope(
+      canPop: _isCompleted,
+      onPopInvokedWithResult: (bool didPop, Object? result) {
+        if (!didPop && !_isCompleted) {
           _showExitConfirmation();
-          return false;
         }
-        return true;
       },
       child: Scaffold(
         backgroundColor: Colors.white,
         body: Stack(
+          alignment: AlignmentGeometry.topCenter,
           children: [
             SafeArea(
           child: Padding(

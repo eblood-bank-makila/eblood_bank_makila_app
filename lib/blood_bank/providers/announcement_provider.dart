@@ -210,11 +210,7 @@ final dioProvider = Provider<Dio>((ref) {
 
 /// Provider for AnnouncementService
 final announcementServiceProvider = Provider<AnnouncementService>((ref) {
-  final dio = ref.watch(dioProvider);
-  return AnnouncementService(
-    dio: dio,
-    baseUrl: '', // Empty because baseUrl is already set in DioClient
-  );
+  return AnnouncementService();
 });
 
 /// Provider for AnnouncementNotifier

@@ -14,11 +14,12 @@ AnnouncementModel _$AnnouncementModelFromJson(Map<String, dynamic> json) =>
       description: json['description'] as String?,
       announcementType:
           $enumDecode(_$AnnouncementTypeEnumMap, json['announcement_type']),
-      status: $enumDecodeNullable(_$AnnouncementStatusEnumMap, json['status']) ??
-          AnnouncementStatus.draft,
-      priority:
-          $enumDecodeNullable(_$AnnouncementPriorityEnumMap, json['priority']) ??
-              AnnouncementPriority.medium,
+      status:
+          $enumDecodeNullable(_$AnnouncementStatusEnumMap, json['status']) ??
+              AnnouncementStatus.draft,
+      priority: $enumDecodeNullable(
+              _$AnnouncementPriorityEnumMap, json['priority']) ??
+          AnnouncementPriority.medium,
       startDate: json['start_date'] == null
           ? null
           : DateTime.parse(json['start_date'] as String),
@@ -54,7 +55,8 @@ Map<String, dynamic> _$AnnouncementModelToJson(AnnouncementModel instance) =>
       'identifier': instance.identifier,
       'title': instance.title,
       'description': instance.description,
-      'announcement_type': _$AnnouncementTypeEnumMap[instance.announcementType]!,
+      'announcement_type':
+          _$AnnouncementTypeEnumMap[instance.announcementType]!,
       'status': _$AnnouncementStatusEnumMap[instance.status]!,
       'priority': _$AnnouncementPriorityEnumMap[instance.priority]!,
       'start_date': instance.startDate?.toIso8601String(),

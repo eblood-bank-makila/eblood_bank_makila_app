@@ -10,6 +10,7 @@ import '../widgets/CustomButton.dart';
 import '../widgets/PinInputField.dart';
 import './RegistrationSuccessPage.dart';
 import '../models/UserInfoValidation.dart';
+import '../models/api_response.dart';
 
 class OTPVerificationPage extends StatefulWidget {
   final String phoneNumber;
@@ -17,6 +18,8 @@ class OTPVerificationPage extends StatefulWidget {
   final Map<String, dynamic>? userData; // Add userData for registration after OTP verification
   final String? validationKey; // Validation key received from the initial validation
   final String verificationType; // Type of verification: 'email' or 'phone'
+  final Future<dynamic> Function(Map<String, dynamic>)? onRegistration;
+  final void Function(BuildContext context, dynamic registrationResult)? onRegistrationSuccess;
   
   const OTPVerificationPage({
     super.key,
@@ -25,6 +28,8 @@ class OTPVerificationPage extends StatefulWidget {
     this.userData,
     this.validationKey,
     this.verificationType = 'email', // Default to email verification
+    this.onRegistration,
+    this.onRegistrationSuccess,
   });
   
   @override
@@ -130,40 +135,48 @@ class _OTPVerificationPageState extends State<OTPVerificationPage> {
         print("Verification result: $verificationResult");
         
         if (verificationResult['success'] == true) {
-          // OTP verification successful, now proceed with the actual registration
-          final registrationResult = await _authService.register(widget.userData!);
-          
-          // Debug output for registration result
-          print("Registration result: $registrationResult");
-          
-          if (registrationResult['success'] == true) {
-            // Registration successful, navigate to success page
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(
-                builder: (context) => RegistrationSuccessPage(
-                  phoneNumber: widget.phoneNumber,
-                  email: widget.email,
-                  token: registrationResult['data']?['token'] ?? '',
+          // OTP verification successful, proceed with direct registration
+          print("✅ OTP verification successful, proceeding with registration");
+
+          final outcome = await _executeRegistration(widget.userData!);
+
+          if (outcome.success) {
+            if (widget.onRegistrationSuccess != null) {
+              setState(() => _isLoading = false);
+              widget.onRegistrationSuccess!(context, outcome.raw);
+              return;
+            }
+
+            if (mounted) {
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(
+                  builder: (context) => RegistrationSuccessPage(
+                    phoneNumber: widget.phoneNumber,
+                    email: widget.email,
+                    token: outcome.token ?? '',
+                  ),
                 ),
-              ),
-            );
+              );
+            }
           } else {
+            final failureMessage = outcome.message ?? 'registration_failed_after_verification'.tr;
             setState(() {
-              _errorMessage = registrationResult['message'];
+              _errorMessage = failureMessage;
               _isLoading = false;
             });
-            
-            // Show error in a snackbar for better visibility using ScaffoldMessenger
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  registrationResult['message'] ?? 'registration_failed_after_verification'.tr,
-                  style: const TextStyle(color: Colors.white),
+
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    failureMessage,
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                  backgroundColor: Colors.red,
+                  duration: const Duration(seconds: 4),
                 ),
-                backgroundColor: Colors.red,
-                duration: const Duration(seconds: 4),
-              ),
-            );
+              );
+            }
           }
         } else {
           setState(() {
@@ -238,6 +251,80 @@ class _OTPVerificationPageState extends State<OTPVerificationPage> {
         ),
       );
     }
+  }
+
+  Future<_RegistrationOutcome> _executeRegistration(Map<String, dynamic> payload) async {
+    try {
+      final dynamic result = widget.onRegistration != null
+          ? await widget.onRegistration!(payload)
+          : await _authService.register(payload);
+      return _normalizeRegistrationResult(result);
+    } catch (e) {
+      return _RegistrationOutcome(
+        success: false,
+        message: e.toString(),
+        raw: e,
+      );
+    }
+  }
+
+  _RegistrationOutcome _normalizeRegistrationResult(dynamic result) {
+    if (result is _RegistrationOutcome) {
+      return result;
+    }
+
+    if (result is IApiResponse) {
+      String? token;
+      if (result.data is Map<String, dynamic>) {
+        final dataMap = result.data as Map<String, dynamic>;
+        final tokenCandidate = dataMap['token'] ?? dataMap['access_token'] ?? dataMap['auth_token'];
+        if (tokenCandidate != null) {
+          token = tokenCandidate.toString();
+        }
+      }
+      return _RegistrationOutcome(
+        success: result.success,
+        message: result.message,
+        token: token,
+        raw: result,
+      );
+    }
+
+    if (result is Map<String, dynamic>) {
+      String? token;
+      final dynamic data = result['data'];
+      if (data is Map<String, dynamic>) {
+        final tokenCandidate = data['token'] ?? data['access_token'] ?? data['auth_token'];
+        if (tokenCandidate != null) {
+          token = tokenCandidate.toString();
+        }
+      } else {
+        final tokenCandidate = result['token'] ?? result['access_token'];
+        if (tokenCandidate != null) {
+          token = tokenCandidate.toString();
+        }
+      }
+
+      return _RegistrationOutcome(
+        success: result['success'] == true,
+        message: result['message'] as String?,
+        token: token,
+        raw: result,
+      );
+    }
+
+    if (result is bool) {
+      return _RegistrationOutcome(
+        success: result,
+        raw: result,
+      );
+    }
+
+    return _RegistrationOutcome(
+      success: false,
+      message: result?.toString(),
+      raw: result,
+    );
   }
   
   void _resendOTP() async {
@@ -505,4 +592,18 @@ class _OTPVerificationPageState extends State<OTPVerificationPage> {
       ),
     );
   }
+}
+
+class _RegistrationOutcome {
+  final bool success;
+  final String? message;
+  final String? token;
+  final dynamic raw;
+
+  const _RegistrationOutcome({
+    required this.success,
+    this.message,
+    this.token,
+    this.raw,
+  });
 }

@@ -27,12 +27,19 @@ class AuthentificationCtrl extends _$AuthentificationCtrl {
 
       if (resp['success'] == true) {
         if (resp['requiresMfa'] == true) {
-          // Trigger OTP send immediately using default MFA type
-          final mfaType = (resp['mfaType'] as String?) ?? 'email';
+          // ✅ FIX: When user logs in with EMAIL, use EMAIL as MFA type
+          // The server may return phone_number as default, but we should use email
+          // since the user authenticated with email
+          final mfaType = 'email'; // Always use email for email login
+
+          print("🔐 MFA required - Using email as MFA type (user logged in with email)");
+
           // Persist for OTP page display
           final storage = GetStorage();
           await storage.write('pending_login_email', username);
           await storage.write('pending_mfa_type', mfaType);
+
+          // Send OTP to email
           await AuthApi.instance.getOtp(mfaType: mfaType);
 
           // Return a lightweight model carrying only the username to stay compatible

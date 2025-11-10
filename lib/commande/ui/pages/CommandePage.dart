@@ -2,6 +2,7 @@ import 'package:eblood_bank_mak_app/commande/ui/pages/panier/PanierCtrl.dart';
 import 'package:eblood_bank_mak_app/commande/ui/pages/panier/PanierPage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:get/get.dart';
 
 import '../../../apps/config/theme/ColorPages.dart';
 
@@ -21,7 +22,7 @@ class _CommandePageState extends ConsumerState<CommandePage> {
       appBar: AppBar(
         backgroundColor: ColorPages.COLOR_BLANCHE,
         title: Text(
-          'Gérer les commandes',
+          'manage_orders'.tr,
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         actions: [

@@ -11,12 +11,12 @@ class ApiTestService {
     final headers = await _httpInterceptor.getHeaders();
     
     print('🔄 Testing API connection...');
-    print('🔄 URL: $baseApiUrl/system-countries/countries/fetch/registration-system-countries');
+    print('🔄 URL: $baseApiUrl/health');
     print('🔄 Headers: $headers');
     
     try {
       final response = await http.get(
-        Uri.parse('$baseApiUrl/system-countries/countries/fetch/registration-system-countries'),
+        Uri.parse('$baseApiUrl/health'),
         headers: headers,
       );
       

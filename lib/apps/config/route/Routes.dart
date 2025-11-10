@@ -18,3 +18,4 @@ const String favorisPage = 'FavorisPage';
 const String notificationPage = 'NotificationPage';
 const String aproposPage = 'AproposPage';
 const String changerPasswordPage = 'ChangerPasswordPage';
+const String locationPermissionWarningPage = 'LocationPermissionWarningPage';

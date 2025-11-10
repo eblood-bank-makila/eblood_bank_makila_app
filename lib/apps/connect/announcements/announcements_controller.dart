@@ -85,8 +85,15 @@ class AnnouncementsController extends GetxController {
   }
 
   void selectFilter(String filter) {
-    selectedFilter.value = filter;
-    _applyFilters();
+    try {
+      if (selectedFilter.value == filter) return;
+      selectedFilter.value = filter;
+      _applyFilters();
+    } catch (e) {
+      // Keep UX stable even if something unexpected happens
+      // ignore: avoid_print
+      print('selectFilter error: $e');
+    }
   }
 
   void _applyFilters() {

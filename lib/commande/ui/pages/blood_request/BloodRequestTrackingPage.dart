@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:get/get.dart';
 import '../../../../apps/config/theme/ColorPages.dart';
 import '../../../../apps/widgets/ModernSpinnerWidget.dart';
 import '../../../business/model/blood_request/BloodRequestModel.dart';
@@ -45,7 +46,7 @@ class _BloodRequestTrackingPageState extends State<BloodRequestTrackingPage> {
       });
     } catch (e) {
       setState(() {
-        _error = 'Erreur lors du chargement des données de suivi: $e';
+        _error = '${'something_went_wrong'.tr}: $e';
         _isLoading = false;
       });
     }
@@ -66,7 +67,7 @@ class _BloodRequestTrackingPageState extends State<BloodRequestTrackingPage> {
       foregroundColor: Colors.white,
       elevation: 0,
       title: Text(
-        'Suivi de livraison',
+        'delivery_tracking'.tr,
         style: GoogleFonts.ubuntu(
           fontSize: 18,
           fontWeight: FontWeight.bold,
@@ -77,7 +78,7 @@ class _BloodRequestTrackingPageState extends State<BloodRequestTrackingPage> {
         IconButton(
           onPressed: _loadTrackingData,
           icon: const Icon(Iconsax.refresh),
-          tooltip: 'Actualiser',
+          tooltip: 'refresh'.tr,
         ),
       ],
     );
@@ -150,7 +151,7 @@ class _BloodRequestTrackingPageState extends State<BloodRequestTrackingPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Demande #${widget.request.requestId}',
+                        'request_number'.trParams({'id': widget.request.requestId.toString()}),
                         style: GoogleFonts.ubuntu(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -177,7 +178,7 @@ class _BloodRequestTrackingPageState extends State<BloodRequestTrackingPage> {
                 Expanded(
                   child: _buildInfoItem(
                     icon: Iconsax.heart,
-                    label: 'Type de sang',
+                    label: 'blood_type'.tr,
                     value: widget.request.bloodType,
                     color: ColorPages.COLOR_PRINCIPAL,
                   ),
@@ -185,7 +186,7 @@ class _BloodRequestTrackingPageState extends State<BloodRequestTrackingPage> {
                 Expanded(
                   child: _buildInfoItem(
                     icon: Iconsax.box,
-                    label: 'Quantité',
+                    label: 'quantity'.tr,
                     value: '${widget.request.quantity} unité${widget.request.quantity > 1 ? 's' : ''}',
                     color: Colors.blue.shade600,
                   ),
@@ -256,7 +257,7 @@ class _BloodRequestTrackingPageState extends State<BloodRequestTrackingPage> {
               size: 50,
               color: ColorPages.COLOR_PRINCIPAL,
               showMessage: true,
-              message: 'Chargement des données de suivi...',
+              message: 'loading'.tr,
             ),
           ],
         ),
@@ -290,7 +291,7 @@ class _BloodRequestTrackingPageState extends State<BloodRequestTrackingPage> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Erreur de chargement',
+              'error'.tr,
               style: GoogleFonts.ubuntu(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -299,7 +300,7 @@ class _BloodRequestTrackingPageState extends State<BloodRequestTrackingPage> {
             ),
             const SizedBox(height: 8),
             Text(
-              _error ?? 'Une erreur est survenue',
+              _error ?? 'something_went_wrong'.tr,
               textAlign: TextAlign.center,
               style: GoogleFonts.ubuntu(
                 fontSize: 14,
@@ -310,7 +311,7 @@ class _BloodRequestTrackingPageState extends State<BloodRequestTrackingPage> {
             ElevatedButton.icon(
               onPressed: _loadTrackingData,
               icon: const Icon(Iconsax.refresh),
-              label: Text('Réessayer'),
+              label: Text('retry'.tr),
               style: ElevatedButton.styleFrom(
                 backgroundColor: ColorPages.COLOR_PRINCIPAL,
                 foregroundColor: Colors.white,
@@ -352,7 +353,7 @@ class _BloodRequestTrackingPageState extends State<BloodRequestTrackingPage> {
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  'Suivi GPS',
+                  'gps_tracking'.tr,
                   style: GoogleFonts.ubuntu(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -397,7 +398,7 @@ class _BloodRequestTrackingPageState extends State<BloodRequestTrackingPage> {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'Position actuelle',
+                    'current_position'.tr,
                     style: GoogleFonts.ubuntu(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
@@ -408,7 +409,7 @@ class _BloodRequestTrackingPageState extends State<BloodRequestTrackingPage> {
               ),
               const SizedBox(height: 12),
               Text(
-                'Coordonnées: ${BloodRequestTrackingUseCase.formatGpsCoordinates(position.latitude, position.longitude)}',
+                '${'coordinates'.tr}: ${BloodRequestTrackingUseCase.formatGpsCoordinates(position.latitude, position.longitude)}',
                 style: GoogleFonts.ubuntu(
                   fontSize: 13,
                   color: Colors.grey.shade700,
@@ -416,7 +417,7 @@ class _BloodRequestTrackingPageState extends State<BloodRequestTrackingPage> {
               ),
               const SizedBox(height: 4),
               Text(
-                'Dernière mise à jour: ${BloodRequestUseCase.formatDateTime(position.timestamp)}',
+                '${'last_update'.tr}: ${BloodRequestUseCase.formatDateTime(position.timestamp)}',
                 style: GoogleFonts.ubuntu(
                   fontSize: 12,
                   color: Colors.grey.shade600,
@@ -447,7 +448,7 @@ class _BloodRequestTrackingPageState extends State<BloodRequestTrackingPage> {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              _trackingStatus?.message ?? 'Position GPS non disponible',
+              _trackingStatus?.message ?? 'position_unavailable'.tr,
               style: GoogleFonts.ubuntu(
                 fontSize: 14,
                 color: Colors.orange.shade700,

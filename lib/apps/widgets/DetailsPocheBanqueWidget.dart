@@ -379,19 +379,49 @@ class _DetailPocheBanqueWidgetState
     var state = ref.watch(panierCtrlProvider);
 
     return Scaffold(
-      backgroundColor: ColorPages.COLOR_BLANCHE,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
-        backgroundColor: ColorPages.COLOR_BLANCHE,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: IconThemeData(color: ColorPages.COLOR_PRINCIPAL),
         title: Text(
           widget.banqueNom,
-          style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+          style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: ColorPages.COLOR_PRINCIPAL),
+        ),
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.red.shade100,
+                Colors.red.shade50,
+                Colors.white,
+              ],
+            ),
+          ),
         ),
       ),
-      body: Stack(
-        children: [
-          _body(context),
-          if (_isLoading) _chargement(context), // Afficher le chargement
-        ],
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.red.shade100,
+              Colors.red.shade50,
+              Colors.white,
+            ],
+          ),
+        ),
+        child: Stack(
+          children: [
+            _body(context),
+            if (_isLoading) _chargement(context), // Afficher le chargement
+          ],
+        ),
       ),
       bottomNavigationBar: _buildModernBottomBar(context, state),
     );
@@ -1114,10 +1144,10 @@ class _DetailPocheBanqueWidgetState
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => PanierPage(),
+                          builder: (context) => PanierPage(showBack: true,),
                         ),
                       );
-                    },
+                    }, 
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       backgroundColor: ColorPages.COLOR_PRINCIPAL,

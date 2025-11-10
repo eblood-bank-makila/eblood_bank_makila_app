@@ -8,6 +8,6 @@ class ConsumerMainApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // Explicit customer UI (simple user / donor / delivery)
-    return const BottomNavBarWidget();
+    return const HospitalBottomNavBarWidget();
   }
 }

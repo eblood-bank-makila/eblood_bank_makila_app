@@ -78,6 +78,7 @@ class DatumModel {
   DateTime createdAt;
   List<CartItemPanierModel> cartItems;
   String currency;
+  String refCurrencyId;
   int totalCartBloodBags;
   int totalPrice;
   double totalFees;
@@ -88,6 +89,7 @@ class DatumModel {
     required this.createdAt,
     required this.cartItems,
     required this.currency,
+    this.refCurrencyId = '',
     required this.totalCartBloodBags,
     required this.totalPrice,
     required this.totalFees,
@@ -102,6 +104,7 @@ class DatumModel {
         json["cart_items"].map((x) => CartItemPanierModel.fromJson(x)))
         : [],
     currency: json["currency"] ?? '',
+    refCurrencyId: (json["ref_currency_id"] ?? '').toString(),
     totalCartBloodBags: json["total_cart_blood_bags"] ?? 0,
     totalPrice: json["total_price"] ?? 0,
     totalFees: (json["total_fees"] ?? 0).toDouble(),
@@ -113,6 +116,7 @@ class DatumModel {
     "createdAt": createdAt.toIso8601String(),
     "cart_items": List<dynamic>.from(cartItems.map((x) => x.toJson())),
     "currency": currency,
+    "ref_currency_id": refCurrencyId,
     "total_cart_blood_bags": totalCartBloodBags,
     "total_price": totalPrice,
     "total_fees": totalFees,

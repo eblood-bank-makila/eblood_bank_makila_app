@@ -2,13 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:get/get.dart';
+
 import '../../../apps/config/theme/ColorPages.dart';
 import '../../business/providers/HealthStructureProvider.dart';
 import '../../data/models/HealthStructureModel.dart';
 import 'HealthStructureDetailPage.dart';
 
 class HealthStructureNetworkPage extends ConsumerStatefulWidget {
-  const HealthStructureNetworkPage({super.key});
+  final bool showBackButton;
+
+  const HealthStructureNetworkPage({
+    super.key,
+    this.showBackButton = true,
+  });
 
   @override
   ConsumerState<HealthStructureNetworkPage> createState() => _HealthStructureNetworkPageState();
@@ -22,27 +29,27 @@ class _HealthStructureNetworkPageState extends ConsumerState<HealthStructureNetw
   // Define tab structure based on health structure types
   final List<Map<String, dynamic>> _tabs = [
     {
-      'label': 'Tous',
+      'label': 'all',
       'icon': Iconsax.buildings,
       'type': null, // null means all types
     },
     {
-      'label': 'Hôpitaux',
+      'label': 'general_hospital',
       'icon': Iconsax.hospital,
       'type': EHealthStructureType.generalHospital,
     },
     {
-      'label': 'Cliniques',
+      'label': 'clinic',
       'icon': Iconsax.building_3,
       'type': EHealthStructureType.clinic,
     },
     {
-      'label': 'Banques',
+      'label': 'blood_bank',
       'icon': Iconsax.health,
       'type': EHealthStructureType.bloodBank,
     },
     {
-      'label': 'Centres',
+      'label': 'health_center',
       'icon': Iconsax.building,
       'type': EHealthStructureType.healthCenter,
     },
@@ -58,26 +65,26 @@ class _HealthStructureNetworkPageState extends ConsumerState<HealthStructureNetw
     super.initState();
     _tabController = TabController(length: _tabs.length, vsync: this);
     _filteredStructures = List.from(_healthStructures);
-    
+
     // Add listener to tab controller to fetch data when tab changes
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) {
         _onTabChanged();
       }
     });
-    
+
     // Fetch initial data (all structures)
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _fetchData();
     });
   }
-  
+
   void _onTabChanged() {
     final selectedTab = _tabs[_tabController.index];
     final EHealthStructureType? typeFilter = selectedTab['type'];
     _fetchData(typeFilter: typeFilter);
   }
-  
+
   void _fetchData({EHealthStructureType? typeFilter}) {
     if (typeFilter == null) {
       // Fetch all health structures
@@ -110,83 +117,114 @@ class _HealthStructureNetworkPageState extends ConsumerState<HealthStructureNetw
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: _isSearching 
-          ? TextField(
-              controller: _searchController,
-              style: GoogleFonts.ubuntu(color: Colors.black),
-              decoration: InputDecoration(
-                hintText: 'Rechercher une structure...',
-                border: InputBorder.none,
-                hintStyle: GoogleFonts.ubuntu(color: Colors.grey),
-              ),
-              onChanged: _filterStructures,
-              autofocus: true,
-            )
-          : Text(
-              'Réseau de Structures',
-              style: GoogleFonts.ubuntu(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-        actions: [
-          IconButton(
-            icon: Icon(_isSearching ? Icons.close : Icons.search),
-            onPressed: () {
-              setState(() {
-                if (_isSearching) {
-                  _searchController.clear();
-                  _filterStructures('');
-                }
-                _isSearching = !_isSearching;
-              });
-            },
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.red.shade100,
+              Colors.red.shade50,
+              Colors.white,
+            ],
           ),
-          PopupMenuButton<String>(
-            onSelected: (value) {
-              // Handle filter or sort options
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'sortByName',
-                child: Text('Trier par nom'),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Custom AppBar with transparent background
+              AppBar(
+                automaticallyImplyLeading: widget.showBackButton,
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                title: _isSearching
+                  ? TextField(
+                      controller: _searchController,
+                      style: GoogleFonts.ubuntu(color: Colors.black),
+                      decoration: InputDecoration(
+                        hintText: 'search_structure_hint'.tr,
+                        border: InputBorder.none,
+                        hintStyle: GoogleFonts.ubuntu(color: Colors.grey),
+                      ),
+                      onChanged: _filterStructures,
+                      autofocus: true,
+                    )
+                  : Text(
+                      'health_structures_network'.tr,
+                      style: GoogleFonts.ubuntu(
+                        fontWeight: FontWeight.w600,
+                        color: ColorPages.COLOR_PRINCIPAL,
+                      ),
+                    ),
+                actions: [
+                  IconButton(
+                    icon: Icon(_isSearching ? Icons.close : Icons.search, color: ColorPages.COLOR_PRINCIPAL),
+                    onPressed: () {
+                      setState(() {
+                        if (_isSearching) {
+                          _searchController.clear();
+                          _filterStructures('');
+                        }
+                        _isSearching = !_isSearching;
+                      });
+                    },
+                  ),
+                  PopupMenuButton<String>(
+                    onSelected: (value) {
+                      // Handle filter or sort options
+                    },
+                    itemBuilder: (context) => [
+                      PopupMenuItem(
+                        value: 'sortByName',
+                        child: Text('sort_by_name'.tr),
+                      ),
+                      PopupMenuItem(
+                        value: 'sortByDate',
+                        child: Text('sort_by_date'.tr),
+                      ),
+                      PopupMenuItem(
+                        value: 'filterActive',
+                        child: Text('filter_active'.tr),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              const PopupMenuItem(
-                value: 'sortByDate',
-                child: Text('Trier par date'),
+              // TabBar with transparent background
+              Container(
+                color: Colors.transparent,
+                child: TabBar(
+                  controller: _tabController,
+                  isScrollable: true,
+                  tabs: _tabs.map((tab) => Tab(
+                    icon: Icon(tab['icon'] as IconData),
+                    text: (tab['label'] as String).tr,
+                  )).toList(),
+                  labelStyle: GoogleFonts.ubuntu(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                  unselectedLabelStyle: GoogleFonts.ubuntu(
+                    fontSize: 12,
+                  ),
+                  indicatorColor: ColorPages.COLOR_PRINCIPAL,
+                  labelColor: ColorPages.COLOR_PRINCIPAL,
+                  unselectedLabelColor: Colors.black,
+                ),
               ),
-              const PopupMenuItem(
-                value: 'filterActive',
-                child: Text('Filtrer: Actifs'),
+              // Content
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: _tabs.map((tab) {
+                    // All tabs use the same builder with real data from provider
+                    return _buildHealthStructuresTab(tab['type'] as EHealthStructureType?);
+                  }).toList(),
+                ),
               ),
             ],
           ),
-        ],
-        bottom: TabBar(
-          controller: _tabController,
-          isScrollable: true,
-          tabs: _tabs.map((tab) => Tab(
-            icon: Icon(tab['icon'] as IconData),
-            text: tab['label'] as String,
-          )).toList(),
-          labelStyle: GoogleFonts.ubuntu(
-            fontWeight: FontWeight.w600,
-            fontSize: 13,
-          ),
-          unselectedLabelStyle: GoogleFonts.ubuntu(
-            fontSize: 12,
-          ),
-          indicatorColor: ColorPages.COLOR_PRINCIPAL,
-          labelColor: ColorPages.COLOR_PRINCIPAL,
-          unselectedLabelColor: Colors.grey,
         ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: _tabs.map((tab) {
-          // All tabs use the same builder with real data from provider
-          return _buildHealthStructuresTab(tab['type'] as EHealthStructureType?);
-        }).toList(),
       ),
     );
   }
@@ -194,7 +232,7 @@ class _HealthStructureNetworkPageState extends ConsumerState<HealthStructureNetw
   // Unified tab builder that fetches real data from provider
   Widget _buildHealthStructuresTab(EHealthStructureType? typeFilter) {
     final healthStructureState = ref.watch(healthStructureProvider);
-    
+
     // Show loading state
     if (healthStructureState.isLoading) {
       return Center(
@@ -204,14 +242,14 @@ class _HealthStructureNetworkPageState extends ConsumerState<HealthStructureNetw
             CircularProgressIndicator(color: ColorPages.COLOR_PRINCIPAL),
             const SizedBox(height: 16),
             Text(
-              'Chargement des structures...',
+              'loading_structures'.tr,
               style: GoogleFonts.ubuntu(color: Colors.grey),
             ),
           ],
         ),
       );
     }
-    
+
     // Show error state
     if (healthStructureState.errorMessage != null) {
       return Center(
@@ -221,7 +259,7 @@ class _HealthStructureNetworkPageState extends ConsumerState<HealthStructureNetw
             Icon(Iconsax.warning_2, size: 64, color: Colors.orange.shade300),
             const SizedBox(height: 16),
             Text(
-              'Erreur',
+              'error'.tr,
               style: GoogleFonts.ubuntu(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -240,7 +278,7 @@ class _HealthStructureNetworkPageState extends ConsumerState<HealthStructureNetw
             ElevatedButton.icon(
               onPressed: () => _fetchData(typeFilter: typeFilter),
               icon: const Icon(Icons.refresh),
-              label: const Text('Réessayer'),
+              label: Text('retry'.tr),
               style: ElevatedButton.styleFrom(
                 backgroundColor: ColorPages.COLOR_PRINCIPAL,
                 foregroundColor: Colors.white,
@@ -250,7 +288,7 @@ class _HealthStructureNetworkPageState extends ConsumerState<HealthStructureNetw
         ),
       );
     }
-    
+
     // Show empty state
     if (healthStructureState.healthStructures.isEmpty) {
       return Center(
@@ -260,7 +298,7 @@ class _HealthStructureNetworkPageState extends ConsumerState<HealthStructureNetw
             Icon(Iconsax.building, size: 64, color: Colors.grey.shade300),
             const SizedBox(height: 16),
             Text(
-              'Aucune structure trouvée',
+              'no_structures_found'.tr,
               style: GoogleFonts.ubuntu(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -268,16 +306,16 @@ class _HealthStructureNetworkPageState extends ConsumerState<HealthStructureNetw
             ),
             const SizedBox(height: 8),
             Text(
-              typeFilter != null 
-                ? 'Aucune structure de type ${typeFilter.label}'
-                : 'Aucune structure de santé disponible',
+              typeFilter != null
+                ? 'no_structures_of_type'.trParams({'type': typeFilter.label})
+                : 'no_health_structures_available'.tr,
               style: GoogleFonts.ubuntu(color: Colors.grey),
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
               onPressed: () => _fetchData(typeFilter: typeFilter),
               icon: const Icon(Icons.refresh),
-              label: const Text('Actualiser'),
+              label: Text('refresh'.tr),
               style: ElevatedButton.styleFrom(
                 backgroundColor: ColorPages.COLOR_PRINCIPAL,
                 foregroundColor: Colors.white,
@@ -287,7 +325,7 @@ class _HealthStructureNetworkPageState extends ConsumerState<HealthStructureNetw
         ),
       );
     }
-    
+
     // Show list of health structures
     return RefreshIndicator(
       onRefresh: () async {
@@ -337,7 +375,7 @@ class _HealthStructureNetworkPageState extends ConsumerState<HealthStructureNetw
         ),
       );
     }
-    
+
     return RefreshIndicator(
       onRefresh: () async {
         // Simulate data refresh
@@ -347,10 +385,10 @@ class _HealthStructureNetworkPageState extends ConsumerState<HealthStructureNetw
           _filterStructures(_searchController.text);
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Données mises à jour'),
+          SnackBar(
+            content: Text('data_updated'.tr),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 1),
+            duration: const Duration(seconds: 1),
           ),
         );
       },
@@ -368,7 +406,7 @@ class _HealthStructureNetworkPageState extends ConsumerState<HealthStructureNetw
 
   Widget _buildHospitalsTab() {
     final hospitals = _filteredStructures.where((s) => s['type'] == 'hospital').toList();
-    
+
     if (hospitals.isEmpty) {
       return Center(
         child: Column(
@@ -400,7 +438,7 @@ class _HealthStructureNetworkPageState extends ConsumerState<HealthStructureNetw
         ),
       );
     }
-    
+
     return RefreshIndicator(
       onRefresh: () async {
         // Simulate data refresh
@@ -410,10 +448,10 @@ class _HealthStructureNetworkPageState extends ConsumerState<HealthStructureNetw
           _filterStructures(_searchController.text);
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Données mises à jour'),
+          SnackBar(
+            content: Text('data_updated'.tr),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 1),
+            duration: const Duration(seconds: 1),
           ),
         );
       },
@@ -440,10 +478,10 @@ class _HealthStructureNetworkPageState extends ConsumerState<HealthStructureNetw
           // Update map data if needed
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Carte mise à jour'),
+          SnackBar(
+            content: Text('data_updated'.tr),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 1),
+            duration: const Duration(seconds: 1),
           ),
         );
       },
@@ -473,7 +511,7 @@ class _HealthStructureNetworkPageState extends ConsumerState<HealthStructureNetw
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    'Carte des structures',
+                    'structures_map'.tr,
                     style: GoogleFonts.ubuntu(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
@@ -481,7 +519,7 @@ class _HealthStructureNetworkPageState extends ConsumerState<HealthStructureNetw
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    'Intégration de carte à venir',
+                    'feature_coming_soon'.tr,
                     style: GoogleFonts.ubuntu(
                       fontSize: 14,
                       color: Colors.grey.shade600,
@@ -496,14 +534,14 @@ class _HealthStructureNetworkPageState extends ConsumerState<HealthStructureNetw
                     ),
                     onPressed: () {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Fonctionnalité à venir dans une prochaine mise à jour'),
+                        SnackBar(
+                          content: Text('feature_coming_soon'.tr),
                         ),
                       );
                     },
                     icon: const Icon(Icons.map),
                     label: Text(
-                      'Voir sur la carte',
+                      'view_on_map'.tr,
                       style: GoogleFonts.ubuntu(),
                     ),
                   ),
@@ -516,265 +554,338 @@ class _HealthStructureNetworkPageState extends ConsumerState<HealthStructureNetw
     );
   }
 
-  // Build card from HealthStructureModel (real data)
+  // Build card from HealthStructureModel (real data) - Enhanced Modern Design
   Widget _buildStructureCardFromModel(HealthStructureModel structure) {
     IconData typeIcon;
     String typeText;
     Color statusColor;
     String statusText;
-    
-    // Set icon and text based on structure type
+    Color typeColor;
+
+    // Set icon, text, and color based on structure type
     switch (structure.healthStructureTypeFlag) {
       case EHealthStructureType.generalHospital:
       case EHealthStructureType.universityHospital:
         typeIcon = Iconsax.hospital;
-        typeText = 'Hôpital';
+        typeText = 'general_hospital'.tr;
+        typeColor = const Color(0xFF2196F3);
         break;
       case EHealthStructureType.clinic:
         typeIcon = Iconsax.building_3;
-        typeText = 'Clinique';
+        typeText = 'clinic'.tr;
+        typeColor = const Color(0xFF9C27B0);
         break;
       case EHealthStructureType.bloodBank:
         typeIcon = Iconsax.health;
-        typeText = 'Banque de Sang';
+        typeText = 'blood_bank'.tr;
+        typeColor = ColorPages.COLOR_PRINCIPAL;
         break;
       case EHealthStructureType.healthCenter:
       case EHealthStructureType.healthCareCenter:
         typeIcon = Iconsax.building;
-        typeText = 'Centre de Santé';
+        typeText = 'health_center'.tr;
+        typeColor = const Color(0xFF4CAF50);
         break;
       case EHealthStructureType.pharmacy:
         typeIcon = Iconsax.health;
-        typeText = 'Pharmacie';
+        typeText = 'pharmacy'.tr;
+        typeColor = const Color(0xFFFF9800);
         break;
       case EHealthStructureType.emergencyCenter:
         typeIcon = Iconsax.warning_2;
-        typeText = 'Centre d\'Urgence';
+        typeText = 'emergency_center'.tr;
+        typeColor = const Color(0xFFF44336);
         break;
       default:
         typeIcon = Iconsax.building_4;
         typeText = structure.healthStructureTypeFlag.label;
-    }
-    
-    // Set status color and text
-    if (structure.isActivated) {
-      statusColor = Colors.green;
-      statusText = 'Actif';
-    } else {
-      statusColor = Colors.grey;
-      statusText = 'Inactif';
+        typeColor = Colors.grey;
     }
 
-    return Card(
+    // Set status color and text
+    if (structure.isActivated) {
+      statusColor = const Color(0xFF4CAF50);
+      statusText = 'active'.tr;
+    } else {
+      statusColor = Colors.grey.shade400;
+      statusText = 'inactive'.tr;
+    }
+
+    return Container(
       margin: const EdgeInsets.only(bottom: 16),
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.black.withValues(alpha: 0.4),
+          width: 0.4,
+        ),
       ),
-      child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => HealthStructureDetailPage(structure: structure),
+      child: Material(
+        borderRadius: BorderRadius.circular(16),
+        color: Colors.white.withValues(alpha: 0.3),
+        child: InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => HealthStructureDetailPage(structure: structure),
+              ),
+            );
+          },
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header with icon, name, and status
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Type icon with gradient background
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            typeColor.withValues(alpha: 0.2),
+                            typeColor.withValues(alpha: 0.05),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: typeColor.withValues(alpha: 0.3),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Icon(
+                        typeIcon,
+                        color: typeColor,
+                        size: 28,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    // Name and type
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            structure.name,
+                            style: GoogleFonts.ubuntu(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.black87,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: typeColor.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              typeText,
+                              style: GoogleFonts.ubuntu(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: typeColor,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Status badge
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: statusColor.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: statusColor.withValues(alpha: 0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: statusColor,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: statusColor.withValues(alpha: 0.5),
+                                  blurRadius: 4,
+                                  spreadRadius: 1,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            statusText,
+                            style: GoogleFonts.ubuntu(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: statusColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                // Contact information section
+                if (structure.address != null ||
+                    structure.phoneNumber != null ||
+                    structure.email != null)
+                  Column(
+                    children: [
+                      if (structure.address != null) ...[
+                        _buildContactRow(
+                          icon: Iconsax.location,
+                          label: structure.address!,
+                          color: Colors.grey.shade600,
+                        ),
+                        const SizedBox(height: 10),
+                      ],
+                      if (structure.phoneNumber != null) ...[
+                        _buildContactRow(
+                          icon: Iconsax.call,
+                          label: structure.phoneNumber!,
+                          color: Colors.grey.shade600,
+                        ),
+                        const SizedBox(height: 10),
+                      ],
+                      if (structure.email != null)
+                        _buildContactRow(
+                          icon: Iconsax.sms,
+                          label: structure.email!,
+                          color: Colors.grey.shade600,
+                        ),
+                    ],
+                  ),
+                // Badges section
+                if (structure.isVerified || structure.hasEmergencyServices)
+                  Column(
+                    children: [
+                      const SizedBox(height: 14),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          if (structure.isVerified)
+                            _buildBadge(
+                              icon: Iconsax.verify,
+                              label: 'verified'.tr,
+                              backgroundColor: Colors.blue.shade50,
+                              textColor: Colors.blue.shade700,
+                              iconColor: Colors.blue.shade700,
+                            ),
+                          if (structure.hasEmergencyServices)
+                            _buildBadge(
+                              icon: Iconsax.warning_2,
+                              label: 'emergency_24_7'.tr,
+                              backgroundColor: Colors.orange.shade50,
+                              textColor: Colors.orange.shade700,
+                              iconColor: Colors.orange.shade700,
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+              ],
             ),
-          );
-        },
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: ColorPages.COLOR_PRINCIPAL.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Icon(
-                      typeIcon,
-                      color: ColorPages.COLOR_PRINCIPAL,
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          structure.name,
-                          style: GoogleFonts.ubuntu(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          typeText,
-                          style: GoogleFonts.ubuntu(
-                            fontSize: 12,
-                            color: Colors.grey.shade600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: statusColor,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          statusText,
-                          style: GoogleFonts.ubuntu(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                            color: statusColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              const Divider(height: 1),
-              const SizedBox(height: 12),
-              if (structure.address != null)
-                Row(
-                  children: [
-                    Icon(Iconsax.location, size: 16, color: Colors.grey.shade600),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        structure.address!,
-                        style: GoogleFonts.ubuntu(
-                          fontSize: 13,
-                          color: Colors.grey.shade700,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-              if (structure.address != null) const SizedBox(height: 8),
-              if (structure.phoneNumber != null)
-                Row(
-                  children: [
-                    Icon(Iconsax.call, size: 16, color: Colors.grey.shade600),
-                    const SizedBox(width: 8),
-                    Text(
-                      structure.phoneNumber!,
-                      style: GoogleFonts.ubuntu(
-                        fontSize: 13,
-                        color: Colors.grey.shade700,
-                      ),
-                    ),
-                  ],
-                ),
-              if (structure.phoneNumber != null) const SizedBox(height: 8),
-              if (structure.email != null)
-                Row(
-                  children: [
-                    Icon(Iconsax.sms, size: 16, color: Colors.grey.shade600),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        structure.email!,
-                        style: GoogleFonts.ubuntu(
-                          fontSize: 13,
-                          color: Colors.grey.shade700,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  if (structure.isVerified)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.shade50,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Iconsax.verify, size: 12, color: Colors.blue.shade700),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Vérifié',
-                            style: GoogleFonts.ubuntu(
-                              fontSize: 10,
-                              color: Colors.blue.shade700,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  if (structure.isVerified) const SizedBox(width: 8),
-                  if (structure.hasEmergencyServices)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.shade50,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Iconsax.warning_2, size: 12, color: Colors.orange.shade700),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Urgence',
-                            style: GoogleFonts.ubuntu(
-                              fontSize: 10,
-                              color: Colors.orange.shade700,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                ],
-              ),
-            ],
           ),
         ),
+      ),
+    );
+  }
+
+  // Helper widget for contact rows
+  Widget _buildContactRow({
+    required IconData icon,
+    required String label,
+    required Color color,
+  }) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, size: 16, color: color),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            label,
+            style: GoogleFonts.ubuntu(
+              fontSize: 13,
+              color: Colors.grey.shade700,
+              fontWeight: FontWeight.w500,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Helper widget for badges
+  Widget _buildBadge({
+    required IconData icon,
+    required String label,
+    required Color backgroundColor,
+    required Color textColor,
+    required Color iconColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 10,
+        vertical: 6,
+      ),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: textColor.withValues(alpha: 0.3),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: iconColor),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: GoogleFonts.ubuntu(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: textColor,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -784,47 +895,47 @@ class _HealthStructureNetworkPageState extends ConsumerState<HealthStructureNetw
     String typeText;
     Color statusColor;
     String statusText;
-    
+
     // Set icon and text based on structure type
     switch (structure['type']) {
       case 'hospital':
         typeIcon = Iconsax.hospital;
-        typeText = 'Hôpital';
+        typeText = 'general_hospital'.tr;
         break;
       case 'clinic':
         typeIcon = Iconsax.building_3;
-        typeText = 'Clinique';
+        typeText = 'clinic'.tr;
         break;
       case 'medicalCenter':
         typeIcon = Iconsax.building;
-        typeText = 'Centre Médical';
+        typeText = 'health_center'.tr;
         break;
       case 'healthCenter':
         typeIcon = Iconsax.house;
-        typeText = 'Centre de Santé';
+        typeText = 'health_center'.tr;
         break;
       default:
         typeIcon = Iconsax.building_4;
-        typeText = 'Autre';
+        typeText = 'other'.tr;
     }
-    
+
     // Set status color and text
     switch (structure['status']) {
       case 'active':
         statusColor = Colors.green;
-        statusText = 'Actif';
+        statusText = 'active'.tr;
         break;
       case 'pending':
         statusColor = Colors.orange;
-        statusText = 'En attente';
+        statusText = 'pending'.tr;
         break;
       case 'inactive':
         statusColor = Colors.grey;
-        statusText = 'Inactif';
+        statusText = 'inactive'.tr;
         break;
       default:
         statusColor = Colors.grey;
-        statusText = 'Indéfini';
+        statusText = 'undefined'.tr;
     }
 
     return Card(
@@ -848,7 +959,7 @@ class _HealthStructureNetworkPageState extends ConsumerState<HealthStructureNetw
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: ColorPages.COLOR_PRINCIPAL.withOpacity(0.1),
+                      color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
@@ -882,7 +993,7 @@ class _HealthStructureNetworkPageState extends ConsumerState<HealthStructureNetw
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.1),
+                      color: statusColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
@@ -943,7 +1054,7 @@ class _HealthStructureNetworkPageState extends ConsumerState<HealthStructureNetw
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Partenaire depuis ${structure['partnershipDate']}',
+                    "${'partnership_date'.tr}: ${structure['partnershipDate']}",
                     style: GoogleFonts.ubuntu(
                       fontSize: 12,
                       color: Colors.grey.shade600,
@@ -958,7 +1069,7 @@ class _HealthStructureNetworkPageState extends ConsumerState<HealthStructureNetw
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        '${structure['totalDeliveries']} livraisons',
+                        'deliveries_count'.trParams({'count': "${structure['totalDeliveries']}"}),
                         style: GoogleFonts.ubuntu(
                           fontSize: 12,
                           color: Colors.blue.shade600,
@@ -1022,43 +1133,43 @@ class _HealthStructureNetworkPageState extends ConsumerState<HealthStructureNetw
                   const SizedBox(height: 24),
                   _buildDetailItem(
                     icon: Iconsax.code_circle,
-                    label: 'Identifiant',
+                    label: 'identifier'.tr,
                     value: structure.identifier,
                   ),
                   if (structure.address != null)
                     _buildDetailItem(
                       icon: Iconsax.location,
-                      label: 'Adresse',
+                      label: 'address'.tr,
                       value: structure.address!,
                     ),
                   if (structure.phoneNumber != null)
                     _buildDetailItem(
                       icon: Iconsax.call,
-                      label: 'Téléphone',
+                      label: 'phone'.tr,
                       value: structure.phoneNumber!,
                     ),
                   if (structure.email != null)
                     _buildDetailItem(
                       icon: Iconsax.sms,
-                      label: 'Email',
+                      label: 'email'.tr,
                       value: structure.email!,
                     ),
                   _buildDetailItem(
                     icon: Iconsax.status,
-                    label: 'Statut',
-                    value: structure.isActivated ? 'Actif' : 'Inactif',
+                    label: 'status'.tr,
+                    value: structure.isActivated ? 'active'.tr : 'inactive'.tr,
                   ),
                   if (structure.isVerified)
                     _buildDetailItem(
                       icon: Iconsax.verify,
-                      label: 'Vérification',
-                      value: 'Vérifié ✓',
+                      label: 'verification'.tr,
+                      value: "${'verified'.tr} ✓",
                     ),
                   if (structure.hasEmergencyServices)
                     _buildDetailItem(
                       icon: Iconsax.warning_2,
-                      label: 'Services d\'urgence',
-                      value: 'Disponible',
+                      label: 'emergency_services'.tr,
+                      value: 'available'.tr,
                     ),
                   const SizedBox(height: 24),
                   Row(
@@ -1066,7 +1177,7 @@ class _HealthStructureNetworkPageState extends ConsumerState<HealthStructureNetw
                     children: [
                       TextButton(
                         onPressed: () => Navigator.pop(context),
-                        child: const Text('Fermer'),
+                        child: Text('close'.tr),
                       ),
                     ],
                   ),
@@ -1081,7 +1192,7 @@ class _HealthStructureNetworkPageState extends ConsumerState<HealthStructureNetw
 
   void _showStructureDetailsDialog(Map<String, dynamic> structure) {
     String typeText;
-    
+
     // Get structure type text
     switch (structure['type']) {
       case 'hospital':
@@ -1117,7 +1228,7 @@ class _HealthStructureNetworkPageState extends ConsumerState<HealthStructureNetw
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: ColorPages.COLOR_PRINCIPAL.withOpacity(0.1),
+                      color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.1),
                       borderRadius: const BorderRadius.only(
                         topLeft: Radius.circular(20),
                         topRight: Radius.circular(20),
@@ -1162,7 +1273,7 @@ class _HealthStructureNetworkPageState extends ConsumerState<HealthStructureNetw
                       ],
                     ),
                   ),
-                  
+
                   // Details
                   Padding(
                     padding: const EdgeInsets.all(16),
@@ -1193,9 +1304,9 @@ class _HealthStructureNetworkPageState extends ConsumerState<HealthStructureNetw
                           label: 'Dernière livraison',
                           value: structure['lastDelivery'],
                         ),
-                        
+
                         const SizedBox(height: 16),
-                        
+
                         // Blood needs section
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1241,9 +1352,9 @@ class _HealthStructureNetworkPageState extends ConsumerState<HealthStructureNetw
                               ),
                           ],
                         ),
-                        
+
                         const SizedBox(height: 24),
-                        
+
                         // Action buttons
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -1280,7 +1391,7 @@ class _HealthStructureNetworkPageState extends ConsumerState<HealthStructureNetw
                       ],
                     ),
                   ),
-                  
+
                   // Footer
                   Padding(
                     padding: const EdgeInsets.all(16),
@@ -1295,7 +1406,7 @@ class _HealthStructureNetworkPageState extends ConsumerState<HealthStructureNetw
                         Navigator.pop(context);
                       },
                       child: Text(
-                        'Fermer',
+                        'close'.tr,
                         style: GoogleFonts.ubuntu(),
                       ),
                     ),
@@ -1372,7 +1483,7 @@ class _HealthStructureNetworkPageState extends ConsumerState<HealthStructureNetw
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
@@ -1549,14 +1660,14 @@ class _HealthStructureNetworkPageState extends ConsumerState<HealthStructureNetw
                                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                               ),
                               onPressed: () {
-                                if (nameController.text.isNotEmpty && 
-                                    addressController.text.isNotEmpty && 
+                                if (nameController.text.isNotEmpty &&
+                                    addressController.text.isNotEmpty &&
                                     phoneController.text.isNotEmpty) {
-                                  
+
                                   // Here we would typically update the structure in a database
                                   // For now, just close the dialog and show success message
                                   Navigator.pop(context);
-                                  
+
                                   // Update in the local list
                                   setState(() {
                                     final index = _healthStructures.indexWhere((s) => s['id'] == structure['id']);
@@ -1571,11 +1682,11 @@ class _HealthStructureNetworkPageState extends ConsumerState<HealthStructureNetw
                                         'status': selectedStatus,
                                         'bloodNeeds': selectedBloodNeeds,
                                       };
-                                      
+
                                       _filteredStructures = List.from(_healthStructures);
                                     }
                                   });
-                                  
+
                                   // Show success message
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
@@ -1646,13 +1757,13 @@ class _HealthStructureNetworkPageState extends ConsumerState<HealthStructureNetw
                 // Here we would typically delete the structure from a database
                 // For now, just close the dialog and show success message
                 Navigator.pop(context);
-                
+
                 // Update the list
                 setState(() {
                   _healthStructures.removeWhere((s) => s['id'] == structure['id']);
                   _filteredStructures = List.from(_healthStructures);
                 });
-                
+
                 // Show success message
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
@@ -1675,7 +1786,7 @@ class _HealthStructureNetworkPageState extends ConsumerState<HealthStructureNetw
   void _showDeliveryDialog(Map<String, dynamic> structure) {
     final quantityController = TextEditingController(text: '1');
     String selectedBloodType = 'A+';
-    
+
     showDialog(
       context: context,
       builder: (context) {
@@ -1746,24 +1857,24 @@ class _HealthStructureNetworkPageState extends ConsumerState<HealthStructureNetw
                 // Here we would typically record the delivery in a database
                 // For now, just close the dialog and show success message
                 Navigator.pop(context);
-                
+
                 // Update structure data
                 setState(() {
                   final index = _healthStructures.indexWhere((s) => s['id'] == structure['id']);
                   if (index >= 0) {
                     final quantity = int.tryParse(quantityController.text) ?? 1;
                     final deliveries = (_healthStructures[index]['totalDeliveries'] as int) + quantity;
-                    
+
                     _healthStructures[index] = {
                       ..._healthStructures[index],
                       'lastDelivery': '10/10/2025',
                       'totalDeliveries': deliveries,
                     };
-                    
+
                     _filteredStructures = List.from(_healthStructures);
                   }
                 });
-                
+
                 // Show success message
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -1787,7 +1898,7 @@ class _HealthStructureNetworkPageState extends ConsumerState<HealthStructureNetw
 
   Widget _buildBloodTypeChip(String bloodType, List<String> selected, StateSetter setState) {
     final isSelected = selected.contains(bloodType);
-    
+
     return FilterChip(
       selected: isSelected,
       backgroundColor: Colors.grey.shade100,

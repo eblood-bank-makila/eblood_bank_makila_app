@@ -10,13 +10,27 @@ class AjouterPochePaiementUseCase {
 
   AjouterPochePaiementUseCase(this.network, this.local);
 
-  Future<PaiementResponseModel?> run(DatumModel panier_id, {String? phoneNumber, String? transactionalCurrencyId}) async {
+  Future<PaiementResponseModel?> run(
+    DatumModel panier_id, {
+    String? phoneNumber,
+    String? transactionalCurrencyId,
+    String? requestFor,
+    String? requestReason,
+    String? patientId,
+    String? requestType,
+    String? urgencyLevel,
+  }) async {
     var token = await local.recupererTokenOtp();
 
     var paiementData = PaiementModel(
       cartId: panier_id.id,
       phoneNumber: phoneNumber,
       transactionalCurrencyId: transactionalCurrencyId,
+      requestFor: requestFor,
+      requestReason: requestReason,
+      patientId: patientId,
+      requestType: requestType,
+      urgencyLevel: urgencyLevel,
     );
 
     var res = await network.ajouterPaiement(paiementData, token ?? "");

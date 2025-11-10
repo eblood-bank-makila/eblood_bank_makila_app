@@ -6,13 +6,16 @@ import 'package:eblood_bank_mak_app/commande/ui/pages/commande/pages/DetailComma
 import 'package:eblood_bank_mak_app/commande/ui/pages/panier/PanierCtrl.dart';
 import 'package:eblood_bank_mak_app/commande/ui/pages/panier/PanierPageState.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:get/get.dart';
 
 class PanierPage extends ConsumerStatefulWidget {
-  const PanierPage({super.key});
+  final bool showBack;
+  const PanierPage({super.key, this.showBack = false});
 
   @override
   ConsumerState createState() => _PanierPageState();
@@ -82,7 +85,7 @@ class _PanierPageState extends ConsumerState<PanierPage> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Détails du prix',
+                      'price_details'.tr,
                       style: GoogleFonts.ubuntu(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -123,7 +126,7 @@ class _PanierPageState extends ConsumerState<PanierPage> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Prix des produits',
+                            'products_price'.tr,
                             style: GoogleFonts.ubuntu(
                               fontSize: 16,
                               color: Colors.grey.shade700,
@@ -150,7 +153,7 @@ class _PanierPageState extends ConsumerState<PanierPage> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Sous-total',
+                            'subtotal'.tr,
                             style: GoogleFonts.ubuntu(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -225,7 +228,7 @@ class _PanierPageState extends ConsumerState<PanierPage> {
                               const Icon(Iconsax.verify, size: 18),
                               const SizedBox(width: 8),
                               Text(
-                                'Vérification ($itemCount)',
+                                'verification_with_count'.trParams({'count': itemCount.toString()}),
                                 style: GoogleFonts.ubuntu(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
@@ -253,20 +256,30 @@ class _PanierPageState extends ConsumerState<PanierPage> {
     var state = ref.watch(panierCtrlProvider);
     final itemCount = state.paniers?.data.isNotEmpty == true ? state.paniers!.data[0].cartItems.length : 0;
 
+    // Set status bar style to dark (black icons/text)
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark, // Dark icons for light background
+        statusBarBrightness: Brightness.light, // For iOS
+      ),
+    );
+
     return Scaffold(
       body: Stack(
         children: [
           Container(
+            width: double.infinity,
+            height: double.infinity,
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  ColorPages.COLOR_PRINCIPAL,
-                  ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.8),
-                  Colors.grey.shade50,
+                  Colors.red.shade100,
+                  Colors.red.shade50,
+                  Colors.white,
                 ],
-                stops: const [0.0, 0.15, 1.0],
               ),
             ),
             child: SafeArea(
@@ -275,15 +288,11 @@ class _PanierPageState extends ConsumerState<PanierPage> {
                   // Modern Header
                   _buildModernHeader(context, itemCount),
 
-                  // Content
+                  // Content - transparent background
                   Expanded(
                     child: Container(
                       decoration: const BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(20),
-                          topRight: Radius.circular(20),
-                        ),
+                        color: Colors.transparent,
                       ),
                       child: _buildCartContent(context, state),
                     ),
@@ -295,7 +304,7 @@ class _PanierPageState extends ConsumerState<PanierPage> {
           // Loading overlay
           AppSpinner.overlay(
             isVisible: state.isLoading,
-            message: 'Mise à jour du panier...',
+            message: 'cart_updating'.tr,
             type: SpinnerType.ring,
             backgroundColor: Colors.black.withValues(alpha: 0.5),
           ),
@@ -305,30 +314,46 @@ class _PanierPageState extends ConsumerState<PanierPage> {
   }
 
   Widget _buildModernHeader(BuildContext context, int itemCount) {
-    return Container(
+    return Padding(
       padding: const EdgeInsets.all(20),
       child: Row(
         children: [
+          if (widget.showBack)
+            InkWell(
+              onTap: () => Navigator.pop(context),
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  Iconsax.arrow_left_2,
+                  color: ColorPages.COLOR_PRINCIPAL,
+                  size: 22,
+                ),
+              ),
+            ),
+          if (widget.showBack) const SizedBox(width: 8),
           // Cart Icon
           Container(
             width: 50,
             height: 50,
+            padding: const EdgeInsets.all(5),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(15),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.3),
-                width: 1,
-              ),
-            ),
-            child: const Icon(
-              Iconsax.shopping_cart,
               color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              Iconsax.shopping_cart5,
+              color: ColorPages.COLOR_PRINCIPAL,
               size: 24,
             ),
           ),
 
-          const SizedBox(width: 16),
+          const SizedBox(width: 12),
 
           // Title and Count
           Expanded(
@@ -336,18 +361,18 @@ class _PanierPageState extends ConsumerState<PanierPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Mon Panier',
+                  'my_cart'.tr,
                   style: GoogleFonts.ubuntu(
-                    fontSize: 24,
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: ColorPages.COLOR_PRINCIPAL,
                   ),
                 ),
                 Text(
-                  '$itemCount poche${itemCount > 1 ? 's' : ''} sélectionnée${itemCount > 1 ? 's' : ''}',
+                  'selected_items_count'.trParams({'count': itemCount.toString()}),
                   style: GoogleFonts.ubuntu(
-                    fontSize: 14,
-                    color: Colors.white.withValues(alpha: 0.9),
+                    fontSize: 12,
+                    color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.7),
                   ),
                 ),
               ],
@@ -359,7 +384,13 @@ class _PanierPageState extends ConsumerState<PanierPage> {
   }
 
   Widget _buildCartContent(BuildContext context, PanierPageState state) {
-    if (state.paniers?.data.isEmpty == true || state.paniers == null) {
+    // Consider cart empty when there's no payload or when first cart has zero items
+    final hasItems = state.paniers != null &&
+        state.paniers!.data.isNotEmpty &&
+        state.paniers!.data[0].cartItems.isNotEmpty;
+
+    if (!hasItems) {
+      // Show centered empty state and hide bottom verification section
       return _buildEmptyCart();
     }
 
@@ -370,46 +401,40 @@ class _PanierPageState extends ConsumerState<PanierPage> {
           child: RefreshIndicator(
             onRefresh: _loadCart,
             color: ColorPages.COLOR_PRINCIPAL,
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              child: FadeInUp(
-                delay: const Duration(milliseconds: 200),
-                child: ListView.builder(
-                  itemCount: state.paniers!.data[0].cartItems.length,
-                  itemBuilder: (context, index) {
-                    final paniers = state.paniers!.data[0];
-                    return FadeInUp(
-                      delay: Duration(milliseconds: 300 + (index * 100)),
-                      child: Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.05),
-                              blurRadius: 10,
-                              offset: const Offset(0, 2),
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              children: [
+                FadeInUp(
+                  delay: const Duration(milliseconds: 200),
+                  child: Column(
+                    children: List.generate(
+                      state.paniers!.data[0].cartItems.length,
+                      (index) {
+                        final paniers = state.paniers!.data[0];
+                        return FadeInUp(
+                          delay: Duration(milliseconds: 300 + (index * 100)),
+                          child: Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            child: PanierWidget(
+                              paniers: paniers,
+                              index: index,
+                              onQuantityChanged: () {
+                                // Cart data will be refreshed automatically by the backend sync
+                                // No need to manually update state here
+                              },
                             ),
-                          ],
-                        ),
-                        child: PanierWidget(
-                          paniers: paniers,
-                          index: index,
-                          onQuantityChanged: () {
-                            // Cart data will be refreshed automatically by the backend sync
-                            // No need to manually update state here
-                          },
-                        ),
-                      ),
-                    );
-                  },
+                          ),
+                        );
+                      },
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
         ),
 
-        // Modern Bottom Bar
+        // Modern Bottom Bar (only visible when cart has items)
         _buildModernBottomBar(context, state),
       ],
     );
@@ -419,40 +444,43 @@ class _PanierPageState extends ConsumerState<PanierPage> {
     return Center(
       child: FadeInUp(
         delay: const Duration(milliseconds: 200),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(60),
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(60),
+                ),
+                child: Icon(
+                  Iconsax.shopping_cart,
+                  size: 60,
+                  color: ColorPages.COLOR_PRINCIPAL,
+                ),
               ),
-              child: Icon(
-                Iconsax.shopping_cart,
-                size: 60,
-                color: Colors.grey.shade400,
+              const SizedBox(height: 24),
+              Text(
+                'cart_empty_title'.tr,
+                style: GoogleFonts.ubuntu(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey.shade700,
+                ),
               ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'Votre panier est vide',
-              style: GoogleFonts.ubuntu(
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey.shade700,
+              const SizedBox(height: 8),
+              Text(
+                'cart_empty_subtitle'.tr,
+                style: GoogleFonts.ubuntu(
+                  fontSize: 14,
+                  color: Colors.grey.shade600,
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Ajoutez des poches de sang pour commencer',
-              style: GoogleFonts.ubuntu(
-                fontSize: 14,
-                color: Colors.grey.shade500,
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -469,9 +497,9 @@ class _PanierPageState extends ConsumerState<PanierPage> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 10,
-            offset: const Offset(0, -5),
+            offset: const Offset(0, -4),
           ),
         ],
       ),
@@ -485,7 +513,7 @@ class _PanierPageState extends ConsumerState<PanierPage> {
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: Colors.grey.shade200),
                 ),
@@ -514,7 +542,7 @@ class _PanierPageState extends ConsumerState<PanierPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Total à payer',
+                            'total_to_pay'.tr,
                             style: GoogleFonts.ubuntu(
                               fontSize: 12,
                               color: Colors.grey.shade600,
@@ -576,7 +604,7 @@ class _PanierPageState extends ConsumerState<PanierPage> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Vérification ($itemCount)',
+                      'verification_with_count'.trParams({'count': itemCount.toString()}),
                       style: GoogleFonts.ubuntu(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,

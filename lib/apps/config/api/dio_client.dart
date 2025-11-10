@@ -6,6 +6,7 @@ import 'package:dio/dio.dart';
 import 'package:eblood_bank_mak_app/apps/models/api_response.dart';
 import 'package:eblood_bank_mak_app/apps/services/AuthService.dart';
 import 'package:eblood_bank_mak_app/apps/services/error_navigation_service.dart';
+import 'package:eblood_bank_mak_app/core/services/location_tracking_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 // import 'package:ebloodbankauth/model/api_response.dart';
@@ -20,9 +21,16 @@ final _secureStorage = const FlutterSecureStorage();
 // Get token from secure storage
 Future<String?> _getToken() async {
   try {
-    return await _secureStorage.read(key: 'auth_token');
+    debugPrint('🔍 AuthInterceptor: Reading token from secure storage (key: auth_token)...');
+    final token = await _secureStorage.read(key: 'auth_token');
+    if (token != null && token.isNotEmpty) {
+      debugPrint('✅ AuthInterceptor: Token found: ${token.substring(0, 20)}...');
+    } else {
+      debugPrint('⚠️ AuthInterceptor: No token found in secure storage');
+    }
+    return token;
   } catch (e) {
-    debugPrint('Error retrieving token: $e');
+    debugPrint('❌ AuthInterceptor: Error retrieving token: $e');
     return null;
   }
 }
@@ -84,20 +92,55 @@ class DeviceInfoInterceptor extends Interceptor {
   }
 }
 
+class LocationInterceptor extends Interceptor {
+  LocationInterceptor();
+
+  final LocationTrackingService _locationService = LocationTrackingService();
+
+  @override
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
+    try {
+      // Use synchronous cached location - no blocking!
+      final location = _locationService.getCachedLocationSync();
+      final latitude = location['latitude'];
+      final longitude = location['longitude'];
+
+      if (latitude != null && latitude.isFinite) {
+        options.headers['latitude'] = latitude.toString();
+      }
+      if (longitude != null && longitude.isFinite) {
+        options.headers['longitude'] = longitude.toString();
+      }
+
+      debugPrint('LocationInterceptor - Location: $latitude, $longitude');
+    } catch (e) {
+      debugPrint('LocationInterceptor - Error: $e');
+    }
+
+    super.onRequest(options, handler);
+  }
+}
+
 class AuthInterceptor extends Interceptor {
   @override
   void onRequest(
       RequestOptions options, RequestInterceptorHandler handler) async {
-    debugPrint('on fetching token');
+    debugPrint('🔐 AuthInterceptor: Processing request to ${options.path}');
 
     // Only set Authorization header if it's not already set (preserve custom headers)
     if (!options.headers.containsKey('Authorization') ||
         options.headers['Authorization'] == null ||
         options.headers['Authorization'] == '') {
       final String? token = await _getToken();
-      options.headers['Authorization'] = token != null ? 'Bearer $token' : '';
+      if (token != null && token.isNotEmpty) {
+        options.headers['Authorization'] = 'Bearer $token';
+        debugPrint('✅ AuthInterceptor: Added Authorization header to request');
+      } else {
+        options.headers['Authorization'] = '';
+        debugPrint('⚠️ AuthInterceptor: No token available, Authorization header set to empty');
+      }
     } else {
-      debugPrint('AuthInterceptor - Preserving existing Authorization header: ${options.headers['Authorization']}');
+      debugPrint('ℹ️ AuthInterceptor: Preserving existing Authorization header');
     }
 
     options.headers['api-consumer'] = _apiConsumer;
@@ -155,7 +198,7 @@ class AuthInterceptor extends Interceptor {
   Future<void> directHandleSpecialErrors(dynamic response) async {
     final responseData = response;
     debugPrint('AuthInterceptor - Response > : $responseData', wrapWidth: 1024);
-    
+
 
     if (responseData == null || responseData is! Map<String, dynamic>) {
       return;
@@ -178,7 +221,7 @@ class AuthInterceptor extends Interceptor {
   Future<void> _handleSpecialErrors(DioException err) async {
     final responseData = err.response?.data;
     debugPrint('AuthInterceptor - Response > : $responseData', wrapWidth: 1024);
-    
+
 
     if (responseData == null || responseData is! Map<String, dynamic>) {
       return;
@@ -292,12 +335,14 @@ Dio _configureDio({Duration timeoutDuration = const Duration(seconds: 120)}) {
     ..baseUrl = _baseUrl
     ..connectTimeout = timeoutDuration //
     ..receiveTimeout = timeoutDuration
+    ..headers = <String, dynamic>{} // ensure non-null headers map
     // Configure Dio to NOT throw exceptions for HTTP status codes
     // This prevents app freezing on 4xx and 5xx responses
     ..validateStatus = (status) => true; // Accept all status codes
 
   dio.interceptors.addAll([
     DeviceInfoInterceptor(),
+    LocationInterceptor(),
     AuthInterceptor(),
     AppTypeInterceptor(),
     // LogInterceptor(
@@ -445,13 +490,13 @@ FutureOr<IApiResponse> postWithDio(
 }) async {
   final dio = _configureDio(timeoutDuration: timeoutDuration);
   final url = _baseUrl + endpoint;
-  debugPrint('POST Request to: $url with body: body');
+  debugPrint('POST Request to: $url with body: $body', wrapWidth: 1024);
 
   try {
     final response = await dio.post(
       url,
       data: body,
-      options: Options(headers: headers),
+      options: Options(headers: headers != null ? Map<String, dynamic>.from(headers) : <String, dynamic>{}),
     );
 
     debugPrint('POST Response to: $response');
@@ -531,7 +576,7 @@ FutureOr<IApiResponse> getWithDio(
     final response = await dio.get(
       url,
       queryParameters: queryParams,
-      options: Options(headers: headers),
+      options: Options(headers: headers != null ? Map<String, dynamic>.from(headers) : <String, dynamic>{}),
     );
 
     // Handle all status codes since validateStatus = true
@@ -636,7 +681,7 @@ FutureOr<IApiResponse> getWithDioWithBaseUrl(
     final response = await dio.get(
       url,
       queryParameters: queryParams,
-      options: Options(headers: headers),
+      options: Options(headers: headers != null ? Map<String, dynamic>.from(headers) : <String, dynamic>{}),
     );
 
     // Handle all status codes since validateStatus = true
@@ -731,6 +776,7 @@ FutureOr<IApiResponse> getWithDioWithBaseUrl(
 FutureOr<IApiResponse> putWithDio(
   String endpoint, {
   Map<String, dynamic>? body,
+  Map<String, dynamic>? queryParams,
   Map<String, String>? headers,
   Duration timeoutDuration = const Duration(seconds: 60),
 }) async {
@@ -742,7 +788,8 @@ FutureOr<IApiResponse> putWithDio(
     final response = await dio.put(
       url,
       data: body,
-      options: Options(headers: headers),
+      queryParameters: queryParams,
+      options: Options(headers: headers != null ? Map<String, dynamic>.from(headers) : <String, dynamic>{}),
     );
 
     debugPrint('PUT Response: $response');
@@ -820,7 +867,7 @@ FutureOr<IApiResponse> deleteWithDio(
     final response = await dio.delete(
       url,
       queryParameters: queryParams,
-      options: Options(headers: headers),
+      options: Options(headers: headers != null ? Map<String, dynamic>.from(headers) : <String, dynamic>{}),
     );
 
     // Handle all status codes since validateStatus = true
@@ -951,7 +998,7 @@ FutureOr<IApiResponse> uploadFile({
     final response = await dio.post(
       url,
       data: formData,
-      options: Options(headers: headers),
+      options: Options(headers: headers != null ? Map<String, dynamic>.from(headers) : <String, dynamic>{}),
     );
 
     // Handle all status codes since validateStatus = true
@@ -1122,9 +1169,9 @@ String _extractErrorMessage(dynamic responseData, String defaultMessage) {
 Future<String> _getCurrentLanguage() async {
   try {
     final String? language = await _secureStorage.read(key: 'app_language');
-    return language ?? 'en'; // Default to English if no language is set
+    return language ?? 'fr'; // Default to English if no language is set
   } catch (e) {
     debugPrint('Error retrieving language: $e');
-    return 'en'; // Default to English on error
+    return 'fr'; // Default to English on error
   }
 }

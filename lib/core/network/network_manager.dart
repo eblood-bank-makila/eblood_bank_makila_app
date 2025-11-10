@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
-// Optional: connectivity_plus can be added to pubspec for real-time network changes.
-// import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 import '../utils/api_initializer.dart';
 
@@ -25,9 +24,9 @@ class NetworkManager {
   bool _pendingBackendDownFlag = false;
   Timer? _debounceTimer;
 
-  // Connectivity subscription (if connectivity_plus enabled)
-  // StreamSubscription<ConnectivityResult>? _connectivitySub;
-  
+  // Connectivity subscription for real-time network changes
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+
   // Stream of backend availability status
   Stream<bool> get backendStatus => _backendStatusController.stream;
   
@@ -53,15 +52,22 @@ class NetworkManager {
       (_) => checkBackendAvailability()
     );
 
-    // (Optional) Listen to connectivity changes to trigger faster re-checks.
-    // Uncomment after adding connectivity_plus to pubspec.yaml
-    /*
-    _connectivitySub = Connectivity().onConnectivityChanged.listen((result) {
-      // Trigger an immediate backend availability check when connectivity changes
-      _lastBackendCheck = null; // force check
-      checkBackendAvailability();
-    });
-    */
+    // Listen to connectivity changes to trigger faster re-checks
+    _connectivitySub = Connectivity().onConnectivityChanged.listen(
+      (List<ConnectivityResult> results) {
+        if (kDebugMode) {
+          print('🌐 NetworkManager: Connectivity changed - $results');
+        }
+        // Trigger an immediate backend availability check when connectivity changes
+        _lastBackendCheck = null; // force check
+        checkBackendAvailability();
+      },
+      onError: (error) {
+        if (kDebugMode) {
+          print('⚠️ NetworkManager: Connectivity stream error - $error');
+        }
+      },
+    );
   }
   
   /// Check if backend is available using API connection test
@@ -176,7 +182,7 @@ class NetworkManager {
   void dispose() {
     _connectivityCheckTimer?.cancel();
     _debounceTimer?.cancel();
-    // _connectivitySub?.cancel();
+    _connectivitySub?.cancel();
     _backendStatusController.close();
   }
 }

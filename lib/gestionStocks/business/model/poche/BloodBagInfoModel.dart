@@ -56,9 +56,16 @@ class BloodBagInfo {
   }
 
   factory BloodBagInfo.fromJson(Map<String, dynamic> json) => BloodBagInfo(
-        id: json["_id"] ?? '',
+    id: json["_id"]?.toString() ??
+      json["id"]?.toString() ??
+      json["blood_bag_id"]?.toString() ??
+      json["identifier"]?.toString() ??
+      '',
         isActivated: json["is_activated"] ?? true, // Default to true if null
-        identifier: json["identifier"] ?? '',
+    identifier: json["identifier"]?.toString() ??
+      json["_id"]?.toString() ??
+      json["id"]?.toString() ??
+      '',
         createdAt: json["createdAt"] != null ? DateTime.parse(json["createdAt"]) : DateTime.now(),
         bloodTypeId: json["blood_type_id"] ?? '',
         bloodRhesusId: json["blood_rhesus_id"] ?? '',

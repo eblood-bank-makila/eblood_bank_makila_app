@@ -136,8 +136,10 @@ class TUserModel {
             json.containsKey('email_address') && json["email_address"] != null
                 ? json["email_address"]
                 : '-',
-        mfas: List<TMfaModel>.from(
-            json["mfas"].map((x) => TMfaModel.fromJson(x))),
+        mfas: json.containsKey('mfas') && json["mfas"] != null
+            ? List<TMfaModel>.from(
+                json["mfas"].map((x) => TMfaModel.fromJson(x)))
+            : [],
       );
   factory TUserModel.empty() => TUserModel(
       id: '-',

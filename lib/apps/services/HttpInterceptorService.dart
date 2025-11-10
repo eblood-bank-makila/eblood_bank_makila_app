@@ -1,5 +1,5 @@
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
 import '../config/AppConfig.dart';
 
@@ -18,8 +18,16 @@ class HttpInterceptorService {
 
   /// Gets the authentication token if available
   Future<String?> _getAuthToken() async {
-    // Add token handling logic if needed
-    return null;
+    // Prefer fast local cache (GetStorage), fallback to secure storage
+    final token = _storage.read('auth_token');
+    if (token is String && token.isNotEmpty) return token;
+    try {
+      const secure = FlutterSecureStorage();
+      final t = await secure.read(key: 'auth_token');
+      return t;
+    } catch (_) {
+      return null;
+    }
   }
 
   /// Creates headers for HTTP requests based on whether authentication is needed

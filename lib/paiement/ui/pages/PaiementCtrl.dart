@@ -15,9 +15,27 @@ class PaiementCtrl extends _$PaiementCtrl {
   }
 
 
-  Future<PaiementResponseModel?> ajouterPaiment(DatumModel paiement, {String? phoneNumber, String? transactionalCurrencyId}) async {
+  Future<PaiementResponseModel?> ajouterPaiment(
+    DatumModel paiement, {
+    String? phoneNumber,
+    String? transactionalCurrencyId,
+    String? requestFor,
+    String? requestReason,
+    String? patientId,
+    String? requestType,
+    String? urgencyLevel,
+  }) async {
     var usecase = ref.watch(paiementInteractorProvider).ajouterPochePaiementUseCase;
-    var res = await usecase.run(paiement, phoneNumber: phoneNumber, transactionalCurrencyId: transactionalCurrencyId);
+    var res = await usecase.run(
+      paiement,
+      phoneNumber: phoneNumber,
+      transactionalCurrencyId: transactionalCurrencyId,
+      requestFor: requestFor,
+      requestReason: requestReason,
+      patientId: patientId,
+      requestType: requestType,
+      urgencyLevel: urgencyLevel,
+    );
     state = state.copyWith(paiement: res);
 
     return res;

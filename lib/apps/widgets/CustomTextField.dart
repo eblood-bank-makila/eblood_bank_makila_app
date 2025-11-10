@@ -14,6 +14,7 @@ class CustomTextField extends StatefulWidget {
   final VoidCallback? onSuffixIconPressed;
   final int maxLines;
   final bool enabled;
+  final bool hiddenLabel;
   final TextInputAction textInputAction;
 
   const CustomTextField({
@@ -30,6 +31,7 @@ class CustomTextField extends StatefulWidget {
     this.onSuffixIconPressed,
     this.maxLines = 1,
     this.enabled = true,
+    this.hiddenLabel = false,
     this.textInputAction = TextInputAction.next,
   });
 
@@ -53,15 +55,16 @@ class _CustomTextFieldState extends State<CustomTextField> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Label
-        Text(
-          widget.label,
-          style: GoogleFonts.ubuntu(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: Colors.grey[700],
+        if (!widget.hiddenLabel)
+          Text(
+            widget.label,
+            style: GoogleFonts.ubuntu(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: Colors.grey[700],
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
+        if (!widget.hiddenLabel) const SizedBox(height: 8),
         
         // Text field
         Focus(

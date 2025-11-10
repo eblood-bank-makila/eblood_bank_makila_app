@@ -72,12 +72,6 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
   final _longitudeController = TextEditingController();
   final _latitudeController = TextEditingController();
   
-  // Contact Person Controllers
-  final _contactFirstNameController = TextEditingController();
-  final _contactLastNameController = TextEditingController();
-  final _contactEmailController = TextEditingController();
-  final _contactPhoneController = TextEditingController();
-  
   // Admin Account Controllers
   final _adminFirstNameController = TextEditingController();
   final _adminLastNameController = TextEditingController();
@@ -98,11 +92,9 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
   String? _countryCode;
   List<String> _validPrefixes = [];
   String? _structurePhoneError;
-  String? _contactPhoneError;
   String? _adminPhoneError;
-  
+
   // Selected values
-  String? _contactGender;
   String? _adminGender;
   
   // Health Structure Type
@@ -149,15 +141,7 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
         });
       }
     });
-    
-    _contactPhoneController.addListener(() {
-      if (_contactPhoneController.text.isNotEmpty && _validPrefixes.isNotEmpty) {
-        setState(() {
-          _contactPhoneError = _validatePhone(_contactPhoneController.text);
-        });
-      }
-    });
-    
+
     _adminPhoneController.addListener(() {
       if (_adminPhoneController.text.isNotEmpty && _validPrefixes.isNotEmpty) {
         setState(() {
@@ -184,10 +168,7 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
         }
       }
       _structureEmailController.text = email;
-      _contactEmailController.text = email; // default; user can change later if needed
       _adminEmailController.text = email;
-      _contactFirstNameController.text = firstName;
-      _contactLastNameController.text = lastName;
       _adminFirstNameController.text = firstName;
       _adminLastNameController.text = lastName;
       // Auto generate read-only username placeholder
@@ -400,7 +381,6 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
         // Clear phone fields if country code changed to avoid invalid numbers
         if (locationChanged) {
           _structurePhoneController.clear();
-          _contactPhoneController.clear();
           _adminPhoneController.clear();
           print('📱 Phone fields cleared due to location change');
         }
@@ -409,14 +389,12 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
         _countryCode = null;
         _validPrefixes = [];
         _structurePhoneController.clear();
-        _contactPhoneController.clear();
         _adminPhoneController.clear();
         print('📱 All phone-related data cleared (no location)');
       }
-      
+
       // Clear any existing phone errors
       _structurePhoneError = null;
-      _contactPhoneError = null;
       _adminPhoneError = null;
     });
     
@@ -454,10 +432,6 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
     _structureEmailController.dispose();
     _longitudeController.dispose();
     _latitudeController.dispose();
-    _contactFirstNameController.dispose();
-    _contactLastNameController.dispose();
-    _contactEmailController.dispose();
-    _contactPhoneController.dispose();
     _adminFirstNameController.dispose();
     _adminLastNameController.dispose();
     _adminEmailController.dispose();
@@ -683,17 +657,44 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
                       FadeInUp(
                         duration: const Duration(milliseconds: 600),
                         delay: const Duration(milliseconds: 200),
-                        child: CustomTextField(
-                          controller: _structureEmailController,
-                          label: 'email'.tr,
-                          hint: 'hint_structure_email'.tr,
-                          prefixIcon: Ionicons.mail_outline,
-                          keyboardType: TextInputType.emailAddress,
-                          enabled: !_isGoogleMode,
-                          validator: _isGoogleMode ? null : _validateEmail,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            CustomTextField(
+                              controller: _structureEmailController,
+                              label: 'email'.tr,
+                              hint: 'hint_structure_email'.tr,
+                              prefixIcon: Ionicons.mail_outline,
+                              keyboardType: TextInputType.emailAddress,
+                              enabled: !_isGoogleMode,
+                              validator: _isGoogleMode ? null : _validateEmail,
+                            ),
+                            if (_isGoogleMode)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8, left: 12),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Ionicons.shield_checkmark,
+                                      size: 16,
+                                      color: Colors.green[600],
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'Verified by Google',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.green[600],
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
                         ),
                       ),
-                      
+
                       const SizedBox(height: 20),
                       
                       // Phone field - Only shown when location is selected
@@ -903,167 +904,6 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
                       
                       const SizedBox(height: 30),
                       
-                      // Contact Person Section
-                      _buildSectionHeader('contact_person'.tr),
-                      const SizedBox(height: 20),
-                      
-                      // Contact person name
-                      FadeInUp(
-                        duration: const Duration(milliseconds: 600),
-                        delay: const Duration(milliseconds: 600),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: CustomTextField(
-                                controller: _contactFirstNameController,
-                                label: 'first_name'.tr,
-                                hint: 'hint_first_name'.tr,
-                                prefixIcon: Ionicons.person_outline,
-                                validator: _validateRequired,
-                                textCapitalization: TextCapitalization.words,
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: CustomTextField(
-                                controller: _contactLastNameController,
-                                label: 'last_name'.tr,
-                                hint: 'hint_last_name'.tr,
-                                prefixIcon: Ionicons.person_outline,
-                                validator: _validateRequired,
-                                textCapitalization: TextCapitalization.words,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      
-                      const SizedBox(height: 20),
-                      
-                      // Contact gender
-                      FadeInUp(
-                        duration: const Duration(milliseconds: 600),
-                        delay: const Duration(milliseconds: 700),
-                        child: CustomDropdown<String>(
-                          label: 'gender'.tr,
-                          hint: 'hint_select_gender'.tr,
-                          value: _contactGender,
-                          items: _genders.map((gender) => DropdownMenuItem(
-                            value: gender,
-                            child: Text(gender.tr),
-                          )).toList(),
-                          onChanged: (value) => setState(() => _contactGender = value),
-                          validator: _validateRequired,
-                        ),
-                      ),
-                      
-                      const SizedBox(height: 20),
-                      
-                      // Contact email
-                      FadeInUp(
-                        duration: const Duration(milliseconds: 600),
-                        delay: const Duration(milliseconds: 800),
-                        child: CustomTextField(
-                          controller: _contactEmailController,
-                          label: 'email'.tr,
-                          hint: 'hint_contact_email'.tr,
-                          prefixIcon: Ionicons.mail_outline,
-                          keyboardType: TextInputType.emailAddress,
-                          enabled: !_isGoogleMode,
-                          validator: _isGoogleMode ? null : _validateEmail,
-                        ),
-                      ),
-                      
-                      const SizedBox(height: 20),
-                      
-                      // Contact phone - Only shown when location is selected
-                      if (_selectedLocation.isNotEmpty && _countryCode != null)
-                      FadeInUp(
-                        duration: const Duration(milliseconds: 600),
-                        delay: const Duration(milliseconds: 850),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Custom phone field with country flag and code
-                            Container(
-                              margin: const EdgeInsets.only(bottom: 5),
-                              child: Text(
-                                'contact_phone'.tr,
-                                style: GoogleFonts.ubuntu(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.black87,
-                                ),
-                              ),
-                            ),
-                            Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.grey[300]!),
-                              ),
-                              child: Row(
-                                children: [
-                                  // Country flag and code
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey[50],
-                                      borderRadius: const BorderRadius.only(
-                                        topLeft: Radius.circular(8),
-                                        bottomLeft: Radius.circular(8),
-                                      ),
-                                      border: Border(
-                                        right: BorderSide(color: Colors.grey[300]!),
-                                      ),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        // Country flag if available
-                                        if (_selectedLocation['country_flag'] != null)
-                                          Text(
-                                            _selectedLocation['country_flag'],
-                                            style: const TextStyle(fontSize: 20),
-                                          ),
-                                        const SizedBox(width: 5),
-                                        // Country code
-                                        Text(
-                                          _countryCode ?? '',
-                                          style: GoogleFonts.ubuntu(
-                                            fontSize: 16, 
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.grey[800],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  // Phone number input
-                                  Expanded(
-                                    child: TextField(
-                                      controller: _contactPhoneController,
-                                      decoration: InputDecoration(
-                                        hintText: _validPrefixes.isNotEmpty 
-                                          ? '${_validPrefixes.first} XXXXXXX'
-                                          : "XXXXXXXX",
-                                        hintStyle: TextStyle(color: Colors.grey[400]),
-                                        border: InputBorder.none,
-                                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                        prefixIcon: Icon(Ionicons.call_outline, color: Colors.grey[600], size: 20),
-                                        errorText: _contactPhoneError,
-                                      ),
-                                      keyboardType: TextInputType.phone,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      
-                      const SizedBox(height: 30),
-                      
                       // Admin Account Section
                       _buildSectionHeader('admin_account_information'.tr),
                       const SizedBox(height: 20),
@@ -1124,17 +964,44 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
                       FadeInUp(
                         duration: const Duration(milliseconds: 600),
                         delay: const Duration(milliseconds: 1100),
-                        child: CustomTextField(
-                          controller: _adminEmailController,
-                          label: 'email'.tr,
-                          hint: 'hint_admin_email'.tr,
-                          prefixIcon: Ionicons.mail_outline,
-                          keyboardType: TextInputType.emailAddress,
-                          enabled: !_isGoogleMode,
-                          validator: _isGoogleMode ? null : _validateEmail,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            CustomTextField(
+                              controller: _adminEmailController,
+                              label: 'email'.tr,
+                              hint: 'hint_admin_email'.tr,
+                              prefixIcon: Ionicons.mail_outline,
+                              keyboardType: TextInputType.emailAddress,
+                              enabled: !_isGoogleMode,
+                              validator: _isGoogleMode ? null : _validateEmail,
+                            ),
+                            if (_isGoogleMode)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8, left: 12),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Ionicons.shield_checkmark,
+                                      size: 16,
+                                      color: Colors.green[600],
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'Verified by Google',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.green[600],
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
                         ),
                       ),
-                      
+
                       const SizedBox(height: 20),
                       
                       // Admin phone - Only shown when location is selected
@@ -1220,22 +1087,6 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
                               ),
                             ),
                           ],
-                        ),
-                      ),
-                      
-                      const SizedBox(height: 20),
-                      
-                      // Admin username
-                      if (!_isGoogleMode)
-                      FadeInUp(
-                        duration: const Duration(milliseconds: 600),
-                        delay: const Duration(milliseconds: 1200),
-                        child: CustomTextField(
-                          controller: _adminUsernameController,
-                          label: 'username'.tr,
-                          hint: 'hint_admin_username'.tr,
-                          prefixIcon: Ionicons.at_outline,
-                          validator: _validateRequired,
                         ),
                       ),
                       
@@ -1538,12 +1389,10 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
             return;
           }
           final String? structurePhoneError = _validatePhone(_structurePhoneController.text);
-          final String? contactPhoneError = _validatePhone(_contactPhoneController.text);
           final String? adminPhoneError = _validatePhone(_adminPhoneController.text);
-          if (structurePhoneError != null || contactPhoneError != null || adminPhoneError != null) {
+          if (structurePhoneError != null || adminPhoneError != null) {
             setState(() {
               _structurePhoneError = structurePhoneError;
-              _contactPhoneError = contactPhoneError;
               _adminPhoneError = adminPhoneError;
             });
             return;
@@ -1560,13 +1409,6 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
               'health_structure_type_flag': _selectedHealthStructureType!.value,
               'latitude': _latitudeController.text.isNotEmpty ? double.tryParse(_latitudeController.text) : null,
               'longitude': _longitudeController.text.isNotEmpty ? double.tryParse(_longitudeController.text) : null,
-            },
-            'contact_person': {
-              'first_name': _contactFirstNameController.text,
-              'last_name': _contactLastNameController.text,
-              'email': _contactEmailController.text,
-              'phone': _countryCode! + _contactPhoneController.text,
-              'gender': _contactGender,
             },
             'admin_account': {
               'first_name': _adminFirstNameController.text,
@@ -1588,8 +1430,11 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
           final result = await auth.googleRegister(googlePayload);
           if (!mounted) return;
           if (result['success'] == true) {
+            // Handle auto-login response - same as OTP validation success
+            await auth.handleAutoLoginAfterRegistration(result);
+            if (!mounted) return;
             _showSnackBar('registration_success'.tr, isError: false);
-            context.go('/login');
+            context.go('/app/MainApp');
           } else {
             _showSnackBar(result['message']?.toString() ?? 'registration_failed'.tr, isError: true);
           }
@@ -1630,15 +1475,7 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
           setState(() => _structurePhoneError = structurePhoneError);
           return;
         }
-        
-        // Contact phone validation
-        final String? contactPhoneError = _validatePhone(_contactPhoneController.text);
-        if (contactPhoneError != null) {
-          print('❌ Contact phone validation failed: $contactPhoneError');
-          setState(() => _contactPhoneError = contactPhoneError);
-          return;
-        }
-        
+
         // Admin phone validation
         final String? adminPhoneError = _validatePhone(_adminPhoneController.text);
         if (adminPhoneError != null) {
@@ -1675,23 +1512,14 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
         'health_structure_type_flag': _selectedHealthStructureType!.value,
         'latitude': _latitudeController.text.isNotEmpty ? double.parse(_latitudeController.text) : null,
         'longitude': _longitudeController.text.isNotEmpty ? double.parse(_longitudeController.text) : null,
-        
-        // Contact person information
-        'contact_person': {
-          'first_name': _contactFirstNameController.text,
-          'last_name': _contactLastNameController.text,
-          'email': _contactEmailController.text,
-          'phone': _countryCode! + _contactPhoneController.text,
-          'gender': _contactGender,
-        },
-        
+
         // Admin account information
         'admin_account': {
           'first_name': _adminFirstNameController.text,
           'last_name': _adminLastNameController.text,
           'email': _adminEmailController.text,
           'phone': _countryCode! + _adminPhoneController.text,
-          'username': _adminUsernameController.text,
+          'username': _adminEmailController.text, // Use email as username
           'password': _adminPasswordController.text,
           'gender': _adminGender,
         },
@@ -1699,10 +1527,9 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
       
       print('📦 Registration payload prepared: $payload');
       
-      // Collect unique emails to verify (order: structure, contact, admin)
+      // Collect unique emails to verify (order: structure, admin)
       final Set<String> emailSet = {};
       if (_structureEmailController.text.trim().isNotEmpty) emailSet.add(_structureEmailController.text.trim());
-      if (_contactEmailController.text.trim().isNotEmpty) emailSet.add(_contactEmailController.text.trim());
       if (_adminEmailController.text.trim().isNotEmpty) emailSet.add(_adminEmailController.text.trim());
       final emails = emailSet.toList();
 

@@ -32,6 +32,11 @@ class BloodRequestCtrl extends _$BloodRequestCtrl {
     await _fetchRequests(BloodRequestStatus.delivered, page: page, refresh: refresh);
   }
 
+  /// Fetches completed requests (used blood bags)
+  Future<void> fetchCompletedRequests({int page = 0, bool refresh = false}) async {
+    await _fetchRequests(BloodRequestStatus.completed, page: page, refresh: refresh);
+  }
+
   /// Generic method to fetch requests by status
   Future<void> _fetchRequests(
     BloodRequestStatus status, {
@@ -102,6 +107,17 @@ class BloodRequestCtrl extends _$BloodRequestCtrl {
               isLoadingMore: false,
             );
             break;
+          case BloodRequestStatus.completed:
+            final existingRequests = refresh || page == 0 ? <BloodRequestModel>[] : state.completedRequests;
+            state = state.copyWith(
+              completedRequests: [...existingRequests, ...result.data],
+              completedCurrentPage: result.currentPage,
+              completedTotalPages: result.totalPages,
+              completedTotalItems: result.totalItems,
+              isLoading: false,
+              isLoadingMore: false,
+            );
+            break;
         }
       } else {
         state = state.copyWith(
@@ -125,6 +141,7 @@ class BloodRequestCtrl extends _$BloodRequestCtrl {
       fetchPendingDeliveryRequests(refresh: true),
       fetchInProgressDeliveryRequests(refresh: true),
       fetchDeliveredRequests(refresh: true),
+      fetchCompletedRequests(refresh: true),
     ]);
   }
 
@@ -157,6 +174,12 @@ class BloodRequestState {
   final int deliveredTotalPages;
   final int deliveredTotalItems;
 
+  // Completed requests (used blood bags)
+  final List<BloodRequestModel> completedRequests;
+  final int completedCurrentPage;
+  final int completedTotalPages;
+  final int completedTotalItems;
+
   BloodRequestState({
     this.isLoading = false,
     this.isLoadingMore = false,
@@ -173,6 +196,10 @@ class BloodRequestState {
     this.deliveredCurrentPage = 0,
     this.deliveredTotalPages = 0,
     this.deliveredTotalItems = 0,
+    this.completedRequests = const [],
+    this.completedCurrentPage = 0,
+    this.completedTotalPages = 0,
+    this.completedTotalItems = 0,
   });
 
   BloodRequestState copyWith({
@@ -191,6 +218,10 @@ class BloodRequestState {
     int? deliveredCurrentPage,
     int? deliveredTotalPages,
     int? deliveredTotalItems,
+    List<BloodRequestModel>? completedRequests,
+    int? completedCurrentPage,
+    int? completedTotalPages,
+    int? completedTotalItems,
   }) {
     return BloodRequestState(
       isLoading: isLoading ?? this.isLoading,
@@ -208,6 +239,10 @@ class BloodRequestState {
       deliveredCurrentPage: deliveredCurrentPage ?? this.deliveredCurrentPage,
       deliveredTotalPages: deliveredTotalPages ?? this.deliveredTotalPages,
       deliveredTotalItems: deliveredTotalItems ?? this.deliveredTotalItems,
+      completedRequests: completedRequests ?? this.completedRequests,
+      completedCurrentPage: completedCurrentPage ?? this.completedCurrentPage,
+      completedTotalPages: completedTotalPages ?? this.completedTotalPages,
+      completedTotalItems: completedTotalItems ?? this.completedTotalItems,
     );
   }
 

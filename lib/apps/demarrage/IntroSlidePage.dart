@@ -8,6 +8,7 @@ import '../config/theme/ColorPages.dart';
 import '../services/FirstLaunchService.dart';
 import '../services/LanguageService.dart';
 import '../widgets/LanguageSelector.dart';
+import '../components/SponsorFooter.dart';
 
 // Data model for onboarding slides
 class OnboardingSlide {
@@ -158,97 +159,109 @@ class _IntroSlidePageState extends ConsumerState<IntroSlidePage> {
               // Page indicators and navigation
               Expanded(
                 flex: 1,
-                child: Column(
-                  children: [
-                    // Dots indicator
-                    FadeInUp(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(
-                          _slides.length,
-                          (index) => AnimatedContainer(
-                            duration: const Duration(milliseconds: 300),
-                            margin: const EdgeInsets.symmetric(horizontal: 4),
-                            width: _currentPage == index ? 24 : 8,
-                            height: 8,
-                            decoration: BoxDecoration(
-                              color: _currentPage == index
-                                  ? Colors.white
-                                  : Colors.white.withValues(alpha: 0.4),
-                              borderRadius: BorderRadius.circular(4),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Dots indicator
+                      FadeInUp(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(
+                            _slides.length,
+                            (index) => AnimatedContainer(
+                              duration: const Duration(milliseconds: 300),
+                              margin: const EdgeInsets.symmetric(horizontal: 4),
+                              width: _currentPage == index ? 24 : 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: _currentPage == index
+                                    ? Colors.white
+                                    : Colors.white.withValues(alpha: 0.4),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
 
-                    const SizedBox(height: 30),
+                      const SizedBox(height: 20),
 
-                    // Navigation buttons
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          // Previous button
-                          FadeInLeft(
-                            child: _currentPage > 0
-                                ? TextButton.icon(
-                                    onPressed: _previousPage,
-                                    icon: const Icon(Icons.arrow_back, color: Colors.white),
-                                    label: Text(
-                                      'previous'.tr,
+                      // Navigation buttons
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            // Previous button
+                            FadeInLeft(
+                              child: _currentPage > 0
+                                  ? TextButton.icon(
+                                      onPressed: _previousPage,
+                                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                                      label: Text(
+                                        'previous'.tr,
+                                        style: GoogleFonts.ubuntu(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    )
+                                  : const SizedBox(width: 100),
+                            ),
+
+                            // Next/Get Started button
+                            FadeInRight(
+                              child: ElevatedButton(
+                                onPressed: _nextPage,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.white,
+                                  foregroundColor: _slides[_currentPage].color,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 24,
+                                    vertical: 12,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(25),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      _currentPage == _slides.length - 1
+                                          ? 'get_started'.tr
+                                          : 'next'.tr,
                                       style: GoogleFonts.ubuntu(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w500,
+                                        fontWeight: FontWeight.w600,
                                       ),
                                     ),
-                                  )
-                                : const SizedBox(width: 100),
-                          ),
-
-                          // Next/Get Started button
-                          FadeInRight(
-                            child: ElevatedButton(
-                              onPressed: _nextPage,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.white,
-                                foregroundColor: _slides[_currentPage].color,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 24,
-                                  vertical: 12,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(25),
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    _currentPage == _slides.length - 1
-                                        ? 'get_started'.tr
-                                        : 'next'.tr,
-                                    style: GoogleFonts.ubuntu(
-                                      fontWeight: FontWeight.w600,
+                                    const SizedBox(width: 8),
+                                    Icon(
+                                      _currentPage == _slides.length - 1
+                                          ? Icons.check
+                                          : Icons.arrow_forward,
                                     ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Icon(
-                                    _currentPage == _slides.length - 1
-                                        ? Icons.check
-                                        : Icons.arrow_forward,
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
 
-                    const SizedBox(height: 20),
-                  ],
+                      const SizedBox(height: 12),
+
+                      // Sponsor footer
+                      SponsorFooter(
+                        labelStyle: GoogleFonts.ubuntu(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.white.withValues(alpha: 0.8),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
                 ],

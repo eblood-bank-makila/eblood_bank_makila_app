@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:get/get.dart';
 import '../../../../apps/config/theme/ColorPages.dart';
 import '../../../../apps/widgets/AppSpinner.dart';
 import '../../../business/model/blood_request/BloodRequestModel.dart';
@@ -8,6 +11,8 @@ import 'BloodRequestCtrl.dart';
 import 'widgets/BloodRequestCard.dart';
 import 'widgets/BloodRequestEmptyState.dart';
 import 'widgets/BloodRequestErrorState.dart';
+import '../../../../apps/services/BloodDeliveryService.dart';
+import '../../../../qrcode/qrcode_page.dart';
 
 class BloodRequestPage extends ConsumerStatefulWidget {
   const BloodRequestPage({super.key});
@@ -22,15 +27,16 @@ class _BloodRequestPageState extends ConsumerState<BloodRequestPage>
   final ScrollController _pendingScrollController = ScrollController();
   final ScrollController _inProgressScrollController = ScrollController();
   final ScrollController _deliveredScrollController = ScrollController();
+  final ScrollController _completedScrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
-    
+    _tabController = TabController(length: 4, vsync: this);
+
     // Setup scroll listeners for pagination
     _setupScrollListeners();
-    
+
     // Load initial data
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadInitialData();
@@ -58,6 +64,13 @@ class _BloodRequestPageState extends ConsumerState<BloodRequestPage>
         _loadMoreDeliveredRequests();
       }
     });
+
+    _completedScrollController.addListener(() {
+      if (_completedScrollController.position.pixels >=
+          _completedScrollController.position.maxScrollExtent - 200) {
+        _loadMoreCompletedRequests();
+      }
+    });
   }
 
   void _loadInitialData() {
@@ -65,11 +78,12 @@ class _BloodRequestPageState extends ConsumerState<BloodRequestPage>
     controller.fetchPendingDeliveryRequests(refresh: true);
     controller.fetchInProgressDeliveryRequests(refresh: true);
     controller.fetchDeliveredRequests(refresh: true);
+    controller.fetchCompletedRequests(refresh: true);
   }
 
   void _loadMorePendingRequests() {
     final state = ref.read(bloodRequestCtrlProvider);
-    if (!state.isLoadingMore && 
+    if (!state.isLoadingMore &&
         state.pendingCurrentPage < state.pendingTotalPages - 1) {
       ref.read(bloodRequestCtrlProvider.notifier)
           .fetchPendingDeliveryRequests(page: state.pendingCurrentPage + 1);
@@ -78,7 +92,7 @@ class _BloodRequestPageState extends ConsumerState<BloodRequestPage>
 
   void _loadMoreInProgressRequests() {
     final state = ref.read(bloodRequestCtrlProvider);
-    if (!state.isLoadingMore && 
+    if (!state.isLoadingMore &&
         state.inProgressCurrentPage < state.inProgressTotalPages - 1) {
       ref.read(bloodRequestCtrlProvider.notifier)
           .fetchInProgressDeliveryRequests(page: state.inProgressCurrentPage + 1);
@@ -87,10 +101,19 @@ class _BloodRequestPageState extends ConsumerState<BloodRequestPage>
 
   void _loadMoreDeliveredRequests() {
     final state = ref.read(bloodRequestCtrlProvider);
-    if (!state.isLoadingMore && 
+    if (!state.isLoadingMore &&
         state.deliveredCurrentPage < state.deliveredTotalPages - 1) {
       ref.read(bloodRequestCtrlProvider.notifier)
           .fetchDeliveredRequests(page: state.deliveredCurrentPage + 1);
+    }
+  }
+
+  void _loadMoreCompletedRequests() {
+    final state = ref.read(bloodRequestCtrlProvider);
+    if (!state.isLoadingMore &&
+        state.completedCurrentPage < state.completedTotalPages - 1) {
+      ref.read(bloodRequestCtrlProvider.notifier)
+          .fetchCompletedRequests(page: state.completedCurrentPage + 1);
     }
   }
 
@@ -112,10 +135,18 @@ class _BloodRequestPageState extends ConsumerState<BloodRequestPage>
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        automaticallyImplyLeading: false,
-        title: const Text(
-          'Mes Demandes de Sang',
-          style: TextStyle(
+        leading: Navigator.canPop(context)
+            ? IconButton(
+                icon: const Icon(
+                  Icons.arrow_back,
+                  color: ColorPages.COLOR_PRINCIPAL,
+                ),
+                onPressed: () => Navigator.pop(context),
+              )
+            : null,
+        title: Text(
+          'blood_requests'.tr,
+          style: const TextStyle(
             color: ColorPages.COLOR_PRINCIPAL,
             fontWeight: FontWeight.bold,
             fontSize: 20,
@@ -148,7 +179,7 @@ class _BloodRequestPageState extends ConsumerState<BloodRequestPage>
           ),
           tabs: [
             Tab(
-              text: 'En attente',
+              text: 'pending'.tr,
               icon: Badge(
                 label: Text('${state.pendingTotalItems}'),
                 backgroundColor: ColorPages.COLOR_PRINCIPAL,
@@ -157,7 +188,7 @@ class _BloodRequestPageState extends ConsumerState<BloodRequestPage>
               ),
             ),
             Tab(
-              text: 'En cours',
+              text: 'in_progress'.tr,
               icon: Badge(
                 label: Text('${state.inProgressTotalItems}'),
                 backgroundColor: Colors.blue,
@@ -166,12 +197,21 @@ class _BloodRequestPageState extends ConsumerState<BloodRequestPage>
               ),
             ),
             Tab(
-              text: 'Livrées',
+              text: 'delivered'.tr,
               icon: Badge(
                 label: Text('${state.deliveredTotalItems}'),
                 backgroundColor: Colors.green,
                 textColor: Colors.white,
                 child: const Icon(Icons.check_circle),
+              ),
+            ),
+            Tab(
+              text: 'used'.tr,
+              icon: Badge(
+                label: Text('${state.completedTotalItems}'),
+                backgroundColor: const Color(0xFF9C27B0), // Purple
+                textColor: Colors.white,
+                child: const Icon(Icons.check_circle_outline),
               ),
             ),
           ],
@@ -183,7 +223,33 @@ class _BloodRequestPageState extends ConsumerState<BloodRequestPage>
           _buildPendingTab(state),
           _buildInProgressTab(state),
           _buildDeliveredTab(state),
+          _buildCompletedTab(state),
         ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          _showCreateRequestDialog(context);
+        },
+        backgroundColor: ColorPages.COLOR_PRINCIPAL,
+        icon: const Icon(Icons.add, color: Colors.white),
+        label: Text(
+          'blood_request'.tr,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showCreateRequestDialog(BuildContext context) {
+    // TODO: Implement create request dialog/page
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('feature_coming_soon'.tr),
+        backgroundColor: ColorPages.COLOR_PRINCIPAL,
+        duration: const Duration(seconds: 2),
       ),
     );
   }
@@ -195,7 +261,7 @@ class _BloodRequestPageState extends ConsumerState<BloodRequestPage>
       isLoading: state.isLoading,
       isLoadingMore: state.isLoadingMore,
       error: state.error,
-      emptyMessage: 'Aucune demande en attente',
+      emptyMessage: 'no_pending_requests'.tr,
       emptyIcon: Icons.schedule,
     );
   }
@@ -207,7 +273,7 @@ class _BloodRequestPageState extends ConsumerState<BloodRequestPage>
       isLoading: state.isLoading,
       isLoadingMore: state.isLoadingMore,
       error: state.error,
-      emptyMessage: 'Aucune livraison en cours',
+      emptyMessage: 'no_in_progress_deliveries'.tr,
       emptyIcon: Icons.local_shipping,
     );
   }
@@ -219,8 +285,20 @@ class _BloodRequestPageState extends ConsumerState<BloodRequestPage>
       isLoading: state.isLoading,
       isLoadingMore: state.isLoadingMore,
       error: state.error,
-      emptyMessage: 'Aucune demande livrée',
+      emptyMessage: 'no_delivered_requests'.tr,
       emptyIcon: Icons.check_circle,
+    );
+  }
+
+  Widget _buildCompletedTab(BloodRequestState state) {
+    return _buildRequestList(
+      requests: state.completedRequests,
+      scrollController: _completedScrollController,
+      isLoading: state.isLoading,
+      isLoadingMore: state.isLoadingMore,
+      error: state.error,
+      emptyMessage: 'no_used_bags'.tr,
+      emptyIcon: Icons.check_circle_outline,
     );
   }
 
@@ -238,7 +316,7 @@ class _BloodRequestPageState extends ConsumerState<BloodRequestPage>
         child: AppSpinner.heartbeat(
           size: 60,
           showMessage: true,
-          message: 'Chargement des demandes...',
+          message: 'loading'.tr,
         ),
       );
     }
@@ -274,7 +352,7 @@ class _BloodRequestPageState extends ConsumerState<BloodRequestPage>
                 child: AppSpinner.dots(
                   size: 40,
                   showMessage: true,
-                  message: 'Chargement...',
+                  message: 'loading'.tr,
                 ),
               ),
             );
@@ -330,7 +408,7 @@ class _BloodRequestPageState extends ConsumerState<BloodRequestPage>
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: BloodRequestUseCase.getStatusColor(request.status).withOpacity(0.1),
+                          color: BloodRequestUseCase.getStatusColor(request.status).withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Icon(
@@ -345,7 +423,7 @@ class _BloodRequestPageState extends ConsumerState<BloodRequestPage>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Demande #${request.requestId}',
+                              'request_number'.trParams({'id': request.requestId.toString()}),
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -374,34 +452,34 @@ class _BloodRequestPageState extends ConsumerState<BloodRequestPage>
                     ],
                   ),
                   const SizedBox(height: 24),
-                  
+
                   // Details
-                  _buildDetailRow('Hôpital', request.hospitalName),
-                  _buildDetailRow('Type de sang', request.bloodType),
-                  _buildDetailRow('Quantité', '${request.quantity} unité${request.quantity > 1 ? 's' : ''}'),
-                  _buildDetailRow('Date de demande', BloodRequestUseCase.formatDateTime(request.requestDate)),
-                  
+                  _buildDetailRow('hospital'.tr, request.hospitalName),
+                  _buildDetailRow('blood_type'.tr, request.bloodType),
+                  _buildDetailRow('quantity'.tr, '${request.quantity} unité${request.quantity > 1 ? 's' : ''}'),
+                  _buildDetailRow('request_date'.tr, BloodRequestUseCase.formatDateTime(request.requestDate)),
+
                   if (request.deliveryDate != null)
-                    _buildDetailRow('Date de livraison', BloodRequestUseCase.formatDateTime(request.deliveryDate!)),
-                  
+                    _buildDetailRow('delivery_date'.tr, BloodRequestUseCase.formatDateTime(request.deliveryDate!)),
+
                   if (request.deliveryAddress != null)
-                    _buildDetailRow('Adresse de livraison', request.deliveryAddress!),
-                  
+                    _buildDetailRow('address'.tr, request.deliveryAddress!),
+
                   if (request.totalAmount != null)
-                    _buildDetailRow('Montant total', '\$${request.totalAmount!.toStringAsFixed(2)}'),
-                  
+                    _buildDetailRow('total_to_pay'.tr, '\$${request.totalAmount!.toStringAsFixed(2)}'),
+
                   if (request.paymentStatus != null)
-                    _buildDetailRow('Statut de paiement', request.paymentStatus!),
-                  
+                    _buildDetailRow('status'.tr, request.paymentStatus!),
+
                   if (request.notes != null && request.notes!.isNotEmpty)
-                    _buildDetailRow('Notes', request.notes!),
-                  
+                    _buildDetailRow('notes'.tr, request.notes!),
+
                   // Blood bags
                   if (request.bloodBags.isNotEmpty) ...[
                     const SizedBox(height: 24),
-                    const Text(
-                      'Poches de sang',
-                      style: TextStyle(
+                    Text(
+                      'blood_bags'.tr,
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color: ColorPages.COLOR_PRINCIPAL,
@@ -410,6 +488,11 @@ class _BloodRequestPageState extends ConsumerState<BloodRequestPage>
                     const SizedBox(height: 12),
                     ...request.bloodBags.map((bag) => _buildBloodBagCard(bag)),
                   ],
+
+                  const SizedBox(height: 16),
+
+                  if (request.status == BloodRequestStatus.delivered)
+                    _buildConfirmDeliveryButton(request),
                 ],
               ),
             ),
@@ -500,7 +583,7 @@ class _BloodRequestPageState extends ConsumerState<BloodRequestPage>
           if (bag.expiryDate != null) ...[
             const SizedBox(height: 4),
             Text(
-              'Expire le ${BloodRequestUseCase.formatDate(bag.expiryDate!)}',
+              'expires_on'.trParams({'date': BloodRequestUseCase.formatDate(bag.expiryDate!)}),
               style: TextStyle(
                 fontSize: 12,
                 color: Colors.orange[700],
@@ -509,6 +592,155 @@ class _BloodRequestPageState extends ConsumerState<BloodRequestPage>
           ],
         ],
       ),
+    );
+  }
+
+  Widget _buildConfirmDeliveryButton(BloodRequestModel request) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ElevatedButton.icon(
+          onPressed: () => _showConfirmDeliveryDialog(request),
+          icon: const Icon(Icons.verified, color: Colors.white),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.green,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+          label: Text(
+            'confirm_delivery'.tr,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _showConfirmDeliveryDialog(BloodRequestModel request) async {
+    final codeCtrl = TextEditingController();
+    String? scannedJsonDeliveryId;
+    String? scannedJsonCode;
+
+    Future<void> confirmAction(String code, {String? deliveryId}) async {
+      if (code.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('invalid_or_empty_code'.tr), backgroundColor: Colors.red),
+        );
+        return;
+      }
+
+      Navigator.of(context).pop(); // close dialog
+
+      final service = BloodDeliveryService();
+      String? targetDeliveryId = deliveryId;
+
+      // If no deliveryId, try to resolve it by listing delivered deliveries for the hospital
+      if (targetDeliveryId == null || targetDeliveryId.isEmpty) {
+        final found = await service.findDeliveredByCode(code);
+        targetDeliveryId = found != null ? (found['id']?.toString() ?? found['_id']?.toString()) : null;
+      }
+
+      if (targetDeliveryId == null || targetDeliveryId.isEmpty) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('delivery_not_found'.tr), backgroundColor: Colors.red),
+        );
+        return;
+      }
+
+      final res = await service.receiveDelivery(deliveryId: targetDeliveryId, code: code);
+      if (!mounted) return;
+
+      if (res.success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('delivery_confirmed'.tr), backgroundColor: Colors.green),
+        );
+        // Refresh lists
+        await ref.read(bloodRequestCtrlProvider.notifier).refreshAll();
+        // Close bottom sheet if open
+        if (mounted) {
+          Navigator.of(context).maybePop();
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(res.message ?? 'operation_failed'.tr), backgroundColor: Colors.red),
+        );
+      }
+    }
+
+    await showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: Text('confirm_delivery'.tr),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: codeCtrl,
+                decoration: InputDecoration(
+                  labelText: 'delivery_code'.tr,
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: Tooltip(
+                      message: 'scan_qr_to_confirm'.tr,
+                      child: OutlinedButton.icon(
+                        onPressed: () async {
+                          final result = await Navigator.of(context).push<String>(
+                            MaterialPageRoute(builder: (_) => const QrcodePage()),
+                          );
+                          if (result != null && result.isNotEmpty) {
+                            try {
+                              final decoded = jsonDecode(result);
+                              if (decoded is Map) {
+                                final m = Map<String, dynamic>.from(decoded);
+                                final dId = (m['delivery_id'] ?? m['id'] ?? m['_id'])?.toString();
+                                final code = (m['delivery_code'] ?? m['code'])?.toString();
+                                if (code != null && code.isNotEmpty) {
+                                  codeCtrl.text = code;
+                                  scannedJsonCode = code;
+                                  scannedJsonDeliveryId = dId;
+                                  return;
+                                }
+                              }
+                            } catch (_) {
+                              // Not a JSON payload; fall back to using raw text
+                            }
+                            codeCtrl.text = result;
+                            scannedJsonDeliveryId = null;
+                            scannedJsonCode = result;
+                          }
+                        },
+                        icon: const Icon(Icons.qr_code_scanner),
+                        label: Text('scan_qr'.tr),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: Text('cancel'.tr),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final code = (scannedJsonCode ?? codeCtrl.text).trim();
+                confirmAction(code, deliveryId: scannedJsonDeliveryId);
+              },
+              child: Text('confirm'.tr),
+            ),
+          ],
+        );
+      },
     );
   }
 }

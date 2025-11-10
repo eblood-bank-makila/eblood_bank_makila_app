@@ -6,7 +6,7 @@ part of 'FavorisCtrl.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$favorisCtrlHash() => r'2371a2078dda2f709da610d55ecd1192858048d5';
+String _$favorisCtrlHash() => r'7b3910404f60496dd96ac004ce98e165e37bd36b';
 
 /// See also [FavorisCtrl].
 @ProviderFor(FavorisCtrl)

@@ -41,7 +41,7 @@ class _PersonalRegistrationPageState extends State<PersonalRegistrationPage> {
   final _dateOfBirthController = TextEditingController();
   
   // Selected values
-  String? _selectedGender;
+  String? _selectedGender;  
   String? _selectedBloodType;
   String? _selectedReason;
   DateTime? _selectedDate;
@@ -585,17 +585,44 @@ class _PersonalRegistrationPageState extends State<PersonalRegistrationPage> {
                       FadeInUp(
                         duration: const Duration(milliseconds: 600),
                         delay: const Duration(milliseconds: 300),
-                        child: CustomTextField(
-                          controller: _emailController,
-                          label: 'email'.tr,
-                          hint: 'hint_email'.tr,
-                          prefixIcon: Ionicons.mail_outline,
-                          keyboardType: TextInputType.emailAddress,
-                          enabled: widget.extra?['registration_mode'] != 'google',
-                          validator: widget.extra?['registration_mode'] == 'google' ? null : _validateEmail,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            CustomTextField(
+                              controller: _emailController,
+                              label: 'email'.tr,
+                              hint: 'hint_email'.tr,
+                              prefixIcon: Ionicons.mail_outline,
+                              keyboardType: TextInputType.emailAddress,
+                              enabled: widget.extra?['registration_mode'] != 'google',
+                              validator: widget.extra?['registration_mode'] == 'google' ? null : _validateEmail,
+                            ),
+                            if (widget.extra?['registration_mode'] == 'google')
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8, left: 12),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Ionicons.shield_checkmark,
+                                      size: 16,
+                                      color: Colors.green[600],
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'Verified by Google',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.green[600],
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
                         ),
                       ),
-                      
+
                       const SizedBox(height: 20),
                       
                       // Phone field - Only shown when location is selected
@@ -1262,7 +1289,7 @@ class _PersonalRegistrationPageState extends State<PersonalRegistrationPage> {
         'last_name': _lastNameController.text,
         'gender': _selectedGender,
         'email': _emailController.text,
-        'phone_number': _phoneController.text,
+        'phone_number': _countryCode! + _phoneController.text,
         'blood_type': _selectedBloodType,
         'registration_reason': _selectedReason,
         'address': _addressController.text,

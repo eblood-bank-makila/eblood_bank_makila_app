@@ -79,11 +79,10 @@ class _ListePocheBanquePageState extends ConsumerState<ListePocheBanquePage> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              ColorPages.COLOR_PRINCIPAL,
-              ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.8),
-              Colors.grey.shade50,
+              Colors.red.shade100,
+              Colors.red.shade50,
+              Colors.white,
             ],
-            stops: const [0.0, 0.15, 1.0],
           ),
         ),
         child: SafeArea(
@@ -99,11 +98,7 @@ class _ListePocheBanquePageState extends ConsumerState<ListePocheBanquePage> {
               Expanded(
                 child: Container(
                   decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(20),
-                      topRight: Radius.circular(20),
-                    ),
+                    color: Colors.transparent,
                   ),
                   child: RefreshIndicator(
                     color: ColorPages.COLOR_PRINCIPAL,
@@ -155,16 +150,12 @@ class _ListePocheBanquePageState extends ConsumerState<ListePocheBanquePage> {
                 width: 45,
                 height: 45,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.3),
-                    width: 1,
-                  ),
                 ),
                 child: Icon(
                   Iconsax.arrow_left_2,
-                  color: Colors.white,
+                  color: ColorPages.COLOR_PRINCIPAL,
                   size: 20,
                 ),
               ),
@@ -182,7 +173,7 @@ class _ListePocheBanquePageState extends ConsumerState<ListePocheBanquePage> {
                     style: GoogleFonts.ubuntu(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: ColorPages.COLOR_PRINCIPAL,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -191,14 +182,14 @@ class _ListePocheBanquePageState extends ConsumerState<ListePocheBanquePage> {
                       Icon(
                         Iconsax.location,
                         size: 14,
-                        color: Colors.white.withValues(alpha: 0.8),
+                        color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.8),
                       ),
                       const SizedBox(width: 4),
                       Text(
                         widget.localisation,
                         style: GoogleFonts.ubuntu(
                           fontSize: 12,
-                          color: Colors.white.withValues(alpha: 0.8),
+                          color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.7),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -266,12 +257,19 @@ class _ListePocheBanquePageState extends ConsumerState<ListePocheBanquePage> {
         margin: const EdgeInsets.symmetric(horizontal: 20),
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.15),
+          color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: Colors.white.withValues(alpha: 0.3),
+            color: Colors.grey.shade200,
             width: 1,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: Offset(0, 4),
+            ),
+          ],
         ),
         child: Row(
           children: [
@@ -279,12 +277,12 @@ class _ListePocheBanquePageState extends ConsumerState<ListePocheBanquePage> {
               width: 50,
               height: 50,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
+                color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
                 Iconsax.hospital,
-                color: Colors.white,
+                color: ColorPages.COLOR_PRINCIPAL,
                 size: 24,
               ),
             ),
@@ -297,7 +295,7 @@ class _ListePocheBanquePageState extends ConsumerState<ListePocheBanquePage> {
                     'Banque de Sang',
                     style: GoogleFonts.ubuntu(
                       fontSize: 14,
-                      color: Colors.white.withValues(alpha: 0.8),
+                      color: Colors.grey.shade700,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -306,7 +304,7 @@ class _ListePocheBanquePageState extends ConsumerState<ListePocheBanquePage> {
                     'Poches de sang disponibles',
                     style: GoogleFonts.ubuntu(
                       fontSize: 12,
-                      color: Colors.white.withValues(alpha: 0.7),
+                      color: Colors.grey.shade600,
                     ),
                   ),
                 ],
@@ -315,7 +313,7 @@ class _ListePocheBanquePageState extends ConsumerState<ListePocheBanquePage> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
+                color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Row(
@@ -324,14 +322,14 @@ class _ListePocheBanquePageState extends ConsumerState<ListePocheBanquePage> {
                   Icon(
                     Iconsax.heart,
                     size: 14,
-                    color: Colors.white,
+                    color: ColorPages.COLOR_PRINCIPAL,
                   ),
                   const SizedBox(width: 4),
                   Text(
                     'Actif',
                     style: GoogleFonts.ubuntu(
                       fontSize: 12,
-                      color: Colors.white,
+                      color: ColorPages.COLOR_PRINCIPAL,
                       fontWeight: FontWeight.w600,
                     ),
                   ),

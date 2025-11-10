@@ -32,11 +32,40 @@ class ApiConfig {
   static const String donorEligibility = '/eblood-connect/blood-donors/eligibility';
   static const String inventorySettings = '/eblood/inventory/settings';
 
-  // Request operations
+  // Hospital-specific endpoints
+  // Blood requests
+  static const String bankBloodRequestsList = '/eblood/requests/blood-requests/list';
+  static const String hospitalBloodRequestsList = '/blood-requests/fetch/blood-requests';
+
+  // Hospital statistics (comprehensive stats including requests, inventory, patients, operations)
+  // Note: hospital_id is derived from authenticated user's sys_organization_id
+  static const String hospitalStatistics = '/eblood/hospitals/statistics';
+
+  // Inventory
+  static const String hospitalsList = '/eblood/hospitals/list';
+  static const String patientsList = '/eblood/patients/list';
+  static String hospitalInventoryStats(String hospitalId) => '/eblood/inventory/statistics/$hospitalId';
+  static const String inventoryItemsList = '/eblood/inventory/items/list';
+  static String inventoryItemUpdate(String itemId) => '/eblood/inventory/items/$itemId';
+  static String inventoryItemTransfuse(String itemId) => '/eblood/inventory/items/$itemId/transfuse';
+
+  // Deliveries
+  static String deliveriesForHospitalDelivered(String hospitalId) => '/eblood/deliveries/delivered/$hospitalId';
+  static String receiveDelivery(String deliveryId) => '/eblood/deliveries/$deliveryId/receive';
+
+  // Users & Roles
+  static const String usersList = '/users/fetch';
+  static const String userSearch = '/users/search';
+  static const String userCreate = '/organizations/add/users';
+  static String userUpdate(String userId) => '/organizations/update/sys_user/$userId';
+  static const String userDelete = '/organizations/hard-delete/user';
+  static const String rolesList = '/cores/get-config-roles';
+
+  // Request operations (blood bank legacy)
   static String approveRequest(String requestId) => '/blood-bank/requests/$requestId/approve';
   static String rejectRequest(String requestId) => '/blood-bank/requests/$requestId/reject';
 
-  // Stock operations
+  // Stock operations (blood bank legacy)
   static String updateStock(String stockId) => '/blood-bank/stock/$stockId';
   static String deleteStock(String stockId) => '/blood-bank/stock/$stockId';
 

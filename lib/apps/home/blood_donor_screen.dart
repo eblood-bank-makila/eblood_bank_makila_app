@@ -51,11 +51,10 @@ class _BloodDonorScreenState extends State<BloodDonorScreen> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              ColorPages.COLOR_PRINCIPAL,
-              ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.8),
-              Colors.grey.shade50,
+              Colors.red.shade100,
+              Colors.red.shade50,
+              Colors.white,
             ],
-            stops: const [0.0, 0.15, 1.0],
           ),
         ),
         child: SafeArea(
@@ -76,13 +75,6 @@ class _BloodDonorScreenState extends State<BloodDonorScreen> {
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(10),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.1),
-                                blurRadius: 10,
-                                offset: const Offset(0, 5),
-                              ),
-                            ],
                           ),
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(10),

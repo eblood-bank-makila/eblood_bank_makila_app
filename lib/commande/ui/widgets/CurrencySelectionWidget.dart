@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:eblood_bank_mak_app/commande/ui/pages/panier/PanierCtrl.dart';
 import '../../../apps/config/theme/ColorPages.dart';
 import '../../business/model/CurrencyExchangeModel.dart';
 import '../../business/service/CurrencyExchangeService.dart';
@@ -31,13 +32,22 @@ class _CurrencySelectionWidgetState extends ConsumerState<CurrencySelectionWidge
     _selectedCurrency = widget.selectedCurrency;
   }
 
-  double _calculateConvertedAmount(CurrencyExchangeModel currency) {
-    return widget.totalPrice.toDouble() * currency.exchangedValue;
-  }
+
 
   @override
   Widget build(BuildContext context) {
-    final currencyExchangeAsync = ref.watch(currencyExchangeProvider);
+    final panierState = ref.watch(panierCtrlProvider);
+    final cartCurrency = panierState.paniers?.data.isNotEmpty == true
+        ? panierState.paniers!.data[0].currency
+        : 'USD';
+    final cart = panierState.paniers?.data.isNotEmpty == true ? panierState.paniers!.data[0] : null;
+    final itemCurrencyId = (cart?.cartItems.isNotEmpty == true) ? cart!.cartItems[0].currencyId : '';
+    final currencyId = itemCurrencyId.isNotEmpty ? itemCurrencyId : (cart?.refCurrencyId ?? '');
+    final currencyExchangeAsync = ref.watch(
+      currencyExchangeProvider(
+        CurrencyExchangeParams(amount: widget.totalPrice.toDouble(), refCurrencyId: currencyId),
+      ),
+    );
 
     return currencyExchangeAsync.when(
       loading: () => Container(
@@ -138,19 +148,19 @@ class _CurrencySelectionWidgetState extends ConsumerState<CurrencySelectionWidge
               ),
               const SizedBox(height: 12),
               
-              // Default USD option
+              // Default cart currency option
               _buildCurrencyOption(
                 null,
-                'USD',
+                cartCurrency,
                 widget.totalPrice.toDouble(),
                 'Devise par défaut',
               ),
               
-              // Currency exchange options
+              // Currency exchange options (use server-provided converted_amount)
               ...currencyResponse.data.map((currency) => _buildCurrencyOption(
                 currency,
                 currency.currencyToCode,
-                _calculateConvertedAmount(currency),
+                currency.convertedAmount,
                 'Taux: ${currency.exchangedValue.toStringAsFixed(4)}',
               )).toList(),
             ],
@@ -184,7 +194,7 @@ class _CurrencySelectionWidgetState extends ConsumerState<CurrencySelectionWidge
           child: Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: isSelected ? ColorPages.COLOR_PRINCIPAL.withOpacity(0.1) : Colors.white,
+              color: isSelected ? ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.1) : Colors.white,
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
                 color: isSelected ? ColorPages.COLOR_PRINCIPAL : Colors.grey.shade300,

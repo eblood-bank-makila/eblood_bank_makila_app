@@ -3,18 +3,32 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:get/get.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as path;
+import 'package:sembast/sembast_io.dart';
 import '../../../apps/config/theme/ColorPages.dart';
 import '../pages/BloodBankHomePage.dart';
 import '../pages/BloodBankInventoryPage.dart';
 import '../pages/BloodBankRequestsPage.dart';
 import '../../../utilisateurs/ui/pages/profil/ProfilePage.dart';
 import '../../../apps/connect/announcements/announcements_screen.dart';
+import '../../../utilisateurs/business/service/NotificationPush.dart';
+import '../../../utilisateurs/ui/framework/UtilisateurLocalServiceImpl.dart';
+import '../../services/blood_request_notification_service.dart';
 
 class BloodBankBottomNavWidget extends ConsumerStatefulWidget {
   const BloodBankBottomNavWidget({super.key});
 
   @override
   ConsumerState<BloodBankBottomNavWidget> createState() => _BloodBankBottomNavWidgetState();
+}
+
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  print('Handling a background message for blood bank: ${message.messageId}');
 }
 
 class _BloodBankBottomNavWidgetState extends ConsumerState<BloodBankBottomNavWidget> {
@@ -50,6 +64,47 @@ class _BloodBankBottomNavWidgetState extends ConsumerState<BloodBankBottomNavWid
     ),
   ];
 
+  void initiateFCMForBloodBank() async {
+    try {
+      await dotenv.load(fileName: ".env");
+      final appDir = await getApplicationDocumentsDirectory();
+      final dbPath = path.join(appDir.path, "sembast.db");
+      DatabaseFactory dbFactory = databaseFactoryIo;
+      Database db = await dbFactory.openDatabase(dbPath);
+
+      var utilisateurLocalImpl = UtilisateurLocalServiceImpl(db);
+
+      // Initialize general FCM service
+      FirebaseMessaging firebaseMessaging = FirebaseMessaging.instance;
+      final pushNotificationService =
+          PushNotificationService(firebaseMessaging, utilisateurLocalImpl);
+      pushNotificationService.initialise();
+
+      // Initialize blood request notification service
+      final localNotifications = FlutterLocalNotificationsPlugin();
+      final bloodRequestNotificationService = BloodRequestNotificationService(
+        fcm: firebaseMessaging,
+        localNotifications: localNotifications,
+        ref: ref,
+      );
+      await bloodRequestNotificationService.initialize();
+
+      FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+      print('✅ FCM initialized for Blood Bank');
+    } catch (e) {
+      print('❌ Error initializing FCM for Blood Bank: $e');
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(const Duration(seconds: 5), () {
+      initiateFCMForBloodBank();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -66,14 +121,14 @@ class _BloodBankBottomNavWidgetState extends ConsumerState<BloodBankBottomNavWid
   Widget _buildBottomNavigationBar() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 20,
-            offset: const Offset(0, -5),
-          ),
-        ],
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Colors.red.shade50,
+            Colors.white,
+          ],
+        ),
       ),
       child: SafeArea(
         child: Container(
@@ -105,9 +160,9 @@ class _BloodBankBottomNavWidgetState extends ConsumerState<BloodBankBottomNavWid
                         child: Icon(
                           isSelected ? item.activeIcon : item.icon,
                           key: ValueKey(isSelected),
-                          color: isSelected 
+                          color: isSelected
                               ? ColorPages.COLOR_PRINCIPAL
-                              : Colors.grey.shade600,
+                              : Colors.black,
                           size: 24,
                         ),
                       ),
@@ -117,9 +172,9 @@ class _BloodBankBottomNavWidgetState extends ConsumerState<BloodBankBottomNavWid
                         style: GoogleFonts.ubuntu(
                           fontSize: 12,
                           fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                          color: isSelected 
+                          color: isSelected
                               ? ColorPages.COLOR_PRINCIPAL
-                              : Colors.grey.shade600,
+                              : Colors.black,
                         ),
                         child: Text(item.label.tr),
                       ),

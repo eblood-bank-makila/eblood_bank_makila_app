@@ -19,6 +19,8 @@ class PanierServiceNetworkImpl implements PanierNetworkService {
       PanierModel data, String authBearer) async {
     try {
       debugPrint("📤 Adding to cart: blood_bag_id=${data.blood_bag_id}, quantity=${data.quantity}");
+      debugPrint("   Full PanierModel payload: ${data.toJson()}");
+      debugPrint("   Auth bearer present: ${authBearer.isNotEmpty}");
 
       final response = await postWithDio(
         '/eblood-connect/cart/add',
@@ -36,12 +38,14 @@ class PanierServiceNetworkImpl implements PanierNetworkService {
       }
 
       debugPrint("✅ Added to cart successfully");
+  debugPrint("   Backend response: success=${response.success}, statusCode=${response.statusCode}, message=${response.message}");
+  debugPrint("   Backend raw data: ${response.data}");
 
       // Create response model from top-level response fields
       var responseFinal = PanierReponseModel(
         sms: response.message ?? 'Item added to cart successfully',
         statusCode: response.statusCode ?? 200,
-        success: response.success ?? false,
+        success: response.success,
       );
       return responseFinal;
     } catch (e) {
@@ -71,6 +75,9 @@ class PanierServiceNetworkImpl implements PanierNetworkService {
       // Extract currency from backend response (defaults to CDF if not provided)
       String currencyCode = cartData['currency_code']?.toString() ?? 'CDF';
       String currencySymbol = cartData['currency_symbol']?.toString() ?? 'CDF';
+
+      String refCurrencyId = cartData['ref_currency_id']?.toString() ?? '';
+      debugPrint("\ud83d\udd0e Cart ref_currency_id from backend: '$refCurrencyId'");
 
       debugPrint("📦 Cart has ${cartItems.length} items");
       debugPrint("💰 Currency: $currencyCode ($currencySymbol)");
@@ -130,6 +137,8 @@ class PanierServiceNetworkImpl implements PanierNetworkService {
         'createdAt': cartData['created_at'] ?? DateTime.now().toIso8601String(),
         'cart_items': transformedCartItems,
         'currency': currencyCode,  // Use currency from backend
+        'ref_currency_id': refCurrencyId,
+
         'total_cart_blood_bags': cartItems.length,
         'total_price': cartItems.fold<double>(0, (sum, item) => sum + (item['total_price'] ?? 0)).toInt(),
         'total_fees': cartData['total_fees']?.toDouble() ?? 0.0,  // Get from backend
@@ -139,7 +148,7 @@ class PanierServiceNetworkImpl implements PanierNetworkService {
       // RecupererPanierResponseModel expects data to be a list of carts
       var transformedResponse = {
         'status_code': response.statusCode ?? 200,
-        'success': response.success ?? false,
+        'success': response.success,
         'perpage': 1,  // We have 1 cart
         'max': 1,
         'data': [transformedCart],  // Wrap cart in array

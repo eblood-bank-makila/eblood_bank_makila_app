@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:permission_handler/permission_handler.dart' as ph;
 
 /// Production-ready GPS location tracking service
 /// - Gets real device GPS coordinates
@@ -28,11 +27,14 @@ class LocationTrackingService {
   static const String _keyAltitude = 'user_altitude';
   static const String _keyAccuracy = 'user_accuracy';
   static const String _keyTimestamp = 'user_location_timestamp';
+  static const String _keyPermissionStatus = 'location_permission_status';
+  static const String _keyPermissionCheckedAt = 'location_permission_checked_at';
   
   // Configuration
   static const Duration _backgroundUpdateInterval = Duration(minutes: 15); // Update every 15 minutes
   static const Duration _locationTimeout = Duration(seconds: 30);
   static const int _maxLocationAge = 3600000; // 1 hour in milliseconds
+  static const int _permissionCacheAge = 86400000; // 24 hours in milliseconds
   
   // Getters
   Position? get currentPosition => _currentPosition;
@@ -43,20 +45,44 @@ class LocationTrackingService {
     try {
       debugPrint('🗺️ Initializing LocationTrackingService...');
       
-      // Load saved location
+      // Load saved location (blocking - fast)
       await _loadSavedLocation();
       
-      // Request permissions
-      final hasPermission = await _requestLocationPermission();
+      // Check cached permission status first (fast, non-blocking)
+      final cachedPermission = await _getCachedPermissionStatus();
+      bool hasPermission = false;
+      
+      if (cachedPermission == 'granted') {
+        // Use cached permission (instant)
+        debugPrint('✅ Using cached permission status: granted');
+        hasPermission = true;
+        
+        // Verify permission in background (non-blocking)
+        _verifyPermissionInBackground();
+      } else if (cachedPermission == 'denied' || cachedPermission == 'deniedForever') {
+        // Permission was denied, don't request again immediately
+        debugPrint('⚠️ Using cached permission status: $cachedPermission');
+        debugPrint('💡 Call requestPermission() to show permission dialog or redirect to settings');
+        hasPermission = false;
+      } else {
+        // Unknown or first time - need to check/request permission
+        debugPrint('🔍 No cached permission, checking permission...');
+        hasPermission = await _requestLocationPermission();
+      }
       
       if (hasPermission) {
-        // Get initial location
-        await updateLocation();
-        
-        // Start background tracking
+        // Start background tracking immediately (non-blocking)
         startBackgroundTracking();
         
-        debugPrint('✅ LocationTrackingService initialized successfully');
+        // Get initial location in background (non-blocking)
+        // Use fire-and-forget pattern
+        updateLocation().then((_) {
+          debugPrint('✅ Initial location fetched in background');
+        }).catchError((error) {
+          debugPrint('⚠️ Initial location fetch failed: $error');
+        });
+        
+        debugPrint('✅ LocationTrackingService initialized successfully (using cached location)');
       } else {
         debugPrint('⚠️ Location permission not granted, using saved location only');
       }
@@ -65,49 +91,130 @@ class LocationTrackingService {
     }
   }
   
+  /// Get cached permission status from storage
+  Future<String?> _getCachedPermissionStatus() async {
+    try {
+      final statusStr = await _secureStorage.read(key: _keyPermissionStatus);
+      final checkedAtStr = await _secureStorage.read(key: _keyPermissionCheckedAt);
+      
+      if (statusStr != null && checkedAtStr != null) {
+        final checkedAt = DateTime.fromMillisecondsSinceEpoch(int.parse(checkedAtStr));
+        final age = DateTime.now().difference(checkedAt).inMilliseconds;
+        
+        // Only use cache if it's less than 24 hours old
+        if (age < _permissionCacheAge) {
+          debugPrint('📦 Using cached permission status: $statusStr (age: ${(age / 3600000).toStringAsFixed(1)}h)');
+          return statusStr;
+        } else {
+          debugPrint('⏰ Cached permission status expired (age: ${(age / 3600000).toStringAsFixed(1)}h)');
+        }
+      }
+      return null;
+    } catch (e) {
+      debugPrint('❌ Error reading cached permission: $e');
+      return null;
+    }
+  }
+  
+  /// Save permission status to storage
+  Future<void> _savePermissionStatus(String status) async {
+    try {
+      await _secureStorage.write(key: _keyPermissionStatus, value: status);
+      await _secureStorage.write(key: _keyPermissionCheckedAt, value: DateTime.now().millisecondsSinceEpoch.toString());
+      debugPrint('💾 Saved permission status: $status');
+    } catch (e) {
+      debugPrint('❌ Error saving permission status: $e');
+    }
+  }
+  
+  /// Verify permission in background (non-blocking)
+  void _verifyPermissionInBackground() {
+    // Check permission without blocking
+    _hasLocationPermission().then((hasPermission) {
+      final status = hasPermission ? 'granted' : 'denied';
+      _savePermissionStatus(status);
+      
+      if (!hasPermission) {
+        debugPrint('⚠️ Background permission check: permission revoked');
+        stopBackgroundTracking();
+      }
+    }).catchError((error) {
+      debugPrint('⚠️ Background permission verification failed: $error');
+    });
+  }
+  
   /// Request location permissions
   Future<bool> _requestLocationPermission() async {
     try {
-      // Check if location services are enabled
+      // Check if location services are enabled (fast check)
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         debugPrint('⚠️ Location services are disabled');
+        await _savePermissionStatus('servicesDisabled');
         return false;
       }
       
-      // Check current permission status
+      // Check current permission status (fast check)
       LocationPermission permission = await Geolocator.checkPermission();
       
+      // If already granted, return immediately
+      if (permission == LocationPermission.always || 
+          permission == LocationPermission.whileInUse) {
+        debugPrint('✅ Location permission already granted: $permission');
+        await _savePermissionStatus('granted');
+        return true;
+      }
+      
+      // Handle denied forever case
+      if (permission == LocationPermission.deniedForever) {
+        debugPrint('⚠️ Location permission permanently denied');
+        await _savePermissionStatus('deniedForever');
+        return false;
+      }
+      
+      // Only request if denied (this is fast on subsequent launches)
       if (permission == LocationPermission.denied) {
-        // Request permission
+        debugPrint('📝 Requesting location permission...');
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          debugPrint('⚠️ Location permission denied');
+          debugPrint('⚠️ Location permission denied by user');
+          await _savePermissionStatus('denied');
           return false;
         }
       }
       
-      if (permission == LocationPermission.deniedForever) {
-        debugPrint('⚠️ Location permission permanently denied');
-        // Optionally open app settings
-        await ph.Permission.location.request();
-        return false;
-      }
-      
-      // Check for background location permission (iOS)
-      if (defaultTargetPlatform == TargetPlatform.iOS) {
-        if (permission == LocationPermission.whileInUse) {
-          // Request always permission for background tracking
-          permission = await Geolocator.requestPermission();
-        }
-      }
-      
       debugPrint('✅ Location permission granted: $permission');
+      await _savePermissionStatus('granted');
       return true;
     } catch (e) {
       debugPrint('❌ Error requesting location permission: $e');
+      await _savePermissionStatus('error');
       return false;
     }
+  }
+  
+  /// Manually request location permission (for UI button)
+  /// Shows permission dialog or opens app settings if denied forever
+  Future<bool> requestPermission() async {
+    debugPrint('🔐 Manually requesting location permission...');
+    
+    // Clear cached status to force fresh check
+    await _secureStorage.delete(key: _keyPermissionStatus);
+    await _secureStorage.delete(key: _keyPermissionCheckedAt);
+    
+    final hasPermission = await _requestLocationPermission();
+    
+    if (hasPermission) {
+      // Start tracking if permission granted
+      startBackgroundTracking();
+      updateLocation().then((_) {
+        debugPrint('✅ Location fetched after permission granted');
+      }).catchError((error) {
+        debugPrint('⚠️ Failed to fetch location: $error');
+      });
+    }
+    
+    return hasPermission;
   }
   
   /// Get current location and save it
@@ -290,7 +397,8 @@ class LocationTrackingService {
     }
   }
   
-  /// Get location for API calls (with fallback)
+  /// Get location for API calls (with fallback) - DEPRECATED: Use getCachedLocationSync instead
+  @Deprecated('Use getCachedLocationSync for non-blocking access')
   Future<Map<String, double>> getLocationForApi() async {
     try {
       // Try to get fresh location if permission is granted
@@ -328,6 +436,80 @@ class LocationTrackingService {
         'longitude': 30.0619,
       };
     }
+  }
+  
+  /// Get cached location synchronously (non-blocking)
+  /// Returns immediately with stored location or default coordinates
+  Map<String, double> getCachedLocationSync() {
+    // Trigger background update (fire and forget)
+    _triggerBackgroundUpdate();
+    
+    // Use cached location if available
+    if (_currentPosition != null) {
+      debugPrint('📍 Using cached location for API (sync)');
+      return {
+        'latitude': _currentPosition!.latitude,
+        'longitude': _currentPosition!.longitude,
+      };
+    }
+    
+    // Fallback to default location (Kigali, Rwanda)
+    debugPrint('⚠️ No cached location, using default (Kigali)');
+    return {
+      'latitude': -1.9441,
+      'longitude': 30.0619,
+    };
+  }
+  
+  /// Trigger background location update (non-blocking)
+  void _triggerBackgroundUpdate() {
+    // Don't await - let it run in background
+    _hasLocationPermission().then((hasPermission) {
+      if (hasPermission) {
+        updateLocation().catchError((error) {
+          debugPrint('⚠️ Background location update failed: $error');
+          return null;
+        });
+      }
+    }).catchError((error) {
+      debugPrint('⚠️ Permission check failed: $error');
+    });
+  }
+  
+  /// Check location permission status synchronously (from last check)
+  /// Returns: 'granted', 'denied', 'deniedForever', 'servicesDisabled', 'unknown'
+  Future<String> checkPermissionStatus() async {
+    try {
+      // Check if services are enabled
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        return 'servicesDisabled';
+      }
+      
+      // Check permission
+      final permission = await Geolocator.checkPermission();
+      
+      switch (permission) {
+        case LocationPermission.always:
+        case LocationPermission.whileInUse:
+          return 'granted';
+        case LocationPermission.denied:
+          return 'denied';
+        case LocationPermission.deniedForever:
+          return 'deniedForever';
+        default:
+          return 'unknown';
+      }
+    } catch (e) {
+      debugPrint('❌ Error checking permission status: $e');
+      return 'unknown';
+    }
+  }
+  
+  /// Check if location permission is granted (simple check)
+  Future<bool> isPermissionGranted() async {
+    final status = await checkPermissionStatus();
+    return status == 'granted';
   }
   
   /// Dispose resources

@@ -1,0 +1,379 @@
+import 'dart:io';
+
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'package:google_mlkit_commons/google_mlkit_commons.dart';
+import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
+import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
+import '../config/theme/ColorPages.dart';
+import '../widgets/GradientScaffold.dart';
+import '../services/AuthService.dart';
+import '../../core/widgets/location_tree_select.dart';
+import '../models/SystemCountry.dart';
+import './id_extraction.dart';
+
+class InsRequestStepper extends StatefulWidget {
+  const InsRequestStepper({super.key});
+
+  @override
+  State<InsRequestStepper> createState() => _InsRequestStepperState();
+}
+
+class _InsRequestStepperState extends State<InsRequestStepper> {
+  int _step = 0;
+  bool _loading = false;
+
+  final _picker = ImagePicker();
+  final _authService = AuthService();
+  final _box = GetStorage();
+  
+  // ID card
+  File? _idPhoto;
+  bool _idOk = false;
+  bool _idChecking = false;
+  String? _idErrorKey;
+  IdExtractedData? _idData;
+
+  // Form controllers
+  final _firstName = TextEditingController();
+  final _lastName = TextEditingController();
+  final _middleName = TextEditingController();
+  final _email = TextEditingController();
+  final _phone = TextEditingController();
+  final _avenue = TextEditingController();
+  final _houseNumber = TextEditingController();
+  final _dob = TextEditingController();
+  
+  // Form data
+  String? _gender;
+  String? _selectedBloodTypeId;
+  String? _selectedMaritalStatusId;
+  String? _selectedQuarterId;
+  DateTime? _dobValue;
+  
+  // Face photo
+  File? _facePhoto;
+  bool _faceOk = false;
+  bool _faceChecking = false;
+  String? _faceErrorKey;
+  
+  // Init data from backend
+  List<dynamic> _bloodTypes = [];
+  List<dynamic> _maritalStatuses = [];
+  List<SystemCountry> _locations = [];
+  bool _isLoadingInitData = false;
+  String? _initDataError;
+  
+  // Location selection
+  Map<String, dynamic> _selectedLocation = {};
+
+  @override
+  Widget build(BuildContext context) {
+    return GradientScaffold(
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Header
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Row(
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      color: ColorPages.COLOR_BLANCHE.withValues(alpha: 0.4),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: IconButton(
+                      icon: Icon(Icons.arrow_back, color: ColorPages.COLOR_PRINCIPAL),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'request_your_ins'.tr,
+                      style: GoogleFonts.ubuntu(fontSize: 18, fontWeight: FontWeight.w700, color: ColorPages.COLOR_PRINCIPAL),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Content
+            Expanded(
+              child: Stepper(
+                currentStep: _step,
+                onStepContinue: _onContinue,
+                onStepCancel: _onBack,
+                steps: [
+                  Step(title: Text('ins_step_id_scan'.tr), isActive: _step >= 0, content: _buildIdScanStep()),
+                ],
+                controlsBuilder: (context, details) {
+                  final canContinue = !_loading && (_step == 0 ? (_idPhoto != null && _idOk && !_idChecking) : true);
+                  return Row(
+                    children: [
+                      ElevatedButton(
+                        onPressed: canContinue ? details.onStepContinue : null,
+                        style: ElevatedButton.styleFrom(backgroundColor: ColorPages.COLOR_PRINCIPAL, foregroundColor: Colors.white),
+                        child: Text('continue'.tr),
+                      ),
+                      const SizedBox(width: 12),
+                      TextButton(onPressed: _loading ? null : details.onStepCancel, child: Text('back'.tr)),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildIdScanStep() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.indigo.shade50,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.indigo.withOpacity(0.3)),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.badge_outlined, color: Colors.indigo),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text('id_scan_tip'.tr, style: const TextStyle(fontSize: 13.5, color: Colors.black87)),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        AspectRatio(
+          aspectRatio: 16 / 10,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.grey.shade200,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade300),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: _idPhoto == null
+                ? Center(child: Icon(Icons.credit_card, size: 48, color: Colors.grey.shade600))
+                : Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Image.file(_idPhoto!, fit: BoxFit.cover),
+                      if (_idChecking)
+                        Container(
+                          color: Colors.black.withOpacity(0.25),
+                          child: const Center(child: CircularProgressIndicator()),
+                        ),
+                    ],
+                  ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _pickIdFromCamera,
+                icon: const Icon(Icons.photo_camera_outlined),
+                label: Text('scan_id_card'.tr),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _pickIdFromGallery,
+                icon: const Icon(Icons.photo_library_outlined),
+                label: Text('choose_id_photo'.tr),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        if (_idPhoto == null)
+          Text('id_required'.tr, style: const TextStyle(color: Colors.red), textAlign: TextAlign.center)
+        else if (!_idOk && !_idChecking && _idErrorKey != null)
+          Text(_idErrorKey!.tr, style: const TextStyle(color: Colors.red), textAlign: TextAlign.center)
+        else if (_idOk && !_idChecking)
+          Text('id_detected_ok'.tr, style: const TextStyle(color: Colors.green), textAlign: TextAlign.center),
+      ],
+    );
+  }
+
+  Future<void> _pickIdFromCamera() async {
+    final x = await _picker.pickImage(source: ImageSource.camera, imageQuality: 90);
+    if (x != null) {
+      final file = File(x.path);
+      setState(() {
+        _idPhoto = file;
+        _idOk = false;
+        _idErrorKey = null;
+      });
+      await _validateIdCard(file);
+    }
+  }
+
+  Future<void> _pickIdFromGallery() async {
+    final x = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 90);
+    if (x != null) {
+      final file = File(x.path);
+      setState(() {
+        _idPhoto = file;
+        _idOk = false;
+        _idErrorKey = null;
+      });
+      await _validateIdCard(file);
+    }
+  }
+
+  Future<void> _validateIdCard(File file) async {
+    try {
+      if (!mounted) return;
+      setState(() => _idChecking = true);
+
+  final inputImage = InputImage.fromFilePath(file.path);
+  // Text recognition (auto script)
+  final recognizer = TextRecognizer();
+  final recognized = await recognizer.processImage(inputImage);
+  await recognizer.close();
+
+  final fullText = recognized.text.toUpperCase();
+
+      bool isMrz = false;
+      // Basic MRZ detection: lines of 30-44 chars with many '<'
+      final lines = fullText.split(RegExp(r"\r?\n"));
+      int mrzLike = 0;
+      for (final l in lines) {
+        final s = l.trim();
+        if (s.length >= 25 && s.length <= 50) {
+          final ltCount = s.split('<').length - 1;
+          if (ltCount >= (s.length * 0.15)) {
+            mrzLike += 1;
+          }
+        }
+      }
+      if (mrzLike >= 2) isMrz = true;
+
+      final keywords = <String>{
+        'IDENTITY', 'IDENTIFICATION', 'NATIONAL', 'CARD', 'ID',
+        'CARTE', 'IDENTITÉ', 'IDENTITE', 'NATIONALE', 'REPUBLIQUE', 'RÉPUBLIQUE', 'REPUBLIQUE DEMOCRATIQUE',
+        'DATE OF BIRTH', 'DATE DE NAISSANCE', 'BIRTH', 'NAISSANCE',
+        'SEX', 'SEXE', 'EXPIRY', 'EXPIRATION', 'EXPIRE', 'VALIDITE', 'VALIDITÉ',
+        'NUMBER', 'NUMERO', 'N°', 'Nº'
+      };
+      int hits = 0;
+      for (final k in keywords) {
+        if (fullText.contains(k)) hits++;
+      }
+
+      // Barcode scan (PDF417 preferred for IDs)
+      bool hasIdBarcode = false;
+      IdExtractedData? parsedFromBarcode;
+      try {
+        final barcodeScanner = BarcodeScanner(formats: [BarcodeFormat.pdf417, BarcodeFormat.qrCode]);
+        final barcodes = await barcodeScanner.processImage(inputImage);
+        await barcodeScanner.close();
+        for (final b in barcodes) {
+          if (b.format == BarcodeFormat.pdf417) {
+            hasIdBarcode = true;
+            final raw = b.rawValue ?? '';
+            final data = IdExtraction.parseAAMVAFromPdf417(raw);
+            if (data != null) {
+              parsedFromBarcode = data;
+              break;
+            }
+          } else if (b.format == BarcodeFormat.qrCode) {
+            hasIdBarcode = true;
+          }
+        }
+      } catch (_) {
+        // ignore barcode errors; keep text-only heuristic
+      }
+
+      // Heuristic decision (text OR barcode)
+      bool ok = false;
+      IdExtractedData? parsed;
+      if (parsedFromBarcode != null) {
+        parsed = parsedFromBarcode;
+        ok = true;
+      }
+      // Try MRZ parse if detected
+      if (!ok && isMrz) {
+  final m = IdExtraction.parseMRZ(recognized.text);
+        if (m != null) {
+          parsed = m;
+          ok = true;
+        }
+      }
+      // Try OCR heuristics
+      if (!ok && (hits >= 2 && fullText.length > 40)) {
+  final h = IdExtraction.parseTextHeuristics(recognized.text);
+        if (h != null) {
+          parsed = h;
+          ok = true;
+        } else if (hasIdBarcode) {
+          ok = true; // accept as valid ID without extracted fields
+        }
+      } else if (!ok && hasIdBarcode) {
+        ok = true; // accept as valid ID even if we couldn't parse fields
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _idOk = ok;
+        _idErrorKey = ok ? null : 'id_not_recognized';
+        _idData = parsed;
+        _idChecking = false;
+      });
+
+      if (!ok) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('id_not_recognized'.tr)),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _idOk = false;
+        _idChecking = false;
+        _idErrorKey = 'id_validation_error';
+      });
+    }
+  }
+
+  void _onBack() {
+    if (_step > 0) {
+      setState(() => _step -= 1);
+    } else {
+      Navigator.of(context).pop();
+    }
+  }
+
+  void _onContinue() {
+    if (_step == 0) {
+      if (_idPhoto == null) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('id_required'.tr)));
+        return;
+      }
+      // After ID scan, continue to the existing volunteer stepper flow
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => VolunteerRegistrationStepper(prefill: _idData)),
+      );
+      return;
+    }
+  }
+}
+

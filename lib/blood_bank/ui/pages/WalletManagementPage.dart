@@ -3,12 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:animate_do/animate_do.dart';
+import 'package:get/get.dart';
+import 'package:intl/intl.dart';
+
 
 class WalletManagementPage extends ConsumerStatefulWidget {
   final int initialTabIndex;
-  
+
   const WalletManagementPage({
-    super.key, 
+    super.key,
     this.initialTabIndex = 0,
   });
 
@@ -19,6 +22,31 @@ class WalletManagementPage extends ConsumerStatefulWidget {
 class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+
+  String _formatAmount(num amount, {bool signed = false}) {
+    final locale = Get.locale?.toString() ?? 'en_US';
+    final fmt = NumberFormat.currency(locale: locale, symbol: '', decimalDigits: 2);
+    final positive = fmt.format(amount.abs());
+    if (!signed) return fmt.format(amount);
+    return amount >= 0 ? '+$positive' : '-$positive';
+  }
+
+  String _formatDate(DateTime dt) {
+    final now = DateTime.now();
+    final locale = Get.locale?.toString() ?? 'en_US';
+    final today = DateTime(now.year, now.month, now.day);
+    final dateOnly = DateTime(dt.year, dt.month, dt.day);
+    final time = DateFormat.Hm(locale).format(dt);
+    if (dateOnly == today) {
+      return '${'today'.tr}, $time';
+    }
+    if (dateOnly == today.subtract(const Duration(days: 1))) {
+      return '${'yesterday'.tr}, $time';
+    }
+    final datePart = DateFormat('dd MMM', locale).format(dt);
+    return '$datePart, $time';
+  }
+
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   bool _autoReception = true;
@@ -27,7 +55,7 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
   void initState() {
     super.initState();
     _tabController = TabController(
-      length: 2, 
+      length: 2,
       vsync: this,
       initialIndex: widget.initialTabIndex,
     );
@@ -54,10 +82,10 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
           children: [
             // Header
             _buildHeader(),
-            
+
             // Tab Navigation
             _buildTabNavigation(),
-            
+
             // Tab Content
             Expanded(
               child: TabBarView(
@@ -83,7 +111,7 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 2),
             ),
@@ -100,7 +128,7 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Gestion Financière',
+                    'financial_management'.tr,
                     style: GoogleFonts.ubuntu(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
@@ -109,7 +137,7 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Wallet & Paramètres',
+                    'wallet_and_settings'.tr,
                     style: GoogleFonts.ubuntu(
                       fontSize: 14,
                       color: Colors.grey.shade600,
@@ -121,7 +149,7 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.green.withOpacity(0.1),
+                color: Colors.green.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Icon(
@@ -154,14 +182,14 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
             fontSize: 14,
             fontWeight: FontWeight.w500,
           ),
-          tabs: const [
+          tabs: [
             Tab(
-              icon: Icon(Iconsax.wallet, size: 20),
-              text: 'Wallet',
+              icon: const Icon(Iconsax.wallet, size: 20),
+              text: 'wallet'.tr,
             ),
             Tab(
-              icon: Icon(Iconsax.setting_2, size: 20),
-              text: 'Paramètres',
+              icon: const Icon(Iconsax.setting_2, size: 20),
+              text: 'settings'.tr,
             ),
           ],
         ),
@@ -179,11 +207,11 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
           // Credit card style wallet
           _buildWalletCard(),
           const SizedBox(height: 24),
-          
+
           // Withdraw action
           _buildWithdrawSection(),
           const SizedBox(height: 24),
-          
+
           // Transaction history
           _buildTransactionHistory(),
         ],
@@ -207,7 +235,7 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.green.withOpacity(0.3),
+              color: Colors.green.withValues(alpha: 0.3),
               blurRadius: 15,
               offset: const Offset(0, 5),
             ),
@@ -220,7 +248,7 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'E-Blood Wallet',
+                  'e_blood_wallet'.tr,
                   style: GoogleFonts.ubuntu(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -236,15 +264,15 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
             ),
             const Spacer(),
             Text(
-              'Solde Disponible',
+              'available_balance'.tr,
               style: GoogleFonts.ubuntu(
                 fontSize: 14,
-                color: Colors.white.withOpacity(0.8),
+                color: Colors.white.withValues(alpha: 0.8),
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              '1,250.00 USD',
+              '${_formatAmount(1250, signed: false)} USD',
               style: GoogleFonts.ubuntu(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
@@ -256,19 +284,19 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Banque de Sang Makila',
+                  'blood_bank_makila'.tr,
                   style: GoogleFonts.ubuntu(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                   ),
                 ),
                 Text(
-                  'Validé',
+                  'verified'.tr,
                   style: GoogleFonts.ubuntu(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                   ),
                 ),
               ],
@@ -289,7 +317,7 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 2),
             ),
@@ -299,7 +327,7 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Effectuer un Retrait',
+              'make_withdrawal'.tr,
               style: GoogleFonts.ubuntu(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -310,7 +338,7 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
             TextField(
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
-                labelText: 'Montant',
+                labelText: 'amount'.tr,
                 prefixText: 'USD ',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -326,20 +354,20 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
                   showDialog(
                     context: context,
                     builder: (context) => AlertDialog(
-                      title: const Text('Confirmer le Retrait'),
-                      content: const Text('Voulez-vous confirmer ce retrait ?'),
+                      title: Text('confirm_withdrawal'.tr),
+                      content: Text('confirm_withdrawal_message'.tr),
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(context),
-                          child: const Text('Annuler'),
+                          child: Text('cancel'.tr),
                         ),
                         ElevatedButton(
                           onPressed: () {
                             Navigator.pop(context);
                             // Show success message
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Retrait initié avec succès'),
+                              SnackBar(
+                                content: Text('withdrawal_initiated_successfully'.tr),
                                 backgroundColor: Colors.green,
                               ),
                             );
@@ -348,7 +376,7 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
                             backgroundColor: Colors.green,
                             foregroundColor: Colors.white,
                           ),
-                          child: const Text('Confirmer'),
+                          child: Text('confirm'.tr),
                         ),
                       ],
                     ),
@@ -363,7 +391,7 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
                   ),
                 ),
                 child: Text(
-                  'Retirer',
+                  'withdraw'.tr,
                   style: GoogleFonts.ubuntu(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -378,45 +406,51 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
   }
 
   Widget _buildTransactionHistory() {
-    // Sample transaction data
+    // Sample transaction data (localized)
+    final now = DateTime.now();
     final transactions = [
       {
-        'title': 'Paiement reçu',
-        'subtitle': 'De: Hôpital Central',
-        'amount': '+320.00 USD',
-        'date': 'Aujourd\'hui, 14:30',
+        'titleKey': 'payment_received',
+        'subtitleKey': 'from',
+        'party': 'Hôpital Central',
+        'amount': 320.00,
+        'date': DateTime(now.year, now.month, now.day, 14, 30),
         'icon': Iconsax.money_recive,
         'isPositive': true,
       },
       {
-        'title': 'Retrait effectué',
-        'subtitle': 'Vers: Compte bancaire',
-        'amount': '-500.00 USD',
-        'date': 'Hier, 10:15',
+        'titleKey': 'withdrawal_made',
+        'subtitleKey': 'to',
+        'party': 'bank_account'.tr,
+        'amount': -500.00,
+        'date': DateTime(now.year, now.month, now.day - 1, 10, 15),
         'icon': Iconsax.money_send,
         'isPositive': false,
       },
       {
-        'title': 'Paiement reçu',
-        'subtitle': 'De: Clinique Saint-Joseph',
-        'amount': '+180.00 USD',
-        'date': '08 Oct, 16:45',
+        'titleKey': 'payment_received',
+        'subtitleKey': 'from',
+        'party': 'Clinique Saint-Joseph',
+        'amount': 180.00,
+        'date': DateTime(now.year, now.month, 8, 16, 45),
         'icon': Iconsax.money_recive,
         'isPositive': true,
       },
       {
-        'title': 'Paiement reçu',
-        'subtitle': 'De: Centre Médical Espoir',
-        'amount': '+420.00 USD',
-        'date': '05 Oct, 09:20',
+        'titleKey': 'payment_received',
+        'subtitleKey': 'from',
+        'party': 'Centre Médical Espoir',
+        'amount': 420.00,
+        'date': DateTime(now.year, now.month, 5, 9, 20),
         'icon': Iconsax.money_recive,
         'isPositive': true,
       },
       {
-        'title': 'Retrait effectué',
-        'subtitle': 'Vers: Mobile Money',
-        'amount': '-300.00 USD',
-        'date': '01 Oct, 11:30',
+        'titleKey': 'withdrawal_made',
+        'subtitleKey': 'to',
+        'party': 'mobile_money'.tr,
+        'amount': -300.00,
+        'date': DateTime(now.year, now.month, 1, 11, 30),
         'icon': Iconsax.money_send,
         'isPositive': false,
       },
@@ -428,7 +462,7 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Historique des Transactions',
+            'transaction_history'.tr,
             style: GoogleFonts.ubuntu(
               fontSize: 18,
               fontWeight: FontWeight.w600,
@@ -442,7 +476,7 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, 2),
                 ),
@@ -456,14 +490,14 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
               itemBuilder: (context, index) {
                 final transaction = transactions[index];
                 final isPositive = transaction['isPositive'] as bool;
-                
+
                 return ListTile(
                   leading: Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: isPositive 
-                          ? Colors.green.withOpacity(0.1) 
-                          : Colors.red.withOpacity(0.1),
+                      color: isPositive
+                          ? Colors.green.withValues(alpha: 0.1)
+                          : Colors.red.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
@@ -472,13 +506,13 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
                     ),
                   ),
                   title: Text(
-                    transaction['title'] as String,
+                    (transaction['titleKey'] as String).tr,
                     style: GoogleFonts.ubuntu(
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                   subtitle: Text(
-                    transaction['subtitle'] as String,
+                    "${(transaction['subtitleKey'] as String).tr}: ${transaction['party']}",
                     style: GoogleFonts.ubuntu(
                       fontSize: 12,
                     ),
@@ -488,14 +522,14 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        transaction['amount'] as String,
+                        "${_formatAmount(transaction['amount'] as num, signed: true)} USD",
                         style: GoogleFonts.ubuntu(
                           fontWeight: FontWeight.w700,
                           color: isPositive ? Colors.green : Colors.red,
                         ),
                       ),
                       Text(
-                        transaction['date'] as String,
+                        _formatDate(transaction['date'] as DateTime),
                         style: GoogleFonts.ubuntu(
                           fontSize: 12,
                           color: Colors.grey,
@@ -522,11 +556,11 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
           // Notification settings
           _buildEmailNotificationSection(),
           const SizedBox(height: 24),
-          
+
           // Mobile payment settings
           _buildMobilePaymentSection(),
           const SizedBox(height: 24),
-          
+
           // Auto reception settings
           _buildAutoReceptionSection(),
         ],
@@ -544,7 +578,7 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 2),
             ),
@@ -558,7 +592,7 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
                 const Icon(Iconsax.notification, color: Colors.green),
                 const SizedBox(width: 10),
                 Text(
-                  'Notifications Email',
+                  'email_notifications'.tr,
                   style: GoogleFonts.ubuntu(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
@@ -569,7 +603,7 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
             ),
             const SizedBox(height: 16),
             Text(
-              'Email pour les notifications de transactions',
+              'email_for_transaction_notifications'.tr,
               style: GoogleFonts.ubuntu(
                 fontSize: 14,
                 color: Colors.grey.shade600,
@@ -579,7 +613,7 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
             TextField(
               controller: _emailController,
               decoration: InputDecoration(
-                labelText: 'Adresse Email',
+                labelText: 'email_address'.tr,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -594,8 +628,8 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
                 onPressed: () {
                   // Save email settings
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Paramètres email enregistrés'),
+                    SnackBar(
+                      content: Text('settings_saved'.tr),
                       backgroundColor: Colors.green,
                     ),
                   );
@@ -609,7 +643,7 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
                   ),
                 ),
                 child: Text(
-                  'Enregistrer',
+                  'save'.tr,
                   style: GoogleFonts.ubuntu(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -633,7 +667,7 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 2),
             ),
@@ -647,7 +681,7 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
                 const Icon(Iconsax.mobile, color: Colors.green),
                 const SizedBox(width: 10),
                 Text(
-                  'Paiement Mobile',
+                  'mobile_payment'.tr,
                   style: GoogleFonts.ubuntu(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
@@ -658,7 +692,7 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
             ),
             const SizedBox(height: 16),
             Text(
-              'Numéro pour les paiements mobiles',
+              'phone_number_for_mobile_payments'.tr,
               style: GoogleFonts.ubuntu(
                 fontSize: 14,
                 color: Colors.grey.shade600,
@@ -668,7 +702,7 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
             TextField(
               controller: _phoneController,
               decoration: InputDecoration(
-                labelText: 'Numéro de Téléphone',
+                labelText: 'phone_number'.tr,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -683,8 +717,8 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
                 onPressed: () {
                   // Save phone settings
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Numéro de téléphone enregistré'),
+                    SnackBar(
+                      content: Text('phone_number_saved'.tr),
                       backgroundColor: Colors.green,
                     ),
                   );
@@ -698,7 +732,7 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
                   ),
                 ),
                 child: Text(
-                  'Enregistrer',
+                  'save'.tr,
                   style: GoogleFonts.ubuntu(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -722,7 +756,7 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 2),
             ),
@@ -736,7 +770,7 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
                 const Icon(Iconsax.setting, color: Colors.green),
                 const SizedBox(width: 10),
                 Text(
-                  'Mode de Réception',
+                  'reception_mode'.tr,
                   style: GoogleFonts.ubuntu(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
@@ -747,7 +781,7 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
             ),
             const SizedBox(height: 16),
             Text(
-              'Configurer le mode de réception des paiements',
+              'configure_payment_reception_mode'.tr,
               style: GoogleFonts.ubuntu(
                 fontSize: 14,
                 color: Colors.grey.shade600,
@@ -756,13 +790,13 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
             const SizedBox(height: 16),
             SwitchListTile(
               title: Text(
-                'Réception Automatique',
+                'automatic_reception'.tr,
                 style: GoogleFonts.ubuntu(
                   fontWeight: FontWeight.w600,
                 ),
               ),
               subtitle: Text(
-                'Accepter automatiquement les paiements entrants',
+                'accept_incoming_payments_automatically'.tr,
                 style: GoogleFonts.ubuntu(
                   fontSize: 12,
                   color: Colors.grey.shade600,
@@ -776,9 +810,9 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
-                      value 
-                          ? 'Réception automatique activée' 
-                          : 'Réception sur demande activée'
+                      value
+                          ? 'automatic_reception_enabled'.tr
+                          : 'on_demand_reception_enabled'.tr
                     ),
                     backgroundColor: Colors.green,
                   ),
@@ -789,7 +823,7 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
             if (!_autoReception) ...[
               const SizedBox(height: 16),
               Text(
-                'Vous recevrez une notification pour chaque paiement entrant et devrez approuver manuellement.',
+                'manual_approval_notification_message'.tr,
                 style: GoogleFonts.ubuntu(
                   fontSize: 14,
                   color: Colors.orange,

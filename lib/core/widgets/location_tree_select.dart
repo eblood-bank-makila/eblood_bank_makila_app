@@ -14,6 +14,7 @@ class LocationTreeSelect extends StatefulWidget {
   final String? Function(String?)? validator;
   final Icon? prefixIcon;
   final bool selectOnlyLastChild;
+  final bool useWhiteBackground; // Toggle between white and transparent background
 
   const LocationTreeSelect({
     Key? key,
@@ -29,6 +30,7 @@ class LocationTreeSelect extends StatefulWidget {
     this.validator,
     this.prefixIcon,
     this.selectOnlyLastChild = true, // Default to true for location selection
+    this.useWhiteBackground = false, // Default to transparent
   }) : super(key: key);
 
   @override
@@ -106,14 +108,70 @@ class _LocationTreeSelectState extends State<LocationTreeSelect> {
       'type': nodeType,
       'entity_flag': entityFlag,
     };
+
+    void addField(String key, dynamic value) {
+      if (value == null) return;
+      if (value is String && value.isNotEmpty) {
+        nodeData[key] = value;
+      } else if (value is num || value is bool) {
+        nodeData[key] = value.toString();
+      }
+    }
+
+    // Merge additional properties exposed by the model when possible
+    try {
+      if (node is Map) {
+        node.forEach((key, value) => addField(key.toString(), value));
+      } else {
+        final dynamic jsonMethod = (node as dynamic).toJson;
+        if (jsonMethod is Function) {
+          final dynamic json = jsonMethod();
+          if (json is Map) {
+            json.forEach((key, value) => addField(key.toString(), value));
+          }
+        }
+      }
+    } catch (_) {
+      // Ignore silently if reflection fails
+    }
+
+    // Country nodes should always carry their id for downstream lookup
+    nodeData.putIfAbsent('country_id', () => nodeId);
     
     // Add parent data if available
     if (parentData != null && parentType != null) {
       nodeData['parent_id'] = parentData['id'] ?? '';
       nodeData['parent_name'] = parentData['name'] ?? '';
       nodeData['parent_type'] = parentType;
+      if (parentType.contains('country')) {
+        nodeData['country_id'] = parentData['id'] ?? '';
+      } else if (parentType.contains('province')) {
+        nodeData['province_id'] = parentData['id'] ?? '';
+        if (parentData.containsKey('country_id')) {
+          nodeData['country_id'] = parentData['country_id'] ?? nodeData['country_id'] ?? '';
+        }
+      }
     }
     
+    // Ensure flag information is available for this node
+    if (!nodeData.containsKey('country_flag')) {
+      try {
+        final dynamic flag = (node as dynamic).countryFlag;
+        if (flag is String && flag.isNotEmpty) {
+          nodeData['country_flag'] = flag;
+        }
+      } catch (_) {
+        // Ignore if property not accessible
+      }
+    }
+
+    if (!nodeData.containsKey('country_flag') && parentData != null) {
+      final String? parentFlag = parentData['country_flag'];
+      if (parentFlag != null && parentFlag.isNotEmpty) {
+        nodeData['country_flag'] = parentFlag;
+      }
+    }
+
     // Process children if any
     final List<TreeNode<Map<String, String>>> childNodes = [];
     
@@ -226,6 +284,7 @@ class _LocationTreeSelectState extends State<LocationTreeSelect> {
       showSearch: true,
       searchPlaceholder: 'Search locations...',
       selectOnlyLastChild: widget.selectOnlyLastChild,
+      useWhiteBackground: widget.useWhiteBackground,
     );
   }
 }

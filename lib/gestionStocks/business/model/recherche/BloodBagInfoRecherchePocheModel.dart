@@ -30,9 +30,16 @@ class BloodBagInfoRecherchePocheModel {
 
   factory BloodBagInfoRecherchePocheModel.fromJson(Map<String, dynamic> json) =>
       BloodBagInfoRecherchePocheModel(
-        id: json["_id"]?.toString() ?? "",
+    id: json["_id"]?.toString() ??
+      json["id"]?.toString() ??
+      json["blood_bag_id"]?.toString() ??
+      json["identifier"]?.toString() ??
+      "",
         isActivated: json["is_activated"] ?? true,
-        identifier: json["identifier"]?.toString() ?? "",
+    identifier: json["identifier"]?.toString() ??
+      json["_id"]?.toString() ??
+      json["id"]?.toString() ??
+      "",
         createdAt: json["createdAt"] != null ? DateTime.parse(json["createdAt"]) : null,
         bloodTypeId: json["blood_type_id"]?.toString() ?? "",
         bloodRhesusId: json["blood_rhesus_id"]?.toString() ?? "",

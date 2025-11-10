@@ -33,6 +33,8 @@ class TreeSelect<T> extends StatefulWidget {
   final double maxHeight;
   final bool showSearch;
   final String searchPlaceholder;
+  final bool selectOnlyLastChild;
+  final bool useWhiteBackground;
 
   const TreeSelect({
     Key? key,
@@ -50,6 +52,8 @@ class TreeSelect<T> extends StatefulWidget {
     this.maxHeight = 300,
     this.showSearch = true,
     this.searchPlaceholder = 'Search...',
+    this.selectOnlyLastChild = false,
+    this.useWhiteBackground = false,
   }) : super(key: key);
 
   @override
@@ -174,13 +178,14 @@ class _TreeSelectState<T> extends State<TreeSelect<T>> {
           child: Material(
             elevation: 4,
             borderRadius: BorderRadius.circular(8),
+            color: widget.useWhiteBackground ? Colors.white : Colors.transparent,
             child: Container(
               constraints: BoxConstraints(
                 maxHeight: widget.maxHeight,
                 minHeight: 100, // Ensure minimum height for search results
               ),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: widget.useWhiteBackground ? Colors.white : Colors.white.withOpacity(0.95),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: Colors.grey.shade300),
               ),
@@ -598,6 +603,7 @@ class _TreeSelectState<T> extends State<TreeSelect<T>> {
               ),
             ),
           ),
+        ),
         ),
         
         // Error Text

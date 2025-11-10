@@ -34,6 +34,7 @@ class TreeSelect<T> extends StatefulWidget {
   final bool showSearch;
   final String searchPlaceholder;
   final bool selectOnlyLastChild;
+  final bool useWhiteBackground;
 
   const TreeSelect({
     Key? key,
@@ -52,6 +53,7 @@ class TreeSelect<T> extends StatefulWidget {
     this.showSearch = true,
     this.searchPlaceholder = 'Search...',
     this.selectOnlyLastChild = false,
+    this.useWhiteBackground = false,
   }) : super(key: key);
 
   @override
@@ -62,6 +64,7 @@ class _TreeSelectState<T> extends State<TreeSelect<T>> {
   bool _isDropdownOpen = false;
   OverlayEntry? _overlayEntry;
   final LayerLink _layerLink = LayerLink();
+  final GlobalKey _inputFieldKey = GlobalKey(); // Key for the input field specifically
   final FocusNode _focusNode = FocusNode();
   final FocusNode _searchFocusNode = FocusNode(); // Dedicated focus node for search
   final TextEditingController _searchController = TextEditingController();
@@ -212,8 +215,42 @@ class _TreeSelectState<T> extends State<TreeSelect<T>> {
   }
 
   OverlayEntry _createOverlayEntry() {
-    final RenderBox renderBox = context.findRenderObject() as RenderBox;
-    final Size size = renderBox.size;
+    // Get the RenderBox of the input field specifically, not the whole Column
+    final RenderBox? inputRenderBox = _inputFieldKey.currentContext?.findRenderObject() as RenderBox?;
+    
+    if (inputRenderBox == null) {
+      // Fallback to the layerLink's context if key context is not available yet
+      final RenderBox renderBox = context.findRenderObject() as RenderBox;
+      final Size size = renderBox.size;
+      final Offset position = renderBox.localToGlobal(Offset.zero);
+      final double screenHeight = MediaQuery.of(context).size.height;
+      
+      // Use approximate calculation as fallback
+      final double labelHeight = widget.label.isNotEmpty ? 30.0 : 0.0;
+      final double inputFieldHeight = 48.0;
+      final double offsetFromTop = labelHeight + inputFieldHeight + 5;
+      
+      final double spaceBelow = screenHeight - (position.dy + offsetFromTop);
+      final double effectiveMaxHeight = (spaceBelow - 16).clamp(160.0, widget.maxHeight);
+      
+      return _buildOverlayEntry(size.width, offsetFromTop, effectiveMaxHeight);
+    }
+    
+    // Use the actual input field's dimensions
+    final Size inputSize = inputRenderBox.size;
+    final Offset inputPosition = inputRenderBox.localToGlobal(Offset.zero);
+    final double screenHeight = MediaQuery.of(context).size.height;
+    
+    // Position overlay exactly below the input field
+    final double offsetFromInputTop = inputSize.height + 5;
+    
+    final double spaceBelow = screenHeight - (inputPosition.dy + offsetFromInputTop);
+    final double effectiveMaxHeight = (spaceBelow - 16).clamp(160.0, widget.maxHeight);
+    
+    return _buildOverlayEntry(inputSize.width, offsetFromInputTop, effectiveMaxHeight);
+  }
+
+  OverlayEntry _buildOverlayEntry(double width, double offsetFromTop, double effectiveMaxHeight) {
     
     // Let the user control node expansion via clicks - don't expand automatically
     // If debugging is needed, uncomment this block:
@@ -231,29 +268,47 @@ class _TreeSelectState<T> extends State<TreeSelect<T>> {
     final List<Widget> treeItems = _buildTreeItems(widget.nodes, 0);
     print("Creating overlay entry with ${widget.nodes.length} root nodes and ${treeItems.length} tree items");
 
+    // Calculate content height based on number of items
+    final double searchBoxHeight = widget.showSearch ? 56.0 : 0.0;
+    final double itemHeight = 48.0; // Approximate height per tree item
+    final int visibleItemCount = treeItems.length.clamp(1, 8); // Show max 8 items before scrolling
+    final double contentHeight = searchBoxHeight + (itemHeight * visibleItemCount) + 16.0; // 16 for padding
+    final double actualHeight = contentHeight.clamp(100.0, effectiveMaxHeight);
+
     return OverlayEntry(
-      builder: (context) => Positioned(
-        width: size.width,
-        child: CompositedTransformFollower(
-          link: _layerLink,
-          showWhenUnlinked: false,
-          offset: Offset(0, size.height + 5),
-          child: Material(
-            elevation: 4,
-            borderRadius: BorderRadius.circular(8),
-            child: Container(
-              constraints: BoxConstraints(
-                maxHeight: widget.maxHeight,
-                minHeight: 100, // Ensure minimum height for search results
-              ),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.shade300),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
+      builder: (context) => GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          // Close dropdown when tapping outside
+          _closeDropdown();
+        },
+        child: Stack(
+          children: [
+            // Positioned overlay that doesn't block the tap detector
+            Positioned(
+              width: width,
+              child: CompositedTransformFollower(
+                link: _layerLink,
+                showWhenUnlinked: false,
+                // Position below the input field
+                offset: Offset(0, offsetFromTop),
+                child: GestureDetector(
+                  // Prevent taps inside dropdown from closing it
+                  onTap: () {},
+                  child: Material(
+                    elevation: 4,
+                    borderRadius: BorderRadius.circular(8),
+                    color: widget.useWhiteBackground ? Colors.white : Colors.transparent,
+                    child: Container(
+                      height: actualHeight, // Use calculated height
+                      decoration: BoxDecoration(
+                        color: widget.useWhiteBackground ? Colors.white : Colors.white.withOpacity(0.95),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
                   // Search box
                   if (widget.showSearch)
                     Padding(
@@ -302,8 +357,9 @@ class _TreeSelectState<T> extends State<TreeSelect<T>> {
                       ),
                     ),
                   
-                  // Tree items
+                  // Tree items - wrap with Flexible to allow shrinking when content is small
                   Flexible(
+                    fit: FlexFit.loose, // Allow content to determine height
                     child: Builder(
                       builder: (context) {
                         print("TreeSelect: Rendering overlay with ${widget.nodes.length} root nodes and ${treeItems.length} tree items");
@@ -417,19 +473,24 @@ class _TreeSelectState<T> extends State<TreeSelect<T>> {
                         
                         return ListView(
                           padding: EdgeInsets.zero,
-                          shrinkWrap: true,
+                          shrinkWrap: false,
+                          physics: const ClampingScrollPhysics(),
                           children: treeItems,
                         );
                       },
                     ),
                   ),
                 ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
+                      ), // Column
+                    ), // Container
+                  ), // Material
+                ), // GestureDetector
+              ), // CompositedTransformFollower
+            ), // Positioned
+          ], // children of Stack
+        ), // Stack
+      ), // GestureDetector builder
+    ); // OverlayEntry
   }
 
   void _rebuildOverlay() {
@@ -821,6 +882,7 @@ class _TreeSelectState<T> extends State<TreeSelect<T>> {
         CompositedTransformTarget(
           link: _layerLink,
           child: Material(
+            key: _inputFieldKey, // Add key to get precise dimensions
             color: Colors.transparent,
             borderRadius: BorderRadius.circular(8.0),
             child: InkWell(
@@ -842,8 +904,8 @@ class _TreeSelectState<T> extends State<TreeSelect<T>> {
                   color: widget.isLoading 
                     ? Colors.grey.shade50 
                     : _isDropdownOpen 
-                      ? Colors.blue.shade50.withOpacity(0.05)
-                      : Colors.transparent,
+                      ? widget.useWhiteBackground ? Colors.white : Colors.blue.shade50.withOpacity(0.05)
+                      : widget.useWhiteBackground ? Colors.white : Colors.transparent,
                 ),
                 child: Row(
                   children: [

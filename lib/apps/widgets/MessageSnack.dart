@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+
 
 class Message {
   static void afficherSnack(BuildContext context, String msg,
@@ -17,7 +19,7 @@ class Message {
       barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
-          content: Text("Traitement en cours..."),
+          content: Text('processing_in_progress'.tr),
         );
       },
     );

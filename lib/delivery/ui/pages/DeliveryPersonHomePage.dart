@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
-import 'package:animate_do/animate_do.dart';
+import 'package:get/get.dart';
 import '../../../apps/config/theme/ColorPages.dart';
 import '../../business/interactors/DeliveryController.dart';
 import 'DeliveryManagementPage.dart';
@@ -29,28 +29,42 @@ class _DeliveryPersonHomePageState extends ConsumerState<DeliveryPersonHomePage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              _buildHeader(),
-              const SizedBox(height: 24),
-              
-              // Performance Stats
-              _buildPerformanceSection(),
-              const SizedBox(height: 24),
-              
-              // Today's Deliveries
-              _buildTodayDeliveriesSection(),
-              const SizedBox(height: 24),
-              
-              // Quick Actions
-              _buildQuickActionsSection(),
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.red.shade100,
+              Colors.red.shade50,
+              Colors.white,
             ],
+          ),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                _buildHeader(),
+                const SizedBox(height: 24),
+
+                // Performance Stats
+                _buildPerformanceSection(),
+                const SizedBox(height: 24),
+
+                // Today's Deliveries
+                _buildTodayDeliveriesSection(),
+                const SizedBox(height: 24),
+
+                // Quick Actions
+                _buildQuickActionsSection(),
+              ],
+            ),
           ),
         ),
       ),
@@ -62,12 +76,31 @@ class _DeliveryPersonHomePageState extends ConsumerState<DeliveryPersonHomePage>
       delay: const Duration(milliseconds: 200),
       child: Row(
         children: [
+          // Back Button
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.8),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.arrow_back, color: ColorPages.COLOR_PRINCIPAL),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Livreur',
+                  'delivery_person'.tr,
                   style: GoogleFonts.ubuntu(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
@@ -76,7 +109,7 @@ class _DeliveryPersonHomePageState extends ConsumerState<DeliveryPersonHomePage>
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Tableau de bord',
+                  'dashboard'.tr,
                   style: GoogleFonts.ubuntu(
                     fontSize: 16,
                     color: Colors.grey.shade600,
@@ -114,7 +147,7 @@ class _DeliveryPersonHomePageState extends ConsumerState<DeliveryPersonHomePage>
         FadeInLeft(
           delay: const Duration(milliseconds: 400),
           child: Text(
-            'Performance',
+            'performance'.tr,
             style: GoogleFonts.ubuntu(
               fontSize: 20,
               fontWeight: FontWeight.w600,
@@ -129,7 +162,7 @@ class _DeliveryPersonHomePageState extends ConsumerState<DeliveryPersonHomePage>
               child: FadeInUp(
                 delay: const Duration(milliseconds: 500),
                 child: _buildStatCard(
-                  title: 'Livraisons Totales',
+                  title: 'total_deliveries'.tr,
                   value: totalDeliveries.toString(),
                   icon: Iconsax.box_tick,
                   color: Colors.green,
@@ -142,7 +175,7 @@ class _DeliveryPersonHomePageState extends ConsumerState<DeliveryPersonHomePage>
               child: FadeInUp(
                 delay: const Duration(milliseconds: 600),
                 child: _buildStatCard(
-                  title: 'En Cours',
+                  title: 'in_progress'.tr,
                   value: inProgressDeliveries.toString(),
                   icon: Iconsax.truck_time,
                   color: Colors.blue,
@@ -159,7 +192,7 @@ class _DeliveryPersonHomePageState extends ConsumerState<DeliveryPersonHomePage>
               child: FadeInUp(
                 delay: const Duration(milliseconds: 700),
                 child: _buildStatCard(
-                  title: 'Terminées',
+                  title: 'completed'.tr,
                   value: deliveredDeliveries.toString(),
                   icon: Iconsax.medal_star,
                   color: Colors.orange,
@@ -172,7 +205,7 @@ class _DeliveryPersonHomePageState extends ConsumerState<DeliveryPersonHomePage>
               child: FadeInUp(
                 delay: const Duration(milliseconds: 800),
                 child: _buildStatCard(
-                  title: 'Urgentes',
+                  title: 'urgent_deliveries'.tr,
                   value: urgentDeliveries.toString(),
                   icon: Iconsax.timer_1,
                   color: Colors.purple,
@@ -266,7 +299,7 @@ class _DeliveryPersonHomePageState extends ConsumerState<DeliveryPersonHomePage>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Livraisons Aujourd\'hui',
+                'todays_deliveries'.tr,
                 style: GoogleFonts.ubuntu(
                   fontSize: 20,
                   fontWeight: FontWeight.w600,
@@ -280,7 +313,7 @@ class _DeliveryPersonHomePageState extends ConsumerState<DeliveryPersonHomePage>
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  '3 en cours',
+                  'in_progress_count'.tr.replaceAll('@count', '3'),
                   style: GoogleFonts.ubuntu(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -311,8 +344,8 @@ class _DeliveryPersonHomePageState extends ConsumerState<DeliveryPersonHomePage>
                 _buildDeliveryItem(
                   destination: 'Hôpital Central',
                   bloodType: 'O+',
-                  quantity: '2 unités',
-                  status: 'En route',
+                  quantity: '2 ${'units'.tr}',
+                  status: 'en_route'.tr,
                   statusColor: Colors.blue,
                   distance: '2.5 km',
                   estimatedTime: '15 min',
@@ -321,8 +354,8 @@ class _DeliveryPersonHomePageState extends ConsumerState<DeliveryPersonHomePage>
                 _buildDeliveryItem(
                   destination: 'Clinique Saint-Joseph',
                   bloodType: 'A-',
-                  quantity: '1 unité',
-                  status: 'Collecté',
+                  quantity: '1 ${'unit'.tr}',
+                  status: 'collected'.tr,
                   statusColor: Colors.orange,
                   distance: '4.2 km',
                   estimatedTime: '25 min',
@@ -331,11 +364,11 @@ class _DeliveryPersonHomePageState extends ConsumerState<DeliveryPersonHomePage>
                 _buildDeliveryItem(
                   destination: 'Hôpital Universitaire',
                   bloodType: 'B+',
-                  quantity: '3 unités',
-                  status: 'Livré',
+                  quantity: '3 ${'units'.tr}',
+                  status: 'delivered'.tr,
                   statusColor: Colors.green,
                   distance: '1.8 km',
-                  estimatedTime: 'Terminé',
+                  estimatedTime: 'finished'.tr,
                 ),
               ],
             ),
@@ -438,7 +471,7 @@ class _DeliveryPersonHomePageState extends ConsumerState<DeliveryPersonHomePage>
         FadeInLeft(
           delay: const Duration(milliseconds: 1100),
           child: Text(
-            'Actions Rapides',
+            'quick_actions'.tr,
             style: GoogleFonts.ubuntu(
               fontSize: 20,
               fontWeight: FontWeight.w600,
@@ -453,8 +486,8 @@ class _DeliveryPersonHomePageState extends ConsumerState<DeliveryPersonHomePage>
               child: FadeInUp(
                 delay: const Duration(milliseconds: 1200),
                 child: _buildActionCard(
-                  title: 'Mes Livraisons',
-                  subtitle: 'Gérer livraisons',
+                  title: 'my_deliveries'.tr,
+                  subtitle: 'manage_deliveries'.tr,
                   icon: Iconsax.truck,
                   color: ColorPages.COLOR_PRINCIPAL,
                   onTap: () {
@@ -473,15 +506,15 @@ class _DeliveryPersonHomePageState extends ConsumerState<DeliveryPersonHomePage>
               child: FadeInUp(
                 delay: const Duration(milliseconds: 1300),
                 child: _buildActionCard(
-                  title: 'Scanner QR',
-                  subtitle: 'Confirmer livraison',
+                  title: 'scan_qr'.tr,
+                  subtitle: 'confirm_delivery'.tr,
                   icon: Iconsax.scan_barcode,
                   color: Colors.blue,
                   onTap: () {
                     // Navigate to QR scanner
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Scanner QR - Fonctionnalité à implémenter'),
+                      SnackBar(
+                        content: Text('qr_feature_coming_soon'.tr),
                         behavior: SnackBarBehavior.floating,
                       ),
                     );

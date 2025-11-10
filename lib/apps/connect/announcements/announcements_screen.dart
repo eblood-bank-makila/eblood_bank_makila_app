@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../config/theme/ColorPages.dart';
 import 'announcements_controller.dart';
@@ -8,13 +9,17 @@ import 'package:iconsax/iconsax.dart';
 import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/notification/NotificationPage.dart';
 
 class AnnouncementsScreen extends StatelessWidget {
-  const AnnouncementsScreen({super.key});
+  final bool showBackButton;
+
+  const AnnouncementsScreen({super.key, this.showBackButton = true});
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(AnnouncementsController());
+    final controller = Get.isRegistered<AnnouncementsController>()
+        ? Get.find<AnnouncementsController>()
+        : Get.put(AnnouncementsController());
     final theme = Theme.of(context);
-    final canPop = Navigator.of(context).canPop();
+    final canPop = Navigator.of(context).canPop() && showBackButton;
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'announcements_add_fab',
@@ -29,11 +34,10 @@ class AnnouncementsScreen extends StatelessWidget {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              ColorPages.COLOR_PRINCIPAL,
-              ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.8),
-              Colors.grey.shade50,
+              Colors.red.shade100,
+              Colors.red.shade50,
+              Colors.white,
             ],
-            stops: const [0.0, 0.15, 1.0],
           ),
         ),
         child: SafeArea(
@@ -67,13 +71,6 @@ class AnnouncementsScreen extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(10),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.1),
-                                blurRadius: 10,
-                                offset: const Offset(0, 5),
-                              ),
-                            ],
                           ),
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(10),
@@ -86,26 +83,27 @@ class AnnouncementsScreen extends StatelessWidget {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('app_name'.tr, style: theme.textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.bold)),
-                            Text('announcements'.tr, style: theme.textTheme.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.9))),
+                            Text('app_name'.tr, style: GoogleFonts.ubuntu(fontSize: 18, fontWeight: FontWeight.bold, color: ColorPages.COLOR_PRINCIPAL)),
+                            Text('announcements'.tr, style: GoogleFonts.ubuntu(fontSize: 12, color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.7))),
                           ],
                         ),
                       ],
                     ),
                     Container(
-                      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(12)),
+                      // decoration: BoxDecoration(color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
+                      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.4), borderRadius: BorderRadius.circular(12)),
                       child: Stack(children: [
                         IconButton(
                           onPressed: () {
                             Navigator.push(context, MaterialPageRoute(builder: (context) => NotificationPage(notification: [])));
                           },
-                          icon: const Icon(Iconsax.notification, color: Colors.white, size: 24),
+                          icon: const Icon(Iconsax.notification, color: ColorPages.COLOR_PRINCIPAL, size: 24),
                         ),
                         Positioned(
                           right: 8,
                           top: 8,
                           child: Obx(() => controller.unreadCount.value > 0
-                              ? Container(width: 8, height: 8, decoration: const BoxDecoration(color: Colors.orange, shape: BoxShape.circle))
+                              ? Container(width: 8, height: 8, decoration:  BoxDecoration(color: ColorPages.COLOR_PRINCIPAL, shape: BoxShape.circle))
                               : const SizedBox.shrink()),
                         ),
                       ]),
@@ -118,8 +116,7 @@ class AnnouncementsScreen extends StatelessWidget {
               Expanded(
                 child: Container(
                   decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.only(topLeft: Radius.circular(20), topRight: Radius.circular(20)),
+                    color: Colors.transparent,
                   ),
                   child: Column(
                     children: [
@@ -163,28 +160,39 @@ class AnnouncementsScreen extends StatelessWidget {
   }
 
   Widget _filterTabs(ThemeData theme, AnnouncementsController controller) {
+    // Take a snapshot of tabs to avoid rebuilding the whole list on selection changes
+    final tabs = controller.filterTabs.toList(growable: false);
     return Container(
       height: 50,
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Obx(() => ListView.builder(
+      child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        itemCount: controller.filterTabs.length,
+        itemCount: tabs.length,
         itemBuilder: (context, index) {
-          final tab = controller.filterTabs[index];
-          final isSelected = controller.selectedFilter.value == tab;
+          final tab = tabs[index];
           return Padding(
             padding: const EdgeInsets.only(right: 8),
-            child: FilterChip(
-              label: Text(tab.tr),
-              selected: isSelected,
-              onSelected: (_) => controller.selectFilter(tab),
-              backgroundColor: theme.chipTheme.backgroundColor,
-              selectedColor: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.1),
-              side: BorderSide(color: isSelected ? ColorPages.COLOR_PRINCIPAL : theme.dividerColor),
-            ),
+            child: Obx(() {
+              final isSelected = controller.selectedFilter.value == tab;
+              return ChoiceChip(
+                label: Text(tab.tr),
+                selected: isSelected,
+                onSelected: (selected) {
+                  if (selected && controller.selectedFilter.value != tab) {
+                    controller.selectFilter(tab);
+                  }
+                },
+                backgroundColor: Colors.white.withValues(alpha: 0.3),
+                selectedColor: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.2),
+                side: BorderSide(
+                  color: isSelected ? ColorPages.COLOR_PRINCIPAL : Colors.black.withValues(alpha: 0.4),
+                  width: 0.4,
+                ),
+              );
+            }),
           );
         },
-      )),
+      ),
     );
   }
 
@@ -212,7 +220,14 @@ class AnnouncementsScreen extends StatelessWidget {
   Widget _card(ThemeData theme, AnnouncementModel a) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(color: theme.cardColor, borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: theme.shadowColor.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0,2))]),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.black.withValues(alpha: 0.4),
+          width: 0.4,
+        ),
+      ),
       child: ListTile(
         leading: const Icon(Icons.campaign),
         title: Text(a.title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),

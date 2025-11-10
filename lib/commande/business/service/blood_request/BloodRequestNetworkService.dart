@@ -19,6 +19,12 @@ abstract class BloodRequestNetworkService {
     String authToken,
   );
 
+  /// Fetches completed blood requests (used blood bags)
+  Future<BloodRequestResponseModel?> getCompletedRequests(
+    int page,
+    String authToken,
+  );
+
   /// Generic method to fetch blood requests by status
   Future<BloodRequestResponseModel?> getBloodRequestsByStatus(
     BloodRequestStatus status,

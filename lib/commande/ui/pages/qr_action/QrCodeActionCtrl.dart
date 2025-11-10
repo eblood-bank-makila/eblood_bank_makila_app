@@ -7,6 +7,7 @@ import '../../../business/model/delivery/DeliveryValidationModel.dart';
 import '../../framework/delivery/DeliveryValidationNetworkServiceImpl.dart';
 import '../../../../utilisateurs/ui/framework/UtilisateurLocalServiceImpl.dart';
 import '../../../../apps/config/AppConfig.dart';
+import 'package:get/get.dart';
 
 part 'QrCodeActionCtrl.g.dart';
 
@@ -49,7 +50,7 @@ class QrCodeActionCtrl extends _$QrCodeActionCtrl {
         state = state.copyWith(
           isLoading: false,
           isSuccess: false,
-          error: result?.message ?? "Erreur inconnue lors de l'exécution",
+          error: result?.message ?? 'unknown_execution_error'.tr,
         );
       }
 
@@ -58,7 +59,7 @@ class QrCodeActionCtrl extends _$QrCodeActionCtrl {
       state = state.copyWith(
         isLoading: false,
         isSuccess: false,
-        error: "Erreur lors de l'exécution: $e",
+        error: 'execution_error_details'.trParams({'error': e.toString()}),
       );
       return null;
     }

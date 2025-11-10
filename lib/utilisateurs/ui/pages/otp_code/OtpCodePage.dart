@@ -71,9 +71,11 @@ class _OtpCodePageState extends ConsumerState<OtpCodePage> {
 
       if (mounted) {
         if (result['success'] == true) {
-          // OTP verification successful - route based on profiles if needed
-          final route = _computePostLoginRoute();
-          context.go(route);
+          // OTP verification successful — navigate to the main container.
+          // AccountTypeBasedNavigation will immediately pick the correct UI
+          // (customer/bloodBank/hospital) using the stored user_profiles flags.
+          debugPrint('🧭 OTP success — navigating to /app/MainApp (container)');
+          context.go('/app/MainApp');
         } else {
           // Show server error message
           ScaffoldMessenger.of(context).showSnackBar(
@@ -97,22 +99,35 @@ class _OtpCodePageState extends ConsumerState<OtpCodePage> {
     _focusNodes[0].requestFocus();
   }
 
+  // ignore: unused_element
   String _computePostLoginRoute() {
     final storage = GetStorage();
     final dynamic profiles = storage.read('user_profiles');
     if (profiles is List && profiles.isNotEmpty) {
-      // Collect unique flags
-      final profilFlags = profiles
+      // Extract ALL profiles regardless of 'enabled' status
+      // The 'enabled' field will be used later to disable actions, not to hide profiles
+      final allProfiles = profiles
           .whereType<Map>()
+          .toList();
+
+      // Collect unique flags from all profiles
+      final profilFlags = allProfiles
           .map((e) => (e['profil'] ?? e['flag'] ?? '').toString())
           .where((s) => s.isNotEmpty)
           .toSet();
 
+      debugPrint('🔍 Computing post-login route:');
+      debugPrint('   Total profiles: ${profiles.length}');
+      debugPrint('   All profiles: ${allProfiles.length}');
+      debugPrint('   Flags: $profilFlags');
+
       // Exclusivity: blood bank and health structure cannot be combined with others
       if (profilFlags.contains('mobile_app_blood_bank_profil')) {
+        debugPrint('   ✅ Route: /app/BloodBankMainApp');
         return '/app/BloodBankMainApp';
       }
       if (profilFlags.contains('mobile_app_health_structure_profil')) {
+        debugPrint('   ✅ Route: /app/MainApp (hospital)');
         return '/app/MainApp'; // existing hospital main app
       }
 
@@ -120,10 +135,12 @@ class _OtpCodePageState extends ConsumerState<OtpCodePage> {
       if (profilFlags.contains('mobile_app_simple_user_profil') ||
           profilFlags.contains('mobile_app_blood_donor_profil') ||
           profilFlags.contains('mobile_app_delivery_person_profil')) {
+        debugPrint('   ✅ Route: /app/ConsumerMainApp');
         return '/app/ConsumerMainApp';
       }
     }
     // Default
+    debugPrint('   ✅ Route: /app/ConsumerMainApp (default)');
     return '/app/ConsumerMainApp';
   }
 
@@ -181,7 +198,7 @@ class _OtpCodePageState extends ConsumerState<OtpCodePage> {
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: IconButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () => context.go('/login'),
                   icon: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(

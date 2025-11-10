@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:animate_do/animate_do.dart';
+import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import '../../../apps/config/theme/ColorPages.dart';
 import '../../../apps/widgets/ModernSpinnerWidget.dart';
 import '../../business/model/BloodStock.dart';
@@ -29,9 +31,9 @@ class _Donor {
 // Donor selector modal sheet
 class _DonorSelectorSheet extends StatefulWidget {
   final String? initialDonorId;
-  
+
   const _DonorSelectorSheet({this.initialDonorId});
-  
+
   @override
   _DonorSelectorSheetState createState() => _DonorSelectorSheetState();
 }
@@ -42,13 +44,13 @@ class _DonorSelectorSheetState extends State<_DonorSelectorSheet> {
   bool _isLoading = false;
   bool _isSearchByPhone = false;
   bool _showFilters = false;
-  
+
   // Pagination variables
   int _currentPage = 1;
   final int _itemsPerPage = 10;
   bool _hasMoreItems = true;
   final _scrollController = ScrollController();
-  
+
   // List of donors (would normally come from API)
   final List<_Donor> _allDonors = [
     _Donor(id: 'DON-2025-001', name: 'Jean Konan', number: 'DN-001', phoneNumber: '0707070707', photoUrl: null),
@@ -67,7 +69,7 @@ class _DonorSelectorSheetState extends State<_DonorSelectorSheet> {
     _Donor(id: 'DON-2025-014', name: 'Raïssa Traoré', number: 'DN-014', phoneNumber: '0714141414', photoUrl: 'https://randomuser.me/api/portraits/women/81.jpg'),
     _Donor(id: 'DON-2025-015', name: 'Charles Yapi', number: 'DN-015', phoneNumber: '0715151515', photoUrl: 'https://randomuser.me/api/portraits/men/62.jpg'),
   ];
-  
+
   // Filtered and paginated list
   List<_Donor> _displayedDonors = [];
 
@@ -75,7 +77,7 @@ class _DonorSelectorSheetState extends State<_DonorSelectorSheet> {
   void initState() {
     super.initState();
     _loadInitialDonors();
-    
+
     // Add scroll listener for pagination
     _scrollController.addListener(() {
       if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent * 0.8 &&
@@ -91,12 +93,12 @@ class _DonorSelectorSheetState extends State<_DonorSelectorSheet> {
     _scrollController.dispose();
     super.dispose();
   }
-  
+
   void _loadInitialDonors() {
     setState(() {
       _isLoading = true;
     });
-    
+
     // Simulate API call
     Future.delayed(const Duration(milliseconds: 300), () {
       setState(() {
@@ -106,14 +108,14 @@ class _DonorSelectorSheetState extends State<_DonorSelectorSheet> {
       });
     });
   }
-  
+
   void _loadMoreDonors() {
     if (_isLoading || !_hasMoreItems) return;
-    
+
     setState(() {
       _isLoading = true;
     });
-    
+
     // Simulate API call for next page
     Future.delayed(const Duration(milliseconds: 500), () {
       setState(() {
@@ -123,10 +125,10 @@ class _DonorSelectorSheetState extends State<_DonorSelectorSheet> {
       });
     });
   }
-  
+
   void _applyFilters() {
     // Filter donors based on search query
-    final List<_Donor> filteredList = _searchQuery.isEmpty 
+    final List<_Donor> filteredList = _searchQuery.isEmpty
         ? List.from(_allDonors)
         : _allDonors.where((donor) {
             if (_isSearchByPhone) {
@@ -136,26 +138,26 @@ class _DonorSelectorSheetState extends State<_DonorSelectorSheet> {
                      donor.number.toLowerCase().contains(_searchQuery.toLowerCase());
             }
           }).toList();
-    
+
     // Apply pagination
     final int startIndex = 0;
     final int endIndex = _currentPage * _itemsPerPage;
-    
+
     _displayedDonors = filteredList.sublist(
-      startIndex, 
+      startIndex,
       endIndex < filteredList.length ? endIndex : filteredList.length
     );
-    
+
     _hasMoreItems = endIndex < filteredList.length;
   }
-  
+
   void _onSearch(String query) {
     setState(() {
       _searchQuery = query;
       _loadInitialDonors();
     });
   }
-  
+
   @override
   Widget build(BuildContext context) {
     return DraggableScrollableSheet(
@@ -178,17 +180,17 @@ class _DonorSelectorSheetState extends State<_DonorSelectorSheet> {
                   children: [
                     Center(
                       child: Container(
-                        width: 40, 
-                        height: 4, 
+                        width: 40,
+                        height: 4,
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade300, 
+                          color: Colors.grey.shade300,
                           borderRadius: BorderRadius.circular(2)
                         )
                       )
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'Sélectionner un Donneur',
+                      'select_donor'.tr,
                       style: GoogleFonts.ubuntu(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -198,7 +200,7 @@ class _DonorSelectorSheetState extends State<_DonorSelectorSheet> {
                   ],
                 ),
               ),
-              
+
               // Search bar
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
@@ -207,9 +209,9 @@ class _DonorSelectorSheetState extends State<_DonorSelectorSheet> {
                     TextField(
                       controller: _searchController,
                       decoration: InputDecoration(
-                        hintText: _isSearchByPhone 
-                            ? 'Rechercher par numéro de téléphone...' 
-                            : 'Rechercher par nom ou numéro...',
+                        hintText: _isSearchByPhone
+                            ? 'enter_donor_phone_hint'.tr
+                            : 'enter_donor_name_hint'.tr,
                         prefixIcon: const Icon(Iconsax.search_normal),
                         suffixIcon: IconButton(
                           icon: Icon(
@@ -229,7 +231,7 @@ class _DonorSelectorSheetState extends State<_DonorSelectorSheet> {
                       ),
                       onChanged: _onSearch,
                     ),
-                    
+
                     // Filter options
                     AnimatedContainer(
                       duration: const Duration(milliseconds: 300),
@@ -240,7 +242,7 @@ class _DonorSelectorSheetState extends State<_DonorSelectorSheet> {
                           child: Row(
                             children: [
                               FilterChip(
-                                label: const Text('Par téléphone'),
+                                label: Text('search_by_phone'.tr),
                                 selected: _isSearchByPhone,
                                 onSelected: (selected) {
                                   setState(() {
@@ -253,7 +255,7 @@ class _DonorSelectorSheetState extends State<_DonorSelectorSheet> {
                               ),
                               const SizedBox(width: 8),
                               FilterChip(
-                                label: const Text('Donneur avec photo'),
+                                label: Text('donor_with_photo'.tr),
                                 selected: false,  // Not implemented in demo
                                 onSelected: (selected) {
                                   // Would filter donors with photos
@@ -267,7 +269,7 @@ class _DonorSelectorSheetState extends State<_DonorSelectorSheet> {
                   ],
                 ),
               ),
-              
+
               // Donor list
               Expanded(
                 child: _isLoading && _displayedDonors.isEmpty
@@ -284,12 +286,12 @@ class _DonorSelectorSheetState extends State<_DonorSelectorSheet> {
                                 backgroundColor: Colors.grey.shade200,
                                 child: Icon(Icons.close, color: Colors.grey.shade700),
                               ),
-                              title: const Text('Aucun donneur'),
-                              subtitle: const Text('Don anonyme ou sans donneur associé'),
+                              title: Text('no_donor'.tr),
+                              subtitle: Text('anonymous_or_no_donor'.tr),
                               onTap: () => Navigator.pop(context, null),
                             );
                           }
-                          
+
                           // Last item is loading indicator
                           if (index == _displayedDonors.length + 1) {
                             return _hasMoreItems
@@ -304,16 +306,16 @@ class _DonorSelectorSheetState extends State<_DonorSelectorSheet> {
                                     padding: const EdgeInsets.symmetric(vertical: 16),
                                     alignment: Alignment.center,
                                     child: Text(
-                                      'Fin de la liste',
+                                      'end_of_list'.tr,
                                       style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
                                     ),
                                   );
                           }
-                          
+
                           // Normal donor items
                           final donor = _displayedDonors[index - 1]; // -1 because index 0 is "No donor" option
                           final isSelected = donor.id == widget.initialDonorId;
-                          
+
                           return ListTile(
                             leading: donor.photoUrl != null
                                 ? CircleAvatar(
@@ -330,8 +332,8 @@ class _DonorSelectorSheetState extends State<_DonorSelectorSheet> {
                             subtitle: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('ID: ${donor.number}'),
-                                Text('Tél: ${donor.phoneNumber}'),
+                                Text('${'id'.tr}: ${donor.number}'),
+                                Text('${'phone'.tr}: ${donor.phoneNumber}'),
                               ],
                             ),
                             isThreeLine: true,
@@ -363,7 +365,7 @@ class _AddBloodStockPageState extends ConsumerState<AddBloodStockPage> {
   final _batchNumberController = TextEditingController();
   final _volumeController = TextEditingController(text: "450"); // Default volume in ml
   final _descriptionController = TextEditingController();
-  
+
   // Donor selection
   String? _selectedDonorId;
   String? _selectedDonorName;
@@ -413,7 +415,7 @@ class _AddBloodStockPageState extends ConsumerState<AddBloodStockPage> {
         ),
       ),
       title: Text(
-        'Ajouter Stock de Sang',
+        'add_blood_stock'.tr,
         style: GoogleFonts.ubuntu(
           fontSize: 18,
           fontWeight: FontWeight.w600,
@@ -424,7 +426,7 @@ class _AddBloodStockPageState extends ConsumerState<AddBloodStockPage> {
         TextButton(
           onPressed: _saveBloodStock,
           child: Text(
-            'Enregistrer',
+            'save'.tr,
             style: GoogleFonts.ubuntu(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -515,7 +517,7 @@ class _AddBloodStockPageState extends ConsumerState<AddBloodStockPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Type de Sang',
+            'blood_type'.tr,
             style: GoogleFonts.ubuntu(
               fontSize: 18,
               fontWeight: FontWeight.w600,
@@ -586,7 +588,7 @@ class _AddBloodStockPageState extends ConsumerState<AddBloodStockPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Informations de Base',
+            'basic_information'.tr,
             style: GoogleFonts.ubuntu(
               fontSize: 18,
               fontWeight: FontWeight.w600,
@@ -594,44 +596,44 @@ class _AddBloodStockPageState extends ConsumerState<AddBloodStockPage> {
             ),
           ),
           const SizedBox(height: 16),
-          
+
           // Volume
           _buildTextField(
             controller: _volumeController,
-            label: 'Volume de Sang (ml)',
-            hint: 'Ex: 450',
+            label: 'blood_volume_ml'.tr,
+            hint: 'example_volume'.tr,
             icon: Iconsax.weight,
             keyboardType: TextInputType.number,
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Le volume est requis';
+                return 'volume_required'.tr;
               }
               if (double.tryParse(value) == null) {
-                return 'Le volume doit être un nombre';
+                return 'volume_must_be_number'.tr;
               }
               if (double.parse(value) <= 0) {
-                return 'Le volume doit être supérieur à 0';
+                return 'volume_must_be_positive'.tr;
               }
               return null;
             },
           ),
           const SizedBox(height: 16),
-          
+
           // Batch Number
           _buildTextField(
             controller: _batchNumberController,
-            label: 'Numéro de Lot',
-            hint: 'Ex: BT-2024-001',
+            label: 'batch_number'.tr,
+            hint: 'example_batch_number'.tr,
             icon: Iconsax.barcode,
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Le numéro de lot est requis';
+                return 'batch_number_required'.tr;
               }
               return null;
             },
           ),
           const SizedBox(height: 16),
-          
+
           // Donor selector
           _buildDonorSelector(),
         ],
@@ -657,7 +659,7 @@ class _AddBloodStockPageState extends ConsumerState<AddBloodStockPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Dates',
+            'dates'.tr,
             style: GoogleFonts.ubuntu(
               fontSize: 18,
               fontWeight: FontWeight.w600,
@@ -665,19 +667,19 @@ class _AddBloodStockPageState extends ConsumerState<AddBloodStockPage> {
             ),
           ),
           const SizedBox(height: 16),
-          
+
           // Collection Date
           _buildDateField(
-            label: 'Date de Collecte',
+            label: 'collection_date'.tr,
             date: _collectionDate,
             icon: Iconsax.calendar,
             onTap: () => _selectDate(context, true),
           ),
           const SizedBox(height: 16),
-          
+
           // Expiration Date
           _buildDateField(
-            label: 'Date d\'Expiration',
+            label: 'expiration_date'.tr,
             date: _expirationDate,
             icon: Iconsax.calendar_tick,
             onTap: () => _selectDate(context, false),
@@ -705,7 +707,7 @@ class _AddBloodStockPageState extends ConsumerState<AddBloodStockPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Informations Supplémentaires',
+            'additional_information'.tr,
             style: GoogleFonts.ubuntu(
               fontSize: 18,
               fontWeight: FontWeight.w600,
@@ -713,14 +715,14 @@ class _AddBloodStockPageState extends ConsumerState<AddBloodStockPage> {
             ),
           ),
           const SizedBox(height: 16),
-          
+
           // Description
           TextFormField(
             controller: _descriptionController,
             maxLines: 4,
             decoration: InputDecoration(
-              labelText: 'Description (optionnel)',
-              hintText: 'Informations supplémentaires sur ce stock...',
+              labelText: 'description_optional'.tr,
+              hintText: 'additional_info_placeholder'.tr,
               prefixIcon: Icon(Iconsax.note, color: Colors.grey.shade600),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -755,7 +757,7 @@ class _AddBloodStockPageState extends ConsumerState<AddBloodStockPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Type de Produit Sanguin',
+            'blood_product_type'.tr,
             style: GoogleFonts.ubuntu(
               fontSize: 18,
               fontWeight: FontWeight.w600,
@@ -763,11 +765,11 @@ class _AddBloodStockPageState extends ConsumerState<AddBloodStockPage> {
             ),
           ),
           const SizedBox(height: 16),
-          
+
           // Product Type Dropdown
           DropdownButtonFormField<BloodProductType>(
             decoration: InputDecoration(
-              labelText: 'Type de Produit',
+              labelText: 'product_type'.tr,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -785,65 +787,65 @@ class _AddBloodStockPageState extends ConsumerState<AddBloodStockPage> {
               // Core Blood Components
               DropdownMenuItem(
                 value: BloodProductType.wholeBlood,
-                child: Text(BloodProductType.wholeBlood.displayName),
+                child: Text(BloodProductType.wholeBlood.value.tr),
               ),
               DropdownMenuItem(
                 value: BloodProductType.plasma,
-                child: Text(BloodProductType.plasma.displayName),
+                child: Text(BloodProductType.plasma.value.tr),
               ),
               DropdownMenuItem(
                 value: BloodProductType.platelets,
-                child: Text(BloodProductType.platelets.displayName),
+                child: Text(BloodProductType.platelets.value.tr),
               ),
               DropdownMenuItem(
                 value: BloodProductType.redBloodCells,
-                child: Text(BloodProductType.redBloodCells.displayName),
+                child: Text(BloodProductType.redBloodCells.value.tr),
               ),
-              
+
               // Add more categories with headers
-              const DropdownMenuItem(
+              DropdownMenuItem(
                 enabled: false,
                 child: Divider(height: 1),
               ),
-              const DropdownMenuItem(
+              DropdownMenuItem(
                 enabled: false,
-                child: Text('Produits dérivés du plasma',
+                child: Text('plasma_derived_products'.tr,
                     style: TextStyle(fontWeight: FontWeight.bold)),
               ),
               DropdownMenuItem(
                 value: BloodProductType.cryoprecipitate,
-                child: Text(BloodProductType.cryoprecipitate.displayName),
+                child: Text(BloodProductType.cryoprecipitate.value.tr),
               ),
               DropdownMenuItem(
                 value: BloodProductType.frozenPlasma,
-                child: Text(BloodProductType.frozenPlasma.displayName),
+                child: Text(BloodProductType.frozenPlasma.value.tr),
               ),
               DropdownMenuItem(
                 value: BloodProductType.freshFrozenPlasma,
-                child: Text(BloodProductType.freshFrozenPlasma.displayName),
+                child: Text(BloodProductType.freshFrozenPlasma.value.tr),
               ),
-              
+
               // More specialized products
-              const DropdownMenuItem(
+              DropdownMenuItem(
                 enabled: false,
                 child: Divider(height: 1),
               ),
-              const DropdownMenuItem(
+              DropdownMenuItem(
                 enabled: false,
-                child: Text('Solutions et additifs',
+                child: Text('solutions_and_additives'.tr,
                     style: TextStyle(fontWeight: FontWeight.bold)),
               ),
               DropdownMenuItem(
                 value: BloodProductType.saline,
-                child: Text(BloodProductType.saline.displayName),
+                child: Text(BloodProductType.saline.value.tr),
               ),
               DropdownMenuItem(
                 value: BloodProductType.acdSolution,
-                child: Text(BloodProductType.acdSolution.displayName),
+                child: Text(BloodProductType.acdSolution.value.tr),
               ),
               DropdownMenuItem(
                 value: BloodProductType.cpdSolution,
-                child: Text(BloodProductType.cpdSolution.displayName),
+                child: Text(BloodProductType.cpdSolution.value.tr),
               ),
             ],
           ),
@@ -870,7 +872,7 @@ class _AddBloodStockPageState extends ConsumerState<AddBloodStockPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'État et Condition',
+            'status_and_condition'.tr,
             style: GoogleFonts.ubuntu(
               fontSize: 18,
               fontWeight: FontWeight.w600,
@@ -878,11 +880,11 @@ class _AddBloodStockPageState extends ConsumerState<AddBloodStockPage> {
             ),
           ),
           const SizedBox(height: 16),
-          
+
           // Status Dropdown
           DropdownButtonFormField<BloodBagStatus>(
             decoration: InputDecoration(
-              labelText: 'Statut',
+              labelText: 'status'.tr,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -900,16 +902,16 @@ class _AddBloodStockPageState extends ConsumerState<AddBloodStockPage> {
                 .where((status) => status != BloodBagStatus.none)
                 .map((status) => DropdownMenuItem(
                       value: status,
-                      child: Text(status.displayName),
+                      child: Text(status.value.tr),
                     ))
                 .toList(),
           ),
           const SizedBox(height: 16),
-          
+
           // Condition Dropdown
           DropdownButtonFormField<BloodBagConditionStatus>(
             decoration: InputDecoration(
-              labelText: 'Condition de la poche',
+              labelText: 'bag_condition'.tr,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -927,7 +929,7 @@ class _AddBloodStockPageState extends ConsumerState<AddBloodStockPage> {
                 .where((condition) => condition != BloodBagConditionStatus.none)
                 .map((condition) => DropdownMenuItem(
                       value: condition,
-                      child: Text(condition.displayName),
+                      child: Text(condition.value.tr),
                     ))
                 .toList(),
           ),
@@ -954,14 +956,14 @@ class _AddBloodStockPageState extends ConsumerState<AddBloodStockPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Donneur (optionnel)',
+                    'donor_optional'.tr,
                     style: GoogleFonts.ubuntu(fontSize: 12, color: Colors.grey.shade600),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     _selectedDonorName != null
                         ? '${_selectedDonorName!} • ${_selectedDonorNumber ?? ''}'
-                        : 'Sélectionner un donneur',
+                        : 'select_donor'.tr,
                     style: GoogleFonts.ubuntu(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.grey.shade800),
                   ),
                 ],
@@ -1055,7 +1057,7 @@ class _AddBloodStockPageState extends ConsumerState<AddBloodStockPage> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${date.day}/${date.month}/${date.year}',
+                    DateFormat.yMd(Get.locale?.languageCode).format(date),
                     style: GoogleFonts.ubuntu(
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
@@ -1092,7 +1094,7 @@ class _AddBloodStockPageState extends ConsumerState<AddBloodStockPage> {
             const Icon(Iconsax.tick_circle, size: 20),
             const SizedBox(width: 8),
             Text(
-              'Enregistrer le Stock',
+              'save_stock'.tr,
               style: GoogleFonts.ubuntu(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -1111,14 +1113,14 @@ class _AddBloodStockPageState extends ConsumerState<AddBloodStockPage> {
       firstDate: DateTime(2020),
       lastDate: DateTime(2030),
     );
-    
+
     if (picked != null) {
       setState(() {
         if (isCollectionDate) {
           _collectionDate = picked;
           // Auto-update expiration date based on product type
           int expirationDays = 42; // Default for whole blood
-          
+
           switch (_selectedProductType) {
             case BloodProductType.platelets:
               expirationDays = 5; // Platelets have shorter shelf life
@@ -1134,7 +1136,7 @@ class _AddBloodStockPageState extends ConsumerState<AddBloodStockPage> {
             default:
               expirationDays = 42; // Default
           }
-          
+
           _expirationDate = picked.add(Duration(days: expirationDays));
         } else {
           _expirationDate = picked;
@@ -1154,7 +1156,7 @@ class _AddBloodStockPageState extends ConsumerState<AddBloodStockPage> {
 
     try {
       final controller = ref.read(bloodStockControllerProvider.notifier);
-      
+
       print('🩸 Creating blood stock with:');
       print('🩸 Blood Type: $_selectedBloodType');
       print('🩸 Volume: ${_volumeController.text}');
@@ -1165,7 +1167,7 @@ class _AddBloodStockPageState extends ConsumerState<AddBloodStockPage> {
       print('🩸 Expiration Date: $_expirationDate');
       print('🩸 Batch Number: ${_batchNumberController.text}');
       print('🩸 Donor ID: ${_selectedDonorId ?? "No donor selected"}');
-      
+
       final bloodStock = BloodStock(
         id: '', // Generated by backend
         bloodType: _selectedBloodType,
@@ -1183,7 +1185,7 @@ class _AddBloodStockPageState extends ConsumerState<AddBloodStockPage> {
       );
 
       print('🚀 UI: Calling controller to add blood stock...');
-      
+
       // We don't need to manually clear the error, the controller handles this
       final ok = await controller.addBloodStock(bloodStock);
       print('📋 UI: Controller returned result: $ok');
@@ -1192,28 +1194,28 @@ class _AddBloodStockPageState extends ConsumerState<AddBloodStockPage> {
         // Get the controller state to access any error message
         final controllerState = ref.read(bloodStockControllerProvider);
         final hasError = controllerState.error != null && controllerState.error!.isNotEmpty;
-        final String errorMessage = hasError 
-            ? controllerState.error! 
+        final String errorMessage = hasError
+            ? controllerState.error!
             : 'Erreur lors de l\'enregistrement';
-        
+
         print('📋 UI: Final operation result: $ok');
         print('📋 UI: Controller state has error: $hasError');
         if (hasError) {
           print('❌ UI: Error message from controller: ${controllerState.error}');
         }
-        
+
         // Double check: if we have an error message but 'ok' is true, something's wrong
         final bool actuallySucceeded = ok && !hasError;
         if (ok && hasError) {
           print('⚠️ UI: WARNING - Controller returned success but has error message!');
           print('⚠️ UI: Treating this as an error condition');
         }
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(actuallySucceeded 
-                ? 'Stock de sang enregistré avec succès' 
-                : 'Erreur: $errorMessage'),
+            content: Text(actuallySucceeded
+                ? 'blood_stock_saved_successfully'.tr
+                : 'error_with_message'.trParams({'error': errorMessage})),
             backgroundColor: actuallySucceeded ? Colors.green : Colors.red,
             behavior: SnackBarBehavior.floating,
           ),
@@ -1224,7 +1226,7 @@ class _AddBloodStockPageState extends ConsumerState<AddBloodStockPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur: $e'),
+            content: Text('error_with_message'.trParams({'error': e.toString()})),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
           ),

@@ -1,13 +1,17 @@
 import 'package:animate_do/animate_do.dart';
 import 'package:eblood_bank_mak_app/apps/config/theme/ColorPages.dart';
 import 'package:eblood_bank_mak_app/apps/services/FirebaseAuthService.dart';
+import 'package:eblood_bank_mak_app/apps/services/AuthService.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:ionicons/ionicons.dart';
 import 'package:get/get.dart';
 import '../widgets/LanguageSelector.dart';
+import '../components/SponsorFooter.dart';
+import '../services/AuthApi.dart';
 
 class WelcomePage extends ConsumerWidget {
   const WelcomePage({super.key});
@@ -15,11 +19,11 @@ class WelcomePage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => context.go('/debug/first-launch'),
-        backgroundColor: Colors.white.withValues(alpha: 0.2),
-        child: const Icon(Icons.bug_report, color: Colors.white),
-      ),
+      // floatingActionButton: FloatingActionButton(
+      //   onPressed: () => context.go('/debug/first-launch'),
+      //   backgroundColor: Colors.white.withValues(alpha: 0.2),
+      //   child: const Icon(Icons.bug_report, color: Colors.white),
+      // ),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -50,43 +54,43 @@ class WelcomePage extends ConsumerWidget {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
+                          // FadeInDown(
+                          //   duration: const Duration(milliseconds: 800),
+                          //   child: Container(
+                          //     width: 60,
+                          //     height: 60,
+                          //     decoration: BoxDecoration(
+                          //       shape: BoxShape.circle,
+                          //       color: ColorPages.COLOR_BLANCHE.withOpacity(0.1),
+                          //       border: Border.all(
+                          //         color: ColorPages.COLOR_PRINCIPAL.withOpacity(0.2),
+                          //         width: 2,
+                          //       ),
+                          //     ),
+                          //     child: Center(
+                          //       child: Image.asset(
+                          //         'assets/icons/cnts.png',
+                          //         width: 45,
+                          //         height: 45,
+                          //       ),
+                          //     ),
+                          //   ),
+                          // ),
+                          // const SizedBox(width: 20),
+                          // Container(
+                          //   height: 60,
+                          //   width: 4,
+                          //   decoration: BoxDecoration(
+                          //     color: ColorPages.COLOR_PRINCIPAL,
+                          //     borderRadius: BorderRadius.circular(5),
+                          //   ),
+                          // ),
+                          // const SizedBox(width: 20),
                           FadeInDown(
                             duration: const Duration(milliseconds: 800),
                             child: Container(
-                              width: 60,
-                              height: 60,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: ColorPages.COLOR_BLANCHE.withOpacity(0.1),
-                                border: Border.all(
-                                  color: ColorPages.COLOR_PRINCIPAL.withOpacity(0.2),
-                                  width: 2,
-                                ),
-                              ),
-                              child: Center(
-                                child: Image.asset(
-                                  'assets/icons/cnts.png',
-                                  width: 45,
-                                  height: 45,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 20),
-                          Container(
-                            height: 60,
-                            width: 4,
-                            decoration: BoxDecoration(
-                              color: ColorPages.COLOR_PRINCIPAL,
-                              borderRadius: BorderRadius.circular(5),
-                            ),
-                          ),
-                          const SizedBox(width: 20),
-                          FadeInDown(
-                            duration: const Duration(milliseconds: 800),
-                            child: Container(
-                              width: 60,
-                              height: 60,
+                              width: 120,
+                              height: 120,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 color: ColorPages.COLOR_PRINCIPAL.withOpacity(0.1),
@@ -98,8 +102,8 @@ class WelcomePage extends ConsumerWidget {
                               child: Center(
                                 child: Image.asset(
                                   'assets/images/image4.png',
-                                  width: 40,
-                                  height: 40,
+                                  width: 90,
+                                  height: 90,
                                 ),
                               ),
                             ),
@@ -259,6 +263,14 @@ class WelcomePage extends ConsumerWidget {
                     ),
                   ),
                 ),
+
+                // Sponsor Footer
+                const SizedBox(height: 16),
+                const SponsorFooter(
+                  labelKey: 'accompanied_by',
+                  logoHeight: 45,
+                  logoSpacing: 12,
+                ),
                   ],
                 ),
               ),
@@ -380,9 +392,33 @@ class WelcomePage extends ConsumerWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () {
-            // Navigate to main app as visitor
-            context.go('/app/MainApp');
+          onTap: () async {
+            // Attempt visitor login based on device link
+            try {
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (_) => const Center(child: CircularProgressIndicator()),
+              );
+
+              final result = await AuthApi.instance.visitorLoginCheck();
+              if (context.mounted) Navigator.of(context).pop();
+
+              final next = (result['nextAction'] ?? '').toString();
+              if (next == 'login') {
+                if (context.mounted) context.go('/app/MainApp');
+              } else if (next == 'select_entity') {
+                if (context.mounted) context.push('/visitor/select-entity');
+              } else {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(result['message']?.toString() ?? 'Unable to continue as visitor'), backgroundColor: Colors.red),
+                  );
+                }
+              }
+            } catch (e) {
+              if (context.mounted) Navigator.of(context).pop();
+            }
           },
           borderRadius: BorderRadius.circular(16),
           child: Row(
@@ -411,17 +447,88 @@ class WelcomePage extends ConsumerWidget {
 
   Future<void> _handleGoogleSignIn(BuildContext context, WidgetRef ref) async {
     try {
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(child: CircularProgressIndicator()),
+      );
+
+      // Sign in with Firebase
       final authService = ref.read(firebaseAuthServiceProvider);
       final userCredential = await authService.signInWithGoogle();
 
-      if (userCredential != null && context.mounted) {
-        // Successfully signed in, navigate to main app
-        context.go('/app/MainApp');
+      if (userCredential == null) {
+        if (context.mounted) Navigator.of(context).pop();
+        return;
+      }
+
+      // Get Firebase ID token
+      final idToken = await authService.getIdToken();
+      if (idToken == null) {
+        if (context.mounted) {
+          Navigator.of(context).pop();
+          _showErrorDialog(context, 'error'.tr, 'Failed to get authentication token');
+        }
+        return;
+      }
+
+      // Call backend Google login endpoint
+      final authApi = AuthService();
+      final result = await authApi.googleLogin({
+        'google_id_token': idToken,
+        'email': userCredential.user?.email,
+      });
+
+      if (context.mounted) Navigator.of(context).pop();
+
+      if (result['success'] == true) {
+        // Handle auto-login response - same as OTP validation success
+        await authApi.handleAutoLoginAfterRegistration(result);
+
+        // Navigate to main app
+        if (context.mounted) context.go('/app/MainApp');
+      } else {
+        // Handle login failure
+        final message = result['message'] ?? 'Login failed';
+        final statusCode = result['statusCode'] ?? 500;
+
+        // Email already registered with different method (409 CONFLICT)
+        if (statusCode == 409) {
+          // Sign out from Firebase since they can't use Google login
+          await authService.signOut();
+          if (context.mounted) {
+            _showErrorDialog(context, 'login_error'.tr, message);
+          }
+        }
+        // User not found - redirect to registration
+        else if (statusCode == 404 || message.toLowerCase().contains('not found')) {
+          if (context.mounted) {
+            context.push('/account-type-selection', extra: {
+              'registration_mode': 'google',
+              'google_email': userCredential.user?.email,
+              'google_display_name': userCredential.user?.displayName,
+              'google_photo_url': userCredential.user?.photoURL,
+              'google_id_token': idToken,
+              'google_user': {
+                'email': userCredential.user?.email,
+                'displayName': userCredential.user?.displayName,
+                'photoURL': userCredential.user?.photoURL,
+                'uid': userCredential.user?.uid,
+              }
+            });
+          }
+        } else {
+          // Other errors
+          if (context.mounted) {
+            _showErrorDialog(context, 'login_error'.tr, message);
+          }
+        }
       }
     } catch (e) {
       if (context.mounted) {
-        _showErrorDialog(context, 'connection_error'.tr,
-          'connection_error_message'.tr);
+        Navigator.of(context).pop();
+        _showErrorDialog(context, 'connection_error'.tr, 'connection_error_message'.tr);
       }
     }
   }

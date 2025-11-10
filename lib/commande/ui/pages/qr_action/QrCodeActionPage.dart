@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:get/get.dart';
 import '../../../../apps/config/theme/ColorPages.dart';
 import '../../../../qrcode/qrcode_page.dart';
 import 'QrCodeActionCtrl.dart';
@@ -29,39 +30,39 @@ class _QrCodeActionPageState extends ConsumerState<QrCodeActionPage> {
   String get _title {
     switch (widget.actionType) {
       case QrCodeActionType.deliveryValidation:
-        return 'Confirmer la livraison';
+        return 'confirm_delivery'.tr;
       case QrCodeActionType.passwordRequest:
-        return 'Demander le mot de passe';
+        return 'request_password'.tr;
       case QrCodeActionType.stockVerification:
-        return 'Vérifier le stock';
+        return 'verify_blood_stock'.tr;
       case QrCodeActionType.requestValidation:
-        return 'Valider la demande';
+        return 'validate_request'.tr;
     }
   }
 
   String get _description {
     switch (widget.actionType) {
       case QrCodeActionType.deliveryValidation:
-        return 'Scannez le QR code de la commande pour confirmer la livraison';
+        return 'scan_qr_to_confirm'.tr;
       case QrCodeActionType.passwordRequest:
-        return 'Scannez le QR code pour demander le mot de passe';
+        return 'scan_qr_to_request_password'.tr;
       case QrCodeActionType.stockVerification:
-        return 'Scannez le QR code pour vérifier les informations du stock';
+        return 'scan_qr_to_verify_stock'.tr;
       case QrCodeActionType.requestValidation:
-        return 'Scannez le QR code pour valider la demande de sang';
+        return 'scan_qr_to_validate_request'.tr;
     }
   }
 
   String get _buttonText {
     switch (widget.actionType) {
       case QrCodeActionType.deliveryValidation:
-        return 'Confirmer la livraison';
+        return 'confirm_delivery'.tr;
       case QrCodeActionType.passwordRequest:
-        return 'Demander le mot de passe';
+        return 'request_password'.tr;
       case QrCodeActionType.stockVerification:
-        return 'Vérifier le stock';
+        return 'verify_blood_stock'.tr;
       case QrCodeActionType.requestValidation:
-        return 'Valider la demande';
+        return 'validate_request'.tr;
     }
   }
 
@@ -136,7 +137,7 @@ class _QrCodeActionPageState extends ConsumerState<QrCodeActionPage> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Scanner le QR Code',
+                    'scan_qr'.tr,
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -173,9 +174,9 @@ class _QrCodeActionPageState extends ConsumerState<QrCodeActionPage> {
                       children: [
                         Icon(Icons.check_circle, color: Colors.blue[600], size: 20),
                         const SizedBox(width: 8),
-                        const Text(
-                          'QR Code scanné',
-                          style: TextStyle(
+                        Text(
+                          'qr_code_scanned'.tr,
+                          style: const TextStyle(
                             fontWeight: FontWeight.w600,
                             fontSize: 16,
                           ),
@@ -202,7 +203,7 @@ class _QrCodeActionPageState extends ConsumerState<QrCodeActionPage> {
               onPressed: state.isLoading ? null : _scanQrCode,
               icon: const Icon(Icons.qr_code_scanner, color: Colors.white),
               label: Text(
-                scannedQrCode == null ? 'Scanner le QR Code' : 'Scanner un autre QR Code',
+                scannedQrCode == null ? 'scan_qr'.tr : 'scan_another_qr'.tr,
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 16,
@@ -235,7 +236,7 @@ class _QrCodeActionPageState extends ConsumerState<QrCodeActionPage> {
                       )
                     : Icon(_actionIcon, color: Colors.white),
                 label: Text(
-                  state.isLoading ? 'Traitement en cours...' : _buttonText,
+                  state.isLoading ? 'processing_in_progress'.tr : _buttonText,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
@@ -300,7 +301,7 @@ class _QrCodeActionPageState extends ConsumerState<QrCodeActionPage> {
         ref.read(qrCodeActionCtrlProvider.notifier).reset();
       }
     } catch (e) {
-      _showErrorSnackBar('Erreur lors du scan: $e');
+      _showErrorSnackBar('scan_error_details'.trParams({'error': e.toString()}));
     }
   }
 
@@ -341,8 +342,8 @@ class _QrCodeActionPageState extends ConsumerState<QrCodeActionPage> {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                'Action réussie!',
-                style: TextStyle(
+                'success'.tr,
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                   color: Colors.black87,
@@ -384,7 +385,7 @@ class _QrCodeActionPageState extends ConsumerState<QrCodeActionPage> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'QR Code: ${_maskQrCode(scannedQrCode ?? "N/A")}',
+                      '${'qr_code'.tr}: ${_maskQrCode(scannedQrCode ?? 'not_available_short'.tr)}',
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.green.shade700,
@@ -407,7 +408,7 @@ class _QrCodeActionPageState extends ConsumerState<QrCodeActionPage> {
               });
             },
             child: Text(
-              'Scanner un autre',
+              'scan_another'.tr,
               style: TextStyle(
                 color: Colors.grey.shade600,
                 fontWeight: FontWeight.w500,
@@ -426,7 +427,7 @@ class _QrCodeActionPageState extends ConsumerState<QrCodeActionPage> {
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             ),
             child: Text(
-              'Terminer',
+              'finish'.tr,
               style: TextStyle(
                 fontWeight: FontWeight.w600,
               ),
@@ -439,7 +440,7 @@ class _QrCodeActionPageState extends ConsumerState<QrCodeActionPage> {
   }
 
   String _maskQrCode(String qrCode) {
-    if (qrCode.isEmpty || qrCode == "N/A") return qrCode;
+    if (qrCode.isEmpty || qrCode == 'not_available_short'.tr) return qrCode;
 
     if (qrCode.length <= 8) {
       // For short codes, show first 2 and last 2 characters

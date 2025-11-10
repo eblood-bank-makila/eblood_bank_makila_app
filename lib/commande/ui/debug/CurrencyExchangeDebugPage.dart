@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/services.dart';
+import 'package:eblood_bank_mak_app/commande/ui/pages/panier/PanierCtrl.dart';
 import '../../../apps/config/theme/ColorPages.dart';
 import '../../../apps/config/AppConfig.dart';
 import '../../../utilisateurs/business/interactors/UtilisateurInteractor.dart';
@@ -20,7 +21,18 @@ class _CurrencyExchangeDebugPageState extends ConsumerState<CurrencyExchangeDebu
 
   @override
   Widget build(BuildContext context) {
-    final currencyExchangeAsync = ref.watch(currencyExchangeProvider);
+    final panierState = ref.watch(panierCtrlProvider);
+    final amount = panierState.paniers?.data.isNotEmpty == true
+        ? panierState.paniers!.data[0].totalPrice.toDouble()
+        : 0.0;
+    final cart = panierState.paniers?.data.isNotEmpty == true ? panierState.paniers!.data[0] : null;
+    final itemCurrencyId = (cart?.cartItems.isNotEmpty == true) ? cart!.cartItems[0].currencyId : '';
+    final currencyId = itemCurrencyId.isNotEmpty ? itemCurrencyId : (cart?.refCurrencyId ?? '');
+    final currencyExchangeAsync = ref.watch(
+      currencyExchangeProvider(
+        CurrencyExchangeParams(amount: amount, refCurrencyId: currencyId),
+      ),
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -33,8 +45,15 @@ class _CurrencyExchangeDebugPageState extends ConsumerState<CurrencyExchangeDebu
         actions: [
           IconButton(
             onPressed: () {
-              // Refresh the provider
-              ref.invalidate(currencyExchangeProvider);
+              // Refresh the provider with current params
+              final ps = ref.read(panierCtrlProvider);
+              final amt = ps.paniers?.data.isNotEmpty == true
+                  ? ps.paniers!.data[0].totalPrice.toDouble()
+                  : 0.0;
+              final cart = ps.paniers?.data.isNotEmpty == true ? ps.paniers!.data[0] : null;
+              final itemCurrencyId = (cart?.cartItems.isNotEmpty == true) ? cart!.cartItems[0].currencyId : '';
+              final cid = itemCurrencyId.isNotEmpty ? itemCurrencyId : (cart?.refCurrencyId ?? '');
+              ref.invalidate(currencyExchangeProvider(CurrencyExchangeParams(amount: amt, refCurrencyId: cid)));
             },
             icon: const Icon(Icons.refresh),
           ),
@@ -97,7 +116,14 @@ class _CurrencyExchangeDebugPageState extends ConsumerState<CurrencyExchangeDebu
                       const SizedBox(height: 16),
                       ElevatedButton(
                         onPressed: () {
-                          ref.invalidate(currencyExchangeProvider);
+                          final ps = ref.read(panierCtrlProvider);
+                          final amt = ps.paniers?.data.isNotEmpty == true
+                              ? ps.paniers!.data[0].totalPrice.toDouble()
+                              : 0.0;
+                          final cart = ps.paniers?.data.isNotEmpty == true ? ps.paniers!.data[0] : null;
+                          final itemCurrencyId = (cart?.cartItems.isNotEmpty == true) ? cart!.cartItems[0].currencyId : '';
+                          final cid = itemCurrencyId.isNotEmpty ? itemCurrencyId : (cart?.refCurrencyId ?? '');
+                          ref.invalidate(currencyExchangeProvider(CurrencyExchangeParams(amount: amt, refCurrencyId: cid)));
                         },
                         child: const Text('Retry'),
                       ),
@@ -265,8 +291,6 @@ class _CurrencyExchangeDebugPageState extends ConsumerState<CurrencyExchangeDebu
   }
 
   Widget _buildTestConversionCard(currencyResponse) {
-    const testAmount = 50.0;
-    
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -274,7 +298,7 @@ class _CurrencyExchangeDebugPageState extends ConsumerState<CurrencyExchangeDebu
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Test Conversion (USD $testAmount)',
+              'Conversion preview (server-calculated amounts)',
               style: GoogleFonts.ubuntu(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -283,7 +307,6 @@ class _CurrencyExchangeDebugPageState extends ConsumerState<CurrencyExchangeDebu
             const SizedBox(height: 8),
             if (currencyResponse.data.isNotEmpty) ...[
               ...currencyResponse.data.map((currency) {
-                final convertedAmount = testAmount * currency.exchangedValue;
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 4),
                   child: Row(
@@ -291,7 +314,7 @@ class _CurrencyExchangeDebugPageState extends ConsumerState<CurrencyExchangeDebu
                     children: [
                       Text('${currency.currencyFromCode} → ${currency.currencyToCode}'),
                       Text(
-                        '${convertedAmount.toStringAsFixed(2)} ${currency.currencyToCode}',
+                        '${currency.convertedAmount.toStringAsFixed(2)} ${currency.currencyToCode} (amount: ${currency.amount.toStringAsFixed(2)})',
                         style: GoogleFonts.ubuntu(fontWeight: FontWeight.w600),
                       ),
                     ],
@@ -310,7 +333,14 @@ class _CurrencyExchangeDebugPageState extends ConsumerState<CurrencyExchangeDebu
   Future<void> _testManualFetch() async {
     try {
       final service = ref.read(currencyExchangeServiceProvider);
-      final result = await service.getCurrencyExchanges();
+      final ps = ref.read(panierCtrlProvider);
+      final amt = ps.paniers?.data.isNotEmpty == true
+          ? ps.paniers!.data[0].totalPrice.toDouble()
+          : 0.0;
+      final cart = ps.paniers?.data.isNotEmpty == true ? ps.paniers!.data[0] : null;
+      final itemCurrencyId = (cart?.cartItems.isNotEmpty == true) ? cart!.cartItems[0].currencyId : '';
+      final cid = itemCurrencyId.isNotEmpty ? itemCurrencyId : (cart?.refCurrencyId ?? '');
+      final result = await service.getCurrencyExchanges(amt, cid);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -388,9 +418,9 @@ class _CurrencyExchangeDebugPageState extends ConsumerState<CurrencyExchangeDebu
               ],
             ),
             const SizedBox(height: 8),
-            Text('Endpoint: /eblood-connect/currencies-exchange'),
-            Text('Method: GET'),
-            Text('Expected Response: currency_exchanges array'),
+            const Text('Endpoint: /eblood-connect/amount-exchances'),
+            const Text('Method: POST'),
+            const Text('Body: {"amount": <double>, "ref_currency_id": "<currencyId>"}'),
             const SizedBox(height: 8),
             const Text(
               'If you see "No currency data available", check:\n'

@@ -1,52 +1,53 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/network/dio_client.dart';
+import '../../../apps/config/api/dio_client.dart';
 import '../model/CurrencyExchangeModel.dart';
 
 abstract class CurrencyExchangeService {
-  Future<CurrencyExchangeResponse> getCurrencyExchanges();
+  Future<CurrencyExchangeResponse> getCurrencyExchanges(
+    double amount,
+    String refCurrencyId,
+  );
 }
 
 class CurrencyExchangeServiceImpl implements CurrencyExchangeService {
-  final DioClient dioClient;
-
-  CurrencyExchangeServiceImpl({
-    required this.dioClient,
-  });
+  CurrencyExchangeServiceImpl();
 
   @override
-  Future<CurrencyExchangeResponse> getCurrencyExchanges() async {
+  Future<CurrencyExchangeResponse> getCurrencyExchanges(
+    double amount,
+    String refCurrencyId,
+  ) async {
     try {
-      debugPrint('🌍 Fetching currency exchanges from: /eblood-connect/currencies-exchange');
+      final trimmedId = refCurrencyId.trim();
+      if (trimmedId.isEmpty) {
+        debugPrint('⚠️ Skipping currency conversion POST: ref_currency_id is empty');
+        return CurrencyExchangeResponse(
+          success: false,
+          data: [],
+          message: 'Missing ref_currency_id',
+        );
+      }
 
-      final response = await dioClient.get<Map<String, dynamic>>(
-        '/eblood-connect/currencies-exchange',
+      debugPrint('🌍 Posting currency conversions to: /eblood-connect/amount-exchances');
+
+      final apiResponse = await postWithDio(
+        '/eblood-connect/amount-exchances',
+        body: {
+          'amount': amount,
+          'ref_currency_id': trimmedId,
+        },
       );
 
-      debugPrint('🌍 Currency exchange response: $response');
+      debugPrint('🌍 Currency conversion response: ${apiResponse.raw ?? apiResponse.data}');
 
-      if (response != null) {
+      if (apiResponse.success) {
         debugPrint('✅ Successful response, parsing JSON...');
-        debugPrint('📋 Parsed JSON structure: ${response.runtimeType}');
-        debugPrint('📋 JSON keys: ${response is Map ? response.keys.toList() : "Not a Map"}');
-
-        if (response is Map && response.containsKey('data')) {
-          debugPrint('📋 Data field type: ${response['data'].runtimeType}');
-          debugPrint('📋 Data field content: ${response['data']}');
-        }
-
-        if (response is Map && response.containsKey('currency_exchanges')) {
-          debugPrint('📋 Currency exchanges field type: ${response['currency_exchanges'].runtimeType}');
-          debugPrint('📋 Currency exchanges field content: ${response['currency_exchanges']}');
-        }
-
-        // Parse currency_exchanges field if it exists, otherwise use data field
-        final currencyExchangesData = response['currency_exchanges'] ?? response['data'];
 
         final currencyResponse = CurrencyExchangeResponse.fromJson({
-          'success': response['success'] ?? true,
-          'message': response['message'] ?? 'Currency exchanges fetched successfully',
-          'data': currencyExchangesData,
+          'success': apiResponse.success,
+          'message': apiResponse.message ?? 'Currency conversions fetched successfully',
+          'data': apiResponse.data,
         });
 
         debugPrint('✅ Successfully parsed response:');
@@ -61,19 +62,19 @@ class CurrencyExchangeServiceImpl implements CurrencyExchangeService {
 
         return currencyResponse;
       } else {
-        debugPrint('❌ Failed to fetch currency exchanges: null response');
+        debugPrint('❌ Failed to fetch currency conversions: ${apiResponse.message}');
         return CurrencyExchangeResponse(
           success: false,
           data: [],
-          message: 'Failed to fetch currency exchanges: null response',
+          message: apiResponse.message ?? 'Failed to fetch currency conversions',
         );
       }
     } catch (e) {
-      debugPrint('❌ Error fetching currency exchanges: $e');
+      debugPrint('❌ Error fetching currency conversions: $e');
       return CurrencyExchangeResponse(
         success: false,
         data: [],
-        message: 'Error fetching currency exchanges: $e',
+        message: 'Error fetching currency conversions: $e',
       );
     }
   }
@@ -81,15 +82,44 @@ class CurrencyExchangeServiceImpl implements CurrencyExchangeService {
 
 // Provider for the currency exchange service
 final currencyExchangeServiceProvider = Provider<CurrencyExchangeService>((ref) {
-  final dioClient = DioClient();
-
-  return CurrencyExchangeServiceImpl(
-    dioClient: dioClient,
-  );
+  return CurrencyExchangeServiceImpl();
 });
 
-// Provider for currency exchange data
-final currencyExchangeProvider = FutureProvider<CurrencyExchangeResponse>((ref) async {
+// Strongly-typed params to avoid rebuild loops (Map identity)
+class CurrencyExchangeParams {
+  final double amount;
+  final String refCurrencyId;
+  const CurrencyExchangeParams({required this.amount, required this.refCurrencyId});
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CurrencyExchangeParams &&
+          runtimeType == other.runtimeType &&
+          amount == other.amount &&
+          refCurrencyId == other.refCurrencyId;
+
+  @override
+  int get hashCode => Object.hash(amount, refCurrencyId);
+
+  @override
+  String toString() => 'CurrencyExchangeParams(amount: $amount, refCurrencyId: $refCurrencyId)';
+}
+
+// Provider for currency exchange data with parameters
+final currencyExchangeProvider = FutureProvider.family<CurrencyExchangeResponse, CurrencyExchangeParams>((ref, params) async {
   final service = ref.read(currencyExchangeServiceProvider);
-  return await service.getCurrencyExchanges();
+  final amountParam = params.amount;
+  final refCurrencyId = params.refCurrencyId.trim();
+
+  if (refCurrencyId.isEmpty) {
+    debugPrint('currencyExchangeProvider: missing ref_currency_id; skipping API call.');
+    return CurrencyExchangeResponse(
+      success: false,
+      data: [],
+      message: 'Missing ref_currency_id',
+    );
+  }
+
+  return await service.getCurrencyExchanges(amountParam, refCurrencyId);
 });

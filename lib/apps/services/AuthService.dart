@@ -1,16 +1,20 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:eblood_bank_mak_app/apps/config/api/dio_client.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:http/http.dart' as http;
+import 'package:get_storage/get_storage.dart';
+import 'package:path/path.dart' as path;
 import '../config/AppConfig.dart';
-import '../services/HttpInterceptorService.dart';
 import '../constants/api_constants.dart';
 import '../models/UserInfoValidation.dart';
+import '../models/api_response.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'AuthApi.dart';
 
 class AuthService {
-  final HttpInterceptorService _httpInterceptor = HttpInterceptorService();
   final String baseApiUrl = AppConfig.instance.baseApiUrl;
 
   static const String _deviceNotAllowedInfoKey = 'device_not_allowed_info';
@@ -19,23 +23,142 @@ class AuthService {
   static const String _logoutEndpoint = '/auth/logout';
    // Secure storage for sensitive data
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
+  final GetStorage _storage = GetStorage();
 
-  
+  String _normalizeEndpoint(String endpoint) {
+    if (endpoint.isEmpty) {
+      return endpoint;
+    }
+
+    final trimmedEndpoint = endpoint.trim();
+    final normalizedBase = baseApiUrl.endsWith('/')
+        ? baseApiUrl.substring(0, baseApiUrl.length - 1)
+        : baseApiUrl;
+
+    if (trimmedEndpoint.startsWith(normalizedBase)) {
+      final suffix = trimmedEndpoint.substring(normalizedBase.length);
+      if (suffix.isEmpty) {
+        return '/';
+      }
+      return suffix.startsWith('/') ? suffix : '/$suffix';
+    }
+
+    if (trimmedEndpoint.startsWith('http')) {
+      final uri = Uri.parse(trimmedEndpoint);
+      final baseUri = Uri.parse(normalizedBase);
+      var path = uri.path;
+      if (baseUri.path.isNotEmpty && path.startsWith(baseUri.path)) {
+        path = path.substring(baseUri.path.length);
+      }
+      if (!path.startsWith('/')) {
+        path = '/$path';
+      }
+      final query = uri.hasQuery ? '?${uri.query}' : '';
+      return '$path$query';
+    }
+
+    return trimmedEndpoint.startsWith('/') ? trimmedEndpoint : '/$trimmedEndpoint';
+  }
+
+  // Store auth token for subsequent requests (both secure and fast cache)
+  Future<void> setAuthToken(String token) async {
+    try {
+      await _secureStorage.write(key: 'auth_token', value: token);
+      await _storage.write('auth_token', token);
+      debugPrint('🔐 Auth token saved');
+    } catch (e) {
+      debugPrint('Error saving auth token: $e');
+    }
+  }
+
+  // Handle complete auto-login after Google registration/login (save token + user profile)
+  // This mimics the OTP validation success flow
+  Future<void> handleAutoLoginAfterRegistration(Map<String, dynamic> registrationResponse) async {
+    try {
+      debugPrint('🔄 handleAutoLoginAfterRegistration called');
+      debugPrint('📦 Response structure: ${registrationResponse.keys}');
+
+      final data = registrationResponse['data'] as Map<String, dynamic>?;
+      final accessToken = data?['access_token'] as String?;
+      final userObj = data?['user'] as Map<String, dynamic>?;
+      final profilsRaw = data?['user_profils'];
+
+      debugPrint('🔑 Access token present: ${accessToken != null && accessToken.isNotEmpty}');
+      debugPrint('👤 User object present: ${userObj != null}');
+
+      if (accessToken != null && accessToken.isNotEmpty) {
+        // Save token to both secure storage and fast cache
+        debugPrint('💾 Saving token to auth_token key...');
+        await setAuthToken(accessToken);
+        debugPrint('✅ Token saved to auth_token');
+
+        // Also save to the OTP token key for compatibility with existing auth flow
+        // This is what OtpCodeCtrl does after successful OTP validation
+        await _secureStorage.write(key: 'OTP_TOKENKey', value: accessToken);
+        debugPrint('✅ Token saved to OTP_TOKENKey');
+
+        // Verify token was saved
+        final savedToken = await _secureStorage.read(key: 'auth_token');
+        debugPrint('🔍 Verification - Token in secure storage: ${savedToken != null && savedToken.isNotEmpty}');
+
+        // Save user data to GetStorage for immediate access
+        if (userObj != null) {
+          await _storage.write('user_data', userObj);
+          debugPrint('✅ User data saved to GetStorage');
+
+          // Store socket hash if available
+          final socketHash = userObj['user_account_socket_hash'];
+          if (socketHash != null && socketHash.toString().isNotEmpty) {
+            await _storage.write('socket_hash', socketHash);
+            debugPrint('✅ Socket hash saved: $socketHash');
+          }
+        }
+
+        // Store user profiles for routing compatibility
+        if (profilsRaw is List) {
+          debugPrint('📥 Google auth - storing profiles: $profilsRaw');
+          await _storage.write('user_profils', profilsRaw);
+          await _storage.write('user_profiles', profilsRaw); // legacy key
+          debugPrint('💾 Stored user_profils with ${profilsRaw.length} entries');
+        }
+
+        debugPrint('✅ Auto-login token and user data saved to GetStorage');
+
+        // CRITICAL: Fetch and save user profile to Sembast database
+        // This is what ProfileCtrl expects to find
+        try {
+          debugPrint('🔄 Fetching user profile from network...');
+          final authApi = AuthApi.instance;
+          final userProfile = await authApi.getUserProfile();
+          if (userProfile != null) {
+            debugPrint('✅ User profile fetched and saved to Sembast: ${userProfile.uPrenom} ${userProfile.uNom}');
+          } else {
+            debugPrint('⚠️ Failed to fetch user profile from network');
+          }
+        } catch (e) {
+          debugPrint('⚠️ Error fetching user profile: $e');
+          // Non-fatal: ProfileCtrl will try to fetch it again
+        }
+      } else {
+        debugPrint('⚠️ No access token found in registration response');
+        debugPrint('📦 Data object: $data');
+      }
+    } catch (e, stackTrace) {
+      debugPrint('⚠️ Error handling auto-login: $e');
+      debugPrint('📍 Stack trace: $stackTrace');
+      // Non-fatal: navigation can still proceed
+    }
+  }
+
+
   // Register a new user
   Future<Map<String, dynamic>> register(Map<String, dynamic> userData) async {
     try {
-      // Using the HTTP interceptor to get proper headers
-      final headers = await _httpInterceptor.getHeaders();
-      headers['Content-Type'] = 'application/json';
-      
-      // Using the correct endpoint from the API endpoint file
-    final registrationEndpoint = ApiConstants.USERS_REGISTER;
-      
+      final registrationEndpoint = _normalizeEndpoint(ApiConstants.USERS_REGISTER);
+
       print('🔄 Registering user at: $registrationEndpoint');
       print('📦 Registration data: ${jsonEncode(userData)}');
-      print('🔑 Headers: ${headers.toString()}');
-      
-      // Validate the URL is properly formed
+
       if (baseApiUrl.isEmpty) {
         print('⚠️ Base API URL is empty! Check your .env file.');
         return {
@@ -43,85 +166,36 @@ class AuthService {
           'message': 'API URL configuration is missing. Please contact support.',
         };
       }
-      
-      try {
-        final response = await http.post(
-          Uri.parse(registrationEndpoint),
-          headers: headers,
-          body: jsonEncode(userData),
-        ).timeout(
-          const Duration(seconds: 30),
-          onTimeout: () {
-            print('⏱️ Registration request timed out');
-            throw Exception('Registration request timed out');
-          },
-        );
-        
-        print('📊 Response status code: ${response.statusCode}');
-        print('📄 Response body: ${response.body}');
-        
-        // Check if the response body is valid JSON
-        if (response.body.isEmpty) {
-          print('⚠️ Empty response received');
-          return {
-            'success': false,
-            'message': 'Server returned an empty response',
-          };
-        }
-        
-        Map<String, dynamic> jsonData;
-        try {
-          jsonData = jsonDecode(response.body);
-        } catch (jsonError) {
-          print('⚠️ Invalid JSON response: ${response.body}');
-          return {
-            'success': false,
-            'message': 'Server returned an invalid response format',
-          };
-        }
-        
-        if (response.statusCode == 200 || response.statusCode == 201) {
-          print('✅ Registration successful');
-          // Check if we have a standard success response structure
-          final bool isSuccess = jsonData['success'] == true ||
-              jsonData['status'] == 'success' ||
-              (jsonData['status_code'] != null && (jsonData['status_code'] == 200 || jsonData['status_code'] == 201));
-          
-          // Based on your specific backend response: {"success":true,"status_code":200,"message":"...", "data":null}
-          if (isSuccess) {
-            return {
-              'success': true,
-              'data': jsonData['data'],
-              'message': jsonData['message'] ?? 'Registration successful',
-              'phoneNumber': userData['phone_number'],
-              'email': userData['email'],
-            };
-          } else {
-            print('⚠️ Unexpected success response format: $jsonData');
-            return {
-              'success': true, // Still consider it success based on HTTP status
-              'data': jsonData,
-              'message': 'Registration request processed',
-              'phoneNumber': userData['phone_number'],
-              'email': userData['email'],
-            };
-          }
-        } else {
-          print('❌ Registration failed: ${jsonData['message'] ?? 'Unknown error'}');
-          return {
-            'success': false,
-            'message': jsonData['message'] ?? jsonData['error'] ?? 'Registration failed',
-            'errors': jsonData['errors'],
-            'statusCode': response.statusCode,
-          };
-        }
-      } catch (httpError) {
-        print('🔴 HTTP Request Error: $httpError');
+
+      final response = await postWithDio(
+        registrationEndpoint,
+        body: userData,
+        headers: const {'Content-Type': 'application/json'},
+        timeoutDuration: const Duration(seconds: 30),
+      );
+
+      print('📊 Registration response: $response');
+
+      if (response.success) {
         return {
-          'success': false,
-          'message': 'Network error: $httpError',
+          'success': true,
+          'data': response.data,
+          'message': response.message ?? 'Registration successful',
+          'phoneNumber': userData['phone_number'],
+          'email': userData['email'],
+          'statusCode': response.statusCode ?? 200,
         };
       }
+
+      final raw = response.raw;
+      final errors = raw is Map<String, dynamic> ? raw['errors'] : null;
+      return {
+        'success': false,
+        'data': response.data,
+        'errors': errors,
+        'message': response.message ?? 'Registration failed',
+        'statusCode': response.statusCode ?? 500,
+      };
     } catch (e) {
       print('⚠️ Registration error: $e');
       return {
@@ -134,13 +208,13 @@ class AuthService {
   // Generic social provider registration; provider examples: google, facebook, apple
   Future<Map<String, dynamic>> socialRegister(String provider, Map<String, dynamic> userData) async {
     try {
-      final headers = await _httpInterceptor.getHeaders();
-      headers['Content-Type'] = 'application/json';
       // Decide endpoint based on account type
       final bool isHealthStructure = (userData['account_type'] == 'health_structure') || userData.containsKey('health_structure');
-      final endpoint = isHealthStructure
+      final endpointUrl = isHealthStructure
           ? ApiConstants.healthStructureSocialRegister(provider)
           : ApiConstants.userSocialRegister(provider);
+      final endpoint = _normalizeEndpoint(endpointUrl);
+
       print('🔄 Social($provider) registering user (healthStructure=$isHealthStructure) at: $endpoint');
       print('📦 Social registration data: ${jsonEncode(userData)}');
 
@@ -151,51 +225,35 @@ class AuthService {
         };
       }
 
-      final response = await http.post(
-        Uri.parse(endpoint),
-        headers: headers,
-        body: jsonEncode(userData),
-      ).timeout(
-        const Duration(seconds: 30),
-        onTimeout: () => throw Exception('Google registration timed out'),
+      final response = await postWithDio(
+        endpoint,
+        body: userData,
+        headers: const {'Content-Type': 'application/json'},
+        timeoutDuration: const Duration(seconds: 30),
       );
 
-  print('📊 Social($provider) registration status: ${response.statusCode}');
-  print('📄 Social($provider) registration body: ${response.body}');
-
-      if (response.body.isEmpty) {
-        return {'success': false, 'message': 'Empty response from server'};
-      }
-      Map<String, dynamic> jsonData;
-      try {
-        jsonData = jsonDecode(response.body);
-      } catch (e) {
-        return {'success': false, 'message': 'Invalid JSON from server'};
-      }
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final bool isSuccess = jsonData['success'] == true ||
-            jsonData['status'] == 'success' ||
-            (jsonData['status_code'] != null && (jsonData['status_code'] == 200 || jsonData['status_code'] == 201));
-  final String prettyProvider = provider.isEmpty ? 'Provider' : provider[0].toUpperCase() + provider.substring(1);
-  if (isSuccess) {
-          return {
-            'success': true,
-            'data': jsonData['data'],
-            'message': jsonData['message'] ?? '$prettyProvider registration successful',
-          };
-        } else {
-          return {
-            'success': false,
-            'message': jsonData['message'] ?? '$prettyProvider registration failed',
-          };
-        }
-      }
       final String prettyProvider = provider.isEmpty ? 'Provider' : provider[0].toUpperCase() + provider.substring(1);
+      print('� Social($provider) registration response: $response');
+
+      if (response.success) {
+        return {
+          'success': true,
+          'data': response.data,
+          'message': response.message ?? '$prettyProvider registration successful',
+          'statusCode': response.statusCode ?? 200,
+        };
+      }
+
+      final raw = response.raw;
+      final message = response.message ??
+          (raw is Map<String, dynamic> ? raw['message']?.toString() : null) ??
+          '$prettyProvider registration failed';
       return {
         'success': false,
-        'message': jsonData['message'] ?? '$prettyProvider registration failed',
-        'statusCode': response.statusCode,
+        'data': response.data,
+        'errors': raw is Map<String, dynamic> ? raw['errors'] : null,
+        'message': message,
+        'statusCode': response.statusCode ?? 500,
       };
     } catch (e) {
       print('⚠️ Social($provider) registration error: $e');
@@ -203,55 +261,342 @@ class AuthService {
       return {'success': false, 'message': 'Error during $prettyProvider registration: $e'};
     }
   }
-  
+
   // Backward compatible googleRegister using generic handler
   Future<Map<String, dynamic>> googleRegister(Map<String, dynamic> userData) {
     return socialRegister('google', userData);
   }
-  
+
+  // Google Login - authenticate existing user with Google
+  Future<Map<String, dynamic>> googleLogin(Map<String, dynamic> loginData) async {
+    try {
+      final endpoint = _normalizeEndpoint('$baseApiUrl/eblood-connect/users/google/login');
+
+      print('🔄 Google login at: $endpoint');
+      print('📤 Login data: ${jsonEncode(loginData)}');
+
+      final response = await postWithDio(
+        endpoint,
+        body: loginData,
+        headers: const {'Content-Type': 'application/json'},
+        timeoutDuration: const Duration(seconds: 30),
+      );
+
+      print('📊 Google login response: $response');
+
+      if (response.success) {
+        return {
+          'success': true,
+          'data': response.data,
+          'message': response.message ?? 'Google login successful',
+          'statusCode': response.statusCode ?? 200,
+        };
+      }
+
+      final raw = response.raw;
+      final message = response.message ??
+          (raw is Map<String, dynamic> ? raw['message']?.toString() : null) ??
+          'Google login failed';
+      return {
+        'success': false,
+        'data': response.data,
+        'errors': raw is Map<String, dynamic> ? raw['errors'] : null,
+        'message': message,
+        'statusCode': response.statusCode ?? 500,
+      };
+    } catch (e) {
+      print('⚠️ Google login error: $e');
+      return {'success': false, 'message': 'Error during Google login: $e'};
+    }
+  }
+
+  // Register as benevol donor (volunteer donor)
+  Future<IApiResponse> registerBenevolDonor(Map<String, dynamic> donorData) async {
+    try {
+      print('🔄 Registering benevol donor with payload: ${jsonEncode(donorData)}');
+      final response = await postWithDio(
+        '/eblood-connect/blood-donors/become-volonteer-register',
+        body: donorData,
+        timeoutDuration: const Duration(seconds: 60),
+      );
+      print('📊 Benevol registration response: $response');
+      return response;
+    } catch (e) {
+      print('⚠️ Benevol donor registration error: $e');
+      return IApiResponse.error(
+        'Error during benevol donor registration: $e',
+        statusCode: 500,
+      );
+    }
+  }
+
+  // Upload volunteer donor profile photo
+  Future<IApiResponse> uploadVolunteerDonorPhoto(String sysDonorId, File photo) async {
+    try {
+      print('🔄 Uploading volunteer donor photo for sys_donor_id: $sysDonorId');
+
+      final response = await uploadFile(
+        path: photo.path,
+        filename: path.basename(photo.path),
+        endpoint: '/eblood-connect/blood-donors/profil-photo-upload-volonteer',
+        extraData: {'id': sysDonorId},
+        fileFieldName: 'upload_file',
+        timeoutDuration: const Duration(seconds: 60),
+      );
+
+      print('📊 Photo upload response: $response');
+      return response;
+    } catch (e) {
+      print('⚠️ Volunteer donor photo upload error: $e');
+      return IApiResponse.error(
+        'Error uploading volunteer donor photo: $e',
+        statusCode: 500,
+      );
+    }
+  }
+
+  // Register as donor (non-volunteer)
+  Future<IApiResponse> registerDonor(Map<String, dynamic> donorData) async {
+    try {
+      print('🔄 Registering donor with payload: ${jsonEncode(donorData)}');
+      final response = await postWithDio(
+        '/eblood-connect/blood-donors/become-donor-register',
+        body: donorData,
+        timeoutDuration: const Duration(seconds: 60),
+      );
+      print('📊 Donor registration response: $response');
+      return response;
+    } catch (e) {
+      print('⚠️ Donor registration error: $e');
+      return IApiResponse.error(
+        'Error during donor registration: $e',
+        statusCode: 500,
+      );
+    }
+  }
+
+  // Upload donor profile photo (non-volunteer)
+  Future<IApiResponse> uploadDonorPhoto(String sysDonorId, File photo) async {
+    try {
+      print('🔄 Uploading donor photo for sys_donor_id: $sysDonorId');
+
+      final response = await uploadFile(
+        path: photo.path,
+        filename: path.basename(photo.path),
+        endpoint: '/eblood-connect/blood-donors/profil-photo-upload',
+        extraData: {'id': sysDonorId},
+        fileFieldName: 'upload_file',
+        timeoutDuration: const Duration(seconds: 60),
+      );
+      print('📊 Donor photo upload response: $response');
+      return response;
+    } catch (e) {
+      print('⚠️ Donor photo upload error: $e');
+      return IApiResponse.error(
+        'Error uploading donor photo: $e',
+        statusCode: 500,
+      );
+    }
+  }
+
+
+  // Fetch INS request initialization data
+  Future<IApiResponse> fetchInsRequestInitInfo() async {
+    try {
+      print('🔄 Fetching INS request initialization data');
+
+      final response = await getWithDio(
+        '/eblood-connect/init-ins-request-infos',
+        timeoutDuration: const Duration(seconds: 30),
+      );
+
+      print('📊 INS init data response: $response');
+      return response;
+    } catch (e) {
+      print('⚠️ INS init data fetch error: $e');
+      return IApiResponse.error(
+        'Error fetching INS init data: $e',
+        statusCode: 500,
+      );
+    }
+  }
+
+  // Submit INS request
+  Future<IApiResponse> submitInsRequest(Map<String, dynamic> requestData) async {
+    try {
+      print('🔄 Submitting INS request with payload: ${jsonEncode(requestData)}');
+      final response = await postWithDio(
+        '/eblood-connect/ins-request/submit',
+        body: requestData,
+        timeoutDuration: const Duration(seconds: 60),
+      );
+      print('📊 INS request submission response: $response');
+      return response;
+    } catch (e) {
+      print('⚠️ INS request submission error: $e');
+      return IApiResponse.error(
+        'Error submitting INS request: $e',
+        statusCode: 500,
+      );
+    }
+  }
+
+  // Upload INS request photo (ID card image)
+  Future<IApiResponse> uploadInsRequestIdPhoto(String sysInsRequestId, File idPhoto) async {
+    try {
+      print('🔄 Uploading INS request ID photo for sys_ins_request_id: $sysInsRequestId');
+
+      final response = await uploadFile(
+        path: idPhoto.path,
+        filename: path.basename(idPhoto.path),
+        endpoint: '/eblood-connect/ins-request/upload-id-photo',
+        extraData: {'id': sysInsRequestId},
+        fileFieldName: 'upload_file',
+        timeoutDuration: const Duration(seconds: 60),
+      );
+
+      print('📊 INS ID photo upload response: $response');
+      return response;
+    } catch (e) {
+      print('⚠️ INS ID photo upload error: $e');
+      return IApiResponse.error(
+        'Error uploading INS ID photo: $e',
+        statusCode: 500,
+      );
+    }
+  }
+
+  // Upload INS request face photo
+  Future<IApiResponse> uploadInsRequestFacePhoto(String sysInsRequestId, File facePhoto) async {
+    try {
+      print('🔄 Uploading INS request face photo for sys_ins_request_id: $sysInsRequestId');
+
+      final response = await uploadFile(
+        path: facePhoto.path,
+        filename: path.basename(facePhoto.path),
+        endpoint: '/eblood-connect/ins-request/upload-face-photo',
+        extraData: {'id': sysInsRequestId},
+        fileFieldName: 'upload_file',
+        timeoutDuration: const Duration(seconds: 60),
+      );
+
+      print('📊 INS face photo upload response: $response');
+      return response;
+    } catch (e) {
+      print('⚠️ INS face photo upload error: $e');
+      return IApiResponse.error(
+        'Error uploading INS face photo: $e',
+        statusCode: 500,
+      );
+    }
+  }
+
+  // Upload INS request profile photos (left and right)
+  Future<IApiResponse> uploadInsRequestProfilePhoto(
+    String sysInsRequestId,
+    File profilePhoto,
+    String side // 'left' or 'right'
+  ) async {
+    try {
+      print('🔄 Uploading INS request $side profile photo for sys_ins_request_id: $sysInsRequestId');
+
+      final response = await uploadFile(
+        path: profilePhoto.path,
+        filename: path.basename(profilePhoto.path),
+        endpoint: '/eblood-connect/ins-request/upload-profile-photo',
+        extraData: {
+          'id': sysInsRequestId,
+          'side': side,
+        },
+        fileFieldName: 'upload_file',
+        timeoutDuration: const Duration(seconds: 60),
+      );
+
+      print('📊 INS $side profile photo upload response: $response');
+      return response;
+    } catch (e) {
+      print('⚠️ INS $side profile photo upload error: $e');
+      return IApiResponse.error(
+        'Error uploading INS $side profile photo: $e',
+        statusCode: 500,
+      );
+    }
+  }
+
+  // Get my INS request (if any)
+  Future<IApiResponse> getMyInsRequest() async {
+    try {
+      print('🔄 Fetching my INS request');
+      final response = await getWithDio(
+        '/eblood-connect/ins-request/get-my-ins-request',
+        timeoutDuration: const Duration(seconds: 30),
+      );
+      print('📊 My INS request response: $response');
+      return response;
+    } catch (e) {
+      print('⚠️ Error fetching my INS request: $e');
+      return IApiResponse.error(
+        'Error fetching my INS request: $e',
+        statusCode: 500,
+      );
+    }
+  }
+
   // Verify OTP code
   Future<Map<String, dynamic>> verifyOTP({
     required String phoneNumber,
     required String otpCode,
   }) async {
     try {
-      final headers = await _httpInterceptor.getHeaders();
-      headers['Content-Type'] = 'application/json';
-      
-      // Using the correct endpoint for OTP verification
-      final otpEndpoint = '$baseApiUrl/eblood/users/verify-email';
-      
+      final otpEndpoint = _normalizeEndpoint('$baseApiUrl/eblood/users/verify-email');
+
       print('🔄 Verifying OTP at: $otpEndpoint');
-      
-      final body = {
-        'phone_number': phoneNumber,
-        'code': otpCode, // Using 'code' as the parameter name based on the API endpoint
-      };
-      
-      final response = await http.post(
-        Uri.parse(otpEndpoint),
-        headers: headers,
-        body: jsonEncode(body),
+
+      final response = await postWithDio(
+        otpEndpoint,
+        body: {
+          'phone_number': phoneNumber,
+          'code': otpCode,
+        },
+        headers: const {'Content-Type': 'application/json'},
       );
-      
-      print('📊 OTP verification status code: ${response.statusCode}');
-      final jsonData = jsonDecode(response.body);
-      
-      if (response.statusCode == 200) {
+
+      final raw = response.raw;
+      String? token;
+      if (response.data is Map<String, dynamic>) {
+        final map = response.data as Map<String, dynamic>;
+        token = (map['token'] ?? map['access_token'] ?? map['auth_token'])?.toString();
+      }
+      if (token == null && raw is Map<String, dynamic>) {
+        final data = raw['data'];
+        if (data is Map<String, dynamic>) {
+          token = (data['token'] ?? data['access_token'] ?? data['auth_token'])?.toString();
+        } else {
+          token = (raw['token'] ?? raw['access_token'])?.toString();
+        }
+      }
+
+      if (response.success) {
         print('✅ OTP verification successful');
         return {
           'success': true,
-          'data': jsonData['data'] ?? jsonData,
-          'message': jsonData['message'] ?? 'OTP verification successful',
-          'token': jsonData['data']?['token'] ?? jsonData['token'],
-        };
-      } else {
-        print('❌ OTP verification failed: ${jsonData['message']}');
-        return {
-          'success': false,
-          'message': jsonData['message'] ?? 'OTP verification failed',
+          'data': response.data ?? (raw is Map<String, dynamic> ? raw['data'] : raw),
+          'message': response.message ?? 'OTP verification successful',
+          'token': token,
+          'statusCode': response.statusCode ?? 200,
         };
       }
+
+      final message = response.message ??
+          (raw is Map<String, dynamic> ? raw['message']?.toString() : null) ??
+          'OTP verification failed';
+      print('❌ OTP verification failed: $message');
+      return {
+        'success': false,
+        'data': response.data,
+        'message': message,
+        'statusCode': response.statusCode ?? 500,
+      };
     } catch (e) {
       print('⚠️ OTP verification error: $e');
       return {
@@ -260,45 +605,46 @@ class AuthService {
       };
     }
   }
-  
+
   // Resend OTP
   Future<Map<String, dynamic>> resendOTP(String phoneNumber) async {
     try {
-      final headers = await _httpInterceptor.getHeaders();
-      headers['Content-Type'] = 'application/json';
-      
-      // Using the correct endpoint for resending OTP
-      final resendEndpoint = '$baseApiUrl/eblood/users/send-otp';
-      
+      final resendEndpoint = _normalizeEndpoint('$baseApiUrl/eblood/users/send-otp');
+
       print('🔄 Resending OTP to: $phoneNumber');
-      
-      final body = {
-        'phone_number': phoneNumber,
-        'type': 'registration', // Specify the purpose of the OTP
-      };
-      
-      final response = await http.post(
-        Uri.parse(resendEndpoint),
-        headers: headers,
-        body: jsonEncode(body),
+
+      final response = await postWithDio(
+        resendEndpoint,
+        body: {
+          'phone_number': phoneNumber,
+          'type': 'registration',
+        },
+        headers: const {'Content-Type': 'application/json'},
       );
-      
-      print('📊 Resend OTP status code: ${response.statusCode}');
-      final jsonData = jsonDecode(response.body);
-      
-      if (response.statusCode == 200) {
+
+      final raw = response.raw;
+
+      if (response.success) {
         print('✅ OTP resent successfully');
         return {
           'success': true,
-          'message': jsonData['message'] ?? 'OTP resent successfully',
-        };
-      } else {
-        print('❌ Failed to resend OTP: ${jsonData['message']}');
-        return {
-          'success': false,
-          'message': jsonData['message'] ?? 'Failed to resend OTP',
+          'message': response.message ??
+              (raw is Map<String, dynamic> ? raw['message']?.toString() : null) ??
+              'OTP resent successfully',
+          'statusCode': response.statusCode ?? 200,
         };
       }
+
+      final message = response.message ??
+          (raw is Map<String, dynamic> ? raw['message']?.toString() : null) ??
+          'Failed to resend OTP';
+      print('❌ Failed to resend OTP: $message');
+      return {
+        'success': false,
+        'data': response.data,
+        'message': message,
+        'statusCode': response.statusCode ?? 500,
+      };
     } catch (e) {
       print('⚠️ Error resending OTP: $e');
       return {
@@ -307,68 +653,47 @@ class AuthService {
       };
     }
   }
-  
+
   // Validate user info before registration
   Future<Map<String, dynamic>> validateUserInfo(UserInfoValidation userInfo) async {
     try {
-      final headers = await _httpInterceptor.getHeaders();
-      headers['Content-Type'] = 'application/json';
-      
-      final endpoint = '$baseApiUrl/generic/validate-user-infos';
-      
+      final endpoint = _normalizeEndpoint('$baseApiUrl/generic/validate-user-infos');
+
       print('🔄 Validating user info at: $endpoint');
       print('📦 User info data: ${jsonEncode(userInfo.toJson())}');
-      
-      final response = await http.post(
-        Uri.parse(endpoint),
-        headers: headers,
-        body: jsonEncode(userInfo.toJson()),
-      ).timeout(
-        const Duration(seconds: 30),
-        onTimeout: () {
-          print('⏱️ User validation request timed out');
-          throw Exception('User validation request timed out');
-        },
+
+      final response = await postWithDio(
+        endpoint,
+        body: userInfo.toJson(),
+        headers: const {'Content-Type': 'application/json'},
+        timeoutDuration: const Duration(seconds: 30),
       );
-      
-      print('📊 Response status code: ${response.statusCode}');
-      print('📄 Response body: ${response.body}');
-      
-      if (response.body.isEmpty) {
-        print('⚠️ Empty response received');
-        return {
-          'success': false,
-          'message': 'Server returned an empty response',
-        };
-      }
-      
-      Map<String, dynamic> jsonData;
-      try {
-        jsonData = jsonDecode(response.body);
-      } catch (jsonError) {
-        print('⚠️ Invalid JSON response: ${response.body}');
-        return {
-          'success': false,
-          'message': 'Server returned an invalid response format',
-        };
-      }
-      
-      if (response.statusCode == 200) {
+
+      final raw = response.raw;
+
+      if (response.success) {
         print('✅ User info validation successful');
         return {
           'success': true,
-          'data': jsonData['data'] ?? jsonData,
-          'message': jsonData['message'] ?? 'User info validation successful',
-        };
-      } else {
-        print('❌ User info validation failed: ${jsonData['message'] ?? 'Unknown error'}');
-        return {
-          'success': false,
-          'message': jsonData['message'] ?? jsonData['error'] ?? 'User info validation failed',
-          'errors': jsonData['errors'],
-          'statusCode': response.statusCode,
+          'data': response.data ?? (raw is Map<String, dynamic> ? raw['data'] : raw),
+          'message': response.message ??
+              (raw is Map<String, dynamic> ? raw['message']?.toString() : null) ??
+              'User info validation successful',
+          'statusCode': response.statusCode ?? 200,
         };
       }
+
+      final message = response.message ??
+          (raw is Map<String, dynamic> ? raw['message']?.toString() : null) ??
+          'User info validation failed';
+      print('❌ User info validation failed: $message');
+      return {
+        'success': false,
+        'data': response.data,
+        'errors': raw is Map<String, dynamic> ? raw['errors'] : null,
+        'message': message,
+        'statusCode': response.statusCode ?? 500,
+      };
     } catch (e) {
       print('⚠️ User info validation error: $e');
       return {
@@ -377,83 +702,47 @@ class AuthService {
       };
     }
   }
-  
+
   // Verify validation code
   Future<Map<String, dynamic>> verifyValidationCode(UserValidationCodeVerification verificationData) async {
     try {
-      final headers = await _httpInterceptor.getHeaders();
-      headers['Content-Type'] = 'application/json';
-      
-      final endpoint = '$baseApiUrl/generic/verify-user-validation-code';
-      
+      final endpoint = _normalizeEndpoint('$baseApiUrl/generic/verify-user-validation-code');
+
       print('🔄 Verifying validation code at: $endpoint');
       print('📦 Verification data: ${jsonEncode(verificationData.toJson())}');
-      
-      final response = await http.post(
-        Uri.parse(endpoint),
-        headers: headers,
-        body: jsonEncode(verificationData.toJson()),
-      ).timeout(
-        const Duration(seconds: 30),
-        onTimeout: () {
-          print('⏱️ Verification request timed out');
-          throw Exception('Verification request timed out');
-        },
+
+      final response = await postWithDio(
+        endpoint,
+        body: verificationData.toJson(),
+        headers: const {'Content-Type': 'application/json'},
+        timeoutDuration: const Duration(seconds: 30),
       );
-      
-      print('📊 Response status code: ${response.statusCode}');
-      print('📄 Response body: ${response.body}');
-      
-      if (response.body.isEmpty) {
-        print('⚠️ Empty response received');
-        return {
-          'success': false,
-          'message': 'Server returned an empty response',
-        };
-      }
-      
-      Map<String, dynamic> jsonData;
-      try {
-        jsonData = jsonDecode(response.body);
-      } catch (jsonError) {
-        print('⚠️ Invalid JSON response: ${response.body}');
-        return {
-          'success': false,
-          'message': 'Server returned an invalid response format',
-        };
-      }
-      
-      if (response.statusCode == 200) {
+
+      final raw = response.raw;
+
+      if (response.success) {
         print('✅ Validation code verification successful');
-        
-        // Check for success field in different formats that might come from the backend
-        final bool isSuccess = jsonData['success'] == true || 
-                            jsonData['status'] == 'success' ||
-                            (jsonData['status_code'] != null && jsonData['status_code'] == 200);
-                            
-        if (isSuccess) {
-          return {
-            'success': true,
-            'data': jsonData['data'] ?? jsonData,
-            'message': jsonData['message'] ?? 'Validation code verification successful',
-          };
-        } else {
-          // This handles the case where we get a 200 status code but the response indicates failure
-          print('⚠️ Backend returned 200 but with failure indication: $jsonData');
-          return {
-            'success': false,
-            'message': jsonData['message'] ?? 'Validation failed despite 200 status code',
-          };
-        }
-      } else {
-        print('❌ Validation code verification failed: ${jsonData['message'] ?? 'Unknown error'}');
         return {
-          'success': false,
-          'message': jsonData['message'] ?? jsonData['error'] ?? 'Validation code verification failed',
-          'errors': jsonData['errors'],
-          'statusCode': response.statusCode,
+          'success': true,
+          'data': response.data ?? (raw is Map<String, dynamic> ? raw['data'] : raw),
+          'message': response.message ??
+              (raw is Map<String, dynamic> ? raw['message']?.toString() : null) ??
+              'Validation code verification successful',
+          'statusCode': response.statusCode ?? 200,
         };
       }
+
+      final message = response.message ??
+          (raw is Map<String, dynamic> ? raw['message']?.toString() : null) ??
+          'Validation code verification failed';
+      print('❌ Validation code verification failed: $message');
+      return {
+        'success': false,
+        'data': response.data,
+        'errors': raw is Map<String, dynamic> ? raw['errors'] : null,
+        'message': message,
+        'statusCode': response.statusCode ?? 500,
+      };
     } catch (e) {
       print('⚠️ Validation code verification error: $e');
       return {
@@ -560,6 +849,68 @@ class AuthService {
     }
   }
 
+  /// Fetch nearby blood banks based on device location
+  Future<Map<String, dynamic>> getNearbyBloodBanks({
+    required double latitude,
+    required double longitude,
+    double radiusKm = 50.0,
+    int limit = 10,
+  }) async {
+    try {
+      final endpoint = _normalizeEndpoint('$baseApiUrl/eblood-connect/blood-donors/nearby-blood-banks');
+
+      print('🔄 Fetching nearby blood banks at: $endpoint');
+      print('📍 Location: latitude=$latitude, longitude=$longitude, radius=${radiusKm}km');
+
+      final body = {
+        'latitude': latitude,
+        'longitude': longitude,
+        'radius_km': radiusKm,
+        'limit': limit,
+      };
+
+      final response = await postWithDio(
+        endpoint,
+        body: body,
+        headers: const {'Content-Type': 'application/json'},
+        timeoutDuration: const Duration(seconds: 30),
+      );
+
+      final raw = response.raw;
+
+      if (response.success) {
+        print('✅ Nearby blood banks fetched successfully');
+        final dataPayload = response.data ?? (raw is Map<String, dynamic> ? raw['data'] : raw);
+        return {
+          'success': true,
+          'data': dataPayload ?? [],
+          'message': response.message ??
+              (raw is Map<String, dynamic> ? raw['message']?.toString() : null) ??
+              'Nearby blood banks fetched successfully',
+          'statusCode': response.statusCode ?? 200,
+        };
+      }
+
+      final message = response.message ??
+          (raw is Map<String, dynamic> ? raw['message']?.toString() : null) ??
+          'Failed to fetch nearby blood banks';
+      print('❌ Failed to fetch nearby blood banks: $message');
+      return {
+        'success': false,
+        'data': response.data,
+        'errors': raw is Map<String, dynamic> ? raw['errors'] : null,
+        'message': message,
+        'statusCode': response.statusCode ?? 500,
+      };
+    } catch (e) {
+      print('⚠️ Error fetching nearby blood banks: $e');
+      return {
+        'success': false,
+        'message': 'Error occurred while fetching nearby blood banks: $e',
+      };
+    }
+  }
+
    // Logout user
   Future<bool> logout({bool silent = false, BuildContext? context}) async {
     try {
@@ -573,7 +924,7 @@ class AuthService {
           if (connectivityResult != ConnectivityResult.none) {
             await postWithDio(
               _logoutEndpoint,
-              
+
             );
           }
         } catch (e) {
@@ -588,12 +939,29 @@ class AuthService {
       // Clear ALL secure storage data (including TOTP accounts and signatures)
       await _secureStorage.deleteAll();
 
-      // Clear database tokens and all related data
+      // Clear GetStorage tokens
+      try {
+        final storage = GetStorage();
+        await storage.remove('auth_token');
+        await storage.remove('refresh_token');
+        await storage.remove('user_data');
+        await storage.remove('user_profiles');
+        await storage.remove('account_type');
+      } catch (e) {
+        debugPrint('Error clearing GetStorage: $e');
+      }
 
-      // Clear TOTP accounts and signature data specifically
-
-
-      // Clear additional auth-related data
+      // Sign out from Firebase Auth (Google Sign-In)
+      try {
+        final firebaseAuth = FirebaseAuth.instance;
+        final googleSignIn = GoogleSignIn();
+        await googleSignIn.signOut();
+        await firebaseAuth.signOut();
+        debugPrint('🔐 Firebase sign-out successful');
+      } catch (e) {
+        debugPrint('⚠️ Firebase sign-out failed: $e');
+        // Continue with logout even if Firebase sign-out fails
+      }
 
       // Restore non-auth related settings if needed
       if (themeMode != null) {
@@ -624,6 +992,72 @@ class AuthService {
       return false;
     } finally {
       // _isLoadingController.add(false);
+    }
+  }
+
+  // Check if username is already taken
+  Future<Map<String, dynamic>> checkUsernameTaken(String username) async {
+    try {
+      final endpoint = _normalizeEndpoint('$baseApiUrl/generic/check-username-taken');
+
+      print('🔄 Checking username availability at: $endpoint');
+      print('📦 Username: $username');
+
+      if (baseApiUrl.isEmpty) {
+        print('⚠️ Base API URL is empty! Check your .env file.');
+        return {
+          'valid': false,
+          'username': username,
+          'message': 'API URL configuration is missing.',
+        };
+      }
+
+      final body = {
+        'username': username,
+      };
+
+      final response = await postWithDio(
+        endpoint,
+        body: body,
+        headers: const {'Content-Type': 'application/json'},
+        timeoutDuration: const Duration(seconds: 30),
+      );
+
+      final raw = response.raw;
+
+      if (response.success) {
+        final payload = response.data ?? (raw is Map<String, dynamic> ? raw : null);
+        return {
+          'valid': payload is Map<String, dynamic> ? (payload['valid'] ?? false) : (raw is Map<String, dynamic> ? raw['valid'] ?? false : false),
+          'username': payload is Map<String, dynamic>
+              ? (payload['username'] ?? username)
+              : (raw is Map<String, dynamic> ? raw['username'] ?? username : username),
+          'message': response.message ??
+              (raw is Map<String, dynamic> ? raw['message']?.toString() : null) ??
+              'Username availability checked',
+          'statusCode': response.statusCode ?? 200,
+        };
+      }
+
+      final message = response.message ??
+          (raw is Map<String, dynamic> ? raw['message']?.toString() : null) ??
+          'Failed to check username availability';
+      final errors = raw is Map<String, dynamic> ? raw['errors'] : null;
+
+      return {
+        'valid': false,
+        'username': username,
+        'errors': errors,
+        'message': message,
+        'statusCode': response.statusCode ?? 500,
+      };
+    } catch (e) {
+      print('⚠️ Username check error: $e');
+      return {
+        'valid': false,
+        'username': username,
+        'message': 'Error checking username availability: $e',
+      };
     }
   }
 

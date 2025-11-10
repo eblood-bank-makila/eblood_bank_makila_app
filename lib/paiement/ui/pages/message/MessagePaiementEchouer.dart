@@ -1,7 +1,8 @@
 import 'package:animate_do/animate_do.dart';
 import 'package:eblood_bank_mak_app/apps/config/theme/ColorPages.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter/services.dart';
+import 'package:get/get.dart';
 
 class OpsErrorScreen extends StatelessWidget {
   final message;
@@ -10,176 +11,274 @@ class OpsErrorScreen extends StatelessWidget {
   final VoidCallback goBack;
   final bool can_show_go_back_btn;
   final bool hidde_all_btn;
+  final String? ref;
+  final List<String>? errorMessages;
 
-  const OpsErrorScreen(
-      {super.key,
-        required this.message,
-        required this.onClosing,
-        required this.goBack,
-        this.can_show_go_back_btn = false,
-        this.title = "Echec de l'opération !",
-        required this.hidde_all_btn});
+
+  const OpsErrorScreen({
+      super.key,
+      required this.message,
+      required this.onClosing,
+      required this.goBack,
+      this.can_show_go_back_btn = false,
+      this.title,
+      required this.hidde_all_btn,
+      this.ref,
+      this.errorMessages,
+    });
 
   @override
   Widget build(BuildContext context) {
+    // Set status bar style to dark (black icons/text) for light background
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark, // Dark icons for light background
+        statusBarBrightness: Brightness.light, // For iOS
+      ),
+    );
+
     return Container(
-      padding: const EdgeInsets.all(2.0),
+      width: double.infinity,
+      height: double.infinity,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Colors.red.shade100,
+            Colors.red.shade50,
+            Colors.white,
+          ],
+        ),
+      ),
       child: Column(
         children: [
-          const SizedBox(
-            height: 40.0,
-          ),
-          Padding(
-            padding:
-            const EdgeInsets.symmetric(vertical: 10.0, horizontal: 25.0),
-            child: Column(
-              children: [
-                FadeInDown(
-                  from: 60,
-                  delay: const Duration(milliseconds: 800),
-                  duration: const Duration(milliseconds: 1000),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      SizedBox(
-                        height: 60.0,
-                        width: 60.0,
-                        child: SvgPicture.string(
-                          '''<svg fill="currentColor" xmlns="http://www.w3.org/2000/svg" height="1em" viewBox="0 0 512 512"><path d="M367.2 412.5L99.5 144.8C77.1 176.1 64 214.5 64 256c0 106 86 192 192 192c41.5 0 79.9-13.1 111.2-35.5zm45.3-45.3C434.9 335.9 448 297.5 448 256c0-106-86-192-192-192c-41.5 0-79.9 13.1-111.2 35.5L412.5 367.2zM0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256z"/>
-                          </svg>
-                        ''',
-                          color: Colors.red,
-                        ),
-                      ),
-                    ],
+          const SizedBox(height: 60.0),
+
+          // Icon Badge
+          FadeInDown(
+            from: 60,
+            duration: const Duration(milliseconds: 900),
+            child: Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.2),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
                   ),
-                ),
-                const SizedBox(
-                  height: 30.0,
-                ),
-                FadeInUp(
-                  from: 70,
-                  delay: const Duration(milliseconds: 800),
-                  duration: const Duration(milliseconds: 1000),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          "$title",
-                          style: const TextStyle(
-                              color: Colors.red, fontWeight: FontWeight.w800),
-                          textAlign: TextAlign.center,
-                        ),
-                      )
-                    ],
-                  ),
-                ),
-                const SizedBox(
-                  height: 10.0,
-                ),
-                FadeInUp(
-                  from: 80,
-                  delay: const Duration(milliseconds: 800),
-                  duration: const Duration(milliseconds: 1000),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          "$message",
-                          style: const TextStyle(fontWeight: FontWeight.normal),
-                          textAlign: TextAlign.center,
-                        ),
-                      )
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (hidde_all_btn == false)
-            const SizedBox(
-              height: 25.0,
-            ),
-          if (hidde_all_btn == false)
-            FadeInDown(
-              from: 90,
-              delay: const Duration(milliseconds: 800),
-              duration: const Duration(milliseconds: 1000),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  if (can_show_go_back_btn == true)
-                    const SizedBox(
-                      width: 20.0,
-                    ),
-                  if (can_show_go_back_btn == true)
-                    Flexible(
-                      child: Material(
-                        elevation: 0,
-                        borderRadius: BorderRadius.circular(10),
-                        color: ColorPages.COLOR_PRINCIPAL,
-                        child: MaterialButton(
-                          onPressed: () {
-                            // Add a small delay to prevent Navigator lock issues
-                            Future.delayed(const Duration(milliseconds: 100), () {
-                              goBack();
-                            });
-                          },
-                          minWidth: double.infinity,
-                          height: 50,
-                          child: const Text(
-                            "Retour",
-                            style: TextStyle(color: Colors.white, fontSize: 19),
-                          ),
-                        ),
-                      ),
-                    ),
-                  if (can_show_go_back_btn == true)
-                    const SizedBox(
-                      width: 20.0,
-                    ),
-                  if (hidde_all_btn == false)
-                    Flexible(
-                      child: Material(
-                        elevation: 0,
-                        borderRadius: BorderRadius.circular(10),
-                        color: ColorPages.COLOR_PRINCIPAL,
-                        child: MaterialButton(
-                          onPressed: () {
-                            // Ensure proper error handling for the callback
-                            try {
-                              debugPrint('🔘 Fermer button pressed (Error screen) - executing onClosing callback');
-                              // Add a small delay to prevent Navigator lock issues
-                              Future.delayed(const Duration(milliseconds: 100), () {
-                                onClosing();
-                                debugPrint('✅ onClosing callback executed successfully (Error screen)');
-                              });
-                            } catch (e) {
-                              debugPrint('❌ Error in Fermer button onPressed (Error screen): $e');
-                            }
-                          },
-                          minWidth: double.infinity,
-                          height: 50,
-                          child: const Text(
-                            "Fermer",
-                            style: TextStyle(color: Colors.white, fontSize: 19),
-                          ),
-                        ),
-                      ),
-                    ),
-                  if (hidde_all_btn == false)
-                    const SizedBox(
-                      width: 20.0,
-                    ),
                 ],
               ),
+              child: Center(
+                child: Icon(
+                  Icons.error_outline_rounded,
+                  size: 60,
+                  color: ColorPages.COLOR_PRINCIPAL,
+                ),
+              ),
             ),
+          ),
+
+          const SizedBox(height: 30.0),
+
+          // Title
+          FadeInUp(
+            from: 70,
+            duration: const Duration(milliseconds: 1000),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 40.0),
+              child: Text(
+                title ?? 'operation_failed'.tr,
+                style: const TextStyle(
+                  color: ColorPages.COLOR_PRINCIPAL,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 24,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 16.0),
+
+          // Message
+          FadeInUp(
+            from: 85,
+            duration: const Duration(milliseconds: 1000),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 40.0),
+              child: Text(
+                message,
+                style: TextStyle(
+                  fontWeight: FontWeight.normal,
+                  fontSize: 15,
+                  color: Colors.grey.shade700,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+
+          // Info Card
+          if (ref != null || (errorMessages != null && errorMessages!.isNotEmpty)) ...[
+            const SizedBox(height: 24),
+            FadeInUp(
+              from: 90,
+              duration: const Duration(milliseconds: 1000),
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 24.0),
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (ref != null) ...[
+                      Row(
+                        children: [
+                          Icon(Icons.receipt_long, size: 20, color: Colors.grey.shade600),
+                          const SizedBox(width: 8),
+                          Text(
+                            'reference'.tr,
+                            style: const TextStyle(
+                              color: Colors.grey,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              ref!,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: ColorPages.COLOR_PRINCIPAL,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: 'copy'.tr,
+                            icon: const Icon(Icons.copy, size: 18),
+                            onPressed: () {
+                              Clipboard.setData(ClipboardData(text: ref!));
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('reference_copied'.tr)),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
+                    if (errorMessages != null && errorMessages!.isNotEmpty) ...[
+                      if (ref != null) const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Icon(Icons.info_outline, size: 20, color: Colors.grey.shade600),
+                          const SizedBox(width: 8),
+                          Text(
+                            'details'.tr,
+                            style: const TextStyle(
+                              color: Colors.grey,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      ...errorMessages!.map((e) => Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  margin: const EdgeInsets.only(top: 6),
+                                  width: 6,
+                                  height: 6,
+                                  decoration: BoxDecoration(
+                                    color: ColorPages.COLOR_PRINCIPAL,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    e,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey.shade800,
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ],
+
+          const Spacer(),
+
+          // Button
           if (hidde_all_btn == false)
-            const SizedBox(
-              height: 30.0,
+            FadeInUp(
+              from: 90,
+              duration: const Duration(milliseconds: 1000),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: Material(
+                  elevation: 0,
+                  borderRadius: BorderRadius.circular(12),
+                  color: ColorPages.COLOR_PRINCIPAL,
+                  child: MaterialButton(
+                    onPressed: () {
+                      try {
+                        debugPrint('🔘 Close button pressed (Error screen)');
+                        Future.delayed(const Duration(milliseconds: 100), () {
+                          onClosing();
+                        });
+                      } catch (e) {
+                        debugPrint('❌ Error: $e');
+                      }
+                    },
+                    minWidth: double.infinity,
+                    height: 54,
+                    child: Text(
+                      'close'.tr,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ),
+          const SizedBox(height: 40.0),
         ],
       ),
     );

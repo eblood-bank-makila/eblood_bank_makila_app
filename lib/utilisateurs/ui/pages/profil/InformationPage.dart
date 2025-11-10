@@ -45,11 +45,10 @@ class _InformationPageState extends ConsumerState<InformationPage> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              ColorPages.COLOR_PRINCIPAL,
-              ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.8),
+              Colors.red.shade100,
+              Colors.red.shade50,
               Colors.white,
             ],
-            stops: const [0.0, 0.3, 1.0],
           ),
         ),
         child: SafeArea(
@@ -62,11 +61,7 @@ class _InformationPageState extends ConsumerState<InformationPage> {
               Expanded(
                 child: Container(
                   decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(30),
-                      topRight: Radius.circular(30),
-                    ),
+                    color: Colors.transparent,
                   ),
                   child: _buildProfileContent(context, prenom, nom, primaryEmail, primaryPhone, username, accountType, accountTypeName),
                 ),
@@ -88,11 +83,11 @@ class _InformationPageState extends ConsumerState<InformationPage> {
             children: [
               Container(
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
+                  color: Colors.white.withValues(alpha: 0.7),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: IconButton(
-                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  icon: const Icon(Icons.arrow_back, color: ColorPages.COLOR_PRINCIPAL),
                   onPressed: () => Navigator.of(context).pop(),
                 ),
               ),
@@ -102,7 +97,7 @@ class _InformationPageState extends ConsumerState<InformationPage> {
                 style: GoogleFonts.ubuntu(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: ColorPages.COLOR_PRINCIPAL,
                 ),
               ),
             ],
@@ -119,7 +114,7 @@ class _InformationPageState extends ConsumerState<InformationPage> {
                 color: Colors.white.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.3),
+                  color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.2),
                   width: 1,
                 ),
               ),
@@ -132,7 +127,7 @@ class _InformationPageState extends ConsumerState<InformationPage> {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: Colors.white,
+                        color: ColorPages.COLOR_PRINCIPAL,
                         width: 4,
                       ),
                       boxShadow: [
@@ -144,7 +139,7 @@ class _InformationPageState extends ConsumerState<InformationPage> {
                       ],
                     ),
                     child: const CircleAvatar(
-                      backgroundImage: AssetImage('assets/images/image8.png'),
+                      backgroundImage: AssetImage('assets/images/logo.png'),
                     ),
                   ),
 
@@ -159,7 +154,7 @@ class _InformationPageState extends ConsumerState<InformationPage> {
                         style: GoogleFonts.ubuntu(
                           fontWeight: FontWeight.bold,
                           fontSize: 22,
-                          color: Colors.white,
+                          color: ColorPages.COLOR_PRINCIPAL,
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -168,7 +163,7 @@ class _InformationPageState extends ConsumerState<InformationPage> {
                         style: GoogleFonts.ubuntu(
                           fontWeight: FontWeight.bold,
                           fontSize: 22,
-                          color: Colors.white,
+                          color: ColorPages.COLOR_PRINCIPAL,
                         ),
                       ),
                     ],
@@ -181,7 +176,7 @@ class _InformationPageState extends ConsumerState<InformationPage> {
                     Text(
                       email,
                       style: GoogleFonts.ubuntu(
-                        color: Colors.white.withValues(alpha: 0.9),
+                        color: ColorPages.COLOR_NOIR.withValues(alpha: 0.9),
                         fontSize: 16,
                       ),
                     ),
@@ -345,12 +340,19 @@ class _InformationPageState extends ConsumerState<InformationPage> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Colors.white.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.grey.shade200,
+          color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.2),
           width: 1,
         ),
+
+        // color: Colors.white,
+        // borderRadius: BorderRadius.circular(16),
+        // border: Border.all(
+        //   color: Colors.grey.shade200,
+        //   width: 1,
+        // ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),

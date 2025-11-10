@@ -8,6 +8,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:get/get.dart';
+import 'package:intl/intl.dart';
+
 import '../../controllers/donors_provider.dart';
 import '../../models/donor.dart';
 import '../widgets/PaginationWidget.dart';
@@ -78,20 +81,20 @@ class _BloodDonorsManagementPageState
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Gestion des Donneurs',
+          'donor_management'.tr,
           style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
         ),
         actions: [
           IconButton(
             icon: const Icon(Icons.qr_code_scanner),
-            tooltip: 'Scanner un code donneur',
+            tooltip: 'scan_donor_code'.tr,
             onPressed: () {
               _launchQRCodeScanner();
             },
           ),
           IconButton(
             icon: const Icon(Icons.camera_alt),
-            tooltip: 'Recherche par photo',
+            tooltip: 'photo_search'.tr,
             onPressed: () {
               setState(() {
                 _searchType = 'photo';
@@ -101,7 +104,7 @@ class _BloodDonorsManagementPageState
           ),
           IconButton(
             icon: const Icon(Icons.help_outline),
-            tooltip: 'Aide de recherche',
+            tooltip: 'search_help'.tr,
             onPressed: () {
               _showSearchHelpDialog();
             },
@@ -110,8 +113,8 @@ class _BloodDonorsManagementPageState
         bottom: TabBar(
           controller: _tabController,
           tabs: [
-            Tab(text: 'Donneurs'),
-            Tab(text: 'Statistiques'),
+            Tab(text: 'donors'.tr),
+            Tab(text: 'statistics'.tr),
           ],
           labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w600),
         ),
@@ -135,8 +138,8 @@ class _BloodDonorsManagementPageState
             ref.read(donorsProvider.notifier).refreshDonors();
 
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Liste des donneurs mise à jour'),
+              SnackBar(
+                content: Text('donor_list_updated'.tr),
                 backgroundColor: Colors.green,
               ),
             );
@@ -145,7 +148,7 @@ class _BloodDonorsManagementPageState
         backgroundColor: Colors.red,
         icon: const Icon(Icons.add, color: Colors.white),
         label: Text(
-          'Ajouter Donneur',
+          'add_donor'.tr,
           style: GoogleFonts.poppins(color: Colors.white),
         ),
       ),
@@ -246,7 +249,7 @@ class _BloodDonorsManagementPageState
                                 children: [
                                   _buildSearchTypeChip(
                                     'donor_code',
-                                    'Code Donneur',
+                                    'donor_code'.tr,
                                     Icons.badge,
                                   ),
                                   const SizedBox(
@@ -254,7 +257,7 @@ class _BloodDonorsManagementPageState
                                   ), // Increased space between chips
                                   _buildSearchTypeChip(
                                     'photo',
-                                    'Photo',
+                                    'photo'.tr,
                                     Icons.camera_alt,
                                   ),
                                   const SizedBox(
@@ -262,7 +265,7 @@ class _BloodDonorsManagementPageState
                                   ), // Increased space between chips
                                   _buildSearchTypeChip(
                                     'name',
-                                    'Nom',
+                                    'name'.tr,
                                     Icons.person,
                                   ),
                                   const SizedBox(
@@ -270,7 +273,7 @@ class _BloodDonorsManagementPageState
                                   ), // Increased space between chips
                                   _buildSearchTypeChip(
                                     'phone',
-                                    'Téléphone',
+                                    'phone'.tr,
                                     Icons.phone,
                                   ),
                                 ],
@@ -313,7 +316,7 @@ class _BloodDonorsManagementPageState
                       child: Row(
                         children: [
                           Text(
-                            'Genre:',
+                            '${'gender'.tr}:',
                             style: GoogleFonts.poppins(
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
@@ -321,11 +324,11 @@ class _BloodDonorsManagementPageState
                             ),
                           ),
                           const SizedBox(width: 16),
-                          _buildGenderRadio('Tous', null),
+                          _buildGenderRadio('all'.tr, null),
                           const SizedBox(width: 16),
-                          _buildGenderRadio('Homme', 'm'),
+                          _buildGenderRadio('male'.tr, 'm'),
                           const SizedBox(width: 16),
-                          _buildGenderRadio('Femme', 'f'),
+                          _buildGenderRadio('female'.tr, 'f'),
                         ],
                       ),
                     ),
@@ -336,7 +339,7 @@ class _BloodDonorsManagementPageState
           const SizedBox(height: 16),
           // Blood Group Filter options
           Text(
-            'Filtrer par groupe sanguin:',
+            '${'filter_by_blood_type'.tr}:',
             style: GoogleFonts.poppins(
               fontSize: 14,
               fontWeight: FontWeight.w500,
@@ -387,7 +390,7 @@ class _BloodDonorsManagementPageState
                       padding: const EdgeInsets.symmetric(vertical: 4.0),
                       child: Row(
                         children: [
-                          _buildFilterChip('Tous'),
+                          _buildFilterChip('all'.tr),
                           _buildFilterChip('A+'),
                           _buildFilterChip('A-'),
                           _buildFilterChip('B+'),
@@ -462,9 +465,10 @@ class _BloodDonorsManagementPageState
 
   Widget _buildFilterChip(String label) {
     final String chipLabel = label;
-    // For 'Tous', we set bloodType to null to indicate no filter
+    // For 'All', we set bloodType to null to indicate no filter
     // For specific blood types, we use the label value
-    final String? bloodType = label == 'Tous' ? null : label;
+    final bool isAll = label == 'all'.tr;
+    final String? bloodType = isAll ? null : label;
 
     // Use dynamic sizing for better internationalization support
     return Container(
@@ -483,14 +487,13 @@ class _BloodDonorsManagementPageState
         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
         showCheckmark: false, // Hide checkmark to save space
         visualDensity: VisualDensity.compact,
-        // For 'Tous', it's selected when _selectedBloodType is null
+        // For 'All', it's selected when _selectedBloodType is null
         // For specific blood types, it's selected when _selectedBloodType matches the blood type
         selected:
-            (label == 'Tous' && _selectedBloodType == null) ||
-            _selectedBloodType == bloodType,
+            (isAll && _selectedBloodType == null) || _selectedBloodType == bloodType,
         onSelected: (selected) {
           setState(() {
-            // If 'Tous' is selected, set _selectedBloodType to null
+            // If 'All' is selected, set _selectedBloodType to null
             // If a specific blood type is selected, set _selectedBloodType to that value
             // If deselected, set _selectedBloodType to null
             _selectedBloodType = selected ? bloodType : null;
@@ -525,7 +528,7 @@ class _BloodDonorsManagementPageState
                 const Icon(Icons.error_outline, size: 70, color: Colors.red),
                 const SizedBox(height: 16),
                 Text(
-                  'Une erreur est survenue',
+                  'something_went_wrong'.tr,
                   style: GoogleFonts.poppins(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
@@ -544,7 +547,7 @@ class _BloodDonorsManagementPageState
                     ref.read(donorsProvider.notifier).refreshDonors();
                   },
                   icon: const Icon(Icons.refresh),
-                  label: const Text('Réessayer'),
+                  label: Text('retry'.tr),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red,
                     foregroundColor: Colors.white,
@@ -564,7 +567,7 @@ class _BloodDonorsManagementPageState
                 const Icon(Icons.search_off, size: 70, color: Colors.grey),
                 const SizedBox(height: 16),
                 Text(
-                  'Aucun donneur trouvé',
+                  'no_donors_found'.tr,
                   style: GoogleFonts.poppins(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
@@ -573,7 +576,7 @@ class _BloodDonorsManagementPageState
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Essayez avec d\'autres termes de recherche',
+                  'try_different_search_terms'.tr,
                   style: GoogleFonts.poppins(color: Colors.grey.shade600),
                 ),
               ],
@@ -590,7 +593,7 @@ class _BloodDonorsManagementPageState
                 const Icon(Icons.people, size: 70, color: Colors.grey),
                 const SizedBox(height: 16),
                 Text(
-                  'Aucun donneur enregistré',
+                  'no_donors_registered'.tr,
                   style: GoogleFonts.poppins(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
@@ -599,7 +602,7 @@ class _BloodDonorsManagementPageState
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Ajoutez votre premier donneur avec le bouton ci-dessous',
+                  'add_first_donor_hint'.tr,
                   style: GoogleFonts.poppins(color: Colors.grey.shade600),
                   textAlign: TextAlign.center,
                 ),
@@ -625,7 +628,7 @@ class _BloodDonorsManagementPageState
                     color: Colors.yellow.shade100,
                     padding: const EdgeInsets.all(8),
                     child: Text(
-                      'Données chargées avec succès, mais la liste est vide',
+                      'data_loaded_but_empty'.tr,
                       style: TextStyle(color: Colors.red.shade900),
                     ),
                   )
@@ -633,7 +636,7 @@ class _BloodDonorsManagementPageState
                     color: Colors.green.shade100,
                     padding: const EdgeInsets.all(8),
                     child: Text(
-                      '${donorsState.donors.length} donneurs trouvés',
+                      'donors_found_count'.trParams({'count': donorsState.donors.length.toString()}),
                       style: TextStyle(color: Colors.green.shade900),
                     ),
                   ),
@@ -727,7 +730,7 @@ class _BloodDonorsManagementPageState
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Tél: ${donor.phoneNumber}',
+'${'phone_number'.tr}: ${donor.phoneNumber}',
               style: GoogleFonts.poppins(fontSize: 12),
             ),
             Row(
@@ -735,7 +738,7 @@ class _BloodDonorsManagementPageState
                 if (donor.lastDonationDate != null)
                   Expanded(
                     child: Text(
-                      'Dernière donation: ${donor.lastDonationDate}',
+                      '${'last_donation'.tr}: ${_formatDateIfPossible(context, donor.lastDonationDate)}',
                       style: GoogleFonts.poppins(fontSize: 12),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -750,7 +753,7 @@ class _BloodDonorsManagementPageState
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    'Dons: ${donor.totalDonations ?? 0}',
+                    '${'total_donations'.tr}: ${donor.totalDonations ?? 0}',
                     style: GoogleFonts.poppins(
                       fontSize: 10,
                       fontWeight: FontWeight.w500,
@@ -770,7 +773,7 @@ class _BloodDonorsManagementPageState
               onPressed: () {
                 // Edit donor
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Fonctionnalité à venir')),
+                  SnackBar(content: Text('feature_coming_soon'.tr)),
                 );
               },
             ),
@@ -780,7 +783,7 @@ class _BloodDonorsManagementPageState
               onPressed: () {
                 // Delete donor
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Fonctionnalité à venir')),
+                  SnackBar(content: Text('feature_coming_soon'.tr)),
                 );
               },
             ),
@@ -829,7 +832,7 @@ class _BloodDonorsManagementPageState
 
           children.add(
             Text(
-              'Statistiques des Donneurs',
+              'donation_statistics'.tr,
               style: GoogleFonts.poppins(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -906,7 +909,7 @@ class _BloodDonorsManagementPageState
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Text(
-            'Aucune donnée de synthèse disponible pour le moment.',
+            'no_summary_data_available'.tr,
             style: GoogleFonts.poppins(),
           ),
         ),
@@ -915,34 +918,34 @@ class _BloodDonorsManagementPageState
 
     final metrics = <Widget>[
       _buildStatisticChip(
-        label: 'Total donneurs',
+        label: 'total_donors'.tr,
         value: _formatNumber(summary['total_donors']),
         icon: Icons.people_alt,
         color: Colors.red.shade100,
       ),
       _buildStatisticChip(
-        label: 'Donneurs actifs',
+        label: 'active_donors'.tr,
         value: _formatNumber(summary['active_donors']),
         icon: Icons.favorite,
         color: Colors.green.shade100,
       ),
       _buildStatisticChip(
-        label: 'Nouveaux (30j)',
+        label: 'new_30_days'.tr,
         value: _formatNumber(summary['new_donors_last_30_days']),
         icon: Icons.calendar_today,
         color: Colors.blue.shade100,
       ),
       _buildStatisticChip(
-        label: 'Donneurs réguliers',
+        label: 'regular_donors'.tr,
         value: _formatNumber(summary['regular_donors_last_year']),
         icon: Icons.repeat,
         color: Colors.orange.shade100,
       ),
       _buildStatisticChip(
-        label: 'Âge moyen',
+        label: 'average_age'.tr,
         value: summary['average_age'] != null
-            ? '${_parseDouble(summary['average_age']).toStringAsFixed(1)} ans'
-            : 'N/A',
+            ? '${_parseDouble(summary['average_age']).toStringAsFixed(1)} ${'years_short'.tr}'
+            : 'not_available_short'.tr,
         icon: Icons.cake,
         color: Colors.purple.shade100,
       ),
@@ -956,7 +959,7 @@ class _BloodDonorsManagementPageState
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Vue d’ensemble',
+              'overview'.tr,
               style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 12),
@@ -964,7 +967,7 @@ class _BloodDonorsManagementPageState
             if (generatedAt != null) ...[
               const SizedBox(height: 12),
               Text(
-                'Actualisé le ${generatedAt.replaceAll('T', ' ').split('.').first}',
+                'last_updated'.trParams({'time': generatedAt.replaceAll('T', ' ').split('.').first}),
                 style: GoogleFonts.poppins(fontSize: 12, color: Colors.black54),
               ),
             ],
@@ -983,12 +986,12 @@ class _BloodDonorsManagementPageState
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Distribution par Groupe Sanguin',
+              'blood_type_distribution'.tr,
               style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 16),
             if (distribution.isEmpty)
-              Text('Aucune donnée disponible.', style: GoogleFonts.poppins())
+              Text('no_data_available'.tr, style: GoogleFonts.poppins())
             else ...[
               SizedBox(
                 height: 240,
@@ -1025,7 +1028,7 @@ class _BloodDonorsManagementPageState
                 children: distribution.asMap().entries.map((entry) {
                   final index = entry.key;
                   final data = entry.value;
-                  final label = (data['blood_type'] ?? 'Inconnu').toString();
+                  final label = (data['blood_type'] ?? 'unknown'.tr).toString();
                   final count = _formatNumber(data['count']);
                   final percentage = _parseDouble(data['percentage']);
                   return _buildChartLegendItem(
@@ -1045,7 +1048,7 @@ class _BloodDonorsManagementPageState
   }
 
   Widget _buildDistributionRow(Map<String, dynamic> entry) {
-    final label = (entry['blood_type'] ?? 'Inconnu').toString();
+    final label = (entry['blood_type'] ?? 'unknown'.tr).toString();
     final count = _formatNumber(entry['count']);
     final percentage = _parseDouble(entry['percentage']);
     final progress = (percentage / 100).clamp(0.0, 1.0);
@@ -1092,19 +1095,19 @@ class _BloodDonorsManagementPageState
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Fréquence des Donations',
+              'donation_frequency'.tr,
               style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 16),
             if (donationActivity == null || donationActivity.isEmpty)
               Text(
-                'Aucune donnée de donation récente.',
+                'no_recent_donation_data'.tr,
                 style: GoogleFonts.poppins(),
               )
             else ...[
               _buildBarChart([
                 _ChartBarData(
-                  label: '30j',
+                  label: 'days_30'.tr,
                   value: math.max(
                     _parseDouble(donationActivity['donations_last_30_days']),
                     0.0,
@@ -1112,7 +1115,7 @@ class _BloodDonorsManagementPageState
                   color: _colorForIndex(0),
                 ),
                 _ChartBarData(
-                  label: '90j',
+                  label: 'days_90'.tr,
                   value: math.max(
                     _parseDouble(donationActivity['donations_last_90_days']),
                     0.0,
@@ -1120,7 +1123,7 @@ class _BloodDonorsManagementPageState
                   color: _colorForIndex(1),
                 ),
                 _ChartBarData(
-                  label: '12m',
+                  label: 'months_12'.tr,
                   value: math.max(
                     _parseDouble(donationActivity['donations_last_year']),
                     0.0,
@@ -1128,7 +1131,7 @@ class _BloodDonorsManagementPageState
                   color: _colorForIndex(2),
                 ),
                 _ChartBarData(
-                  label: 'Réguliers',
+                  label: 'regular_donors'.tr,
                   value: math.max(
                     _parseDouble(donationActivity['regular_donors']),
                     0.0,
@@ -1136,7 +1139,7 @@ class _BloodDonorsManagementPageState
                   color: _colorForIndex(3),
                 ),
                 _ChartBarData(
-                  label: 'Inactifs',
+                  label: 'inactive_donors'.tr,
                   value: math.max(
                     _parseDouble(donationActivity['inactive_donors']),
                     0.0,
@@ -1146,28 +1149,28 @@ class _BloodDonorsManagementPageState
               ]),
               const SizedBox(height: 16),
               _buildStatisticValueRow(
-                'Dons sur 30 jours',
+                'donations_last_30_days'.tr,
                 donationActivity['donations_last_30_days'],
                 icon: Icons.timelapse,
               ),
               _buildStatisticValueRow(
-                'Dons sur 90 jours',
+                'donations_last_90_days'.tr,
                 donationActivity['donations_last_90_days'],
                 icon: Icons.auto_graph,
               ),
               _buildStatisticValueRow(
-                'Dons sur 12 mois',
+                'donations_last_12_months'.tr,
                 donationActivity['donations_last_year'],
                 icon: Icons.calendar_month,
               ),
               const Divider(height: 24),
               _buildStatisticValueRow(
-                'Donneurs réguliers',
+                'regular_donors'.tr,
                 donationActivity['regular_donors'],
                 icon: Icons.repeat,
               ),
               _buildStatisticValueRow(
-                'Donneurs inactifs',
+                'inactive_donors_count'.tr,
                 donationActivity['inactive_donors'],
                 icon: Icons.pause_circle_filled,
               ),
@@ -1187,12 +1190,12 @@ class _BloodDonorsManagementPageState
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Répartition par Genre',
+              'gender_distribution'.tr,
               style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 16),
             if (distribution.isEmpty)
-              Text('Aucune donnée disponible.', style: GoogleFonts.poppins())
+              Text('no_data_available'.tr, style: GoogleFonts.poppins())
             else ...[
               _buildBarChart(
                 distribution.asMap().entries.map((entry) {
@@ -1234,12 +1237,12 @@ class _BloodDonorsManagementPageState
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Répartition par Tranches d’âge',
+              'age_distribution'.tr,
               style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 16),
             if (distribution.isEmpty)
-              Text('Aucune donnée disponible.', style: GoogleFonts.poppins())
+              Text('no_data_available'.tr, style: GoogleFonts.poppins())
             else ...[
               _buildBarChart(
                 distribution.asMap().entries.map((entry) {
@@ -1357,7 +1360,7 @@ class _BloodDonorsManagementPageState
     final hasNonZeroValues = data.any((item) => item.value > 0);
     if (!hasNonZeroValues) {
       return Text(
-        'Aucune donnée graphique disponible.',
+        'no_chart_data_available'.tr,
         style: GoogleFonts.poppins(fontSize: 13, color: Colors.black54),
       );
     }
@@ -1546,7 +1549,7 @@ class _BloodDonorsManagementPageState
             Text(
               message.isNotEmpty
                   ? message
-                  : 'Impossible de récupérer les statistiques.',
+                  : 'unable_to_fetch_statistics'.tr,
               style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
               textAlign: TextAlign.center,
             ),
@@ -1554,7 +1557,7 @@ class _BloodDonorsManagementPageState
             ElevatedButton.icon(
               onPressed: onRetry,
               icon: const Icon(Icons.refresh),
-              label: Text('Réessayer', style: GoogleFonts.poppins()),
+              label: Text('retry'.tr, style: GoogleFonts.poppins()),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
                 foregroundColor: Colors.white,
@@ -1775,21 +1778,21 @@ class _BloodDonorsManagementPageState
 
       // For name search only, also show gender if applicable
       if (donorsState.searchType == 'name' && donorsState.gender != null) {
-        String genderText = donorsState.gender == 'm' ? 'Homme' : 'Femme';
-        localFilterText += ', Genre: $genderText';
+        String genderText = donorsState.gender == 'm' ? 'male'.tr : 'female'.tr;
+        localFilterText += ', ${'gender'.tr}: $genderText';
       }
     } else if (donorsState.searchType == 'name' && donorsState.gender != null) {
       // Handle case where only gender is selected for name search
-      String genderText = donorsState.gender == 'm' ? 'Homme' : 'Femme';
-      localFilterText = 'Genre: $genderText';
+      String genderText = donorsState.gender == 'm' ? 'male'.tr : 'female'.tr;
+      localFilterText = '${'gender'.tr}: $genderText';
     }
 
     // Add blood type filter text if applicable
     if (donorsState.bloodType != null && donorsState.bloodType!.isNotEmpty) {
       if (localFilterText.isNotEmpty) {
-        localFilterText += ', Groupe sanguin: ${donorsState.bloodType}';
+        localFilterText += ', ${'blood_type_label'.trParams({'bloodType': donorsState.bloodType!})}';
       } else {
-        localFilterText = 'Groupe sanguin: ${donorsState.bloodType}';
+        localFilterText = 'blood_type_label'.trParams({'bloodType': donorsState.bloodType!});
       }
     }
 
@@ -1806,7 +1809,7 @@ class _BloodDonorsManagementPageState
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'Filtres actifs: $localFilterText',
+              'active_filters'.trParams({'filters': localFilterText}),
               style: GoogleFonts.poppins(
                 fontSize: 12,
                 color: Colors.red.shade700,
@@ -1830,15 +1833,15 @@ class _BloodDonorsManagementPageState
 
     switch (type) {
       case 'name':
-        return 'Nom';
+        return 'name'.tr;
       case 'phone':
-        return 'Téléphone';
+        return 'phone'.tr;
       case 'donor_code':
-        return 'Code Donneur';
+        return 'donor_code'.tr;
       case 'photo':
-        return 'Photo';
+        return 'photo'.tr;
       default:
-        return 'Recherche';
+        return 'search'.tr;
     }
   }
 
@@ -1930,7 +1933,7 @@ class _BloodDonorsManagementPageState
                 children: [
                   const CircularProgressIndicator(),
                   const SizedBox(height: 16),
-                  Text('Recherche en cours...', style: GoogleFonts.poppins()),
+                  Text('searching'.tr, style: GoogleFonts.poppins()),
                 ],
               ),
             ),
@@ -1960,18 +1963,18 @@ class _BloodDonorsManagementPageState
             content: Text(
               donorsState.errorMessage.isNotEmpty
                   ? donorsState.errorMessage
-                  : 'Une erreur est survenue pendant la recherche',
+                  : 'search_error_occurred'.tr,
             ),
           ),
         );
       } else if (donorsState.donors.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Aucun donneur correspondant trouvé')),
+          SnackBar(content: Text('no_matching_donor_found'.tr)),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${donorsState.donors.length} donneur(s) trouvé(s)'),
+            content: Text('donors_found_count'.trParams({'count': donorsState.donors.length.toString()})),
           ),
         );
       }
@@ -1979,13 +1982,13 @@ class _BloodDonorsManagementPageState
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Permission caméra refusée: ${e.message ?? e.code}'),
+          content: Text('camera_permission_denied'.trParams({'error': e.message ?? e.code})),
         ),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Impossible de lancer la recherche: $e')),
+        SnackBar(content: Text('unable_to_launch_search'.trParams({'error': '$e'}))),
       );
     }
   }
@@ -2039,7 +2042,7 @@ class _BloodDonorsManagementPageState
               child: Scaffold(
                 appBar: AppBar(
                   title: Text(
-                    'Scanner le Code Donneur',
+                    'scan_donor_code_title'.tr,
                     style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
                   ),
                   leading: IconButton(
@@ -2102,7 +2105,7 @@ class _BloodDonorsManagementPageState
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(
-                              'Code donneur scanné avec succès',
+                              'donor_code_scanned_success'.tr,
                               style: GoogleFonts.poppins(),
                             ),
                             backgroundColor: Colors.green,
@@ -2114,7 +2117,7 @@ class _BloodDonorsManagementPageState
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(
-                              'Code QR invalide. Format attendu: XXX-XXXX-XXXXX-XX',
+                              'invalid_qr_code_format'.tr,
                               style: GoogleFonts.poppins(),
                             ),
                             backgroundColor: Colors.red,
@@ -2142,7 +2145,7 @@ class _BloodDonorsManagementPageState
       context: context,
       builder: (context) => AlertDialog(
         title: Text(
-          'Comment rechercher un donneur',
+          'how_to_search_donor'.tr,
           style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
         ),
         content: SingleChildScrollView(
@@ -2151,44 +2154,44 @@ class _BloodDonorsManagementPageState
             mainAxisSize: MainAxisSize.min,
             children: [
               _buildHelpItem(
-                'Recherche par nom',
-                'Tapez le nom complet ou partiel du donneur.',
+                'search_by_name'.tr,
+                'search_by_name_desc'.tr,
                 Icons.person,
               ),
               const Divider(),
               _buildHelpItem(
-                'Recherche par téléphone',
-                'Entrez le numéro de téléphone complet ou partiel.',
+                'search_by_phone'.tr,
+                'search_by_phone_desc'.tr,
                 Icons.phone,
               ),
               const Divider(),
               _buildHelpItem(
-                'Recherche par code donneur',
-                'Entrez le code unique du donneur pour une recherche précise.',
+                'search_by_donor_code'.tr,
+                'search_by_donor_code_desc'.tr,
                 Icons.badge,
               ),
               const Divider(),
               _buildHelpItem(
-                'Filtre par genre',
-                'Utilisez les options Homme ou Femme pour filtrer par genre.',
+                'filter_by_gender'.tr,
+                'filter_by_gender_desc'.tr,
                 Icons.people,
               ),
               const Divider(),
               _buildHelpItem(
-                'Filtre par groupe sanguin',
-                'Sélectionnez un groupe sanguin pour affiner les résultats.',
+                'filter_by_blood_type'.tr,
+                'filter_by_blood_type_desc'.tr,
                 Icons.bloodtype,
               ),
               const Divider(),
               _buildHelpItem(
-                'Recherche par photo',
-                'Utilisez l\'icône appareil photo pour rechercher par reconnaissance faciale (démo).',
+                'photo_search'.tr,
+                'photo_search_help_desc'.tr,
                 Icons.camera_alt,
               ),
               const Divider(),
               _buildHelpItem(
-                'Scanner un code donneur',
-                'Utilisez l\'icône scanner pour lire un QR code et rechercher rapidement un donneur.',
+                'scan_donor_code'.tr,
+                'scan_donor_code_help_desc'.tr,
                 Icons.qr_code_scanner,
               ),
             ],
@@ -2197,7 +2200,7 @@ class _BloodDonorsManagementPageState
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Fermer', style: GoogleFonts.poppins()),
+            child: Text('close'.tr, style: GoogleFonts.poppins()),
           ),
         ],
       ),
@@ -2240,15 +2243,15 @@ class _BloodDonorsManagementPageState
   String _getSearchHintText() {
     switch (_searchType) {
       case 'name':
-        return 'Entrez le nom du donneur...';
+        return 'enter_donor_name_hint'.tr;
       case 'phone':
-        return 'Entrez le numéro de téléphone...';
+        return 'enter_donor_phone_hint'.tr;
       case 'donor_code':
-        return 'Format: XXX-XXXX-XXXXX-XX (ex: 9EC-2510-Z41QT-1D)';
+        return 'donor_code_format_hint'.tr;
       case 'photo':
-        return 'Cliquez sur l\'icône appareil photo...';
+        return 'click_camera_icon_hint'.tr;
       default:
-        return 'Rechercher un donneur...';
+        return 'search_donor_hint'.tr;
     }
   }
 
@@ -2265,6 +2268,19 @@ class _BloodDonorsManagementPageState
         return TextInputType.text;
     }
   }
+
+  String _formatDateIfPossible(BuildContext context, String? value) {
+    if (value == null || value.isEmpty) return '';
+    try {
+      final dt = DateTime.tryParse(value);
+      if (dt == null) return value;
+      final locale = Localizations.localeOf(context).toLanguageTag();
+      return DateFormat('dd MMM yyyy', locale).format(dt);
+    } catch (_) {
+      return value;
+    }
+  }
+
 
   // Helper method to get appropriate input formatters based on search type
   List<TextInputFormatter>? _getInputFormatters() {

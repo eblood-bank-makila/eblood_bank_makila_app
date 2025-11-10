@@ -5,7 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:intl/intl.dart';
+import 'package:get/get.dart';
 import '../../controllers/donor_registration_controller.dart';
 
 class DonorRegistrationPage extends ConsumerStatefulWidget {
@@ -22,6 +24,9 @@ class _DonorRegistrationPageState extends ConsumerState<DonorRegistrationPage> {
 
   // Form data
   File? _donorPhoto;
+  bool _faceOk = false;
+  bool _faceChecking = false;
+  String? _faceErrorKey;
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
@@ -63,7 +68,7 @@ class _DonorRegistrationPageState extends ConsumerState<DonorRegistrationPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Inscription Donneur de Sang',
+          'donor_registration'.tr,
           style: GoogleFonts.poppins(
             fontWeight: FontWeight.w600,
           ),
@@ -113,7 +118,7 @@ class _DonorRegistrationPageState extends ConsumerState<DonorRegistrationPage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
-              'Photo du Donneur',
+              'donor_photo'.tr,
               style: GoogleFonts.poppins(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
@@ -121,7 +126,7 @@ class _DonorRegistrationPageState extends ConsumerState<DonorRegistrationPage> {
             ),
             const SizedBox(height: 12),
             Text(
-              'Prenez une photo claire du visage du donneur',
+              'take_clear_photo_instruction'.tr,
               style: GoogleFonts.poppins(
                 fontSize: 14,
                 color: Colors.grey.shade700,
@@ -152,14 +157,82 @@ class _DonorRegistrationPageState extends ConsumerState<DonorRegistrationPage> {
                       fit: BoxFit.cover,
                     ),
                   ),
-            const SizedBox(height: 40),
+            const SizedBox(height: 16),
+            if (_faceChecking)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.red),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'analyzing_photo'.tr,
+                    style: GoogleFonts.poppins(color: Colors.grey.shade700),
+                  ),
+                ],
+              )
+            else if (_faceErrorKey != null)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.red.shade200),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.error_outline, color: Colors.red),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _resolveFaceErrorMessage(_faceErrorKey!),
+                        style: GoogleFonts.poppins(
+                          color: Colors.red.shade700,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else if (_faceOk)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.green.shade200),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.check_circle, color: Colors.green),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'photo_validated_continue'.tr,
+                        style: GoogleFonts.poppins(
+                          color: Colors.green.shade700,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 ElevatedButton.icon(
                   onPressed: () => _takeDonorPhoto(ImageSource.camera),
                   icon: const Icon(Icons.camera_alt),
-                  label: Text('Appareil photo', style: GoogleFonts.poppins()),
+                  label: Text('take_photo'.tr, style: GoogleFonts.poppins()),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red,
                     foregroundColor: Colors.white,
@@ -170,7 +243,7 @@ class _DonorRegistrationPageState extends ConsumerState<DonorRegistrationPage> {
                 OutlinedButton.icon(
                   onPressed: () => _takeDonorPhoto(ImageSource.gallery),
                   icon: const Icon(Icons.photo_library),
-                  label: Text('Galerie', style: GoogleFonts.poppins()),
+                  label: Text('choose_photo'.tr, style: GoogleFonts.poppins()),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                   ),
@@ -192,88 +265,88 @@ class _DonorRegistrationPageState extends ConsumerState<DonorRegistrationPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Informations du Donneur',
+              'donor_information'.tr,
               style: GoogleFonts.poppins(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 20),
-            
+
             // Personal Information
-            _buildSectionTitle('Informations Personnelles'),
-            
+            _buildSectionTitle('personal_information'.tr),
+
             // First Name
             TextFormField(
               controller: _firstNameController,
               decoration: InputDecoration(
-                labelText: 'Prénom',
+                labelText: 'first_name'.tr,
                 border: OutlineInputBorder(),
                 prefixIcon: const Icon(Iconsax.user),
               ),
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
-                  return 'Veuillez entrer le prénom';
+                  return 'field_required'.tr;
                 }
                 return null;
               },
             ),
             const SizedBox(height: 16),
-            
+
             // Last Name
             TextFormField(
               controller: _lastNameController,
               decoration: InputDecoration(
-                labelText: 'Nom',
+                labelText: 'last_name'.tr,
                 border: OutlineInputBorder(),
                 prefixIcon: const Icon(Iconsax.user),
               ),
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
-                  return 'Veuillez entrer le nom';
+                  return 'field_required'.tr;
                 }
                 return null;
               },
             ),
             const SizedBox(height: 16),
-            
+
             // Phone Number
             TextFormField(
               controller: _phoneController,
               keyboardType: TextInputType.phone,
               decoration: InputDecoration(
-                labelText: 'Téléphone',
+                labelText: 'phone'.tr,
                 border: OutlineInputBorder(),
                 prefixIcon: const Icon(Iconsax.call),
               ),
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
-                  return 'Veuillez entrer le numéro de téléphone';
+                  return 'phone_required'.tr;
                 }
                 return null;
               },
             ),
             const SizedBox(height: 16),
-            
+
             // Email (optional)
             TextFormField(
               controller: _emailController,
               keyboardType: TextInputType.emailAddress,
               decoration: InputDecoration(
-                labelText: 'Email (optionnel)',
+                labelText: 'email_optional'.tr,
                 border: OutlineInputBorder(),
                 prefixIcon: const Icon(Iconsax.message),
               ),
             ),
             const SizedBox(height: 16),
-            
+
             // Gender Selection
-            _buildSectionTitle('Genre'),
+            _buildSectionTitle('gender'.tr),
             Row(
               children: [
                 Expanded(
                   child: RadioListTile<String>(
-                    title: Text('Masculin', style: GoogleFonts.poppins()),
+                    title: Text('male'.tr, style: GoogleFonts.poppins()),
                     value: 'M',
                     groupValue: _selectedGender,
                     activeColor: Colors.red,
@@ -286,7 +359,7 @@ class _DonorRegistrationPageState extends ConsumerState<DonorRegistrationPage> {
                 ),
                 Expanded(
                   child: RadioListTile<String>(
-                    title: Text('Féminin', style: GoogleFonts.poppins()),
+                    title: Text('female'.tr, style: GoogleFonts.poppins()),
                     value: 'F',
                     groupValue: _selectedGender,
                     activeColor: Colors.red,
@@ -300,9 +373,9 @@ class _DonorRegistrationPageState extends ConsumerState<DonorRegistrationPage> {
               ],
             ),
             const SizedBox(height: 16),
-            
+
             // Blood Type Dropdown
-            _buildSectionTitle('Groupe Sanguin'),
+            _buildSectionTitle('blood_type'.tr),
             DropdownButtonFormField<String>(
               decoration: InputDecoration(
                 border: OutlineInputBorder(),
@@ -322,18 +395,18 @@ class _DonorRegistrationPageState extends ConsumerState<DonorRegistrationPage> {
               },
               validator: (value) {
                 if (value == null || value.isEmpty) {
-                  return 'Veuillez sélectionner un groupe sanguin';
+                  return 'hint_select_blood'.tr;
                 }
                 return null;
               },
             ),
             const SizedBox(height: 16),
-            
+
             // Date of Birth
             TextFormField(
               controller: _dobController,
               decoration: InputDecoration(
-                labelText: 'Date de Naissance',
+                labelText: 'date_of_birth'.tr,
                 border: OutlineInputBorder(),
                 prefixIcon: const Icon(Iconsax.calendar),
                 hintText: 'YYYY-MM-DD',
@@ -342,61 +415,61 @@ class _DonorRegistrationPageState extends ConsumerState<DonorRegistrationPage> {
               onTap: () => _selectDate(context),
               validator: (value) {
                 if (value == null || value.isEmpty) {
-                  return 'Veuillez entrer la date de naissance';
+                  return 'date_of_birth_required'.tr;
                 }
                 // Validate date format
                 final datePattern = RegExp(r'^\d{4}-\d{2}-\d{2}$');
                 if (!datePattern.hasMatch(value)) {
-                  return 'Format de date invalide (YYYY-MM-DD)';
+                  return 'invalid_date_format_yyyy_mm_dd'.tr;
                 }
                 return null;
               },
             ),
             const SizedBox(height: 16),
-            
+
             // Address
             TextFormField(
               controller: _addressController,
               decoration: InputDecoration(
-                labelText: 'Adresse',
+                labelText: 'address'.tr,
                 border: OutlineInputBorder(),
                 prefixIcon: const Icon(Iconsax.location),
               ),
               maxLines: 2,
             ),
             const SizedBox(height: 30),
-            
+
             // Emergency Contact Information
-            _buildSectionTitle('Contact d\'Urgence'),
+            _buildSectionTitle('emergency_contact'.tr),
             const SizedBox(height: 8),
-            
+
             // Emergency Contact Name
             TextFormField(
               controller: _emergencyContactNameController,
               decoration: InputDecoration(
-                labelText: 'Nom du contact d\'urgence',
+                labelText: 'emergency_contact_name'.tr,
                 border: OutlineInputBorder(),
                 prefixIcon: const Icon(Iconsax.user_tag),
               ),
             ),
             const SizedBox(height: 16),
-            
+
             // Emergency Contact Phone
             TextFormField(
               controller: _emergencyContactPhoneController,
               keyboardType: TextInputType.phone,
               decoration: InputDecoration(
-                labelText: 'Téléphone du contact d\'urgence',
+                labelText: 'emergency_contact_phone'.tr,
                 border: OutlineInputBorder(),
                 prefixIcon: const Icon(Iconsax.call),
               ),
             ),
             const SizedBox(height: 30),
-            
+
             // Account Creation Checkbox
             CheckboxListTile(
               title: Text(
-                'Créer un compte utilisateur pour ce donneur',
+'create_user_account_for_donor'.tr,
                 style: GoogleFonts.poppins(),
               ),
               value: _needsAccount,
@@ -409,60 +482,60 @@ class _DonorRegistrationPageState extends ConsumerState<DonorRegistrationPage> {
                 });
               },
             ),
-            
+
             // Account Creation Fields (conditionally visible)
             if (_needsAccount) ...[
               const SizedBox(height: 20),
-              _buildSectionTitle('Informations de Compte'),
+              _buildSectionTitle('account_information'.tr),
               const SizedBox(height: 10),
-              
+
               // Username/Email
               TextFormField(
                 controller: _usernameController,
                 keyboardType: TextInputType.emailAddress,
                 decoration: InputDecoration(
-                  labelText: 'Email (Nom d\'utilisateur)',
+                  labelText: 'email_username'.tr,
                   border: OutlineInputBorder(),
                   prefixIcon: const Icon(Iconsax.user),
                 ),
                 validator: (value) {
                   if (_needsAccount) {
                     if (value == null || value.isEmpty) {
-                      return 'Veuillez entrer une adresse email';
+                      return 'email_required'.tr;
                     }
                     // Simple email validation
                     if (!value.contains('@') || !value.contains('.')) {
-                      return 'Veuillez entrer une adresse email valide';
+                      return 'email_invalid'.tr;
                     }
                   }
                   return null;
                 },
               ),
               const SizedBox(height: 16),
-              
+
               // Password
               TextFormField(
                 controller: _passwordController,
                 obscureText: true,
                 decoration: InputDecoration(
-                  labelText: 'Mot de Passe',
+                  labelText: 'password'.tr,
                   border: OutlineInputBorder(),
                   prefixIcon: const Icon(Iconsax.lock),
                 ),
                 validator: (value) {
                   if (_needsAccount) {
                     if (value == null || value.isEmpty) {
-                      return 'Veuillez entrer un mot de passe';
+                      return 'password_required'.tr;
                     }
                     if (value.length < 8) {
-                      return 'Le mot de passe doit contenir au moins 8 caractères';
+                      return 'password_min_8_chars'.tr;
                     }
                   }
                   return null;
                 },
               ),
             ],
-            
+
             const SizedBox(height: 20),
           ],
         ),
@@ -477,14 +550,14 @@ class _DonorRegistrationPageState extends ConsumerState<DonorRegistrationPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Vérification des Informations',
+            'verification_information'.tr,
             style: GoogleFonts.poppins(
               fontSize: 20,
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 20),
-          
+
           // Donor Photo
           Center(
             child: _donorPhoto == null
@@ -512,51 +585,51 @@ class _DonorRegistrationPageState extends ConsumerState<DonorRegistrationPage> {
                   ),
           ),
           const SizedBox(height: 24),
-          
+
           // Personal Information Summary
           _buildSummaryCard(
-            title: 'Informations Personnelles',
+            title: 'personal_information'.tr,
             items: [
-              SummaryItem(label: 'Prénom', value: _firstNameController.text),
-              SummaryItem(label: 'Nom', value: _lastNameController.text),
-              SummaryItem(label: 'Téléphone', value: _phoneController.text),
-              SummaryItem(label: 'Email', value: _emailController.text.isEmpty ? 'Non spécifié' : _emailController.text),
-              SummaryItem(label: 'Genre', value: _selectedGender == 'M' ? 'Masculin' : 'Féminin'),
-              SummaryItem(label: 'Groupe Sanguin', value: _selectedBloodType ?? ''),
-              SummaryItem(label: 'Date de Naissance', value: _dobController.text),
-              SummaryItem(label: 'Adresse', value: _addressController.text.isEmpty ? 'Non spécifiée' : _addressController.text),
+              SummaryItem(label: 'first_name'.tr, value: _firstNameController.text),
+              SummaryItem(label: 'last_name'.tr, value: _lastNameController.text),
+              SummaryItem(label: 'phone'.tr, value: _phoneController.text),
+              SummaryItem(label: 'email'.tr, value: _emailController.text.isEmpty ? 'not_specified'.tr : _emailController.text),
+              SummaryItem(label: 'gender'.tr, value: _selectedGender == 'M' ? 'male'.tr : 'female'.tr),
+              SummaryItem(label: 'blood_type'.tr, value: _selectedBloodType ?? ''),
+              SummaryItem(label: 'date_of_birth'.tr, value: _dobController.text),
+              SummaryItem(label: 'address'.tr, value: _addressController.text.isEmpty ? 'not_specified'.tr : _addressController.text),
             ],
           ),
-          
+
           // Emergency Contact Information
           if (_emergencyContactNameController.text.isNotEmpty || _emergencyContactPhoneController.text.isNotEmpty) ...[
             const SizedBox(height: 16),
             _buildSummaryCard(
-              title: 'Contact d\'Urgence',
+              title: 'emergency_contact'.tr,
               items: [
                 SummaryItem(
-                  label: 'Nom', 
-                  value: _emergencyContactNameController.text.isEmpty ? 'Non spécifié' : _emergencyContactNameController.text
+                  label: 'last_name'.tr,
+                  value: _emergencyContactNameController.text.isEmpty ? 'not_specified'.tr : _emergencyContactNameController.text
                 ),
                 SummaryItem(
-                  label: 'Téléphone', 
-                  value: _emergencyContactPhoneController.text.isEmpty ? 'Non spécifié' : _emergencyContactPhoneController.text
+                  label: 'phone'.tr,
+                  value: _emergencyContactPhoneController.text.isEmpty ? 'not_specified'.tr : _emergencyContactPhoneController.text
                 ),
               ],
             ),
           ],
-          
+
           if (_needsAccount) ...[
             const SizedBox(height: 16),
             _buildSummaryCard(
-              title: 'Informations de Compte',
+              title: 'account_information'.tr,
               items: [
-                SummaryItem(label: 'Email', value: _usernameController.text),
-                SummaryItem(label: 'Mot de Passe', value: '••••••••'),
+                SummaryItem(label: 'email'.tr, value: _usernameController.text),
+                SummaryItem(label: 'password'.tr, value: '••••••••'),
               ],
             ),
           ],
-          
+
           // Error message if any
           if (_errorMessage.isNotEmpty)
             Padding(
@@ -585,7 +658,7 @@ class _DonorRegistrationPageState extends ConsumerState<DonorRegistrationPage> {
                 ),
               ),
             ),
-            
+
           const SizedBox(height: 20),
         ],
       ),
@@ -600,7 +673,7 @@ class _DonorRegistrationPageState extends ConsumerState<DonorRegistrationPage> {
           const CircularProgressIndicator(color: Colors.red),
           const SizedBox(height: 24),
           Text(
-            'Enregistrement en cours...',
+            'registration_in_progress'.tr,
             style: GoogleFonts.poppins(
               fontSize: 18,
               fontWeight: FontWeight.w500,
@@ -608,7 +681,7 @@ class _DonorRegistrationPageState extends ConsumerState<DonorRegistrationPage> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Veuillez patienter',
+            'please_wait'.tr,
             style: GoogleFonts.poppins(
               fontSize: 14,
               color: Colors.grey.shade700,
@@ -639,7 +712,7 @@ class _DonorRegistrationPageState extends ConsumerState<DonorRegistrationPage> {
           ),
           const SizedBox(height: 24),
           Text(
-            'Inscription Réussie!',
+            'registration_successful_title'.tr,
             style: GoogleFonts.poppins(
               fontSize: 22,
               fontWeight: FontWeight.bold,
@@ -653,7 +726,7 @@ class _DonorRegistrationPageState extends ConsumerState<DonorRegistrationPage> {
                 Column(
                   children: [
                     Text(
-                      'Le donneur a été enregistré avec succès!',
+                      'donor_registered_successfully'.tr,
                       style: GoogleFonts.poppins(
                         fontSize: 16,
                         color: Colors.grey.shade700,
@@ -662,7 +735,7 @@ class _DonorRegistrationPageState extends ConsumerState<DonorRegistrationPage> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Veuillez conserver le code donneur pour référence future.',
+                      'keep_donor_code_reference'.tr,
                       style: GoogleFonts.poppins(
                         fontSize: 14,
                         color: Colors.grey.shade600,
@@ -680,7 +753,7 @@ class _DonorRegistrationPageState extends ConsumerState<DonorRegistrationPage> {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(
-                                  'Code copié dans le presse-papiers',
+                                  'copied_to_clipboard'.tr,
                                   style: GoogleFonts.poppins(),
                                 ),
                                 backgroundColor: Colors.green,
@@ -701,7 +774,7 @@ class _DonorRegistrationPageState extends ConsumerState<DonorRegistrationPage> {
                                 const Icon(Iconsax.code, color: Colors.red, size: 20),
                                 const SizedBox(width: 8),
                                 Text(
-                                  'Code Donneur: ${ref.read(donorRegistrationProvider.notifier).donorCode}',
+                                  '${'donor_code_label'.tr}: ${ref.read(donorRegistrationProvider.notifier).donorCode}',
                                   style: GoogleFonts.poppins(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
@@ -728,7 +801,7 @@ class _DonorRegistrationPageState extends ConsumerState<DonorRegistrationPage> {
                               Icon(Icons.assignment_ind, color: Colors.grey.shade700, size: 20),
                               const SizedBox(width: 8),
                               Text(
-                                'ID Donneur: ${ref.read(donorRegistrationProvider.notifier).donorId}',
+                                '${'donor_id_label'.tr}: ${ref.read(donorRegistrationProvider.notifier).donorId}',
                                 style: GoogleFonts.poppins(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w500,
@@ -746,7 +819,7 @@ class _DonorRegistrationPageState extends ConsumerState<DonorRegistrationPage> {
                   Padding(
                     padding: const EdgeInsets.only(top: 8.0),
                     child: Text(
-                      'La photo a été téléchargée avec succès.',
+                      'photo_uploaded_successfully'.tr,
                       style: GoogleFonts.poppins(
                         fontSize: 14,
                         color: Colors.green.shade700,
@@ -768,6 +841,9 @@ class _DonorRegistrationPageState extends ConsumerState<DonorRegistrationPage> {
                     _currentStep = 0;
                     _submissionSuccessful = false;
                     _donorPhoto = null;
+                    _faceOk = false;
+                    _faceChecking = false;
+                    _faceErrorKey = null;
                     _firstNameController.clear();
                     _lastNameController.clear();
                     _phoneController.clear();
@@ -785,7 +861,7 @@ class _DonorRegistrationPageState extends ConsumerState<DonorRegistrationPage> {
                 },
                 icon: const Icon(Iconsax.add_circle),
                 label: Text(
-                  'Nouvel Enregistrement',
+                  'new_registration'.tr,
                   style: GoogleFonts.poppins(),
                 ),
                 style: ElevatedButton.styleFrom(
@@ -805,7 +881,7 @@ class _DonorRegistrationPageState extends ConsumerState<DonorRegistrationPage> {
                     },
                     icon: const Icon(Icons.home),
                     label: Text(
-                      'Retourner à l\'accueil',
+'return_to_home'.tr,
                       style: GoogleFonts.poppins(),
                     ),
                     style: ElevatedButton.styleFrom(
@@ -823,7 +899,7 @@ class _DonorRegistrationPageState extends ConsumerState<DonorRegistrationPage> {
                     },
                     icon: const Icon(Icons.refresh),
                     label: Text(
-                      'Voir les donneurs',
+                      'view_donors'.tr,
                       style: GoogleFonts.poppins(),
                     ),
                     style: OutlinedButton.styleFrom(
@@ -891,18 +967,18 @@ class _DonorRegistrationPageState extends ConsumerState<DonorRegistrationPage> {
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                       ),
-                      child: Text('Précédent', style: GoogleFonts.poppins()),
+                      child: Text('previous'.tr, style: GoogleFonts.poppins()),
                     )
                   : const SizedBox(width: 100),
-              
+
               // Step indicator text
               Text(
-                'Étape ${_currentStep + 1}/$_totalSteps',
+                'step_x_of_y'.trParams({'x': '${_currentStep + 1}', 'y': '$_totalSteps'}),
                 style: GoogleFonts.poppins(
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              
+
               // Next/Submit Button
               ElevatedButton(
                 onPressed: () {
@@ -914,7 +990,7 @@ class _DonorRegistrationPageState extends ConsumerState<DonorRegistrationPage> {
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 ),
                 child: Text(
-                  _currentStep == _totalSteps - 1 ? 'Soumettre' : 'Suivant',
+                  _currentStep == _totalSteps - 1 ? 'submit'.tr : 'next'.tr,
                   style: GoogleFonts.poppins(),
                 ),
               ),
@@ -935,9 +1011,177 @@ class _DonorRegistrationPageState extends ConsumerState<DonorRegistrationPage> {
     );
 
     if (image != null) {
+      final file = File(image.path);
       setState(() {
-        _donorPhoto = File(image.path);
+        _donorPhoto = file;
+        _faceOk = false;
+        _faceErrorKey = null;
+        _faceChecking = false;
       });
+      await _validateFace(file);
+    }
+  }
+
+  Future<void> _validateFace(File file) async {
+    setState(() {
+      _faceChecking = true;
+      _faceErrorKey = null;
+      _faceOk = false;
+    });
+
+    FaceDetector? faceDetector;
+
+    try {
+      final inputImage = InputImage.fromFile(file);
+      faceDetector = FaceDetector(
+        options: FaceDetectorOptions(
+          enableLandmarks: true,
+          enableContours: true,
+          enableClassification: true,
+          minFaceSize: 0.1,
+          performanceMode: FaceDetectorMode.accurate,
+        ),
+      );
+
+      final List<Face> faces = await faceDetector.processImage(inputImage);
+
+      if (!mounted) {
+        return;
+      }
+
+      if (faces.isEmpty) {
+        setState(() {
+          _faceOk = false;
+          _faceErrorKey = 'face_no_face_detected';
+          _faceChecking = false;
+        });
+        return;
+      }
+
+      if (faces.length > 1) {
+        setState(() {
+          _faceOk = false;
+          _faceErrorKey = 'face_multiple_faces';
+          _faceChecking = false;
+        });
+        return;
+      }
+
+      final face = faces.first;
+      final faceBounds = face.boundingBox;
+      final imageWidth = inputImage.metadata?.size.width ?? 1000;
+      final imageHeight = inputImage.metadata?.size.height ?? 1000;
+
+      final faceArea = faceBounds.width * faceBounds.height;
+      final imageArea = imageWidth * imageHeight;
+      final faceCoveragePercent = imageArea <= 0 ? 0 : (faceArea / imageArea) * 100;
+
+      if (faceCoveragePercent < 15) {
+        setState(() {
+          _faceOk = false;
+          _faceErrorKey = 'face_too_small';
+          _faceChecking = false;
+        });
+        return;
+      }
+
+      if (faceCoveragePercent > 85) {
+        setState(() {
+          _faceOk = false;
+          _faceErrorKey = 'face_too_close';
+          _faceChecking = false;
+        });
+        return;
+      }
+
+      final leftEye = face.landmarks[FaceLandmarkType.leftEye];
+      final rightEye = face.landmarks[FaceLandmarkType.rightEye];
+      final nose = face.landmarks[FaceLandmarkType.noseBase];
+      final mouth = face.landmarks[FaceLandmarkType.bottomMouth];
+
+      int landmarksDetected = 0;
+      if (leftEye != null) landmarksDetected++;
+      if (rightEye != null) landmarksDetected++;
+      if (nose != null) landmarksDetected++;
+      if (mouth != null) landmarksDetected++;
+
+      if (landmarksDetected < 3) {
+        setState(() {
+          _faceOk = false;
+          _faceErrorKey = 'face_landmarks_not_detected';
+          _faceChecking = false;
+        });
+        return;
+      }
+
+      final faceCenterX = faceBounds.left + (faceBounds.width / 2);
+      final faceCenterY = faceBounds.top + (faceBounds.height / 2);
+      final imageCenterX = imageWidth / 2;
+      final imageCenterY = imageHeight / 2;
+
+      final horizontalOffset = imageWidth == 0 ? 0 : ((faceCenterX - imageCenterX).abs() / imageWidth) * 100;
+      final verticalOffset = imageHeight == 0 ? 0 : ((faceCenterY - imageCenterY).abs() / imageHeight) * 100;
+
+      if (horizontalOffset > 30 || verticalOffset > 35) {
+        setState(() {
+          _faceOk = false;
+          _faceErrorKey = 'face_not_centered';
+          _faceChecking = false;
+        });
+        return;
+      }
+
+      final headEulerAngleY = face.headEulerAngleY;
+      final headEulerAngleZ = face.headEulerAngleZ;
+
+      if (headEulerAngleY != null && headEulerAngleY.abs() > 25) {
+        setState(() {
+          _faceOk = false;
+          _faceErrorKey = 'face_not_straight';
+          _faceChecking = false;
+        });
+        return;
+      }
+
+      if (headEulerAngleZ != null && headEulerAngleZ.abs() > 20) {
+        setState(() {
+          _faceOk = false;
+          _faceErrorKey = 'face_tilted';
+          _faceChecking = false;
+        });
+        return;
+      }
+
+      final leftEyeOpenProb = face.leftEyeOpenProbability;
+      final rightEyeOpenProb = face.rightEyeOpenProbability;
+
+      if (leftEyeOpenProb != null && rightEyeOpenProb != null) {
+        if (leftEyeOpenProb < 0.3 && rightEyeOpenProb < 0.3) {
+          setState(() {
+            _faceOk = false;
+            _faceErrorKey = 'face_eyes_closed';
+            _faceChecking = false;
+          });
+          return;
+        }
+      }
+
+      setState(() {
+        _faceOk = true;
+        _faceErrorKey = null;
+        _faceChecking = false;
+      });
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _faceOk = false;
+        _faceErrorKey = 'face_validation_error';
+        _faceChecking = false;
+      });
+    } finally {
+      await faceDetector?.close();
     }
   }
 
@@ -978,21 +1222,44 @@ class _DonorRegistrationPageState extends ConsumerState<DonorRegistrationPage> {
     if (_currentStep == 0) {
       if (_donorPhoto == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Veuillez prendre une photo du donneur'),
+          SnackBar(
+            content: Text('take_donor_photo_required'.tr),
             backgroundColor: Colors.red,
           ),
         );
         return;
       }
-      
+
+      if (_faceChecking) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('photo_analysis_wait'.tr),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
+
+      if (!_faceOk) {
+        final message = _faceErrorKey != null
+            ? _resolveFaceErrorMessage(_faceErrorKey!)
+            : 'photo_must_show_clear_face'.tr;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
       // Move to next step
       setState(() {
         _currentStep++;
       });
       return;
     }
-    
+
     // For form step, validate inputs
     if (_currentStep == 1) {
       if (_formKey.currentState!.validate() && _selectedGender != null) {
@@ -1004,8 +1271,8 @@ class _DonorRegistrationPageState extends ConsumerState<DonorRegistrationPage> {
         // Show error if gender is not selected (form validation handles the rest)
         if (_selectedGender == null) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Veuillez sélectionner le genre'),
+            SnackBar(
+              content: Text('select_gender_required'.tr),
               backgroundColor: Colors.red,
             ),
           );
@@ -1013,7 +1280,7 @@ class _DonorRegistrationPageState extends ConsumerState<DonorRegistrationPage> {
       }
       return;
     }
-    
+
     // For overview step, submit the form
     if (_currentStep == 2) {
       _submitDonorRegistration();
@@ -1025,7 +1292,7 @@ class _DonorRegistrationPageState extends ConsumerState<DonorRegistrationPage> {
       _isSubmitting = true;
       _errorMessage = '';
     });
-    
+
     try {
       // Create donor data model
       final donorData = DonorData(
@@ -1044,19 +1311,19 @@ class _DonorRegistrationPageState extends ConsumerState<DonorRegistrationPage> {
         username: _needsAccount ? _usernameController.text : null,
         password: _needsAccount ? _passwordController.text : null,
       );
-      
+
       // Get the registration controller
       final registrationController = ref.read(donorRegistrationProvider.notifier);
-      
+
       // Submit registration - now returns Map with additional info
       final result = await registrationController.registerDonor(donorData);
-      
+
       if (result['success']) {
         // Store donor ID and code in case we need them later
         final donorId = result['donorId'];
         final donorCode = result['donorCode'];
         debugPrint('Donor registered successfully with ID: $donorId, Code: $donorCode');
-        
+
         setState(() {
           _isSubmitting = false;
           _submissionSuccessful = true;
@@ -1064,13 +1331,13 @@ class _DonorRegistrationPageState extends ConsumerState<DonorRegistrationPage> {
       } else {
         setState(() {
           _isSubmitting = false;
-          _errorMessage = result['message'] ?? 'Une erreur s\'est produite. Veuillez réessayer.';
+          _errorMessage = result['message'] ?? 'error_occurred_try_again'.tr;
         });
       }
     } catch (e) {
       setState(() {
         _isSubmitting = false;
-        _errorMessage = 'Une erreur s\'est produite: ${e.toString()}';
+        _errorMessage = 'error_with_message'.trParams({'message': e.toString()});
       });
     }
   }
@@ -1087,6 +1354,33 @@ class _DonorRegistrationPageState extends ConsumerState<DonorRegistrationPage> {
         ),
       ),
     );
+  }
+
+  String _resolveFaceErrorMessage(String key) {
+    switch (key) {
+      case 'face_no_face_detected':
+        return 'face_no_face_detected'.tr;
+      case 'face_multiple_faces':
+        return 'face_multiple_faces'.tr;
+      case 'face_too_small':
+        return 'face_too_small'.tr;
+      case 'face_too_close':
+        return 'face_too_close'.tr;
+      case 'face_landmarks_not_detected':
+        return 'face_landmarks_not_detected'.tr;
+      case 'face_not_centered':
+        return 'face_not_centered'.tr;
+      case 'face_not_straight':
+        return 'face_not_straight'.tr;
+      case 'face_tilted':
+        return 'face_tilted'.tr;
+      case 'face_eyes_closed':
+        return 'face_eyes_closed'.tr;
+      case 'face_validation_error':
+        return 'face_validation_error'.tr;
+      default:
+        return 'photo_must_show_clear_face'.tr;
+    }
   }
 
   Widget _buildSummaryCard({required String title, required List<SummaryItem> items}) {

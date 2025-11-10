@@ -84,19 +84,40 @@ class HealthStructureNotifier extends StateNotifier<HealthStructureState> {
 
       if (response.success && response.data != null) {
         final data = response.data;
-        
-        // Parse health structures
-        final healthStructuresList = (data['health_structures'] as List?)
-            ?.map((json) => HealthStructureModel.fromJson(json))
-            .toList() ?? [];
+
+        // Parse health structures - data can be a list or a map
+        List<dynamic> structuresList = [];
+        int totalCount = response.total ?? 0;
+        int currentPage = response.page ?? 0;
+        int totalPages = 0;
+
+        if (data is List) {
+          // If data is a list, structures are directly in data
+          structuresList = data;
+        } else if (data is Map) {
+          // If data is a map, check for health_structures or hospitals keys
+          structuresList = data['health_structures'] ?? data['hospitals'] ?? [];
+          // Override with data-level pagination if available
+          totalCount = data['total'] ?? totalCount;
+          currentPage = data['page'] ?? currentPage;
+        }
+
+        // Calculate total pages
+        if (limit > 0) {
+          totalPages = (totalCount + limit - 1) ~/ limit;
+        }
+
+        final healthStructuresList = structuresList
+            .map((json) => HealthStructureModel.fromJson(json))
+            .toList();
 
         // Update state with fetched data
         state = state.copyWith(
           healthStructures: healthStructuresList,
           isLoading: false,
-          totalCount: data['total'] ?? 0,
-          currentPage: data['page'] ?? 0,
-          totalPages: data['total_pages'] ?? 0,
+          totalCount: totalCount,
+          currentPage: currentPage,
+          totalPages: totalPages,
         );
       } else {
         // Handle error
@@ -134,9 +155,29 @@ class HealthStructureNotifier extends StateNotifier<HealthStructureState> {
 
       if (response.success && response.data != null) {
         final data = response.data!;
-        
-        // Parse health structures - check both 'health_structures' and 'hospitals' keys
-        final List<dynamic> structuresList = data['health_structures'] ?? data['hospitals'] ?? [];
+
+        // Parse health structures - data can be a list or a map
+        List<dynamic> structuresList = [];
+        int totalCount = response.total ?? 0;
+        int currentPage = response.page ?? 0;
+        int totalPages = 0;
+
+        if (data is List) {
+          // If data is a list, structures are directly in data
+          structuresList = data;
+        } else if (data is Map) {
+          // If data is a map, check for health_structures or hospitals keys
+          structuresList = data['health_structures'] ?? data['hospitals'] ?? [];
+          // Override with data-level pagination if available
+          totalCount = data['total'] ?? totalCount;
+          currentPage = data['page'] ?? currentPage;
+        }
+
+        // Calculate total pages
+        if (limit > 0) {
+          totalPages = (totalCount + limit - 1) ~/ limit;
+        }
+
         final healthStructuresList = structuresList
             .map((json) => HealthStructureModel.fromJson(json))
             .toList();
@@ -144,9 +185,9 @@ class HealthStructureNotifier extends StateNotifier<HealthStructureState> {
         state = state.copyWith(
           healthStructures: healthStructuresList,
           isLoading: false,
-          totalCount: data['total'] ?? 0,
-          currentPage: data['page'] ?? 0,
-          totalPages: data['total_pages'] ?? 0,
+          totalCount: totalCount,
+          currentPage: currentPage,
+          totalPages: totalPages,
         );
       } else {
         state = state.copyWith(

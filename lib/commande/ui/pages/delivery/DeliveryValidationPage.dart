@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:get/get.dart';
 import '../../../../apps/config/theme/ColorPages.dart';
 import '../../../../qrcode/qrcode_page.dart';
 import 'DeliveryValidationCtrl.dart';
@@ -23,9 +24,9 @@ class _DeliveryValidationPageState extends ConsumerState<DeliveryValidationPage>
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: ColorPages.COLOR_PRINCIPAL,
-        title: const Text(
-          'Confirmer la livraison',
-          style: TextStyle(
+        title: Text(
+          'confirm_delivery'.tr,
+          style: const TextStyle(
             color: Colors.white,
             fontSize: 18,
             fontWeight: FontWeight.w600,
@@ -58,18 +59,18 @@ class _DeliveryValidationPageState extends ConsumerState<DeliveryValidationPage>
                     color: ColorPages.COLOR_PRINCIPAL,
                   ),
                   const SizedBox(height: 16),
-                  const Text(
-                    'Scanner le QR Code',
-                    style: TextStyle(
+                  Text(
+                    'scan_qr'.tr,
+                    style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Scannez le QR code de la commande pour confirmer la livraison',
+                  Text(
+                    'scan_qr_to_confirm'.tr,
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 14,
                       color: Colors.grey,
                     ),
@@ -96,9 +97,9 @@ class _DeliveryValidationPageState extends ConsumerState<DeliveryValidationPage>
                       children: [
                         Icon(Icons.check_circle, color: Colors.blue[600], size: 20),
                         const SizedBox(width: 8),
-                        const Text(
-                          'QR Code scanné',
-                          style: TextStyle(
+                        Text(
+                          'qr_code_scanned'.tr,
+                          style: const TextStyle(
                             fontWeight: FontWeight.w600,
                             fontSize: 16,
                           ),
@@ -125,7 +126,7 @@ class _DeliveryValidationPageState extends ConsumerState<DeliveryValidationPage>
               onPressed: state.isLoading ? null : _scanQrCode,
               icon: const Icon(Icons.qr_code_scanner, color: Colors.white),
               label: Text(
-                scannedQrCode == null ? 'Scanner le QR Code' : 'Scanner un autre QR Code',
+                scannedQrCode == null ? 'scan_qr'.tr : 'scan_another_qr'.tr,
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 16,
@@ -158,7 +159,7 @@ class _DeliveryValidationPageState extends ConsumerState<DeliveryValidationPage>
                       )
                     : const Icon(Icons.check_circle, color: Colors.white),
                 label: Text(
-                  state.isLoading ? 'Validation en cours...' : 'Confirmer la livraison',
+                  state.isLoading ? 'validation_in_progress'.tr : 'confirm_delivery'.tr,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
@@ -223,7 +224,7 @@ class _DeliveryValidationPageState extends ConsumerState<DeliveryValidationPage>
         ref.read(deliveryValidationCtrlProvider.notifier).reset();
       }
     } catch (e) {
-      _showErrorSnackBar('Erreur lors du scan: $e');
+      _showErrorSnackBar('scan_error_details'.trParams({'error': e.toString()}));
     }
   }
 
@@ -260,8 +261,8 @@ class _DeliveryValidationPageState extends ConsumerState<DeliveryValidationPage>
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                'Livraison confirmée!',
-                style: TextStyle(
+                'delivery_confirmed'.tr,
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                   color: Colors.black87,
@@ -303,7 +304,7 @@ class _DeliveryValidationPageState extends ConsumerState<DeliveryValidationPage>
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'QR Code: ${_maskQrCode(scannedQrCode ?? "N/A")}',
+                      '${'qr_code'.tr}: ${_maskQrCode(scannedQrCode ?? 'not_available_short'.tr)}',
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.green.shade700,
@@ -326,7 +327,7 @@ class _DeliveryValidationPageState extends ConsumerState<DeliveryValidationPage>
               });
             },
             child: Text(
-              'Scanner un autre',
+              'scan_another'.tr,
               style: TextStyle(
                 color: Colors.grey.shade600,
                 fontWeight: FontWeight.w500,
@@ -345,7 +346,7 @@ class _DeliveryValidationPageState extends ConsumerState<DeliveryValidationPage>
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             ),
             child: Text(
-              'Terminer',
+              'finish'.tr,
               style: TextStyle(
                 fontWeight: FontWeight.w600,
               ),
@@ -358,7 +359,7 @@ class _DeliveryValidationPageState extends ConsumerState<DeliveryValidationPage>
   }
 
   String _maskQrCode(String qrCode) {
-    if (qrCode.isEmpty || qrCode == "N/A") return qrCode;
+    if (qrCode.isEmpty || qrCode == 'not_available_short'.tr) return qrCode;
 
     if (qrCode.length <= 8) {
       // For short codes, show first 2 and last 2 characters

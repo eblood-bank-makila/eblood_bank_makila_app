@@ -1,4 +1,0 @@
-enum AnimateDoDirection {
-  forward,
-  backward,
-}

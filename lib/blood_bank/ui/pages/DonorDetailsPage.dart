@@ -10,6 +10,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:get/get.dart';
+import 'package:intl/intl.dart';
+
 import '../../business/interactors/BloodBankController.dart';
 import '../../business/model/BloodEnums.dart';
 import '../../business/model/BloodStock.dart';
@@ -46,28 +49,28 @@ class _DonorDetailsPageState extends ConsumerState<DonorDetailsPage> with Single
     _donationHistory = [
       {
         'date': '2025-09-15',
-        'type': 'Sang total',
+        'type': 'whole_blood',
         'volume': '450 ml',
         'location': 'Centre de Don Kinshasa',
-        'status': 'Complété',
+        'status': 'completed',
         'batch': 'DN-2025-001',
         'description': '',
       },
       {
         'date': '2025-07-20',
-        'type': 'Plaquettes',
+        'type': 'platelets',
         'volume': '200 ml',
         'location': 'Unité Mobile #3',
-        'status': 'Complété',
+        'status': 'completed',
         'batch': 'DN-2025-002',
         'description': '',
       },
       {
         'date': '2025-04-05',
-        'type': 'Sang total',
+        'type': 'whole_blood',
         'volume': '450 ml',
         'location': 'Centre de Don Kinshasa',
-        'status': 'Complété',
+        'status': 'completed',
         'batch': 'DN-2025-003',
         'description': '',
       },
@@ -87,9 +90,9 @@ class _DonorDetailsPageState extends ConsumerState<DonorDetailsPage> with Single
   String get _displayLastDonationDate {
     final source = _lastDonationDateOverride ?? widget.donor.lastDonationDate;
     if (source == null || source.isEmpty) {
-      return 'Aucun don enregistré';
+      return 'no_donations_recorded'.tr;
     }
-    return _formatDateFromString(source);
+    return _formatDateFromString(context, source);
   }
 
   Future<DonorEligibility?> _checkDonorEligibility() async {
@@ -121,7 +124,7 @@ class _DonorDetailsPageState extends ConsumerState<DonorDetailsPage> with Single
       }
 
       if (mounted) {
-        final message = response.error ?? "Impossible de vérifier l'éligibilité du donneur";
+        final message = response.error ?? 'unable_to_check_donor_eligibility'.tr;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -143,7 +146,7 @@ class _DonorDetailsPageState extends ConsumerState<DonorDetailsPage> with Single
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Erreur lors de la vérification: $e',
+              'error_checking_eligibility'.trParams({'error': e.toString()}),
               style: GoogleFonts.poppins(),
             ),
             backgroundColor: Colors.red,
@@ -175,7 +178,7 @@ class _DonorDetailsPageState extends ConsumerState<DonorDetailsPage> with Single
 
         return AlertDialog(
           title: Text(
-            'Donneur non éligible',
+            'donor_not_eligible'.tr,
             style: GoogleFonts.poppins(
               fontWeight: FontWeight.w600,
             ),
@@ -187,7 +190,7 @@ class _DonorDetailsPageState extends ConsumerState<DonorDetailsPage> with Single
               children: [
                 if (reasons.isNotEmpty) ...[
                   Text(
-                    'Raisons',
+                    'reasons'.tr,
                     style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 8),
@@ -196,14 +199,14 @@ class _DonorDetailsPageState extends ConsumerState<DonorDetailsPage> with Single
                 ],
                 if (deferrals.isNotEmpty) ...[
                   Text(
-                    'Déferrals actifs',
+                    'active_deferrals'.tr,
                     style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 8),
                   ...deferrals.map((deferral) {
-                    final buffer = StringBuffer(deferral.reason ?? 'Raison inconnue');
+                    final buffer = StringBuffer(deferral.reason ?? 'unknown_reason'.tr);
                     if (deferral.endDate != null) {
-                      buffer.write(" (jusqu'au ${_formatDate(deferral.endDate!)} )");
+                      buffer.write(' (' + 'until_date'.trParams({'date': _formatDate(context, deferral.endDate!)}) + ' )');
                     }
                     if ((deferral.type ?? '').isNotEmpty) {
                       buffer.write(' • ${deferral.type}');
@@ -214,14 +217,14 @@ class _DonorDetailsPageState extends ConsumerState<DonorDetailsPage> with Single
                 ],
                 if (nextEligibleDate != null) ...[
                   Text(
-                    'Prochaine date admissible : ${_formatDate(nextEligibleDate)}',
+                    'next_eligible_date'.trParams({'date': _formatDate(context, nextEligibleDate)}),
                     style: GoogleFonts.poppins(),
                   ),
                   const SizedBox(height: 12),
                 ],
                 if (recommendations.isNotEmpty) ...[
                   Text(
-                    'Recommandations',
+                    'recommendations'.tr,
                     style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 8),
@@ -229,7 +232,7 @@ class _DonorDetailsPageState extends ConsumerState<DonorDetailsPage> with Single
                 ],
                 if (reasons.isEmpty && deferrals.isEmpty && nextEligibleDate == null)
                   Text(
-                    "Le donneur n'est pas éligible pour le moment.",
+                    'donor_not_eligible_now'.tr,
                     style: GoogleFonts.poppins(),
                   ),
               ],
@@ -239,7 +242,7 @@ class _DonorDetailsPageState extends ConsumerState<DonorDetailsPage> with Single
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
               child: Text(
-                'Compris',
+                'ok'.tr,
                 style: GoogleFonts.poppins(
                   fontWeight: FontWeight.w600,
                 ),
@@ -280,7 +283,7 @@ class _DonorDetailsPageState extends ConsumerState<DonorDetailsPage> with Single
         : result.volume.toStringAsFixed(1);
     final location = widget.donor.address != null && widget.donor.address!.isNotEmpty
         ? widget.donor.address!
-        : 'Centre de don principal';
+        : 'main_donation_center'.tr;
 
     setState(() {
       _totalDonationsOverride = _displayTotalDonations + 1;
@@ -288,10 +291,10 @@ class _DonorDetailsPageState extends ConsumerState<DonorDetailsPage> with Single
       _donationHistory = [
         {
           'date': result.newDonationDate.toIso8601String(),
-          'type': 'Sang total',
+          'type': 'whole_blood',
           'volume': '$formattedVolume ml',
           'location': location,
-          'status': 'Complété',
+          'status': 'completed',
           'batch': result.batchNumber,
           'description': result.description ?? '',
         },
@@ -302,7 +305,7 @@ class _DonorDetailsPageState extends ConsumerState<DonorDetailsPage> with Single
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          'Don enregistré avec succès',
+          'donation_recorded_success'.tr,
           style: GoogleFonts.poppins(),
         ),
         backgroundColor: Colors.green,
@@ -315,7 +318,7 @@ class _DonorDetailsPageState extends ConsumerState<DonorDetailsPage> with Single
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Détails du Donneur',
+          'donor_details'.tr,
           style: GoogleFonts.poppins(
             fontWeight: FontWeight.w600,
           ),
@@ -323,12 +326,12 @@ class _DonorDetailsPageState extends ConsumerState<DonorDetailsPage> with Single
         actions: [
           IconButton(
             icon: const Icon(Icons.edit),
-            tooltip: 'Modifier',
+            tooltip: 'edit'.tr,
             onPressed: () {
               // Edit functionality
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Fonctionnalité à venir'),
+                SnackBar(
+                  content: Text('coming_soon'.tr),
                 ),
               );
             },
@@ -337,9 +340,9 @@ class _DonorDetailsPageState extends ConsumerState<DonorDetailsPage> with Single
         bottom: TabBar(
           controller: _tabController,
           tabs: [
-            Tab(text: 'Profil'),
-            Tab(text: 'Historique'),
-            Tab(text: 'Badges'),
+            Tab(text: 'profile'.tr),
+            Tab(text: 'history'.tr),
+            Tab(text: 'badges'.tr),
           ],
           labelStyle: GoogleFonts.poppins(
             fontWeight: FontWeight.w600,
@@ -359,7 +362,7 @@ class _DonorDetailsPageState extends ConsumerState<DonorDetailsPage> with Single
         backgroundColor: Colors.red,
         icon: const Icon(Icons.add, color: Colors.white),
         label: Text(
-          'Nouveau Don',
+          'new_donation'.tr,
           style: GoogleFonts.poppins(
             color: Colors.white,
           ),
@@ -376,82 +379,82 @@ class _DonorDetailsPageState extends ConsumerState<DonorDetailsPage> with Single
         children: [
           // Donor Header
           _buildDonorHeader(),
-          
+
           const SizedBox(height: 16),
-          
+
           // Donor QR Code
           _buildDonorQrCode(),
-          
+
           const SizedBox(height: 24),
 
           _buildDonorIdCardSection(),
-          
+
           const SizedBox(height: 24),
-          
+
           // Personal Information Section
-          _buildSectionTitle('Informations Personnelles'),
+          _buildSectionTitle('personal_information'.tr),
           _buildInfoCard(
             children: [
-              _buildInfoRow('ID Donneur', widget.donor.donorCode ?? widget.donor.id),
-              _buildInfoRow('Nom complet', widget.donor.fullName),
+              _buildInfoRow('donor_id'.tr, widget.donor.donorCode ?? widget.donor.id),
+              _buildInfoRow('full_name'.tr, widget.donor.fullName),
               _buildInfoRow(
-                'Genre', 
-                widget.donor.gender.toLowerCase() == 'm' ? 'Masculin' : 'Féminin'
+                'gender'.tr,
+                widget.donor.gender.toLowerCase() == 'm' ? 'male'.tr : 'female'.tr
               ),
-              _buildInfoRow('Date de naissance', widget.donor.dateOfBirth),
-              _buildInfoRow('Groupe sanguin', widget.donor.bloodType),
-              _buildInfoRow('Status', 'Actif'),
-              _buildInfoRow('Inscription', _formatDate(widget.donor.createdAt)),
+              _buildInfoRow('date_of_birth'.tr, widget.donor.dateOfBirth),
+              _buildInfoRow('blood_type'.tr, widget.donor.bloodType),
+              _buildInfoRow('status'.tr, 'active'.tr),
+              _buildInfoRow('registration'.tr, _formatDate(context, widget.donor.createdAt)),
             ],
           ),
-          
+
           const SizedBox(height: 24),
-          
+
           // Contact Information Section
-          _buildSectionTitle('Coordonnées'),
+          _buildSectionTitle('contact_information'.tr),
           _buildInfoCard(
             children: [
-              _buildInfoRow('Téléphone', widget.donor.phoneNumber),
-              _buildInfoRow('Email', widget.donor.email ?? 'Non renseigné'),
-              _buildInfoRow('Adresse', widget.donor.address ?? 'Non renseignée'),
+              _buildInfoRow('phone_number'.tr, widget.donor.phoneNumber),
+              _buildInfoRow('email'.tr, widget.donor.email ?? 'not_provided'.tr),
+              _buildInfoRow('address'.tr, widget.donor.address ?? 'not_provided'.tr),
             ],
           ),
-          
+
           const SizedBox(height: 24),
-          
+
           // Emergency Contact Section
-          _buildSectionTitle('Contact d\'Urgence'),
+          _buildSectionTitle('emergency_contact'.tr),
           _buildInfoCard(
             children: [
               _buildInfoRow(
-                'Nom', 
-                widget.donor.emergencyContactName ?? 'Non renseigné'
+                'name'.tr,
+                widget.donor.emergencyContactName ?? 'not_provided'.tr
               ),
               _buildInfoRow(
-                'Téléphone', 
-                widget.donor.emergencyContactPhone ?? 'Non renseigné'
+                'phone_number'.tr,
+                widget.donor.emergencyContactPhone ?? 'not_provided'.tr
               ),
             ],
           ),
-          
+
           const SizedBox(height: 24),
-          
+
           // Medical Summary Section
-          _buildSectionTitle('Résumé Médical'),
+          _buildSectionTitle('medical_summary'.tr),
           _buildInfoCard(
             children: [
               _buildInfoRow(
-                'Total de dons', 
-                '$_displayTotalDonations dons'
+                'total_donations'.tr,
+                'donations_count'.trParams({'count': _displayTotalDonations.toString()})
               ),
               _buildInfoRow(
-                'Dernier don', 
+                'last_donation'.tr,
                 _displayLastDonationDate
               ),
-              _buildInfoRow('Éligibilité', 'Éligible'),
+              _buildInfoRow('eligibility'.tr, 'eligible'.tr),
             ],
           ),
-          
+
           const SizedBox(height: 40),
         ],
       ),
@@ -465,14 +468,14 @@ class _DonorDetailsPageState extends ConsumerState<DonorDetailsPage> with Single
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Historique des Dons',
+            'donation_history'.tr,
             style: GoogleFonts.poppins(
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 16),
-          
+
           if (_donationHistory.isEmpty)
             Center(
               child: Padding(
@@ -487,7 +490,7 @@ class _DonorDetailsPageState extends ConsumerState<DonorDetailsPage> with Single
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'Aucun don enregistré',
+'no_donations_recorded'.tr,
                       style: GoogleFonts.poppins(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
@@ -496,7 +499,7 @@ class _DonorDetailsPageState extends ConsumerState<DonorDetailsPage> with Single
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Les dons apparaîtront ici une fois enregistrés',
+                      'donations_will_appear_here'.tr,
                       textAlign: TextAlign.center,
                       style: GoogleFonts.poppins(
                         color: Colors.grey.shade600,
@@ -514,15 +517,15 @@ class _DonorDetailsPageState extends ConsumerState<DonorDetailsPage> with Single
                   final donation = _donationHistory[index];
                   final String rawDate = donation['date'] ?? '';
                   final String displayDate = rawDate.isEmpty
-                      ? 'Date inconnue'
-                      : _formatDateFromString(rawDate);
-                  final String type = donation['type'] ?? 'Don';
+                      ? 'unknown_date'.tr
+                      : _formatDateFromString(context, rawDate);
+                  final String type = (donation['type'] ?? 'donation').tr;
                   final String volume = donation['volume'] ?? '';
-                  final String location = donation['location'] ?? 'Centre inconnu';
-                  final String status = donation['status'] ?? 'Enregistré';
+                  final String location = donation['location'] ?? 'unknown_center'.tr;
+                  final String status = (donation['status'] ?? 'recorded').tr;
                   final String batch = donation['batch'] ?? '';
                   final String description = donation['description'] ?? '';
-                  
+
                   return Card(
                     margin: const EdgeInsets.only(bottom: 12),
                     shape: RoundedRectangleBorder(
@@ -537,7 +540,7 @@ class _DonorDetailsPageState extends ConsumerState<DonorDetailsPage> with Single
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                'Don du $displayDate',
+                                'donation_on'.trParams({'date': displayDate}),
                                 style: GoogleFonts.poppins(
                                   fontWeight: FontWeight.w600,
                                   fontSize: 16,
@@ -564,14 +567,14 @@ class _DonorDetailsPageState extends ConsumerState<DonorDetailsPage> with Single
                             ],
                           ),
                           const SizedBox(height: 12),
-                          _buildDonationInfoRow('Type de don', type),
-                          _buildDonationInfoRow('Volume', volume),
-                          _buildDonationInfoRow('Centre de collecte', location),
+                          _buildDonationInfoRow('donation_type'.tr, type),
+                          _buildDonationInfoRow('volume'.tr, volume),
+                          _buildDonationInfoRow('collection_center'.tr, location),
                           batch.isNotEmpty
-                              ? _buildDonationInfoRow('Numéro de lot', batch)
+                              ? _buildDonationInfoRow('batch_number'.tr, batch)
                               : const SizedBox.shrink(),
                           description.isNotEmpty
-                              ? _buildDonationInfoRow('Notes', description)
+                              ? _buildDonationInfoRow('notes'.tr, description)
                               : const SizedBox.shrink(),
                           const SizedBox(height: 8),
                           Row(
@@ -579,7 +582,7 @@ class _DonorDetailsPageState extends ConsumerState<DonorDetailsPage> with Single
                             children: [
                               TextButton.icon(
                                 icon: const Icon(Icons.visibility),
-                                label: const Text('Voir détails'),
+                                label: Text('view_details'.tr),
                                 onPressed: () {
                                   // View donation details
                                 },
@@ -602,22 +605,22 @@ class _DonorDetailsPageState extends ConsumerState<DonorDetailsPage> with Single
     // Mock badges for demonstration
     final mockBadges = [
       {
-        'name': 'Badge de Bienvenue',
-        'description': 'Décerné aux nouveaux donneurs lors de leur enregistrement.',
+        'name': 'welcome_badge',
+        'description': 'welcome_badge_desc',
         'awarded_date': widget.donor.createdAt.toString(),
         'icon': Icons.emoji_events,
         'color': Colors.amber,
       },
       {
-        'name': 'Premier Don',
-        'description': 'Décerné après avoir complété le premier don de sang.',
+        'name': 'first_donation_badge',
+        'description': 'first_donation_badge_desc',
         'awarded_date': '2025-09-15',
         'icon': Icons.favorite,
         'color': Colors.red,
       },
       {
-        'name': 'Donneur Régulier',
-        'description': 'Pour avoir effectué au moins 3 dons.',
+        'name': 'regular_donor_badge',
+        'description': 'regular_donor_badge_desc',
         'awarded_date': '2025-09-15',
         'icon': Icons.repeat,
         'color': Colors.blue,
@@ -630,14 +633,14 @@ class _DonorDetailsPageState extends ConsumerState<DonorDetailsPage> with Single
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Badges et Récompenses',
+            'badges_rewards'.tr,
             style: GoogleFonts.poppins(
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 16),
-          
+
           Expanded(
             child: GridView.builder(
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -651,7 +654,7 @@ class _DonorDetailsPageState extends ConsumerState<DonorDetailsPage> with Single
                 final badge = mockBadges[index];
                 final iconData = badge['icon'] as IconData;
                 final color = badge['color'] as Color;
-                
+
                 return Card(
                   elevation: 2,
                   shape: RoundedRectangleBorder(
@@ -676,7 +679,7 @@ class _DonorDetailsPageState extends ConsumerState<DonorDetailsPage> with Single
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          badge['name'] as String,
+                          (badge['name'] as String).tr,
                           style: GoogleFonts.poppins(
                             fontWeight: FontWeight.w600,
                             fontSize: 14,
@@ -685,7 +688,7 @@ class _DonorDetailsPageState extends ConsumerState<DonorDetailsPage> with Single
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Obtenu le ${_formatDateFromString(badge['awarded_date'] as String)}',
+                          'obtained_on'.trParams({'date': _formatDateFromString(context, badge['awarded_date'] as String)}),
                           style: GoogleFonts.poppins(
                             fontSize: 10,
                             color: Colors.grey.shade600,
@@ -694,7 +697,7 @@ class _DonorDetailsPageState extends ConsumerState<DonorDetailsPage> with Single
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          badge['description'] as String,
+                          (badge['description'] as String).tr,
                           style: GoogleFonts.poppins(
                             fontSize: 11,
                             color: Colors.grey.shade700,
@@ -751,9 +754,9 @@ class _DonorDetailsPageState extends ConsumerState<DonorDetailsPage> with Single
                   ),
                 ),
               ),
-              
+
             const SizedBox(width: 16),
-            
+
             // Donor info
             Expanded(
               child: Column(
@@ -767,20 +770,20 @@ class _DonorDetailsPageState extends ConsumerState<DonorDetailsPage> with Single
                     ),
                   ),
                   const SizedBox(height: 4),
-                  
+
                   // Donor code and gender
                   Row(
                     children: [
                       Icon(
                         widget.donor.gender.toLowerCase() == 'm' ? Icons.male : Icons.female,
                         size: 16,
-                        color: widget.donor.gender.toLowerCase() == 'm' 
-                            ? Colors.blue 
+                        color: widget.donor.gender.toLowerCase() == 'm'
+                            ? Colors.blue
                             : Colors.pink,
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        widget.donor.gender.toLowerCase() == 'm' ? 'Homme' : 'Femme',
+                        widget.donor.gender.toLowerCase() == 'm' ? 'male'.tr : 'female'.tr,
                         style: GoogleFonts.poppins(
                           fontSize: 14,
                           color: Colors.grey.shade700,
@@ -879,15 +882,15 @@ class _DonorDetailsPageState extends ConsumerState<DonorDetailsPage> with Single
                     children: [
                       _buildStatItem(
                         value: '${widget.donor.totalDonations ?? 0}',
-                        label: 'Dons',
+                        label: 'donations'.tr,
                         icon: Icons.bloodtype,
                       ),
                       const SizedBox(width: 16),
                       _buildStatItem(
                         value: widget.donor.lastDonationDate != null
-                            ? 'Récent'
-                            : 'Aucun',
-                        label: 'Dernier don',
+                            ? 'recent'.tr
+                            : 'none'.tr,
+                        label: 'last_donation'.tr,
                         icon: Icons.calendar_today,
                       ),
                     ],
@@ -1044,9 +1047,9 @@ class _DonorDetailsPageState extends ConsumerState<DonorDetailsPage> with Single
     final donor = widget.donor;
     final donorCode = donor.donorCode ?? donor.id;
     final formattedBirthDate = donor.dateOfBirth.isNotEmpty
-        ? _formatDateFromString(donor.dateOfBirth)
+        ? _formatDateFromString(context, donor.dateOfBirth)
         : '';
-    final registrationDate = _formatDate(donor.createdAt);
+    final registrationDate = _formatDate(context, donor.createdAt);
   const Color cardStart = Color(0xFFF9E6F1);
   const Color cardEnd = Color(0xFFE4EEFF);
     const Color primaryTextColor = Color(0xFF2C1B52);
@@ -1054,22 +1057,22 @@ class _DonorDetailsPageState extends ConsumerState<DonorDetailsPage> with Single
     const Color accentColor = Color(0xFFE24C5C);
 
     final detailItems = <Map<String, String>>[
-      {'label': 'Nom complet', 'value': donor.fullName},
-      {'label': 'Code donneur', 'value': donorCode},
+      {'label_key': 'full_name', 'value': donor.fullName},
+      {'label_key': 'donor_code', 'value': donorCode},
       if (formattedBirthDate.isNotEmpty)
-        {'label': 'Date de naissance', 'value': formattedBirthDate},
-      {'label': 'Téléphone', 'value': donor.phoneNumber},
+        {'label_key': 'date_of_birth', 'value': formattedBirthDate},
+      {'label_key': 'phone_number', 'value': donor.phoneNumber},
       if ((donor.email ?? '').isNotEmpty)
-        {'label': 'Email', 'value': donor.email!},
+        {'label_key': 'email', 'value': donor.email!},
       if ((donor.address ?? '').isNotEmpty)
-        {'label': 'Adresse', 'value': donor.address!},
-      {'label': 'Inscription', 'value': registrationDate},
+        {'label_key': 'address', 'value': donor.address!},
+      {'label_key': 'registration', 'value': registrationDate},
     ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionTitle('Carte d\'identité numérique'),
+        _buildSectionTitle('digital_id_card'.tr),
         const SizedBox(height: 12),
         RepaintBoundary(
           key: _idCardKey,
@@ -1133,7 +1136,7 @@ class _DonorDetailsPageState extends ConsumerState<DonorDetailsPage> with Single
                           ),
                         ),
                         Text(
-                          'Carte d\'identité du donneur',
+                          'donor_id_card'.tr,
                           style: GoogleFonts.poppins(
                             fontSize: 12,
                             color: secondaryTextColor,
@@ -1149,7 +1152,7 @@ class _DonorDetailsPageState extends ConsumerState<DonorDetailsPage> with Single
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        donor.bloodType.isNotEmpty ? donor.bloodType : 'N/A',
+                        donor.bloodType.isNotEmpty ? donor.bloodType : 'not_available_short'.tr,
                         style: GoogleFonts.poppins(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -1199,7 +1202,7 @@ class _DonorDetailsPageState extends ConsumerState<DonorDetailsPage> with Single
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           for (final detail in detailItems)
-                            _buildIdCardInfoField(detail['label']!, detail['value']!),
+                            _buildIdCardInfoField(detail['label_key']!.tr, detail['value']!),
                         ],
                       );
                     }
@@ -1264,7 +1267,7 @@ class _DonorDetailsPageState extends ConsumerState<DonorDetailsPage> with Single
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  'Valide dans tous les centres partenaires du réseau eBlood.',
+                  'valid_in_all_centers'.tr,
                   style: GoogleFonts.poppins(
                     fontSize: 12,
                     color: secondaryTextColor,
@@ -1286,7 +1289,7 @@ class _DonorDetailsPageState extends ConsumerState<DonorDetailsPage> with Single
                 onPressed: _isProcessingIdCard ? null : _downloadIdCard,
                 icon: const Icon(Icons.download),
                 label: Text(
-                  'Télécharger la carte',
+                  'download_card'.tr,
                   style: GoogleFonts.poppins(
                     fontWeight: FontWeight.w600,
                   ),
@@ -1304,7 +1307,7 @@ class _DonorDetailsPageState extends ConsumerState<DonorDetailsPage> with Single
                 onPressed: _isProcessingIdCard ? null : _shareIdCard,
                 icon: const Icon(Icons.share, color: Colors.white),
                 label: Text(
-                  'Partager la carte',
+                  'share_card'.tr,
                   style: GoogleFonts.poppins(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
@@ -1335,7 +1338,7 @@ class _DonorDetailsPageState extends ConsumerState<DonorDetailsPage> with Single
               ),
               const SizedBox(width: 8),
               Text(
-                'Génération de la carte...',
+                'generating_card'.tr,
                 style: GoogleFonts.poppins(fontSize: 12),
               ),
             ],
@@ -1417,7 +1420,7 @@ class _DonorDetailsPageState extends ConsumerState<DonorDetailsPage> with Single
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'Impossible de générer la carte du donneur',
+                'unable_generate_donor_card'.tr,
                 style: GoogleFonts.poppins(),
               ),
               backgroundColor: Colors.red,
@@ -1442,7 +1445,7 @@ class _DonorDetailsPageState extends ConsumerState<DonorDetailsPage> with Single
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Carte enregistrée dans ${exportDir.path}',
+              'card_saved_to'.trParams({'path': exportDir.path}),
               style: GoogleFonts.poppins(),
             ),
             backgroundColor: Colors.green,
@@ -1454,7 +1457,7 @@ class _DonorDetailsPageState extends ConsumerState<DonorDetailsPage> with Single
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Erreur lors de l\'enregistrement: $e',
+              'error_saving_card'.trParams({'error': e.toString()}),
               style: GoogleFonts.poppins(),
             ),
             backgroundColor: Colors.red,
@@ -1543,32 +1546,33 @@ class _DonorDetailsPageState extends ConsumerState<DonorDetailsPage> with Single
     }
   }
 
-  String _formatDate(DateTime date) {
-    // Format date as DD/MM/YYYY
-    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+  String _formatDate(BuildContext context, DateTime date) {
+    final locale = Localizations.localeOf(context).toLanguageTag();
+    return DateFormat.yMMMd(locale).format(date);
   }
 
-  String _formatDateFromString(String dateStr) {
+  String _formatDateFromString(BuildContext context, String dateStr) {
     try {
       final date = DateTime.parse(dateStr);
-      return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+      final locale = Localizations.localeOf(context).toLanguageTag();
+      return DateFormat.yMMMd(locale).format(date);
     } catch (e) {
       return dateStr;
     }
   }
-  
+
   void _showFullScreenImage(String imageUrl) {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => _FullScreenPhotoView(
-          imageUrl: imageUrl, 
+          imageUrl: imageUrl,
           heroTag: 'donor_photo_${widget.donor.id}',
           donorName: widget.donor.fullName,
         ),
       ),
     );
   }
-  
+
   // Method to share QR code as image
   Future<void> _shareQrCode() async {
     try {
@@ -1625,10 +1629,10 @@ class _DonorDetailsPageState extends ConsumerState<DonorDetailsPage> with Single
       }
     }
   }
-  
+
   Widget _buildDonorQrCode() {
     final donorCode = widget.donor.donorCode ?? widget.donor.id;
-    
+
     return Card(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
@@ -1997,8 +2001,8 @@ class _NewDonationSheetState extends ConsumerState<_NewDonationSheet> {
                     controller: _descriptionController,
                     maxLines: 3,
                     decoration: InputDecoration(
-                      labelText: 'Notes (optionnel)',
-                      hintText: 'Observations ou détails complémentaires',
+                      labelText: 'notes_optional'.tr,
+                      hintText: 'observations_details_hint'.tr,
                       prefixIcon: Icon(Icons.note_alt, color: Colors.grey.shade600),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -2072,7 +2076,7 @@ class _FullScreenPhotoView extends StatelessWidget {
   final String imageUrl;
   final String heroTag;
   final String donorName;
-  
+
   const _FullScreenPhotoView({
     required this.imageUrl,
     required this.heroTag,
@@ -2112,7 +2116,7 @@ class _FullScreenPhotoView extends StatelessWidget {
                 return Center(
                   child: CircularProgressIndicator(
                     value: loadingProgress.expectedTotalBytes != null
-                        ? loadingProgress.cumulativeBytesLoaded / 
+                        ? loadingProgress.cumulativeBytesLoaded /
                             loadingProgress.expectedTotalBytes!
                         : null,
                     color: Colors.white,

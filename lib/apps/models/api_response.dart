@@ -17,8 +17,11 @@ class IApiResponse {
   final List<TMfaModel>? mfas;
   final int? max;
   final int? limit;
+  final int? page;
+  final int? total;
   final int? statusCode;
   final Map<String, dynamic>? meta;
+  final dynamic raw;
 
   IApiResponse({
     required this.success,
@@ -35,6 +38,9 @@ class IApiResponse {
     this.mfas,
     this.max,
     this.limit,
+    this.page,
+    this.total,
+    this.raw,
   });
 
   factory IApiResponse.fromData(dynamic responseData) {
@@ -89,6 +95,16 @@ class IApiResponse {
             responseData.containsKey('limit') && responseData['limit'] != null
                 ? responseData['limit']
                 : 0,
+        page: responseData.containsKey('page') && responseData['page'] != null
+            ? (responseData['page'] is String
+                ? int.tryParse(responseData['page'])
+                : responseData['page'])
+            : 0,
+        total: responseData.containsKey('total') && responseData['total'] != null
+            ? (responseData['total'] is String
+                ? int.tryParse(responseData['total'])
+                : responseData['total'])
+            : 0,
         accessToken: responseData.containsKey('access_token') &&
                 responseData['access_token'] != null
             ? responseData['access_token']
@@ -110,9 +126,10 @@ class IApiResponse {
             ? tMfaModelFromJson(responseData['default_mfa'])
             : TMfaModel.empty(),
         user: responseData.containsKey('user') && responseData['user'] != null
-            ? tUserModelFromJson(responseData['user'])
+            ? _parseUserSafely(responseData['user'])
             : TUserModel.empty(),
         mfas: modelList,
+        raw: responseData,
       );
     }
 
@@ -120,6 +137,7 @@ class IApiResponse {
     return IApiResponse(
       success: false,
       data: responseData,
+      raw: responseData,
     );
   }
 
@@ -128,6 +146,7 @@ class IApiResponse {
       success: false,
       message: message,
       statusCode: statusCode,
+      raw: null,
     );
   }
 
@@ -146,7 +165,21 @@ class IApiResponse {
       "username": "$username",
       "mfas": $mfas,
       "max": $max,
-      "limit": $limit
+      "limit": $limit,
+      "raw": $raw
     }
   ''';
+
+  static TUserModel _parseUserSafely(dynamic userData) {
+    try {
+      if (userData is! Map<String, dynamic>) {
+        debugPrint('⚠️ User data is not a map: $userData');
+        return TUserModel.empty();
+      }
+      return tUserModelFromJson(userData);
+    } catch (e) {
+      debugPrint('⚠️ Failed to parse user model (missing mfas field?): $e');
+      return TUserModel.empty();
+    }
+  }
 }

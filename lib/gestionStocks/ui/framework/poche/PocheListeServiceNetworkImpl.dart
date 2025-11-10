@@ -82,6 +82,38 @@ class PocheListeNetworkServiceImpl implements PocheListeNetworkService {
 
   /// Transform flat API response to nested structure expected by PocheModel
   Map<String, dynamic> _transformBloodBagData(Map<String, dynamic> flatData) {
+    // If the backend already returns the nested "blood_bag_info" structure, reuse it directly
+    if (flatData['blood_bag_info'] is Map) {
+      final info = Map<String, dynamic>.from(flatData['blood_bag_info'] as Map);
+
+      final String resolvedId = info['_id']?.toString() ??
+          info['id']?.toString() ??
+          info['blood_bag_id']?.toString() ??
+          info['identifier']?.toString() ??
+          '';
+
+      info['_id'] = resolvedId;
+      info['identifier'] = info['identifier']?.toString() ?? resolvedId;
+
+      return {
+        'blood_bag_info': info,
+        'blood_stock_count': flatData['blood_stock_count'] ?? 1,
+        'price': (flatData['price'] is num)
+            ? (flatData['price'] as num).toInt()
+            : (flatData['price'] ?? 0),
+        'blood_product_type': flatData['blood_product_type'],
+        'status': flatData['status'],
+        'batch_number': flatData['batch_number'],
+        'expire_date': flatData['expire_date'],
+        'days_until_expiry': flatData['days_until_expiry'],
+        'blood_bag_condition': flatData['blood_bag_condition'],
+        'currency_id': flatData['currency_id'],
+        'currency_symbol': flatData['currency_symbol'],
+        'currency_code': flatData['currency_code'],
+        'description': flatData['description'],
+      };
+    }
+
     // Extract rhesus factor components (e.g., "B-" -> blood_type: "B", rhesus: "-")
     final rhesusFactorFull = flatData['rhesus_factor'] ?? 'O+';
     final bloodType = rhesusFactorFull.length > 1

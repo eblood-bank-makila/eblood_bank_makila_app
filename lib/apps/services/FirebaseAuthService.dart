@@ -84,6 +84,18 @@ class FirebaseAuthService {
 
   // Get user photo URL
   String? get userPhotoURL => currentUser?.photoURL;
+
+  // Get current user's ID token (for backend Google verification)
+  Future<String?> getIdToken() async {
+    try {
+      final user = currentUser;
+      if (user == null) return null;
+      return await user.getIdToken(true);
+    } catch (e) {
+      print('Error getting ID token: $e');
+      return null;
+    }
+  }
 }
 
 // Provider for FirebaseAuthService

@@ -35,12 +35,26 @@ class OtpCodeCtrl extends _$OtpCodeCtrl {
           if (accessToken != null && accessToken.isNotEmpty) {
             final interactor = ref.read(utilisateurInteractorProvider);
             await interactor.saveTokenOtpUseCase.run(accessToken);
-            // Immediately fetch the user profile with the final token and persist locally
-            try {
-              await interactor.recuperationUtilisateurNetworkCodeUseCase.run();
-            } catch (e) {
-              // Non-fatal: ProfileCtrl has a network fallback as well
-              print('⚠️ Post-OTP user fetch failed: $e');
+
+            // Save the transformed user data if available
+            final transformedUser = resp['transformed_user'];
+            if (transformedUser != null) {
+              try {
+                await interactor.saveUserCodeUseCase.run(transformedUser);
+                print('✅ User data saved successfully after OTP validation');
+              } catch (e) {
+                print('⚠️ Failed to save transformed user data: $e');
+              }
+            }
+
+            // Fallback: fetch from network if transformed data not available
+            if (transformedUser == null) {
+              try {
+                await interactor.recuperationUtilisateurNetworkCodeUseCase.run();
+              } catch (e) {
+                // Non-fatal: ProfileCtrl has a network fallback as well
+                print('⚠️ Post-OTP user fetch failed: $e');
+              }
             }
           }
         } catch (e) {

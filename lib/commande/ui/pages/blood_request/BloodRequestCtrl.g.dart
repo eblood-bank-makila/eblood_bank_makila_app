@@ -6,7 +6,7 @@ part of 'BloodRequestCtrl.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$bloodRequestCtrlHash() => r'24b19240f352508b9a197fb42d727ca173861ec2';
+String _$bloodRequestCtrlHash() => r'01d90e4271c98a62c7b7458cfe78995f234f4506';
 
 /// See also [BloodRequestCtrl].
 @ProviderFor(BloodRequestCtrl)

@@ -135,7 +135,7 @@ class _HealthStructureEmailVerificationPageState extends State<HealthStructureEm
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(
               builder: (_) => RegistrationSuccessPage(
-                phoneNumber: widget.registrationPayload['contact_person']?['phone'] ?? '',
+                phoneNumber: widget.registrationPayload['phone_number'] ?? '',
                 email: widget.registrationPayload['email'] ?? '',
                 token: '',
               ),

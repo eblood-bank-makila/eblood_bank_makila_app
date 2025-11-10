@@ -1,5 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+
 import 'package:share_plus/share_plus.dart';
 import 'package:csv/csv.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
@@ -457,11 +459,11 @@ class _ReportPreviewDialogState extends State<ReportPreviewDialog> {
   Widget _buildPdfNotice() {
     // Validate file exists and is a PDF before attempting to render
     final file = File(widget.filePath);
-    
+
     if (!file.existsSync()) {
       return _buildErrorMessage('Le fichier PDF n\'existe pas à l\'emplacement spécifié.\n\nChemin: ${widget.filePath}');
     }
-    
+
     // Check if file is actually a PDF by reading first few bytes
     try {
       final bytes = file.readAsBytesSync();
@@ -471,7 +473,7 @@ class _ReportPreviewDialogState extends State<ReportPreviewDialog> {
     } catch (e) {
       return _buildErrorMessage('Impossible de lire le fichier: $e');
     }
-    
+
     // Show actual PDF preview using flutter_pdfview
     return Container(
       color: Colors.grey.shade100,
@@ -506,7 +508,7 @@ class _ReportPreviewDialogState extends State<ReportPreviewDialog> {
       ),
     );
   }
-  
+
   Widget _buildErrorMessage(String message) {
     return Center(
       child: Padding(
@@ -582,7 +584,7 @@ class _ReportPreviewDialogState extends State<ReportPreviewDialog> {
           border: Border.all(color: Colors.grey.shade300),
         ),
         child: SelectableText(
-          _textContent ?? 'Aucun contenu',
+          _textContent ?? 'no_content'.tr,
           style: TextStyle(
             fontFamily: 'monospace',
             fontSize: 12,
@@ -787,9 +789,9 @@ class _ReportPreviewDialogState extends State<ReportPreviewDialog> {
 
       // Open file with system default application
       final result = await OpenFile.open(widget.filePath);
-      
+
       print('📂 Open file result: ${result.type} - ${result.message}');
-      
+
       // Check result and show appropriate message
       if (result.type != ResultType.done) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -867,7 +869,7 @@ class _ReportPreviewDialogState extends State<ReportPreviewDialog> {
     // Get the directory path
     final file = File(widget.filePath);
     final directory = file.parent.path;
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Emplacement: $directory'),

@@ -1,33 +1,32 @@
-import 'package:dio/dio.dart';
-import '../../../core/network/dio_client_improved.dart';
+import '../../config/api/dio_client.dart';
 
 class AnnouncementsService {
-  final Dio _dio = DioClient().dio;
-  static const String _base = '/api/v1/eblood/connect/announcements';
+  static const String _base = '/eblood/announcements';
+  // static const String _base = '/eblood/connect/announcements';
 
   Future<List<Map<String, dynamic>>> fetchAll({String? filter}) async {
-    final response = await _dio.get(
+    final response = await getWithDio(
       _base,
-      queryParameters: filter != null && filter.isNotEmpty ? {'filter': filter} : null,
+      queryParams: filter != null && filter.isNotEmpty ? {'filter': filter} : null,
     );
-    final data = response.data;
-    if (data is Map && data['data'] is List) {
-      return List<Map<String, dynamic>>.from(data['data']);
-    }
-    if (data is List) {
-      return List<Map<String, dynamic>>.from(data);
+
+    if (response.success && response.data != null) {
+      final data = response.data;
+      if (data is List) {
+        return List<Map<String, dynamic>>.from(data);
+      }
     }
     return [];
   }
 
   Future<List<Map<String, dynamic>>> fetchMine() async {
-    final response = await _dio.get('$_base/mine');
-    final data = response.data;
-    if (data is Map && data['data'] is List) {
-      return List<Map<String, dynamic>>.from(data['data']);
-    }
-    if (data is List) {
-      return List<Map<String, dynamic>>.from(data);
+    final response = await getWithDio('$_base/mine');
+
+    if (response.success && response.data != null) {
+      final data = response.data;
+      if (data is List) {
+        return List<Map<String, dynamic>>.from(data);
+      }
     }
     return [];
   }
@@ -46,11 +45,12 @@ class AnnouncementsService {
       'priority': priority,
       'description': description,
     };
-    final response = await _dio.post(_base, data: payload);
-    if (response.data is Map) {
+    final response = await postWithDio(_base, body: payload);
+
+    if (response.success && response.data is Map) {
       return Map<String, dynamic>.from(response.data);
     }
-    return {'success': true};
+    return {'success': response.success, 'message': response.message};
   }
 
   Future<Map<String, dynamic>> updateAnnouncement({
@@ -68,14 +68,15 @@ class AnnouncementsService {
     if (priority != null) payload['priority'] = priority;
     if (description != null) payload['description'] = description;
 
-    final response = await _dio.put('$_base/$id', data: payload);
-    if (response.data is Map) {
+    final response = await putWithDio('$_base/$id', body: payload);
+
+    if (response.success && response.data is Map) {
       return Map<String, dynamic>.from(response.data);
     }
-    return {'success': true};
+    return {'success': response.success, 'message': response.message};
   }
 
   Future<void> deleteAnnouncement(String id) async {
-    await _dio.delete('$_base/$id');
+    await deleteWithDio('$_base/$id');
   }
 }

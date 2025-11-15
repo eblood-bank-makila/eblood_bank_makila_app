@@ -108,7 +108,7 @@ class AdvertisementService {
   /// Track advertisement click
   Future<bool> trackClick(String advertisementId) async {
     try {
-      final response = await postWithDio('/eblood/advertisements/$advertisementId/click');
+      final response = await postWithDio('/eblood/advertisements/click?advertisement_id=$advertisementId');
       if (response.success) {
         debugPrint('✅ Advertisement click tracked successfully');
         return true;

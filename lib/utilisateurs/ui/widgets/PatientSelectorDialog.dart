@@ -1,10 +1,14 @@
 import 'dart:async';
 
+import 'package:animate_do/animate_do.dart';
+import 'package:eblood_bank_mak_app/apps/config/theme/ColorPages.dart';
 import 'package:eblood_bank_mak_app/apps/models/api_response.dart';
 import 'package:eblood_bank_mak_app/utilisateurs/business/service/PatientNetworkServiceImpl.dart';
 import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/patient/AddPatientPage.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:iconsax/iconsax.dart';
 
 class PatientSelectorDialog extends StatefulWidget {
   const PatientSelectorDialog({super.key});
@@ -16,12 +20,10 @@ class PatientSelectorDialog extends StatefulWidget {
 class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
   final TextEditingController _searchCtrl = TextEditingController();
   final _patientService = PatientNetworkServiceImpl();
-  final _formKey = GlobalKey<FormState>();
 
   Timer? _debounce;
   List<Map<String, dynamic>> _results = [];
   bool _loading = false;
-  bool _initialLoad = false;
   String? _selectedPatientId;
 
   @override
@@ -59,7 +61,6 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
 
       setState(() {
         _results = items;
-        _initialLoad = true;
       });
     } catch (e) {
       debugPrint('Error loading patients: $e');
@@ -125,7 +126,7 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
       height: MediaQuery.of(context).size.height * 0.85,
       decoration: const BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
         children: [
@@ -140,52 +141,122 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
             ),
           ),
 
-          // Header
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          // Header with gradient
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  ColorPages.COLOR_PRINCIPAL,
+                  Colors.red.shade700,
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.3),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
             child: Row(
               children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Iconsax.user_search,
+                    color: Colors.white,
+                    size: 28,
+                  ),
+                ),
+                const SizedBox(width: 16),
                 Expanded(
-                  child: Text(
-                    'select_patient'.tr,
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'select_patient'.tr,
+                        style: GoogleFonts.ubuntu(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _results.isEmpty && !_loading
+                            ? 'Aucun patient trouvé'
+                            : '${_results.length} ${_results.length == 1 ? 'patient' : 'patients'}',
+                        style: GoogleFonts.ubuntu(
+                          fontSize: 13,
+                          color: Colors.white.withValues(alpha: 0.9),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close),
+                  icon: const Icon(Iconsax.close_circle, color: Colors.white),
                   onPressed: () => Navigator.of(context).pop(),
                 ),
               ],
             ),
           ),
 
-          const Divider(height: 1),
-
           // Search bar and add button
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
             child: Row(
               children: [
                 Expanded(
                   child: TextField(
                     controller: _searchCtrl,
+                    style: GoogleFonts.ubuntu(fontSize: 15),
                     decoration: InputDecoration(
                       hintText: 'search_patients'.tr,
-                      border: const OutlineInputBorder(),
-                      isDense: true,
-                      prefixIcon: const Icon(Icons.search),
+                      hintStyle: GoogleFonts.ubuntu(
+                        color: Colors.grey.shade400,
+                        fontSize: 14,
+                      ),
+                      filled: true,
+                      fillColor: Colors.grey.shade50,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey.shade300),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey.shade300),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: ColorPages.COLOR_PRINCIPAL, width: 2),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      prefixIcon: Icon(Iconsax.search_normal_1, color: Colors.grey.shade600),
                       suffixIcon: _loading
-                          ? const Padding(
-                              padding: EdgeInsets.all(8.0),
+                          ? Padding(
+                              padding: const EdgeInsets.all(12.0),
                               child: SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: ColorPages.COLOR_PRINCIPAL,
+                                ),
                               ),
                             )
                           : _searchCtrl.text.isNotEmpty
                               ? IconButton(
-                                  icon: const Icon(Icons.clear),
+                                  icon: Icon(Iconsax.close_circle, color: Colors.grey.shade600),
                                   onPressed: () {
                                     _searchCtrl.clear();
                                     _loadAllPatients();
@@ -196,18 +267,36 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
                     onChanged: _onSearchChanged,
                   ),
                 ),
-                const SizedBox(width: 8),
-                IconButton.filled(
-                  onPressed: () async {
-                    final created = await Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const AddPatientPage()),
-                    );
-                    if (created == true) {
-                      _loadAllPatients();
-                    }
-                  },
-                  icon: const Icon(Icons.add),
-                  tooltip: 'add_new_patient'.tr,
+                const SizedBox(width: 12),
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        ColorPages.COLOR_PRINCIPAL,
+                        Colors.red.shade700,
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: IconButton(
+                    onPressed: () async {
+                      final created = await Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const AddPatientPage()),
+                      );
+                      if (created == true) {
+                        _loadAllPatients();
+                      }
+                    },
+                    icon: const Icon(Iconsax.user_add, color: Colors.white),
+                    tooltip: 'add_new_patient'.tr,
+                  ),
                 ),
               ],
             ),
@@ -216,24 +305,65 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
           // Patient list
           Expanded(
             child: _loading && _results.isEmpty
-                ? const Center(child: CircularProgressIndicator())
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CircularProgressIndicator(color: ColorPages.COLOR_PRINCIPAL),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Chargement des patients...',
+                          style: GoogleFonts.ubuntu(
+                            fontSize: 15,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
                 : _results.isEmpty
                     ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.person_off, size: 64, color: Colors.grey[400]),
-                            const SizedBox(height: 16),
-                            Text(
-                              'no_patients_found'.tr,
-                              style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-                            ),
-                          ],
+                        child: FadeInUp(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(24),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade100,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Iconsax.user_search,
+                                  size: 64,
+                                  color: Colors.grey.shade400,
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                              Text(
+                                'no_patients_found'.tr,
+                                style: GoogleFonts.ubuntu(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.grey.shade700,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Essayez une autre recherche',
+                                style: GoogleFonts.ubuntu(
+                                  fontSize: 14,
+                                  color: Colors.grey.shade500,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       )
                     : ListView.separated(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         itemCount: _results.length,
-                        separatorBuilder: (_, __) => const Divider(height: 1),
+                        separatorBuilder: (_, __) => const SizedBox(height: 8),
                         itemBuilder: (context, index) {
                           final item = _results[index];
                           final id = (item['id'] ?? item['_id'] ?? '').toString();
@@ -246,37 +376,129 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
 
                           final isSelected = _selectedPatientId == id;
 
-                          return ListTile(
-                            selected: isSelected,
-                            selectedTileColor: Colors.blue.withOpacity(0.1),
-                            leading: CircleAvatar(
-                              backgroundColor: isSelected ? Colors.blue : Colors.grey[300],
-                              child: Icon(
-                                Icons.person,
-                                color: isSelected ? Colors.white : Colors.grey[600],
-                              ),
-                            ),
-                            title: Text(
-                              fullName.isNotEmpty ? fullName : (item['name']?.toString() ?? id),
-                              style: TextStyle(
-                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                              ),
-                            ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (id.isNotEmpty) Text(id, style: const TextStyle(fontSize: 12)),
-                                if (bloodType.isNotEmpty || gender.isNotEmpty)
-                                  Text(
-                                    [if (bloodType.isNotEmpty) bloodType, if (gender.isNotEmpty) gender].join(' • '),
-                                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                          return FadeInUp(
+                            duration: Duration(milliseconds: 300 + (index * 50)),
+                            child: InkWell(
+                              onTap: () => setState(() => _selectedPatientId = id),
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.1)
+                                      : Colors.grey.shade50,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? ColorPages.COLOR_PRINCIPAL
+                                        : Colors.grey.shade200,
+                                    width: isSelected ? 2 : 1,
                                   ),
-                              ],
+                                ),
+                                child: Row(
+                                  children: [
+                                    // Avatar
+                                    Container(
+                                      width: 56,
+                                      height: 56,
+                                      decoration: BoxDecoration(
+                                        gradient: isSelected
+                                            ? LinearGradient(
+                                                colors: [
+                                                  ColorPages.COLOR_PRINCIPAL,
+                                                  Colors.red.shade700,
+                                                ],
+                                              )
+                                            : null,
+                                        color: isSelected ? null : Colors.grey.shade200,
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Icon(
+                                        Iconsax.user,
+                                        color: isSelected ? Colors.white : Colors.grey.shade600,
+                                        size: 28,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    // Patient info
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            fullName.isNotEmpty ? fullName : (item['name']?.toString() ?? id),
+                                            style: GoogleFonts.ubuntu(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                              color: isSelected
+                                                  ? ColorPages.COLOR_PRINCIPAL
+                                                  : Colors.black87,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          if (id.isNotEmpty)
+                                            Text(
+                                              id,
+                                              style: GoogleFonts.ubuntu(
+                                                fontSize: 12,
+                                                color: Colors.grey.shade600,
+                                              ),
+                                            ),
+                                          if (bloodType.isNotEmpty || gender.isNotEmpty)
+                                            Padding(
+                                              padding: const EdgeInsets.only(top: 4),
+                                              child: Row(
+                                                children: [
+                                                  if (bloodType.isNotEmpty) ...[
+                                                    Icon(
+                                                      Iconsax.health,
+                                                      size: 14,
+                                                      color: Colors.grey.shade600,
+                                                    ),
+                                                    const SizedBox(width: 4),
+                                                    Text(
+                                                      bloodType,
+                                                      style: GoogleFonts.ubuntu(
+                                                        fontSize: 13,
+                                                        color: Colors.grey.shade600,
+                                                        fontWeight: FontWeight.w500,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                  if (bloodType.isNotEmpty && gender.isNotEmpty)
+                                                    Padding(
+                                                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                                                      child: Text(
+                                                        '•',
+                                                        style: TextStyle(color: Colors.grey.shade400),
+                                                      ),
+                                                    ),
+                                                  if (gender.isNotEmpty)
+                                                    Text(
+                                                      gender,
+                                                      style: GoogleFonts.ubuntu(
+                                                        fontSize: 13,
+                                                        color: Colors.grey.shade600,
+                                                      ),
+                                                    ),
+                                                ],
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                    // Selection indicator
+                                    Icon(
+                                      isSelected ? Iconsax.tick_circle5 : Iconsax.record_circle,
+                                      color: isSelected
+                                          ? ColorPages.COLOR_PRINCIPAL
+                                          : Colors.grey.shade400,
+                                      size: 28,
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
-                            trailing: isSelected
-                                ? const Icon(Icons.check_circle, color: Colors.blue)
-                                : const Icon(Icons.circle_outlined, color: Colors.grey),
-                            onTap: () => setState(() => _selectedPatientId = id),
                           );
                         },
                       ),
@@ -284,12 +506,12 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
 
           // Bottom action buttons
           Container(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(20.0),
             decoration: BoxDecoration(
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, -2),
                 ),
@@ -300,7 +522,21 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
                 Expanded(
                   child: OutlinedButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    child: Text('cancel'.tr),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      side: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    child: Text(
+                      'cancel'.tr,
+                      style: GoogleFonts.ubuntu(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -308,7 +544,33 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
                   flex: 2,
                   child: ElevatedButton(
                     onPressed: _confirmSelection,
-                    child: Text('continue'.tr),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: ColorPages.COLOR_PRINCIPAL,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'continue'.tr,
+                          style: GoogleFonts.ubuntu(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Icon(
+                          Iconsax.tick_circle,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],

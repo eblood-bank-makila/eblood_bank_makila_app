@@ -1,0 +1,22 @@
+clicking on update patient we have error :
+═╡ EXCEPTION CAUGHT BY WIDGETS LIBRARY ╞═══════════════════════════════════════════════════════════
+The following assertion was thrown building EditPatientPage(dirty, state:
+_EditPatientPageState#54973):
+There should be exactly one item with [DropdownButton]'s value: f.
+Either zero or 2 or more [DropdownMenuItem]s were detected with the same value
+'package:flutter/src/material/dropdown.dart':
+Failed assertion: line 1796 pos 10: 'items == null ||
+             items.isEmpty ||
+             (initialValue == null && value == null) ||
+             items
+                     .where((DropdownMenuItem<T> item) => item.value == (initialValue ?? value))
+                     .length ==
+                 1'
+
+The relevant error-causing widget was:
+  EditPatientPage
+  EditPatientPage:file:///Users/delatour007/Documents/PROJECTS/EBLOOD/APPS/eblood_bank_makila_app/lib/utilisateurs/ui/pages/pa
+  tient/PatientDetailsPage.dart:78:37
+
+When the exception was thrown, this was the stack:
+#2      new DropdownButtonFormField (package:flutter/src/material/dropdown.dart:1796:10)

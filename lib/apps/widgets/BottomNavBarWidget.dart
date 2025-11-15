@@ -41,8 +41,8 @@ class _HospitalBottomNavBarWidgetState extends ConsumerState<HospitalBottomNavBa
   int _currentIndex = 0;
 
   final List<Widget> _pages = [
-    const HospitalHomePage(),
     Banquepage(),
+    const HospitalHomePage(),
     Recherchepage(query: ''),
     PanierPage(),
     ProfilePage(),
@@ -50,15 +50,16 @@ class _HospitalBottomNavBarWidgetState extends ConsumerState<HospitalBottomNavBa
 
   final List<BottomNavItem> _navItems = [
     BottomNavItem(
-      icon: Iconsax.home,
-      activeIcon: Iconsax.home_15,
-      label: 'home',
+      icon: Iconsax.box,
+      activeIcon: Iconsax.box_15,
+      label: 'blood_bags',
     ),
     BottomNavItem(
-      icon: Iconsax.bank,
-      activeIcon: Iconsax.bank5,
-      label: 'blood_banks',
+      icon: Iconsax.home,
+      activeIcon: Iconsax.home_15,
+      label: 'overview',
     ),
+    
     BottomNavItem(
       icon: Iconsax.search_normal,
       activeIcon: Iconsax.search_normal_15,
@@ -136,7 +137,7 @@ class _HospitalBottomNavBarWidgetState extends ConsumerState<HospitalBottomNavBa
       child: SafeArea(
         child: Container(
           height: 70,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: _navItems.asMap().entries.map((entry) {
@@ -145,75 +146,84 @@ class _HospitalBottomNavBarWidgetState extends ConsumerState<HospitalBottomNavBa
               final isSelected = _currentIndex == index;
               final isCartTab = item.label == 'cart';
 
-              return GestureDetector(
-                onTap: () => _onItemTapped(index),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.1)
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 200),
-                            child: Icon(
-                              isSelected ? item.activeIcon : item.icon,
-                              key: ValueKey(isSelected),
-                              color: isSelected
-                                  ? ColorPages.COLOR_PRINCIPAL
-                                  : Colors.black,
-                              size: 24,
+              return Expanded(
+                child: GestureDetector(
+                  onTap: () => _onItemTapped(index),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                    margin: const EdgeInsets.symmetric(horizontal: 2),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.1)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 200),
+                              child: Icon(
+                                isSelected ? item.activeIcon : item.icon,
+                                key: ValueKey(isSelected),
+                                color: isSelected
+                                    ? ColorPages.COLOR_PRINCIPAL
+                                    : Colors.black,
+                                size: 24,
+                              ),
                             ),
-                          ),
-                          // Badge for cart items
-                          if (isCartTab && cartItemCount > 0)
-                            Positioned(
-                              top: -4,
-                              right: -4,
-                              child: Container(
-                                constraints: const BoxConstraints(minWidth: 16),
-                                height: 16,
-                                padding: const EdgeInsets.symmetric(horizontal: 4),
-                                decoration: BoxDecoration(
-                                  color: ColorPages.COLOR_PRINCIPAL,
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: Colors.white, width: 1.5),
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    cartItemCount > 99 ? '99+' : cartItemCount.toString(),
-                                    style: GoogleFonts.ubuntu(
-                                      fontSize: 9,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
+                            // Badge for cart items
+                            if (isCartTab && cartItemCount > 0)
+                              Positioned(
+                                top: -4,
+                                right: -4,
+                                child: Container(
+                                  constraints: const BoxConstraints(minWidth: 16),
+                                  height: 16,
+                                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                                  decoration: BoxDecoration(
+                                    color: ColorPages.COLOR_PRINCIPAL,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: Colors.white, width: 1.5),
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      cartItemCount > 99 ? '99+' : cartItemCount.toString(),
+                                      style: GoogleFonts.ubuntu(
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      AnimatedDefaultTextStyle(
-                        duration: const Duration(milliseconds: 200),
-                        style: GoogleFonts.ubuntu(
-                          fontSize: 12,
-                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                          color: isSelected
-                              ? ColorPages.COLOR_PRINCIPAL
-                              : Colors.black,
+                          ],
                         ),
-                        child: Text(item.label.tr),
-                      ),
-                    ],
+                        const SizedBox(height: 4),
+                        AnimatedDefaultTextStyle(
+                          duration: const Duration(milliseconds: 200),
+                          style: GoogleFonts.ubuntu(
+                            fontSize: 10,
+                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                            color: isSelected
+                                ? ColorPages.COLOR_PRINCIPAL
+                                : Colors.black,
+                          ),
+                          child: Text(
+                            item.label.tr,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               );

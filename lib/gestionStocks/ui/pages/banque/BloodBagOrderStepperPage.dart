@@ -1,0 +1,1728 @@
+import 'package:animate_do/animate_do.dart';
+import 'package:eblood_bank_mak_app/apps/config/api/dio_client.dart';
+import 'package:eblood_bank_mak_app/apps/config/theme/ColorPages.dart';
+import 'package:eblood_bank_mak_app/apps/widgets/AppSpinner.dart';
+import 'package:eblood_bank_mak_app/commande/business/model/CurrencyExchangeModel.dart';
+import 'package:eblood_bank_mak_app/commande/business/service/CurrencyExchangeService.dart';
+import 'package:eblood_bank_mak_app/commande/ui/pages/commande/pages/BloodRequestConfigDialog.dart';
+import 'package:eblood_bank_mak_app/commande/ui/pages/commande/pages/PaymentStatusPage.dart';
+import 'package:eblood_bank_mak_app/commande/ui/pages/commande/widgets/PhoneNumberBottomSheet.dart';
+import 'package:eblood_bank_mak_app/gestionStocks/business/model/banque/BanqueModele.dart';
+import 'package:eblood_bank_mak_app/gestionStocks/business/model/poche/PocheModel.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:iconsax/iconsax.dart';
+
+/// Stepper page for ordering blood bags
+/// Step 1: Select nearby blood bank
+/// Step 2: Select blood bag quantity
+/// Step 3: Confirm order details
+/// Step 4: Payment processing
+class BloodBagOrderStepperPage extends ConsumerStatefulWidget {
+  final String bloodType;
+  final List<BanqueModele> bloodBanks;
+  final bool isViewAddressMode; // true for "voir l'adresse", false for "commander en ligne"
+
+  const BloodBagOrderStepperPage({
+    Key? key,
+    required this.bloodType,
+    required this.bloodBanks,
+    this.isViewAddressMode = false,
+  }) : super(key: key);
+
+  @override
+  ConsumerState<BloodBagOrderStepperPage> createState() => _BloodBagOrderStepperPageState();
+}
+
+class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperPage> {
+  int _currentStep = 0;
+  BanqueModele? _selectedBloodBank;
+  int _selectedQuantity = 1;
+  bool _isLoading = false;
+
+  // Blood bags data
+  List<PocheModel> _bloodBags = [];
+  List<PocheModel> _filteredBloodBags = [];
+  int _maxQuantity = 0;
+  String? _errorMessage;
+
+  // Step 3: Payment data
+  String? _cartId;
+  String? _requestFor; // 'patient' | 'storage'
+  String? _patientId;
+  String? _requestType;
+  String? _urgencyLevel;
+  String? _requestReason;
+  CurrencyExchangeResponse? _currencyExchangeResponse;
+  bool _isCreatingCart = false;
+  bool _isProcessingPayment = false;
+
+  // Step 4: Payment processing data
+  String? _systemRef;
+  String? _phoneNumber;
+  String? _selectedCurrencyId;
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  /// Get filtered blood banks that have the selected blood type
+  List<BanqueModele> get _filteredBloodBanks {
+    return widget.bloodBanks.where((bank) {
+      final inventorySummary = bank.inventorySummary;
+      if (inventorySummary == null) return false;
+      
+      final availableBloodTypes = (inventorySummary['available_blood_types'] as List?)?.cast<String>() ?? [];
+      return availableBloodTypes.contains(widget.bloodType);
+    }).toList()
+      ..sort((a, b) {
+        // Sort by distance (closest first)
+        final distanceA = double.tryParse(a.distance ?? '999') ?? 999;
+        final distanceB = double.tryParse(b.distance ?? '999') ?? 999;
+        return distanceA.compareTo(distanceB);
+      });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.grey.shade50,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Iconsax.arrow_left, color: Colors.black87),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          widget.isViewAddressMode ? 'Adresses des banques' : 'Commander en ligne',
+          style: GoogleFonts.ubuntu(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
+        centerTitle: true,
+      ),
+      body: Column(
+        children: [
+          // Stepper header
+          _buildStepperHeader(),
+          
+          // Content
+          Expanded(
+            child: _buildStepContent(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Build stepper header with progress indicator
+  Widget _buildStepperHeader() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          _buildStepIndicator(0, 'Banque', Iconsax.bank),
+          _buildStepConnector(0),
+          _buildStepIndicator(1, 'Quantité', Iconsax.box),
+          _buildStepConnector(1),
+          _buildStepIndicator(2, 'Confirmer', Iconsax.tick_circle),
+          _buildStepConnector(2),
+          _buildStepIndicator(3, 'Paiement', Iconsax.wallet_check),
+        ],
+      ),
+    );
+  }
+
+  /// Build step indicator circle
+  Widget _buildStepIndicator(int step, String label, IconData icon) {
+    final isActive = _currentStep == step;
+    final isCompleted = _currentStep > step;
+    
+    return Expanded(
+      child: Column(
+        children: [
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: isCompleted || isActive
+                  ? ColorPages.COLOR_PRINCIPAL
+                  : Colors.grey.shade300,
+              shape: BoxShape.circle,
+              boxShadow: isActive
+                  ? [
+                      BoxShadow(
+                        color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.3),
+                        blurRadius: 10,
+                        spreadRadius: 2,
+                      ),
+                    ]
+                  : null,
+            ),
+            child: Icon(
+              isCompleted ? Iconsax.chart_success : icon,
+              color: Colors.white,
+              size: 24,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: GoogleFonts.ubuntu(
+              fontSize: 11,
+              fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+              color: isActive ? ColorPages.COLOR_PRINCIPAL : Colors.grey.shade600,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Build step connector line
+  Widget _buildStepConnector(int step) {
+    final isCompleted = _currentStep > step;
+
+    return Container(
+      height: 2,
+      width: 30,
+      margin: const EdgeInsets.only(bottom: 30),
+      color: isCompleted ? ColorPages.COLOR_PRINCIPAL : Colors.grey.shade300,
+    );
+  }
+
+  /// Build step content based on current step
+  Widget _buildStepContent() {
+    switch (_currentStep) {
+      case 0:
+        return _buildStep1SelectBloodBank();
+      case 1:
+        return _buildStep2SelectQuantity();
+      case 2:
+        return _buildStep3ConfirmOrder();
+      case 3:
+        return _buildStep4PaymentProcessing();
+      default:
+        return Container();
+    }
+  }
+
+  /// Step 1: Select nearby blood bank
+  Widget _buildStep1SelectBloodBank() {
+    final filteredBanks = _filteredBloodBanks;
+
+    if (filteredBanks.isEmpty) {
+      return _buildEmptyState();
+    }
+
+    return Column(
+      children: [
+        // Header
+        Container(
+          padding: const EdgeInsets.all(20),
+          color: Colors.white,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      Iconsax.health,
+                      color: ColorPages.COLOR_PRINCIPAL,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Groupe sanguin ${widget.bloodType}',
+                          style: GoogleFonts.ubuntu(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        Text(
+                          '${filteredBanks.length} ${filteredBanks.length == 1 ? 'banque disponible' : 'banques disponibles'}',
+                          style: GoogleFonts.ubuntu(
+                            fontSize: 13,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+
+        // List of blood banks
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: filteredBanks.length,
+            itemBuilder: (context, index) {
+              final bank = filteredBanks[index];
+              return _buildBloodBankCard(bank);
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Build blood bank card
+  Widget _buildBloodBankCard(BanqueModele bank) {
+    final distance = double.tryParse(bank.distance ?? '0') ?? 0;
+    final distanceText = distance < 1
+        ? '${(distance * 1000).toInt()} m'
+        : '${distance.toStringAsFixed(1)} km';
+
+    // Estimate price (default $10 per bag)
+    final pricePerBag = 10.0;
+
+    return FadeInUp(
+      duration: const Duration(milliseconds: 300),
+      child: GestureDetector(
+        onTap: () => _selectBloodBank(bank),
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: _selectedBloodBank?.id == bank.id
+                  ? ColorPages.COLOR_PRINCIPAL
+                  : Colors.grey.shade200,
+              width: _selectedBloodBank?.id == bank.id ? 2 : 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              // Blood type badge
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: ColorPages.COLOR_PRINCIPAL,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  widget.bloodType,
+                  style: GoogleFonts.ubuntu(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+
+              const SizedBox(width: 16),
+
+              // Bank info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Distance
+                    Row(
+                      children: [
+                        Icon(
+                          Iconsax.location,
+                          size: 16,
+                          color: Colors.blue,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'À $distanceText de vous',
+                          style: GoogleFonts.ubuntu(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 8),
+
+                    // Price
+                    Row(
+                      children: [
+                        Icon(
+                          Iconsax.dollar_circle,
+                          size: 16,
+                          color: Colors.green,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          '\$${pricePerBag.toStringAsFixed(0)} par poche',
+                          style: GoogleFonts.ubuntu(
+                            fontSize: 13,
+                            color: Colors.grey.shade700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              // Arrow or checkmark
+              Icon(
+                _selectedBloodBank?.id == bank.id
+                    ? Iconsax.tick_circle5
+                    : Iconsax.arrow_right_3,
+                color: _selectedBloodBank?.id == bank.id
+                    ? ColorPages.COLOR_PRINCIPAL
+                    : Colors.grey.shade400,
+                size: 24,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Select blood bank and move to next step
+  void _selectBloodBank(BanqueModele bank) {
+    setState(() {
+      _selectedBloodBank = bank;
+    });
+
+    // Fetch blood bags and advance to next step
+    _fetchBloodBags(bank);
+  }
+
+  /// Fetch blood bags from selected blood bank
+  Future<void> _fetchBloodBags(BanqueModele bank) async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+      _currentStep = 1; // Move to step 2
+    });
+
+    try {
+      debugPrint('🩸 Fetching blood bags for bank: ${bank.id}');
+
+      // Call API to fetch blood bags
+      final response = await getWithDio(
+        '/eblood-connect/blood-bags',
+        queryParams: {'blood_bank_id': bank.id},
+      );
+
+      debugPrint('📡 Response success: ${response.success}');
+      debugPrint('📡 Response data type: ${response.data.runtimeType}');
+
+      if (!response.success) {
+        throw Exception(response.message ?? 'Failed to fetch blood bags');
+      }
+
+      // Parse response - handle nested data structure
+      final dynamic responseData = response.data;
+      List<dynamic> items = [];
+
+      if (responseData is Map) {
+        // Check for nested data.data structure
+        if (responseData.containsKey('data')) {
+          final nestedData = responseData['data'];
+          if (nestedData is Map && nestedData.containsKey('data')) {
+            items = nestedData['data'] as List;
+          } else if (nestedData is List) {
+            items = nestedData;
+          }
+        }
+      } else if (responseData is List) {
+        items = responseData;
+      }
+
+      debugPrint('📦 Found ${items.length} blood bags');
+
+      // Parse blood bags directly (no transformation needed)
+      final bloodBags = items
+          .whereType<Map>()
+          .map((e) {
+            try {
+              return PocheModel.fromJson(e as Map<String, dynamic>);
+            } catch (parseError) {
+              debugPrint('⚠️ Error parsing blood bag: $parseError');
+              return null;
+            }
+          })
+          .whereType<PocheModel>()
+          .toList();
+
+      debugPrint('✅ Parsed ${bloodBags.length} blood bags');
+
+      // Filter by selected blood type
+      final filteredBags = bloodBags.where((bag) {
+        final bloodType = bag.bloodBagInfo.bloodTypeInfo.bloodTypeName;
+        final rhesus = bag.bloodBagInfo.bloodRhesusInfo.bloodRheususName;
+        final fullType = '$bloodType$rhesus';
+        debugPrint('🔍 Checking bag: $fullType vs ${widget.bloodType}');
+        return fullType == widget.bloodType;
+      }).toList();
+
+      debugPrint('✅ Filtered to ${filteredBags.length} bags of type ${widget.bloodType}');
+
+      setState(() {
+        _bloodBags = bloodBags;
+        _filteredBloodBags = filteredBags;
+        _maxQuantity = filteredBags.fold(0, (sum, bag) => sum + bag.bloodStockCount);
+        _isLoading = false;
+      });
+    } catch (e, stackTrace) {
+      debugPrint('❌ Error fetching blood bags: $e');
+      debugPrint('Stack trace: $stackTrace');
+      setState(() {
+        _errorMessage = 'Erreur lors du chargement des poches: $e';
+        _isLoading = false;
+      });
+    }
+  }
+
+  /// Step 2: Select quantity
+  Widget _buildStep2SelectQuantity() {
+    if (_isLoading) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(40),
+          child: AppSpinner.bloodDrop(
+            size: 80,
+            showMessage: true,
+            message: 'Chargement des poches disponibles...',
+          ),
+        ),
+      );
+    }
+
+    if (_errorMessage != null) {
+      return _buildErrorState(_errorMessage!);
+    }
+
+    if (_filteredBloodBags.isEmpty) {
+      return _buildNoBloodBagsState();
+    }
+
+    return Column(
+      children: [
+        // Header
+        Container(
+          padding: const EdgeInsets.all(20),
+          color: Colors.white,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      Iconsax.box,
+                      color: ColorPages.COLOR_PRINCIPAL,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Sélectionnez la quantité',
+                          style: GoogleFonts.ubuntu(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        Text(
+                          '$_maxQuantity ${_maxQuantity == 1 ? 'poche disponible' : 'poches disponibles'}',
+                          style: GoogleFonts.ubuntu(
+                            fontSize: 13,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+
+        // Content
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                // Quantity selector card
+                _buildQuantitySelectorCard(),
+              ],
+            ),
+          ),
+        ),
+
+        // Bottom button
+        _buildBottomButton(),
+      ],
+    );
+  }
+
+  /// Step 3: Confirm order and payment
+  Widget _buildStep3ConfirmOrder() {
+    if (_isCreatingCart) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(40),
+          child: AppSpinner.bloodDrop(
+            size: 80,
+            showMessage: true,
+            message: 'Création du panier...',
+          ),
+        ),
+      );
+    }
+
+    if (_cartId == null) {
+      // Create cart first
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _createCart();
+      });
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(40),
+          child: AppSpinner.bloodDrop(
+            size: 80,
+            showMessage: true,
+            message: 'Préparation de la commande...',
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        // Header
+        Container(
+          padding: const EdgeInsets.all(20),
+          color: Colors.white,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      Iconsax.tick_circle,
+                      color: ColorPages.COLOR_PRINCIPAL,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Confirmer la commande',
+                          style: GoogleFonts.ubuntu(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        Text(
+                          'Vérifiez et payez',
+                          style: GoogleFonts.ubuntu(
+                            fontSize: 13,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+
+        // Content
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Order summary card
+                _buildOrderSummaryCard(),
+
+                const SizedBox(height: 20),
+
+                // Payment options
+                _buildPaymentOptions(),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Create cart with selected blood bags
+  Future<void> _createCart() async {
+    if (_isCreatingCart || _cartId != null) return;
+
+    setState(() {
+      _isCreatingCart = true;
+      _errorMessage = null;
+    });
+
+    try {
+      debugPrint('🛒 Creating cart...');
+
+      // Get the first filtered blood bag (we'll use its ID)
+      if (_filteredBloodBags.isEmpty) {
+        throw Exception('No blood bags selected');
+      }
+
+      final bloodBag = _filteredBloodBags.first;
+      final bloodBagId = bloodBag.bloodBagInfo.id;
+
+      debugPrint('🛒 Adding blood bag to cart: $bloodBagId');
+      debugPrint('🛒 Blood bank: ${_selectedBloodBank?.id}');
+      debugPrint('🛒 Quantity: $_selectedQuantity');
+
+      // Add to cart
+      final response = await postWithDio(
+        '/eblood-connect/cart/add',
+        body: {
+          'blood_bag_id': bloodBagId,
+          'blood_bank_id': _selectedBloodBank!.id,
+          'quantity': _selectedQuantity,
+        },
+      );
+
+      debugPrint('🛒 Cart response: ${response.success}');
+
+      if (!response.success) {
+        throw Exception(response.message ?? 'Failed to create cart');
+      }
+
+      final cartData = response.data;
+      final cartId = cartData['id'] ?? cartData['_id'];
+
+      debugPrint('✅ Cart created: $cartId');
+      debugPrint('📦 Cart data: $cartData');
+
+      // Calculate total amount ourselves: quantity × price
+      final totalAmount = (_selectedQuantity * bloodBag.price).toDouble();
+
+      // Get currency info from blood bag
+      final refCurrencyId = bloodBag.currencyId ?? cartData['ref_currency_id'] ?? '';
+
+      debugPrint('💱 Calculated total amount: $totalAmount (quantity: $_selectedQuantity × price: ${bloodBag.price})');
+      debugPrint('💱 Fetching currency exchanges for: $refCurrencyId, amount: $totalAmount');
+
+      if (refCurrencyId.isNotEmpty) {
+        final currencyService = ref.read(currencyExchangeServiceProvider);
+        final currencyResponse = await currencyService.getCurrencyExchanges(
+          totalAmount,
+          refCurrencyId,
+        );
+
+        setState(() {
+          _cartId = cartId;
+          _currencyExchangeResponse = currencyResponse;
+          _isCreatingCart = false;
+        });
+      } else {
+        setState(() {
+          _cartId = cartId;
+          _isCreatingCart = false;
+        });
+      }
+    } catch (e, stackTrace) {
+      debugPrint('❌ Error creating cart: $e');
+      debugPrint('Stack trace: $stackTrace');
+      setState(() {
+        _errorMessage = 'Erreur lors de la création du panier: $e';
+        _isCreatingCart = false;
+      });
+    }
+  }
+
+  /// Build empty state
+  Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(40),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Iconsax.search_status,
+                size: 50,
+                color: Colors.grey.shade400,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Aucune banque disponible',
+              style: GoogleFonts.ubuntu(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey.shade700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Aucune banque de sang n\'a le groupe ${widget.bloodType} en stock',
+              style: GoogleFonts.ubuntu(
+                fontSize: 14,
+                color: Colors.grey.shade600,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Build error state
+  Widget _buildErrorState(String message) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(40),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Iconsax.close_circle,
+                size: 50,
+                color: Colors.red.shade400,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Erreur',
+              style: GoogleFonts.ubuntu(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey.shade700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              message,
+              style: GoogleFonts.ubuntu(
+                fontSize: 14,
+                color: Colors.grey.shade600,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () {
+                if (_selectedBloodBank != null) {
+                  _fetchBloodBags(_selectedBloodBank!);
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: ColorPages.COLOR_PRINCIPAL,
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: Text(
+                'Réessayer',
+                style: GoogleFonts.ubuntu(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Build no blood bags state
+  Widget _buildNoBloodBagsState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(40),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Iconsax.box_remove,
+                size: 50,
+                color: Colors.orange.shade400,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Aucune poche disponible',
+              style: GoogleFonts.ubuntu(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey.shade700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Cette banque n\'a pas de poches ${widget.bloodType} en stock actuellement',
+              style: GoogleFonts.ubuntu(
+                fontSize: 14,
+                color: Colors.grey.shade600,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Build quantity selector card
+  Widget _buildQuantitySelectorCard() {
+    final totalPrice = _selectedQuantity * (_filteredBloodBags.isNotEmpty ? _filteredBloodBags.first.price : 0);
+    final currencySymbol = _filteredBloodBags.isNotEmpty ? (_filteredBloodBags.first.currencySymbol ?? '\$') : '\$';
+
+    return FadeInUp(
+      duration: const Duration(milliseconds: 300),
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 20,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            // Blood type badge
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    ColorPages.COLOR_PRINCIPAL,
+                    Colors.red.shade700,
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                widget.bloodType,
+                style: GoogleFonts.ubuntu(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 32),
+
+            // Quantity selector
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Decrement button
+                _buildQuantityButton(
+                  icon: Iconsax.minus,
+                  onTap: _selectedQuantity > 1
+                      ? () {
+                          setState(() {
+                            _selectedQuantity--;
+                          });
+                        }
+                      : null,
+                ),
+
+                const SizedBox(width: 32),
+
+                // Quantity display
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: ColorPages.COLOR_PRINCIPAL,
+                      width: 2,
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      '$_selectedQuantity',
+                      style: GoogleFonts.ubuntu(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: ColorPages.COLOR_PRINCIPAL,
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(width: 32),
+
+                // Increment button
+                _buildQuantityButton(
+                  icon: Iconsax.add,
+                  onTap: _selectedQuantity < _maxQuantity
+                      ? () {
+                          setState(() {
+                            _selectedQuantity++;
+                          });
+                        }
+                      : null,
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 24),
+
+            // Price display
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Prix total',
+                    style: GoogleFonts.ubuntu(
+                      fontSize: 16,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                  Text(
+                    '$currencySymbol$totalPrice',
+                    style: GoogleFonts.ubuntu(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: ColorPages.COLOR_PRINCIPAL,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Build quantity button (increment/decrement)
+  Widget _buildQuantityButton({
+    required IconData icon,
+    required VoidCallback? onTap,
+  }) {
+    final isEnabled = onTap != null;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 60,
+        height: 60,
+        decoration: BoxDecoration(
+          color: isEnabled
+              ? ColorPages.COLOR_PRINCIPAL
+              : Colors.grey.shade300,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: isEnabled
+              ? [
+                  BoxShadow(
+                    color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.3),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : null,
+        ),
+        child: Icon(
+          icon,
+          color: Colors.white,
+          size: 28,
+        ),
+      ),
+    );
+  }
+
+  /// Build bottom button
+  Widget _buildBottomButton() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: ElevatedButton(
+          onPressed: () {
+            setState(() {
+              _currentStep = 2; // Move to confirmation step
+            });
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: ColorPages.COLOR_PRINCIPAL,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            elevation: 0,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'Demander $_selectedQuantity ${_selectedQuantity == 1 ? 'poche' : 'poches'}',
+                style: GoogleFonts.ubuntu(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(
+                Iconsax.arrow_right_3,
+                color: Colors.white,
+                size: 20,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Build order summary card
+  Widget _buildOrderSummaryCard() {
+    final totalPrice = _selectedQuantity * (_filteredBloodBags.isNotEmpty ? _filteredBloodBags.first.price : 0);
+    final currencySymbol = _filteredBloodBags.isNotEmpty ? (_filteredBloodBags.first.currencySymbol ?? '\$') : '\$';
+
+    return FadeInUp(
+      duration: const Duration(milliseconds: 300),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 20,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Title
+            Text(
+              'Résumé de la commande',
+              style: GoogleFonts.ubuntu(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // Blood type
+            _buildSummaryRow(
+              icon: Iconsax.health,
+              label: 'Groupe sanguin',
+              value: widget.bloodType,
+              valueColor: ColorPages.COLOR_PRINCIPAL,
+            ),
+
+            const SizedBox(height: 12),
+
+            // Quantity
+            _buildSummaryRow(
+              icon: Iconsax.box,
+              label: 'Quantité',
+              value: '$_selectedQuantity ${_selectedQuantity == 1 ? 'poche' : 'poches'}',
+            ),
+
+            const SizedBox(height: 12),
+
+            // Price per unit
+            _buildSummaryRow(
+              icon: Iconsax.dollar_circle,
+              label: 'Prix unitaire',
+              value: '$currencySymbol${_filteredBloodBags.isNotEmpty ? _filteredBloodBags.first.price : 0}',
+            ),
+
+            const SizedBox(height: 20),
+
+            // Divider
+            Divider(color: Colors.grey.shade300),
+
+            const SizedBox(height: 20),
+
+            // Total
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Total',
+                  style: GoogleFonts.ubuntu(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                Text(
+                  '$currencySymbol$totalPrice',
+                  style: GoogleFonts.ubuntu(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: ColorPages.COLOR_PRINCIPAL,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Build summary row
+  Widget _buildSummaryRow({
+    required IconData icon,
+    required String label,
+    required String value,
+    Color? valueColor,
+  }) {
+    return Row(
+      children: [
+        Icon(
+          icon,
+          size: 20,
+          color: Colors.grey.shade600,
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            label,
+            style: GoogleFonts.ubuntu(
+              fontSize: 14,
+              color: Colors.grey.shade700,
+            ),
+          ),
+        ),
+        Text(
+          value,
+          style: GoogleFonts.ubuntu(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: valueColor ?? Colors.black87,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Build payment options
+  Widget _buildPaymentOptions() {
+    if (_currencyExchangeResponse == null || _currencyExchangeResponse!.data.isEmpty) {
+      // No currency conversion available, show single payment button
+      return _buildSinglePaymentButton();
+    }
+
+    // Filter out same-currency conversions (e.g., USD -> USD)
+    final differentCurrencyOptions = _currencyExchangeResponse!.data.where((option) {
+      final fromCode = option.currencyFromCode.toLowerCase();
+      final toCode = option.currencyToCode.toLowerCase();
+      return fromCode != toCode;
+    }).toList();
+
+    if (differentCurrencyOptions.isEmpty) {
+      // No different currency conversion available, show single payment button
+      return _buildSinglePaymentButton();
+    }
+
+    // Show currency conversion options
+    return _buildCurrencyConversionOptions(differentCurrencyOptions.first);
+  }
+
+  /// Build single payment button (no currency conversion)
+  Widget _buildSinglePaymentButton() {
+    final totalPrice = _selectedQuantity * (_filteredBloodBags.isNotEmpty ? _filteredBloodBags.first.price : 0);
+    final currencySymbol = _filteredBloodBags.isNotEmpty ? (_filteredBloodBags.first.currencySymbol ?? '\$') : '\$';
+
+    return FadeInUp(
+      duration: const Duration(milliseconds: 400),
+      child: ElevatedButton(
+        onPressed: _isProcessingPayment ? null : () => _processPaymentWithCurrency(null),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: ColorPages.COLOR_PRINCIPAL,
+          padding: const EdgeInsets.all(20),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          elevation: 0,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (_isProcessingPayment)
+              SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              )
+            else
+              Icon(Iconsax.wallet, color: Colors.white, size: 24),
+            const SizedBox(width: 12),
+            Text(
+              _isProcessingPayment ? 'Traitement...' : 'Payer $currencySymbol$totalPrice',
+              style: GoogleFonts.ubuntu(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Build currency conversion options
+  Widget _buildCurrencyConversionOptions(CurrencyExchangeModel convertedOption) {
+    final totalPrice = _selectedQuantity * (_filteredBloodBags.isNotEmpty ? _filteredBloodBags.first.price : 0);
+    final cartCurrency = _filteredBloodBags.isNotEmpty ? (_filteredBloodBags.first.currencyCode ?? 'usd') : 'usd';
+    final currencySymbol = _filteredBloodBags.isNotEmpty ? (_filteredBloodBags.first.currencySymbol ?? '\$') : '\$';
+
+    return FadeInUp(
+      duration: const Duration(milliseconds: 400),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Currency exchange info
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.blue.shade200),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Iconsax.money_change,
+                  color: Colors.blue.shade600,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Taux de change: 1 ${convertedOption.currencyFromCode.toUpperCase()} = ${convertedOption.exchangedValue.toStringAsFixed(0)} ${convertedOption.currencyToCode.toUpperCase()}',
+                    style: GoogleFonts.ubuntu(
+                      fontSize: 14,
+                      color: Colors.blue.shade700,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Two payment buttons
+          Row(
+            children: [
+              // Original currency button
+              Expanded(
+                child: _buildPaymentButton(
+                  label: 'Payer $currencySymbol${totalPrice.toStringAsFixed(0)}',
+                  subtitle: '${cartCurrency.toUpperCase()} (Original)',
+                  onPressed: () => _processPaymentWithCurrency(null),
+                  isPrimary: true,
+                ),
+              ),
+
+              const SizedBox(width: 12),
+
+              // Converted currency button
+              Expanded(
+                child: _buildPaymentButton(
+                  label: 'Payer ${convertedOption.convertedAmount.toStringAsFixed(0)} ${convertedOption.currencyToCode.toUpperCase()}',
+                  subtitle: '${convertedOption.currencyToCode.toUpperCase()} (Converti)',
+                  onPressed: () => _processPaymentWithCurrency(convertedOption.currencyTo),
+                  isPrimary: false,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Step 4: Payment processing with embedded PaymentStatusPage
+  Widget _buildStep4PaymentProcessing() {
+    if (_systemRef == null) {
+      // Still submitting payment
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(40),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SizedBox(
+                width: 80,
+                height: 80,
+                child: CircularProgressIndicator(
+                  strokeWidth: 6,
+                  color: ColorPages.COLOR_PRINCIPAL,
+                ),
+              ),
+              const SizedBox(height: 32),
+              Text(
+                'Soumission du paiement...',
+                style: GoogleFonts.ubuntu(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Veuillez patienter',
+                style: GoogleFonts.ubuntu(
+                  fontSize: 15,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Payment submitted successfully, show PaymentStatusPage embedded
+    String baseUrl = dotenv.env['BASE_URL'] ?? 'http://192.168.30.132:3101/eblood-hstdapi/v1';
+
+    return PaymentStatusPage(
+      systemRef: _systemRef!,
+      baseUrl: baseUrl,
+      onPaymentResult: ({
+        required int page,
+        required String title,
+        required String message,
+        required bool paymentSucceed,
+      }) {
+        debugPrint("💳 Payment result: $paymentSucceed - $message");
+        if (paymentSucceed && mounted) {
+          // Show success message and navigate back
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Paiement réussi! $message'),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+          // Navigate back to home
+          Navigator.of(context).popUntil((route) => route.isFirst);
+        } else if (!paymentSucceed && mounted) {
+          // Show error message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Paiement échoué: $message'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      },
+    );
+  }
+
+  /// Build payment button
+  Widget _buildPaymentButton({
+    required String label,
+    required String subtitle,
+    required VoidCallback onPressed,
+    required bool isPrimary,
+  }) {
+    return ElevatedButton(
+      onPressed: _isProcessingPayment ? null : onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: isPrimary ? ColorPages.COLOR_PRINCIPAL : Colors.white,
+        padding: const EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(
+            color: isPrimary ? ColorPages.COLOR_PRINCIPAL : Colors.grey.shade300,
+            width: isPrimary ? 0 : 1,
+          ),
+        ),
+        elevation: 0,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: GoogleFonts.ubuntu(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: isPrimary ? Colors.white : Colors.black87,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            style: GoogleFonts.ubuntu(
+              fontSize: 11,
+              color: isPrimary ? Colors.white70 : Colors.grey.shade600,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Process payment with selected currency
+  Future<void> _processPaymentWithCurrency(String? currencyId) async {
+    debugPrint('💳 Processing payment with currency ID: $currencyId');
+
+    // 1) Ask for phone number first
+    final phoneNumber = await _showPhoneNumberBottomSheet();
+
+    if (phoneNumber == null || phoneNumber.trim().isEmpty) {
+      debugPrint('❌ Payment cancelled: no phone number provided');
+      return;
+    }
+
+    if (!mounted) return;
+
+    // 2) Ask for blood request configuration (patient/storage, reason, etc.)
+    final config = await showModalBottomSheet<Map<String, String?>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      isDismissible: true,
+      builder: (context) => const BloodRequestConfigDialog(),
+    );
+
+    if (config == null) {
+      debugPrint('❌ Payment cancelled: no configuration provided');
+      return;
+    }
+
+    if (!mounted) return;
+
+    setState(() {
+      _requestFor = config['request_for'];
+      _patientId = config['patient_id'];
+      _requestType = config['request_type'];
+      _urgencyLevel = config['urgency_level'];
+      _requestReason = config['request_reason'];
+      _phoneNumber = phoneNumber;
+      _selectedCurrencyId = currencyId;
+      // 3) Move to Step 4
+      _currentStep = 3;
+    });
+
+    // 4) Submit payment
+    _submitPayment(phoneNumber, currencyId);
+  }
+
+  /// Show phone number bottom sheet and return the phone number
+  Future<String?> _showPhoneNumberBottomSheet() async {
+    return await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      isDismissible: true,
+      builder: (context) => PhoneNumberBottomSheet(
+        onPhoneNumberSubmitted: (phoneNumber) {
+          Navigator.of(context).pop(phoneNumber);
+        },
+      ),
+    );
+  }
+
+  /// Submit payment with phone number and currency
+  Future<void> _submitPayment(String phoneNumber, String? currencyId) async {
+    debugPrint("🚀 Starting payment process with phone: $phoneNumber");
+    debugPrint("💰 Currency ID to send: $currencyId");
+    debugPrint("💰 Cart ID: $_cartId");
+
+    if (!mounted) return;
+
+    setState(() {
+      _isProcessingPayment = true;
+    });
+
+    try {
+      debugPrint("💳 Calling payment API...");
+
+      final response = await postWithDio(
+        '/eblood-connect/cart/submit-payment',
+        body: {
+          'cart_id': _cartId,
+          'phone_number': phoneNumber,
+          if (currencyId != null) 'transactional_currency_id': currencyId,
+          if (_requestFor != null) 'request_for': _requestFor,
+          if (_requestReason != null) 'request_reason': _requestReason,
+          if (_patientId != null) 'patient_id': _patientId,
+          if (_requestType != null) 'request_type': _requestType,
+          if (_urgencyLevel != null) 'urgency_level': _urgencyLevel,
+        },
+      );
+
+      debugPrint("🎯 Payment result: ${response.success}");
+      debugPrint("📄 Message: ${response.message}");
+
+      if (!mounted) return;
+
+      setState(() {
+        _isProcessingPayment = false;
+      });
+
+      if (response.success && response.data != null) {
+        final systemRef = response.data['systemRef'] ?? response.data['blood_request_identifier'];
+
+        if (systemRef != null) {
+          debugPrint("🎉 Payment initiated successfully with systemRef: $systemRef");
+
+          if (!mounted) return;
+
+          // Store systemRef for Step 4 to use
+          setState(() {
+            _systemRef = systemRef;
+          });
+        } else {
+          throw Exception('No system reference returned');
+        }
+      } else {
+        throw Exception(response.message ?? 'Payment failed');
+      }
+    } catch (e) {
+      debugPrint('❌ Error processing payment: $e');
+
+      if (!mounted) return;
+
+      setState(() {
+        _isProcessingPayment = false;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+}
+

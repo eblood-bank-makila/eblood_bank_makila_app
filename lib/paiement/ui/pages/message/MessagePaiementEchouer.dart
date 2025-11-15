@@ -257,11 +257,9 @@ class OpsErrorScreen extends StatelessWidget {
                     onPressed: () {
                       try {
                         debugPrint('🔘 Close button pressed (Error screen)');
-                        Future.delayed(const Duration(milliseconds: 100), () {
-                          onClosing();
-                        });
+                        onClosing();
                       } catch (e) {
-                        debugPrint('❌ Error: $e');
+                        debugPrint('❌ Error in onClosing: $e');
                       }
                     },
                     minWidth: double.infinity,

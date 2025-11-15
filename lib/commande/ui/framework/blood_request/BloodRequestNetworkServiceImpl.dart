@@ -3,6 +3,8 @@ import 'package:get_storage/get_storage.dart';
 
 import '../../../../apps/config/api/ApiConfig.dart';
 import '../../../../apps/config/api/dio_client.dart';
+import '../../../../apps/models/api_response.dart';
+
 import '../../../business/model/blood_request/BloodRequestModel.dart';
 import '../../../business/service/blood_request/BloodRequestNetworkService.dart';
 
@@ -59,57 +61,49 @@ class BloodRequestNetworkServiceImpl implements BloodRequestNetworkService {
     );
   }
 
-  Future<String?> _getDefaultHospitalId() async {
+  /// Determines if the current user is a hospital account
+  Future<bool> _isHospitalAccount() async {
     try {
       final storage = GetStorage();
+
+      // Check user_profiles for account type flags
       final dynamic storedProfiles = storage.read('user_profiles') ?? storage.read('user_profils');
-      String? sysOrgId;
-      if (storedProfiles is List) {
-        for (final p in storedProfiles) {
-          if (p is Map) {
-            final candidate = (p['sys_organization_id'] ?? p['organization_id'] ?? p['org_id'])?.toString();
-            if (candidate != null && candidate.isNotEmpty) {
-              sysOrgId = candidate;
-              break;
-            }
-          }
-        }
-      } else if (storedProfiles is Map) {
-        sysOrgId = (storedProfiles['sys_organization_id'] ?? storedProfiles['organization_id'])?.toString();
-      }
+      if (storedProfiles is List && storedProfiles.isNotEmpty) {
+        final flags = storedProfiles
+            .whereType<Map>()
+            .map((e) => (e['profil'] ?? e['flag'] ?? '').toString())
+            .where((s) => s.isNotEmpty)
+            .toSet();
 
-      if (sysOrgId == null || sysOrgId.isEmpty) {
-        final userData = storage.read('user_data');
-        if (userData is Map) {
-          sysOrgId = (userData['sys_organization_id'] ?? userData['organization_id'])?.toString();
+        // Hospital has priority over blood bank in this check
+        if (flags.contains('mobile_app_health_structure_profil')) {
+          debugPrint('🏥 Account type: Hospital (from profiles)');
+          return true;
+        }
+        if (flags.contains('mobile_app_blood_bank_profil')) {
+          debugPrint('🩸 Account type: Blood Bank (from profiles)');
+          return false;
         }
       }
 
-      if (sysOrgId == null || sysOrgId.isEmpty) return null;
-
-      final res = await getWithDio(
-        ApiConfig.hospitalsList,
-        queryParams: {
-          'filter__sys_organization_id': sysOrgId,
-          'limit': 1,
-          'page': 0,
-        },
-      );
-      if (res.success) {
-        final data = res.data;
-        if (data is Map && data['data'] is List && (data['data'] as List).isNotEmpty) {
-          final first = Map<String, dynamic>.from(data['data'][0] as Map);
-          return first['id']?.toString() ?? first['_id']?.toString();
-        }
-        if (data is List && data.isNotEmpty) {
-          final first = Map<String, dynamic>.from(data.first as Map);
-          return first['id']?.toString() ?? first['_id']?.toString();
-        }
+      // Fallback: check stored account_type
+      final accountType = (storage.read('account_type') as String?)?.toLowerCase() ?? '';
+      if (accountType.contains('hospital') || accountType.contains('hopital') || accountType.contains('hôpital')) {
+        debugPrint('🏥 Account type: Hospital (from account_type)');
+        return true;
       }
+      if (accountType.contains('blood_bank') || accountType.contains('bloodbank') || accountType.contains('banque')) {
+        debugPrint('🩸 Account type: Blood Bank (from account_type)');
+        return false;
+      }
+
+      // Default to hospital if unclear
+      debugPrint('⚠️ Account type unclear, defaulting to Hospital');
+      return true;
     } catch (e) {
-      debugPrint('Error resolving hospital id: $e');
+      debugPrint('❌ Error determining account type: $e');
+      return true; // Default to hospital
     }
-    return null;
   }
 
   @override
@@ -119,29 +113,36 @@ class BloodRequestNetworkServiceImpl implements BloodRequestNetworkService {
     String authToken,
   ) async {
     try {
-      final hospitalId = await _getDefaultHospitalId();
-      final bool isHospitalContext = hospitalId != null && hospitalId.isNotEmpty;
-      final endpoint = isHospitalContext
-          ? ApiConfig.hospitalBloodRequestsList
-          : ApiConfig.bankBloodRequestsList;
+      // Determine account type to use correct endpoint
+      final bool isHospital = await _isHospitalAccount();
+      final endpoint = isHospital
+          ? ApiConfig.hospitalBloodRequestsList  // /blood-requests/fetch/blood-requests
+          : ApiConfig.bankBloodRequestsList;     // /eblood-connect/blood-requests/list
 
-      // Build query parameters; send multiple keys to be compatible with various backends
+      // Build query parameters
       const int limit = 20;
       final query = <String, dynamic>{
         'page': page,
         'limit': limit,
-        'status': status.value,
-        'delivery_status': status.value,
-        'blood_request_status': status.value,
-
+        // Always add status filter for all statuses
+        'status_filter': status.value,
       };
 
-      debugPrint('🚀 Fetching blood requests: $endpoint');
-      debugPrint('📄 Status: ${status.displayName}');
-      debugPrint('📄 Page: $page');
+      debugPrint('🚀 Fetching blood requests');
+      debugPrint('   Account type: ${isHospital ? "Hospital" : "Blood Bank"}');
+      debugPrint('   Endpoint: $endpoint');
+      debugPrint('   Status: ${status.displayName} (${status.value})');
+      debugPrint('   Page: $page');
+      debugPrint('   Query params: $query');
 
       final res = await getWithDio(endpoint, queryParams: query);
+
+      debugPrint('📡 Response received:');
+      debugPrint('   Success: ${res.success}');
+      debugPrint('   Status code: ${res.statusCode}');
+
       if (!res.success) {
+        debugPrint('❌ Request failed: ${res.message}');
         return BloodRequestResponseModel(
           success: false,
           message: res.message ?? 'Request failed',
@@ -161,16 +162,24 @@ class BloodRequestNetworkServiceImpl implements BloodRequestNetworkService {
         if (d is List) list = List<dynamic>.from(d);
       }
 
+      debugPrint('📊 Parsing ${list.length} blood requests');
+
       final items = list
           .whereType<Map>()
           .map((m) => Map<String, dynamic>.from(m))
           .map(BloodRequestModel.fromJson)
           .toList();
 
-      final total = res.total ?? 0;
+      final total = res.total ?? list.length;
       final currentPage = res.page ?? page;
       final usedLimit = res.limit ?? limit;
       final totalPages = usedLimit > 0 ? ((total + usedLimit - 1) / usedLimit).floor() : 0;
+
+      debugPrint('✅ Blood requests fetched successfully');
+      debugPrint('   Total items: $total');
+      debugPrint('   Current page: $currentPage');
+      debugPrint('   Total pages: $totalPages');
+      debugPrint('   Items in this page: ${items.length}');
 
       return BloodRequestResponseModel(
         success: true,
@@ -180,13 +189,70 @@ class BloodRequestNetworkServiceImpl implements BloodRequestNetworkService {
         totalPages: totalPages,
         totalItems: total,
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint('💥 Exception during blood request fetch: $e');
+      debugPrint('Stack trace: $stackTrace');
       return BloodRequestResponseModel(
         success: false,
         message: 'Erreur de connexion: $e',
         data: [],
       );
     }
+
   }
+
+
+  @override
+  Future<IApiResponse> confirmDelivery(
+    String requestId,
+    String verificationCode,
+    String confirmationMethod,
+  ) async {
+    try {
+      final endpoint = ApiConfig.confirmDeliveryForRequest(requestId);
+      final res = await postWithDio(
+        endpoint,
+        body: {
+          'verification_code': verificationCode,
+          'confirmation_method': confirmationMethod,
+        },
+      );
+      return IApiResponse.fromData(res);
+    } catch (e) {
+      debugPrint('💥 confirmDelivery error: $e');
+      return IApiResponse.error('Erreur: $e');
+    }
+  }
+
+  @override
+  Future<IApiResponse> markBloodBagUsed(
+    String bloodBagRequestId, {
+    String? patientId,
+    String? usageNotes,
+  }) async {
+    try {
+      final endpoint = ApiConfig.markBloodBagUsedFor(bloodBagRequestId);
+      final body = <String, dynamic>{};
+      if (patientId != null && patientId.isNotEmpty) body['patient_id'] = patientId;
+      if (usageNotes != null && usageNotes.isNotEmpty) body['usage_notes'] = usageNotes;
+      final res = await postWithDio(endpoint, body: body);
+      return IApiResponse.fromData(res);
+    } catch (e) {
+      debugPrint('💥 markBloodBagUsed error: $e');
+      return IApiResponse.error('Erreur: $e');
+    }
+  }
+
+  @override
+  Future<IApiResponse> requestCoolboxPassword(String deliveryId) async {
+    try {
+      final endpoint = ApiConfig.requestCoolboxPasswordForDelivery(deliveryId);
+      final res = await postWithDio(endpoint);
+      return IApiResponse.fromData(res);
+    } catch (e) {
+      debugPrint('💥 requestCoolboxPassword error: $e');
+      return IApiResponse.error('Erreur: $e');
+    }
+  }
+
 }

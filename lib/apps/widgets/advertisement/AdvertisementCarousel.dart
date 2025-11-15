@@ -187,9 +187,9 @@ class _AdvertisementCarouselState extends State<AdvertisementCarousel> {
 
 
   Future<void> _handleAdTap(AdvertisementModel ad) async {
-    print('🎯 Advertisement tapped: ${ad.title}');
-    print('   Action Type: ${ad.actionType}');
-    print('   Action URL: ${ad.actionUrl}');
+    debugPrint('🎯 Advertisement tapped: ${ad.title}');
+    debugPrint('   Action Type: ${ad.actionType}');
+    debugPrint('   Action URL: ${ad.actionUrl}');
 
     // Track click analytics (TODO: Implement API call)
     // await AdvertisementService.trackClick(ad.id);
@@ -200,9 +200,42 @@ class _AdvertisementCarouselState extends State<AdvertisementCarousel> {
       if (v != null && v.isNotEmpty && _isYouTubeUrl(v)) {
         // ignore: unawaited_futures
         AdvertisementService().trackClick(ad.id);
-        final uri = Uri.parse(v);
-        if (await canLaunchUrl(uri)) {
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        try {
+          final uri = Uri.parse(v);
+          bool launched = false;
+
+          // Try external application mode first
+          try {
+            launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+          } catch (e) {
+            debugPrint('❌ Failed with externalApplication mode: $e');
+          }
+
+          // If that fails, try platform default
+          if (!launched) {
+            try {
+              launched = await launchUrl(uri, mode: LaunchMode.platformDefault);
+            } catch (e) {
+              debugPrint('❌ Failed with platformDefault mode: $e');
+            }
+          }
+
+          if (!launched && mounted) {
+            _showInfoDialog(
+              context,
+              'Error',
+              'Could not open YouTube URL: $v\n\nPlease make sure you have a browser or YouTube app installed.',
+            );
+          }
+        } catch (e) {
+          debugPrint('❌ Error launching YouTube URL: $e');
+          if (mounted) {
+            _showInfoDialog(
+              context,
+              'Error',
+              'Invalid URL format: $v',
+            );
+          }
         }
       }
       return;
@@ -214,9 +247,42 @@ class _AdvertisementCarouselState extends State<AdvertisementCarousel> {
       if (v != null && v.isNotEmpty && _isYouTubeUrl(v)) {
         // ignore: unawaited_futures
         AdvertisementService().trackClick(ad.id);
-        final uri = Uri.parse(v);
-        if (await canLaunchUrl(uri)) {
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        try {
+          final uri = Uri.parse(v);
+          bool launched = false;
+
+          // Try external application mode first
+          try {
+            launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+          } catch (e) {
+            debugPrint('❌ Failed with externalApplication mode: $e');
+          }
+
+          // If that fails, try platform default
+          if (!launched) {
+            try {
+              launched = await launchUrl(uri, mode: LaunchMode.platformDefault);
+            } catch (e) {
+              debugPrint('❌ Failed with platformDefault mode: $e');
+            }
+          }
+
+          if (!launched && mounted) {
+            _showInfoDialog(
+              context,
+              'Error',
+              'Could not open YouTube URL: $v\n\nPlease make sure you have a browser or YouTube app installed.',
+            );
+          }
+        } catch (e) {
+          debugPrint('❌ Error launching YouTube URL: $e');
+          if (mounted) {
+            _showInfoDialog(
+              context,
+              'Error',
+              'Invalid URL format: $v',
+            );
+          }
         }
       }
       return;
@@ -230,32 +296,67 @@ class _AdvertisementCarouselState extends State<AdvertisementCarousel> {
           AdvertisementService().trackClick(ad.id);
 
           // TODO: Implement internal navigation based on actionUrl
-          print('   → Internal navigation to: ${ad.actionUrl}');
+          debugPrint('   → Internal navigation to: ${ad.actionUrl}');
           // Example: Navigator.pushNamed(context, ad.actionUrl!);
-          _showInfoDialog(
-            context,
-            'Navigation',
-            'Internal navigation to: ${ad.actionUrl}\n\nThis will be implemented based on your app routes.',
-          );
+          if (mounted) {
+            _showInfoDialog(
+              context,
+              'Navigation',
+              'Internal navigation to: ${ad.actionUrl}\n\nThis will be implemented based on your app routes.',
+            );
+          }
           break;
 
         case 'external':
           // Open external URL
-          final url = Uri.parse(ad.actionUrl!);
           // ignore: unawaited_futures
           AdvertisementService().trackClick(ad.id);
 
-          if (await canLaunchUrl(url)) {
-            await launchUrl(url, mode: LaunchMode.externalApplication);
-          } else {
-          // ignore: unawaited_futures
-          AdvertisementService().trackClick(ad.id);
+          try {
+            final url = Uri.parse(ad.actionUrl!);
 
-            _showInfoDialog(
-              context,
-              'Error',
-              'Could not open URL: ${ad.actionUrl}',
-            );
+            // Try to launch with external application mode first
+            bool launched = false;
+            try {
+              launched = await launchUrl(
+                url,
+                mode: LaunchMode.externalApplication,
+              );
+            } catch (e) {
+              debugPrint('❌ Failed to launch with externalApplication mode: $e');
+            }
+
+            // If that fails, try platformDefault mode
+            if (!launched) {
+              try {
+                launched = await launchUrl(
+                  url,
+                  mode: LaunchMode.platformDefault,
+                );
+              } catch (e) {
+                debugPrint('❌ Failed to launch with platformDefault mode: $e');
+              }
+            }
+
+            // If still not launched, show error
+            if (!launched) {
+              if (mounted) {
+                _showInfoDialog(
+                  context,
+                  'Error',
+                  'Could not open URL: ${ad.actionUrl}\n\nPlease make sure you have a browser installed.',
+                );
+              }
+            }
+          } catch (e) {
+            debugPrint('❌ Error parsing or launching URL: $e');
+            if (mounted) {
+              _showInfoDialog(
+                context,
+                'Error',
+                'Invalid URL format: ${ad.actionUrl}',
+              );
+            }
           }
           break;
 
@@ -264,19 +365,23 @@ class _AdvertisementCarouselState extends State<AdvertisementCarousel> {
           // ignore: unawaited_futures
           AdvertisementService().trackClick(ad.id);
 
-          _showAdDetailsModal(context, ad);
+          if (mounted) {
+            _showAdDetailsModal(context, ad);
+          }
           break;
 
         default:
-          print('   → Unknown action type: ${ad.actionType}');
+          debugPrint('   → Unknown action type: ${ad.actionType}');
       }
     } catch (e) {
-      print('❌ Error handling ad tap: $e');
-      _showInfoDialog(
-        context,
-        'Error',
-        'An error occurred: $e',
-      );
+      debugPrint('❌ Error handling ad tap: $e');
+      if (mounted) {
+        _showInfoDialog(
+          context,
+          'Error',
+          'An error occurred: $e',
+        );
+      }
     }
   }
 

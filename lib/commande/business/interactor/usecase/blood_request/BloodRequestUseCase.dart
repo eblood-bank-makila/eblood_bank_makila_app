@@ -10,20 +10,14 @@ class BloodRequestUseCase {
   BloodRequestUseCase(this.network, this.local);
 
   /// Fetches pending delivery blood requests
+  /// Note: Authentication is handled automatically by dio_client via FlutterSecureStorage
   Future<BloodRequestResponseModel?> getPendingDeliveryRequests(int page) async {
     try {
-      final token = await local.recupererTokenOtp();
-      if (token == null || token.isEmpty) {
-        return BloodRequestResponseModel(
-          success: false,
-          message: "Token d'authentification manquant. Veuillez vous reconnecter.",
-          data: [],
-        );
-      }
-
-      return await network.getPendingDeliveryRequests(page, token);
+      // Token is handled automatically by dio_client's AuthInterceptor
+      // which reads from FlutterSecureStorage (key: 'auth_token')
+      return await network.getPendingDeliveryRequests(page, '');
     } catch (e) {
-      print("💥 Error in getPendingDeliveryRequests: $e");
+      debugPrint("💥 Error in getPendingDeliveryRequests: $e");
       return BloodRequestResponseModel(
         success: false,
         message: "Erreur lors de la récupération des demandes en attente: $e",
@@ -33,20 +27,13 @@ class BloodRequestUseCase {
   }
 
   /// Fetches in-progress delivery blood requests
+  /// Note: Authentication is handled automatically by dio_client via FlutterSecureStorage
   Future<BloodRequestResponseModel?> getInProgressDeliveryRequests(int page) async {
     try {
-      final token = await local.recupererTokenOtp();
-      if (token == null || token.isEmpty) {
-        return BloodRequestResponseModel(
-          success: false,
-          message: "Token d'authentification manquant. Veuillez vous reconnecter.",
-          data: [],
-        );
-      }
-
-      return await network.getInProgressDeliveryRequests(page, token);
+      // Token is handled automatically by dio_client's AuthInterceptor
+      return await network.getInProgressDeliveryRequests(page, '');
     } catch (e) {
-      print("💥 Error in getInProgressDeliveryRequests: $e");
+      debugPrint("💥 Error in getInProgressDeliveryRequests: $e");
       return BloodRequestResponseModel(
         success: false,
         message: "Erreur lors de la récupération des livraisons en cours: $e",
@@ -56,20 +43,13 @@ class BloodRequestUseCase {
   }
 
   /// Fetches delivered blood requests
+  /// Note: Authentication is handled automatically by dio_client via FlutterSecureStorage
   Future<BloodRequestResponseModel?> getDeliveredRequests(int page) async {
     try {
-      final token = await local.recupererTokenOtp();
-      if (token == null || token.isEmpty) {
-        return BloodRequestResponseModel(
-          success: false,
-          message: "Token d'authentification manquant. Veuillez vous reconnecter.",
-          data: [],
-        );
-      }
-
-      return await network.getDeliveredRequests(page, token);
+      // Token is handled automatically by dio_client's AuthInterceptor
+      return await network.getDeliveredRequests(page, '');
     } catch (e) {
-      print("💥 Error in getDeliveredRequests: $e");
+      debugPrint("💥 Error in getDeliveredRequests: $e");
       return BloodRequestResponseModel(
         success: false,
         message: "Erreur lors de la récupération des demandes livrées: $e",
@@ -96,20 +76,13 @@ class BloodRequestUseCase {
   }
 
   /// Fetches completed requests (used blood bags)
+  /// Note: Authentication is handled automatically by dio_client via FlutterSecureStorage
   Future<BloodRequestResponseModel?> getCompletedRequests(int page) async {
     try {
-      final token = await local.recupererTokenOtp();
-      if (token == null || token.isEmpty) {
-        return BloodRequestResponseModel(
-          success: false,
-          message: "Token d'authentification manquant. Veuillez vous reconnecter.",
-          data: [],
-        );
-      }
-
-      return await network.getCompletedRequests(page, token);
+      // Token is handled automatically by dio_client's AuthInterceptor
+      return await network.getCompletedRequests(page, '');
     } catch (e) {
-      print("💥 Error in getCompletedRequests: $e");
+      debugPrint("💥 Error in getCompletedRequests: $e");
       return BloodRequestResponseModel(
         success: false,
         message: "Erreur lors de la récupération des demandes complétées: $e",

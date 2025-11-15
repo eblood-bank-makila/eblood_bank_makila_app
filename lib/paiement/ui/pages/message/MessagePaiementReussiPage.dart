@@ -490,11 +490,9 @@ class _OpsSuccessScreenState extends State<OpsSuccessScreen> {
                       });
                       try {
                         debugPrint('🔘 Close button pressed (Success screen)');
-                        Future.delayed(const Duration(milliseconds: 100), () {
-                          widget.onClosing();
-                        });
+                        widget.onClosing();
                       } catch (e) {
-                        debugPrint('❌ Error: $e');
+                        debugPrint('❌ Error in onClosing: $e');
                         setState(() {
                           _isProcessing = false;
                         });

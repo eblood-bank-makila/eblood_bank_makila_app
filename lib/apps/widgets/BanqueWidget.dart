@@ -47,203 +47,121 @@ class BanqueWidget extends ConsumerWidget {
               ),
               child: Container(
                 margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-                 
+
                 child: Padding(
                   padding: const EdgeInsets.all(12.0),
                     child: Stack(
                       children: [
-                        Row(
+                        // HIDDEN: Blood bank details (name, logo, location)
+                        // Only show aggregated blood inventory for commercial purposes
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Container(
-                              width: 60,
-                              height: 60,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.2),
-                                  width: 2,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.1),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: ClipOval(
-                                child: Image.network(
-                                  banque.blood_bank_logo,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (BuildContext context,
-                                      Object error, StackTrace? stackTrace) {
-                                    return Container(
+                            // Generic header without bank identification
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(10),
                                       decoration: BoxDecoration(
                                         color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.1),
-                                        shape: BoxShape.circle,
+                                        borderRadius: BorderRadius.circular(10),
                                       ),
                                       child: Icon(
-                                        Icons.local_hospital,
+                                        Iconsax.health,
                                         color: ColorPages.COLOR_PRINCIPAL,
-                                        size: 28,
+                                        size: 24,
                                       ),
-                                    );
-                                  },
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 16.0),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Bank name
-                                  Text(
-                                    banque.blood_bank_name.capitalizeFirstLetter(),
-                                    style: GoogleFonts.ubuntu(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16.0,
-                                      color: Colors.black87,
                                     ),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
+                                    const SizedBox(width: 12),
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Banque de sang',
+                                          style: GoogleFonts.ubuntu(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16.0,
+                                            color: Colors.black87,
+                                          ),
+                                        ),
+                                        if (banque.distance != null)
+                                          Text(
+                                            banque.distance!,
+                                            style: GoogleFonts.ubuntu(
+                                              fontSize: 12.0,
+                                              color: _getDistanceColor(banque.distance!),
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                                // Favorite heart icon
+                                GestureDetector(
+                                  onTap: () => _toggleFavorite(banque, ref, context),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: BoxDecoration(
+                                      color: banque.isFavorite
+                                          ? Colors.red.shade50
+                                          : Colors.grey.shade50,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: banque.isFavorite
+                                            ? Colors.red.shade200
+                                            : Colors.grey.shade200,
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: Icon(
+                                      banque.isFavorite ? Iconsax.heart5 : Iconsax.heart,
+                                      size: 16,
+                                      color: banque.isFavorite
+                                          ? Colors.red.shade600
+                                          : Colors.grey.shade500,
+                                    ),
                                   ),
-                                  const SizedBox(height: 6.0),
-              
-                                  // Location with icon
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Iconsax.location,
-                                        size: 14,
+                                ),
+                              ],
+                            ),
+
+                            // Inventory Summary Section (if available)
+                            if (banque.inventorySummary != null) ...[
+                              const SizedBox(height: 12),
+                              _buildInventorySummaryAnonymous(banque.inventorySummary!),
+                            ] else ...[
+                              const SizedBox(height: 12),
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade100,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Iconsax.info_circle,
+                                      size: 16,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Inventaire non disponible',
+                                      style: GoogleFonts.ubuntu(
+                                        fontSize: 12,
                                         color: Colors.grey.shade600,
                                       ),
-                                      const SizedBox(width: 4),
-                                      Expanded(
-                                        child: Text(
-                                          banque.townInfo.townName.capitalizeFirstLetter(),
-                                          style: GoogleFonts.ubuntu(
-                                            fontSize: 13.0,
-                                            color: Colors.grey.shade600,
-                                          ),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-              
-                                  const SizedBox(height: 8.0),
-              
-                                  // Distance and favorite row
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      // Distance badge
-                                      if (banque.distance != null)
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 8,
-                                            vertical: 4,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: _getDistanceColor(banque.distance!).withValues(alpha: 0.1),
-                                            borderRadius: BorderRadius.circular(12),
-                                            border: Border.all(
-                                              color: _getDistanceColor(banque.distance!).withValues(alpha: 0.3),
-                                              width: 1,
-                                            ),
-                                          ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Icon(
-                                                Iconsax.routing,
-                                                size: 12,
-                                                color: _getDistanceColor(banque.distance!),
-                                              ),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                banque.distance!,
-                                                style: GoogleFonts.ubuntu(
-                                                  fontSize: 12,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: _getDistanceColor(banque.distance!),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-              
-                                      // Favorite heart icon
-                                      GestureDetector(
-                                        onTap: () => _toggleFavorite(banque, ref, context),
-                                        child: Container(
-                                          padding: const EdgeInsets.all(6),
-                                          decoration: BoxDecoration(
-                                            color: banque.isFavorite
-                                                ? Colors.red.shade50
-                                                : Colors.grey.shade50,
-                                            borderRadius: BorderRadius.circular(8),
-                                            border: Border.all(
-                                              color: banque.isFavorite
-                                                  ? Colors.red.shade200
-                                                  : Colors.grey.shade200,
-                                              width: 1,
-                                            ),
-                                          ),
-                                          child: Icon(
-                                            banque.isFavorite ? Iconsax.heart5 : Iconsax.heart,
-                                            size: 16,
-                                            color: banque.isFavorite
-                                                ? Colors.red.shade600
-                                                : Colors.grey.shade500,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                            // Expanded(
-                            //   child: Column(
-                            //     crossAxisAlignment: CrossAxisAlignment.start,
-                            //     children: [
-                            //       Text(
-                            //         banque.blood_bank_name
-                            //             .capitalizeFirstLetter(),
-                            //         style: TextStyle(
-                            //           fontWeight: FontWeight.bold,
-                            //           fontSize: 13.0,
-                            //         ),
-                            //       ),
-                            //       SizedBox(height: 4.0),
-                            //       Row(
-                            //         children: [
-                            //           Expanded(
-                            //             child: Text(
-                            //               banque.townInfo.townName
-                            //                   .capitalizeFirstLetter(),
-                            //               style: TextStyle(
-                            //                 fontSize: 12.0,
-                            //                 color: Colors.grey,
-                            //               ),
-                            //               overflow: TextOverflow.ellipsis,
-                            //             ),
-                            //           ),
-                            //         ],
-                            //       ),
-                            //     ],
-                            //   ),
-                            // ),
+                            ],
                           ],
                         ),
-
-                        // Inventory Summary Section (if available)
-                        if (banque.inventorySummary != null) ...[
-                          const SizedBox(height: 12),
-                          _buildInventorySummary(banque.inventorySummary!),
-                        ],
 
 
                         // Icône de favori
@@ -392,10 +310,39 @@ class BanqueWidget extends ConsumerWidget {
     }
   }
 
-  /// Build inventory summary widget
-  Widget _buildInventorySummary(Map<String, dynamic> inventorySummary) {
+  /// Build anonymous inventory summary widget (hides blood bank details)
+  /// Shows only aggregated blood type availability for commercial purposes
+  Widget _buildInventorySummaryAnonymous(Map<String, dynamic> inventorySummary) {
+    // Extract data from inventory summary
     final totalBags = inventorySummary['total_bags'] ?? 0;
     final bloodTypes = (inventorySummary['available_blood_types'] as List?)?.cast<String>() ?? [];
+
+    if (totalBags == 0 || bloodTypes.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Iconsax.info_circle,
+              size: 16,
+              color: Colors.grey.shade600,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'Aucun stock disponible',
+              style: GoogleFonts.ubuntu(
+                fontSize: 12,
+                color: Colors.grey.shade600,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -410,11 +357,11 @@ class BanqueWidget extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header with total bags (no label, just badge and blood types)
+          // Title with total bags
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: ColorPages.COLOR_PRINCIPAL,
                   borderRadius: BorderRadius.circular(12),
@@ -429,7 +376,7 @@ class BanqueWidget extends ConsumerWidget {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      '$totalBags bags',
+                      '$totalBags ${totalBags == 1 ? 'poche' : 'poches'}',
                       style: GoogleFonts.ubuntu(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
@@ -440,33 +387,42 @@ class BanqueWidget extends ConsumerWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              if (bloodTypes.isNotEmpty)
-                Expanded(
-                  child: Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: bloodTypes.map((type) => Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade50,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: Colors.red.shade200,
-                          width: 1,
-                        ),
-                      ),
-                      child: Text(
-                        type,
-                        style: GoogleFonts.ubuntu(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.red.shade700,
-                        ),
-                      ),
-                    )).toList(),
+              Text(
+                'disponible${totalBags > 1 ? 's' : ''}',
+                style: GoogleFonts.ubuntu(
+                  fontSize: 12,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Blood types available
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: bloodTypes.map((bloodType) {
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: Colors.red.shade200,
+                    width: 1.5,
                   ),
                 ),
-            ],
+                child: Text(
+                  bloodType,
+                  style: GoogleFonts.ubuntu(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red.shade700,
+                  ),
+                ),
+              );
+            }).toList(),
           ),
         ],
       ),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:confetti/confetti.dart';
 import 'package:get/get.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../../apps/config/theme/ColorPages.dart';
 import '../../../../../apps/widgets/BottomNavBarWidget.dart';
 import '../../../../../paiement/ui/pages/message/MessagePaiementReussiPage.dart';
@@ -103,14 +104,14 @@ class _PaymentStatusPageState extends ConsumerState<PaymentStatusPage>
       }
 
       // Calculate current progress before making the API call
-      double currentProgress = (_checkCount * 0.10).clamp(0.0, 0.90);
+      double currentProgress = (_checkCount * 0.05).clamp(0.0, 0.90);
 
       _checkPaymentStatus(percent: currentProgress);
       _checkCount++;
 
-      // Update progress (increase by 10% each check, but cap at 90% until completion)
-      // 10% per check means 9 checks to reach 90%, then wait for completion
-      double newProgress = (_checkCount * 0.10).clamp(0.0, 0.90);
+      // Update progress (increase by 5% each check, but cap at 90% until completion)
+      // 5% per check means 18 checks to reach 90%, then wait for completion
+      double newProgress = (_checkCount * 0.05).clamp(0.0, 0.90);
       _updateProgress(newProgress);
 
       // Update status message based on progress
@@ -348,54 +349,46 @@ class _PaymentStatusPageState extends ConsumerState<PaymentStatusPage>
     // Clear cart after successful payment
     _clearCartAfterPayment();
 
-    // Call onPaymentResult callback if provided
-    if (widget.onPaymentResult != null) {
-      debugPrint('🎉 Calling onPaymentResult for successful payment');
-      widget.onPaymentResult!(
-        page: 2, // Success page (page 2 in DetailCommandePage)
-        title: 'Paiement Réussi',
-        message: message.isNotEmpty ? message : 'Votre paiement a été traité avec succès',
-        paymentSucceed: true,
-      );
-      return; // Don't navigate here, let the parent handle it
-    }
-
-    // Navigate to success page after a short delay (fallback if no callback)
+    // Always show the success screen (don't use callback)
+    // Navigate to success page after a short delay
     Future.delayed(const Duration(seconds: 2), () {
       if (mounted) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
             builder: (context) => Scaffold(
               backgroundColor: Colors.white,
-              body: SafeArea(
-                child: OpsSuccessScreen(
-                  message: message.isNotEmpty ? message : 'payment_processed_successfully'.tr,
-                  title: 'payment_successful'.tr,
-                  hidde_all_btn: false,
-                  ref: ref,
-                  amountText: amountText,
-                  bloodRequestId: bloodRequestId,
-                  systemIdentifier: systemIdentifier,
-                  onClosing: () {
-                    debugPrint('🔘 PaymentStatusPage: onClosing callback triggered');
-                    // Use a post-frame callback to ensure navigation happens after current frame
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
+              body: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.red.shade100,
+                      Colors.red.shade50,
+                      Colors.white,
+                    ],
+                  ),
+                ),
+                child: SafeArea(
+                  child: OpsSuccessScreen(
+                    message: message.isNotEmpty ? message : 'payment_processed_successfully'.tr,
+                    title: 'payment_successful'.tr,
+                    hidde_all_btn: false,
+                    ref: ref,
+                    amountText: amountText,
+                    bloodRequestId: bloodRequestId,
+                    systemIdentifier: systemIdentifier,
+                    onClosing: () {
+                      debugPrint('🔘 PaymentStatusPage (Success): onClosing callback triggered');
                       try {
-                        if (mounted) {
-                          debugPrint('🔘 PaymentStatusPage: Widget is mounted, attempting navigation');
-                          Navigator.of(context).pushAndRemoveUntil(
-                            MaterialPageRoute(builder: (context) => const HospitalBottomNavBarWidget()),
-                            (route) => false,
-                          );
-                          debugPrint('✅ PaymentStatusPage: Navigation completed successfully');
-                        } else {
-                          debugPrint('❌ PaymentStatusPage: Widget is not mounted, skipping navigation');
-                        }
+                        // Use GoRouter to navigate (page-based routing)
+                        context.go('/app/MainApp');
+                        debugPrint('✅ PaymentStatusPage (Success): Navigation completed successfully');
                       } catch (e) {
-                        debugPrint('❌ PaymentStatusPage: Navigation error: $e');
+                        debugPrint('❌ PaymentStatusPage (Success): Navigation error: $e');
                       }
-                    });
-                  },
+                    },
+                  ),
                 ),
               ),
             ),
@@ -423,26 +416,38 @@ class _PaymentStatusPageState extends ConsumerState<PaymentStatusPage>
           MaterialPageRoute(
             builder: (context) => Scaffold(
               backgroundColor: Colors.white,
-              body: SafeArea(
-                child: OpsErrorScreen(
-                  message: message.isNotEmpty ? message : 'payment_processing_failed'.tr,
-                  title: 'payment_failed'.tr,
-                  hidde_all_btn: false,
-                  can_show_go_back_btn: false,
-                  goBack: () {},
-                  ref: ref,
-                  errorMessages: errorMessages,
-                  onClosing: () {
-                    // Use a post-frame callback to ensure navigation happens after current frame
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      if (mounted && Navigator.of(context).canPop()) {
-                        Navigator.of(context).pushAndRemoveUntil(
-                          MaterialPageRoute(builder: (context) => const HospitalBottomNavBarWidget()),
-                          (route) => false,
-                        );
+              body: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.red.shade100,
+                      Colors.red.shade50,
+                      Colors.white,
+                    ],
+                  ),
+                ),
+                child: SafeArea(
+                  child: OpsErrorScreen(
+                    message: message.isNotEmpty ? message : 'payment_processing_failed'.tr,
+                    title: 'payment_failed'.tr,
+                    hidde_all_btn: false,
+                    can_show_go_back_btn: false,
+                    goBack: () {},
+                    ref: ref,
+                    errorMessages: errorMessages,
+                    onClosing: () {
+                      debugPrint('🔘 PaymentStatusPage (Failure): onClosing callback triggered');
+                      try {
+                        // Use GoRouter to navigate (page-based routing)
+                        context.go('/app/MainApp');
+                        debugPrint('✅ PaymentStatusPage (Failure): Navigation completed successfully');
+                      } catch (e) {
+                        debugPrint('❌ PaymentStatusPage (Failure): Navigation error: $e');
                       }
-                    });
-                  },
+                    },
+                  ),
                 ),
               ),
             ),
@@ -521,173 +526,186 @@ class _PaymentStatusPageState extends ConsumerState<PaymentStatusPage>
       },
       child: Scaffold(
         backgroundColor: Colors.white,
-        body: Stack(
-          alignment: AlignmentGeometry.topCenter,
-          children: [
-            SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // Progress indicator
-                AnimatedBuilder(
-                  animation: _pulseAnimation,
-                  builder: (context, child) {
-                    return Transform.scale(
-                      scale: _isCompleted ? 1.0 : _pulseAnimation.value,
-                      child: Container(
-                        width: 200,
-                        height: 200,
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            // Background circle
-                            Container(
-                              width: 200,
-                              height: 200,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.grey[100],
-                              ),
-                            ),
-                            
-                            // Progress circle
-                            AnimatedBuilder(
-                              animation: _progressAnimation,
-                              builder: (context, child) {
-                                return SizedBox(
-                                  width: 200,
-                                  height: 200,
-                                  child: CircularProgressIndicator(
-                                    value: _progressAnimation.value,
-                                    strokeWidth: 8,
-                                    backgroundColor: Colors.grey[300],
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      _isCompleted
-                                          ? (_isSuccess ? Colors.green : Colors.red)
-                                          : ColorPages.COLOR_PRINCIPAL,
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                            
-                            // Center icon
-                            Icon(
-                              _isCompleted
-                                  ? (_isSuccess ? Icons.check_circle : Icons.error)
-                                  : Icons.payment,
-                              size: 60,
-                              color: _isCompleted
-                                  ? (_isSuccess ? Colors.green : Colors.red)
-                                  : ColorPages.COLOR_PRINCIPAL,
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                
-                const SizedBox(height: 40),
-                
-                // Status message
-                Text(
-                  _statusMessage,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: ColorPages.COLOR_PRINCIPAL,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                
-                const SizedBox(height: 20),
-                
-                // Progress percentage
-                Text(
-                  '${(_currentProgress * 100).toInt()}%',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: _isCompleted
-                        ? (_isSuccess ? Colors.green : Colors.red)
-                        : ColorPages.COLOR_PRINCIPAL,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                
-                const SizedBox(height: 40),
-                
-                // System reference
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Column(
-                    children: [
-                      const Text(
-                        'Référence de transaction',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        widget.systemRef,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: ColorPages.COLOR_PRINCIPAL,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                ),
-                
-                if (!_isCompleted) ...[
-                  const SizedBox(height: 40),
-                  Text(
-                    'Veuillez ne pas fermer cette page pendant le traitement du paiement',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.red.shade100,
+                Colors.red.shade50,
+                Colors.white,
               ],
             ),
           ),
-        ),
-            // Confetti widget
-            Align(
-              alignment: Alignment.topCenter,
-              child: ConfettiWidget(
-                confettiController: _confettiController,
-                blastDirection: 1.5708, // radians for downward
-                particleDrag: 0.05,
-                emissionFrequency: 0.05,
-                numberOfParticles: 50,
-                gravity: 0.05,
-                shouldLoop: false,
-                colors: const [
-                  Colors.green,
-                  Colors.blue,
-                  Colors.pink,
-                  Colors.orange,
-                  Colors.purple,
+          child: Stack(
+            alignment: AlignmentGeometry.topCenter,
+            children: [
+              SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // Progress indicator
+                  AnimatedBuilder(
+                    animation: _pulseAnimation,
+                    builder: (context, child) {
+                      return Transform.scale(
+                        scale: _isCompleted ? 1.0 : _pulseAnimation.value,
+                        child: Container(
+                          width: 200,
+                          height: 200,
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              // Background circle
+                              Container(
+                                width: 200,
+                                height: 200,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.grey[100],
+                                ),
+                              ),
+                              
+                              // Progress circle
+                              AnimatedBuilder(
+                                animation: _progressAnimation,
+                                builder: (context, child) {
+                                  return SizedBox(
+                                    width: 200,
+                                    height: 200,
+                                    child: CircularProgressIndicator(
+                                      value: _progressAnimation.value,
+                                      strokeWidth: 8,
+                                      backgroundColor: Colors.grey[300],
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        _isCompleted
+                                            ? (_isSuccess ? Colors.green : Colors.red)
+                                            : ColorPages.COLOR_PRINCIPAL,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                              
+                              // Center icon
+                              Icon(
+                                _isCompleted
+                                    ? (_isSuccess ? Icons.check_circle : Icons.error)
+                                    : Icons.payment,
+                                size: 60,
+                                color: _isCompleted
+                                    ? (_isSuccess ? Colors.green : Colors.red)
+                                    : ColorPages.COLOR_PRINCIPAL,
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  
+                  const SizedBox(height: 40),
+                  
+                  // Status message
+                  Text(
+                    _statusMessage,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: ColorPages.COLOR_PRINCIPAL,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  
+                  const SizedBox(height: 20),
+                  
+                  // Progress percentage
+                  Text(
+                    '${(_currentProgress * 100).toInt()}%',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: _isCompleted
+                          ? (_isSuccess ? Colors.green : Colors.red)
+                          : ColorPages.COLOR_PRINCIPAL,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  
+                  const SizedBox(height: 40),
+                  
+                  // System reference
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Column(
+                      children: [
+                        const Text(
+                          'Référence de transaction',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          widget.systemRef,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: ColorPages.COLOR_PRINCIPAL,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  if (!_isCompleted) ...[
+                    const SizedBox(height: 40),
+                    Text(
+                      'Veuillez ne pas fermer cette page pendant le traitement du paiement',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
                 ],
               ),
             ),
-          ],
+          ),
+              // Confetti widget
+              Align(
+                alignment: Alignment.topCenter,
+                child: ConfettiWidget(
+                  confettiController: _confettiController,
+                  blastDirection: 1.5708, // radians for downward
+                  particleDrag: 0.05,
+                  emissionFrequency: 0.05,
+                  numberOfParticles: 50,
+                  gravity: 0.05,
+                  shouldLoop: false,
+                  colors: const [
+                    Colors.green,
+                    Colors.blue,
+                    Colors.pink,
+                    Colors.orange,
+                    Colors.purple,
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -6,17 +6,17 @@ class ApiConfig {
   static String get BASE_URL {
     // Get base URL from .env file
     String baseUrl = dotenv.env['BASE_API_URL'] ?? '';
-    
+
     // Log for debugging
     print('📡 API Config: Loading BASE_URL from .env: "$baseUrl"');
-    
+
     // Provide fallback if environment variable is missing
     if (baseUrl.isEmpty) {
       const fallbackUrl = 'http://localhost:8000';
       print('⚠️ Warning: BASE_URL not found in .env file! Using fallback URL: $fallbackUrl');
       return fallbackUrl;
     }
-    
+
     return baseUrl;
   }
 
@@ -32,10 +32,11 @@ class ApiConfig {
   static const String donorEligibility = '/eblood-connect/blood-donors/eligibility';
   static const String inventorySettings = '/eblood/inventory/settings';
 
-  // Hospital-specific endpoints
-  // Blood requests
-  static const String bankBloodRequestsList = '/eblood/requests/blood-requests/list';
-  static const String hospitalBloodRequestsList = '/blood-requests/fetch/blood-requests';
+  // Blood requests endpoints
+  // Blood Bank endpoint: for blood banks to see requests targeting them
+  static const String bankBloodRequestsList = '/eblood-connect/blood-requests/list';
+  // Hospital endpoint: for hospitals to see their own requests
+  static const String hospitalBloodRequestsList = '/eblood-connect/blood-requests/hospital/list';
 
   // Hospital statistics (comprehensive stats including requests, inventory, patients, operations)
   // Note: hospital_id is derived from authenticated user's sys_organization_id
@@ -52,6 +53,18 @@ class ApiConfig {
   // Deliveries
   static String deliveriesForHospitalDelivered(String hospitalId) => '/eblood/deliveries/delivered/$hospitalId';
   static String receiveDelivery(String deliveryId) => '/eblood/deliveries/$deliveryId/receive';
+
+  // Delivery confirmation & blood bag operations
+  static const String confirmDelivery = '/eblood-connect/blood-requests/confirm-delivery';
+  static const String markBloodBagUsed = '/eblood-connect/blood-requests/blood-bags/mark-used';
+  static const String requestCoolboxPassword = '/eblood-connect/blood-requests/deliveries/request-coolbox-password';
+
+  static String confirmDeliveryForRequest(String requestId) =>
+      '$confirmDelivery?request_id=$requestId';
+  static String markBloodBagUsedFor(String bloodBagId) =>
+      '$markBloodBagUsed?blood_bag_id=$bloodBagId';
+  static String requestCoolboxPasswordForDelivery(String deliveryId) =>
+      '$requestCoolboxPassword?delivery_id=$deliveryId';
 
   // Users & Roles
   static const String usersList = '/users/fetch';

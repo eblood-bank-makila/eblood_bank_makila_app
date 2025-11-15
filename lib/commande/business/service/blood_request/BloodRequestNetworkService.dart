@@ -1,3 +1,4 @@
+import 'package:eblood_bank_mak_app/apps/models/api_response.dart';
 import '../../model/blood_request/BloodRequestModel.dart';
 
 abstract class BloodRequestNetworkService {
@@ -30,5 +31,24 @@ abstract class BloodRequestNetworkService {
     BloodRequestStatus status,
     int page,
     String authToken,
+  );
+
+  /// Confirm delivery using verification code (manual or QR)
+  Future<IApiResponse> confirmDelivery(
+    String requestId,
+    String verificationCode,
+    String confirmationMethod,
+  );
+
+  /// Mark a blood bag request item as used
+  Future<IApiResponse> markBloodBagUsed(
+    String bloodBagRequestId, {
+    String? patientId,
+    String? usageNotes,
+  });
+
+  /// Request the coolbox password for a delivery/request
+  Future<IApiResponse> requestCoolboxPassword(
+    String deliveryId,
   );
 }

@@ -11,9 +11,9 @@ extension BloodRequestStatusExtension on BloodRequestStatus {
   String get value {
     switch (this) {
       case BloodRequestStatus.pendingDelivery:
-        return 'pending-delivery';
+        return 'pending_delivery';
       case BloodRequestStatus.inProgressDelivery:
-        return 'inprogress-delivery';
+        return 'in_progress_delivery';
       case BloodRequestStatus.delivered:
         return 'delivered';
       case BloodRequestStatus.completed:
@@ -38,14 +38,14 @@ extension BloodRequestStatusExtension on BloodRequestStatus {
     print("🔍 Parsing status: '$status'");
 
     switch (status.toLowerCase().trim()) {
-      case 'pending-delivery':
+      case 'pending_delivery':
       case 'pending':
       case 'en attente':
       case 'en attente de livraison':
       case 'waiting':
         print("✅ Mapped to: pendingDelivery");
         return BloodRequestStatus.pendingDelivery;
-      case 'inprogress-delivery':
+      case 'in_progress_delivery':
       case 'in-progress':
       case 'in_progress':  // Added missing underscore version
       case 'inprogress':
@@ -90,6 +90,7 @@ class BloodRequestModel {
   final double? totalAmount;
   final String? paymentStatus;
   final List<BloodBagRequestModel> bloodBags;
+  final String? deliveryCoolboxId;
   final String? actionData;
 
   BloodRequestModel({
@@ -107,19 +108,21 @@ class BloodRequestModel {
     this.totalAmount,
     this.paymentStatus,
     this.bloodBags = const [],
+    this.deliveryCoolboxId,
     this.actionData,
   });
 
   static BloodRequestStatus _determineStatus(Map<String, dynamic> json) {
     print("🔍 Determining status from JSON:");
+    print("  - Status: ${json['status']}");
     print("  - Delivery Status: ${json['delivery_status']}");
-    print("  - Delivery Status Label: ${json['delivery_status_lbl']}");
     print("  - Blood Request Status: ${json['blood_request_status']}");
 
     // Priority logic for status determination:
-    // 1. If delivery_status exists and is not 'none', use it
-    // 2. Otherwise, use blood_request_status
-    // 3. Fall back to generic status field
+    // 1. Check delivery_status first (if exists and meaningful)
+    // 2. Check blood_request_status
+    // 3. Check generic status field
+    // 4. Map backend status values to our internal status enum
 
     String? deliveryStatus = json['delivery_status']?.toString().toLowerCase().trim();
     String? bloodRequestStatus = json['blood_request_status']?.toString().toLowerCase().trim();
@@ -127,6 +130,7 @@ class BloodRequestModel {
 
     print("  - Processed delivery_status: '$deliveryStatus'");
     print("  - Processed blood_request_status: '$bloodRequestStatus'");
+    print("  - Processed status: '$genericStatus'");
 
     // Use delivery_status if it's meaningful (not null, empty, or 'none')
     if (deliveryStatus != null && deliveryStatus.isNotEmpty && deliveryStatus != 'none') {
@@ -140,10 +144,31 @@ class BloodRequestModel {
       return BloodRequestStatusExtension.fromString(bloodRequestStatus);
     }
 
-    // Fall back to generic status
+    // Map backend status to delivery status
+    // Backend statuses: pending, approved, processing, completed, cancelled, rejected
     if (genericStatus != null && genericStatus.isNotEmpty) {
       print("  - Using generic status: '$genericStatus'");
-      return BloodRequestStatusExtension.fromString(genericStatus);
+
+      // Map backend status to our delivery status
+      switch (genericStatus) {
+        case 'pending':
+        case 'requested':
+        case 'approved':
+          return BloodRequestStatus.pendingDelivery;
+        case 'processing':
+        case 'in_progress':
+        case 'preparing':
+          return BloodRequestStatus.inProgressDelivery;
+        case 'delivered':
+        case 'shipped':
+          return BloodRequestStatus.delivered;
+        case 'completed':
+        case 'used':
+        case 'transfused':
+          return BloodRequestStatus.completed;
+        default:
+          return BloodRequestStatusExtension.fromString(genericStatus);
+      }
     }
 
     print("  - No valid status found, defaulting to pendingDelivery");
@@ -153,19 +178,69 @@ class BloodRequestModel {
   factory BloodRequestModel.fromJson(Map<String, dynamic> json) {
     // Debug print to check blood request data
     print("🩸 Blood Request Debug:");
-    print("  - ID: ${json['_id']}");
-    print("  - Identifier: ${json['identifier']}");
-    print("  - Delivery Status: ${json['delivery_status']}");
-    print("  - Delivery Status Label: ${json['delivery_status_lbl']}");
-    print("  - Blood Request Status: ${json['blood_request_status']}");
-    print("  - Total Amount: ${json['total_amount']}");
+    print("  - ID: ${json['id'] ?? json['_id']}");
+    print("  - Status: ${json['status']}");
+    print("  - Urgency Level: ${json['urgency_level']}");
 
-    // Extract blood type from requested_items if available
+    // Extract blood type and quantity from ops_blood_bags_requested (new hospital endpoint format)
     String extractedBloodType = '';
     int totalQuantity = 0;
     List<BloodBagRequestModel> bloodBags = [];
 
-    if (json['requested_items'] != null && json['requested_items'] is List) {
+    if (json['ops_blood_bags_requested'] != null && json['ops_blood_bags_requested'] is List) {
+      final bagRequests = json['ops_blood_bags_requested'] as List;
+      print("  - Found ${bagRequests.length} blood bag requests");
+
+      for (var bagRequest in bagRequests) {
+        totalQuantity += 1; // Each bag request is 1 unit
+
+        // Extract blood type from stock_blood_bag
+        Map<String, dynamic> stockBag = {};
+        if (bagRequest['stock_blood_bag'] != null) {
+          stockBag = Map<String, dynamic>.from(bagRequest['stock_blood_bag']);
+          final rhesusFactor = stockBag['rhesus_factor']?.toString() ?? '';
+          if (extractedBloodType.isEmpty && rhesusFactor.isNotEmpty) {
+            extractedBloodType = rhesusFactor;
+            print("  - Extracted blood type from stock_blood_bag: $extractedBloodType");
+          }
+        }
+
+        // Build blood bag model entry
+        final bagId = bagRequest['id']?.toString() ?? bagRequest['_id']?.toString() ?? '';
+        final bloodBagId = stockBag['id']?.toString() ?? stockBag['_id']?.toString() ?? bagRequest['blood_bag_id']?.toString() ?? '';
+        final isUsed = bagRequest['is_used'] == true;
+        final price = (bagRequest['price'] is num) ? (bagRequest['price'] as num).toDouble() : null;
+        final expiry = stockBag['expiry_date']?.toString();
+
+        bloodBags.add(BloodBagRequestModel(
+          id: bagId,
+          bloodBagId: bloodBagId,
+          bloodType: extractedBloodType.isNotEmpty ? extractedBloodType : (stockBag['rhesus_factor']?.toString() ?? ''),
+          bankName: 'Banque de sang',
+          price: price,
+          expiryDate: expiry != null ? DateTime.tryParse(expiry) : null,
+          isUsed: isUsed,
+        ));
+      }
+    }
+
+    // Fallback: Extract from patient info (old format)
+    if (extractedBloodType.isEmpty && json['patient_blood_group'] != null && json['patient_rh_factor'] != null) {
+      extractedBloodType = '${json['patient_blood_group']}${json['patient_rh_factor']}';
+      print("  - Extracted blood type from patient: $extractedBloodType");
+    }
+
+    // Fallback: Extract quantity from requested_components (old format)
+    if (totalQuantity == 0 && json['requested_components'] != null && json['requested_components'] is List) {
+      final components = json['requested_components'] as List;
+      for (var component in components) {
+        totalQuantity += (component['quantity'] as int? ?? 0);
+        print("  - Component: ${component['component_type']}, Quantity: ${component['quantity']}");
+      }
+    }
+
+    // Fallback: Extract from requested_items (oldest format)
+    if (totalQuantity == 0 && json['requested_items'] != null && json['requested_items'] is List) {
       final requestedItems = json['requested_items'] as List;
       for (var item in requestedItems) {
         totalQuantity += (item['quantity'] as int? ?? 0);
@@ -179,7 +254,9 @@ class BloodRequestModel {
           if (bloodTypeInfo != null && bloodRhesusInfo != null) {
             final typeName = bloodTypeInfo['blood_type_name'] ?? '';
             final rhesusName = bloodRhesusInfo['blood_rheusus_name'] ?? '';
-            extractedBloodType = '$typeName$rhesusName';
+            if (extractedBloodType.isEmpty) {
+              extractedBloodType = '$typeName$rhesusName';
+            }
           }
 
           // Create blood bag model
@@ -187,6 +264,9 @@ class BloodRequestModel {
         }
       }
     }
+
+    print("  - Total quantity: $totalQuantity");
+    print("  - Blood type: $extractedBloodType");
 
     // Extract action_data from delivery_items if available
     String? extractedActionData = json['action_data'];
@@ -209,23 +289,79 @@ class BloodRequestModel {
 
     print("📍 Final action_data: $extractedActionData");
 
+    // Extract hospital name from health_structure_requesting (new hospital endpoint format)
+    String hospitalName = 'Hôpital';
+    String hospitalId = '';
+
+    if (json['health_structure_requesting'] != null) {
+      final structureInfo = json['health_structure_requesting'];
+      hospitalName = structureInfo['name'] ?? hospitalName;
+      hospitalId = structureInfo['id']?.toString() ?? '';
+      print("  - Extracted hospital from health_structure_requesting: $hospitalName (ID: $hospitalId)");
+    } else if (json['health_structure_requesting_info'] != null) {
+      // Fallback: old format
+      final structureInfo = json['health_structure_requesting_info'];
+      hospitalName = structureInfo['name'] ?? structureInfo['structure_name'] ?? hospitalName;
+      print("  - Extracted hospital name: $hospitalName");
+    } else if (json['hospital_name'] != null) {
+      hospitalName = json['hospital_name'];
+    } else if (json['hospitalName'] != null) {
+      hospitalName = json['hospitalName'];
+    }
+
+    // Extract hospital ID if not already set
+    if (hospitalId.isEmpty) {
+      if (json['health_structure_requesting_id'] != null) {
+        hospitalId = json['health_structure_requesting_id'].toString();
+      } else if (json['hospital_id'] != null) {
+        hospitalId = json['hospital_id'].toString();
+      } else if (json['hospitalId'] != null) {
+        hospitalId = json['hospitalId'].toString();
+      }
+
+    }
+
+    // Parse dates
+    DateTime requestDate = DateTime.now();
+
+    // Extract delivery coolbox id if present (unconditional)
+    String? deliveryCoolboxId =
+        json['delivery_coolbox_id']?.toString() ?? json['coolbox_id']?.toString();
+
+    if (json['created_at'] != null) {
+      requestDate = DateTime.tryParse(json['created_at']) ?? DateTime.now();
+    } else if (json['createdAt'] != null) {
+      requestDate = DateTime.tryParse(json['createdAt']) ?? DateTime.now();
+    } else if (json['request_date'] != null) {
+      requestDate = DateTime.tryParse(json['request_date']) ?? DateTime.now();
+    }
+
+    // Extract request identifier
+    String requestId = '';
+    if (json['payment_metadata'] != null && json['payment_metadata']['cart_identifier'] != null) {
+      requestId = json['payment_metadata']['cart_identifier'];
+    } else {
+      requestId = json['identifier'] ?? json['request_id'] ?? json['requestId'] ?? '';
+    }
+
     return BloodRequestModel(
-      id: json['_id'] ?? json['id'] ?? '',
-      requestId: json['identifier'] ?? json['request_id'] ?? json['requestId'] ?? '',
-      hospitalId: json['hospital_id'] ?? json['hospitalId'] ?? '',
-      hospitalName: json['hospital_name'] ?? json['hospitalName'] ?? 'Hôpital',
+      id: json['id'] ?? json['_id'] ?? '',
+      requestId: requestId,
+      hospitalId: hospitalId,
+      hospitalName: hospitalName,
       bloodType: extractedBloodType.isNotEmpty ? extractedBloodType : (json['blood_type'] ?? json['bloodType'] ?? ''),
       quantity: totalQuantity > 0 ? totalQuantity : (json['quantity'] ?? 0),
       status: _determineStatus(json),
-      requestDate: DateTime.tryParse(json['createdAt'] ?? json['request_date'] ?? json['requestDate'] ?? '') ?? DateTime.now(),
+      requestDate: requestDate,
       deliveryDate: json['delivery_date'] != null || json['deliveryDate'] != null
           ? DateTime.tryParse(json['delivery_date'] ?? json['deliveryDate'])
           : null,
       deliveryAddress: json['delivery_address'] ?? json['deliveryAddress'],
-      notes: json['notes'],
-      totalAmount: json['total_amount']?.toDouble() ?? json['totalAmount']?.toDouble(),
+      notes: json['notes'] ?? json['clinical_indication'],
+      totalAmount: json['total_amount']?.toDouble() ?? json['totalAmount']?.toDouble() ?? json['transactional_total_amount']?.toDouble(),
       paymentStatus: json['payment_status'] ?? json['paymentStatus'],
       bloodBags: bloodBags,
+      deliveryCoolboxId: deliveryCoolboxId,
       actionData: extractedActionData,
     );
   }
@@ -262,6 +398,7 @@ class BloodBagRequestModel {
   final String bankName;
   final double? price;
   final DateTime? expiryDate;
+  bool isUsed;
 
   BloodBagRequestModel({
     required this.id,
@@ -270,6 +407,7 @@ class BloodBagRequestModel {
     required this.bankName,
     this.price,
     this.expiryDate,
+    this.isUsed = false,
   });
 
   factory BloodBagRequestModel.fromJson(Map<String, dynamic> json) {
@@ -282,6 +420,7 @@ class BloodBagRequestModel {
       expiryDate: json['expiry_date'] != null || json['expiryDate'] != null
           ? DateTime.tryParse(json['expiry_date'] ?? json['expiryDate'])
           : null,
+      isUsed: json['is_used'] == true,
     );
   }
 
@@ -302,6 +441,7 @@ class BloodBagRequestModel {
       bankName: 'Banque de sang', // Default since not provided in this structure
       price: item['price']?.toDouble(),
       expiryDate: null, // Not provided in this structure
+      isUsed: item['is_used'] == true,
     );
   }
 
@@ -313,6 +453,7 @@ class BloodBagRequestModel {
       'bank_name': bankName,
       'price': price,
       'expiry_date': expiryDate?.toIso8601String(),
+      'is_used': isUsed,
     };
   }
 }

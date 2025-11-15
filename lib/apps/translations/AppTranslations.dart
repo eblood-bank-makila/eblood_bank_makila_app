@@ -376,6 +376,9 @@ class AppTranslations extends Translations {
   'invalid_or_empty_code': 'Code invalide ou vide',
   'delivery_not_found': 'Livraison introuvable',
 
+      'mark_bags_as_used': 'Marquer les poches comme utilisées',
+      'request_coolbox_password': 'Demander le mot de passe',
+
   'request_password': 'Demander le mot de passe',
   'get_secure_access_code': "Obtenir le code d'accès sécurisé",
   'create_announcement': 'Créer une annonce',
@@ -1821,6 +1824,9 @@ class AppTranslations extends Translations {
   'create_manage_announcements': 'Create and manage announcements',
   'confirm_delivery': 'Confirm delivery',
   'scan_qr_to_confirm': 'Scan QR code to confirm receipt',
+      'mark_bags_as_used': 'Mark bags as used',
+      'request_coolbox_password': 'Request password',
+
   'delivery_code': 'Delivery code',
   'invalid_or_empty_code': 'Invalid or empty code',
   'delivery_not_found': 'Delivery not found',

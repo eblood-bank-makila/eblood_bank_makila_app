@@ -37,10 +37,54 @@ class _BloodRequestPageState extends ConsumerState<BloodRequestPage>
     // Setup scroll listeners for pagination
     _setupScrollListeners();
 
-    // Load initial data
+    // Add tab change listener to reload data when switching tabs
+    _tabController.addListener(_onTabChanged);
+
+    // Load initial data for the first tab only
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadInitialData();
+      _loadDataForCurrentTab();
     });
+  }
+
+  void _onTabChanged() {
+    if (!_tabController.indexIsChanging) {
+      // Tab animation completed, load data for the new tab
+      _loadDataForCurrentTab();
+    }
+  }
+
+  void _loadDataForCurrentTab() {
+    final controller = ref.read(bloodRequestCtrlProvider.notifier);
+    final state = ref.read(bloodRequestCtrlProvider);
+
+    debugPrint('📑 Loading data for tab: ${_tabController.index}');
+
+    switch (_tabController.index) {
+      case 0: // Pending
+        if (state.pendingRequests.isEmpty || state.error != null) {
+          debugPrint('   → Fetching pending requests');
+          controller.fetchPendingDeliveryRequests(refresh: true);
+        }
+        break;
+      case 1: // In Progress
+        if (state.inProgressRequests.isEmpty || state.error != null) {
+          debugPrint('   → Fetching in-progress requests');
+          controller.fetchInProgressDeliveryRequests(refresh: true);
+        }
+        break;
+      case 2: // Delivered
+        if (state.deliveredRequests.isEmpty || state.error != null) {
+          debugPrint('   → Fetching delivered requests');
+          controller.fetchDeliveredRequests(refresh: true);
+        }
+        break;
+      case 3: // Completed
+        if (state.completedRequests.isEmpty || state.error != null) {
+          debugPrint('   → Fetching completed requests');
+          controller.fetchCompletedRequests(refresh: true);
+        }
+        break;
+    }
   }
 
   void _setupScrollListeners() {
@@ -71,14 +115,6 @@ class _BloodRequestPageState extends ConsumerState<BloodRequestPage>
         _loadMoreCompletedRequests();
       }
     });
-  }
-
-  void _loadInitialData() {
-    final controller = ref.read(bloodRequestCtrlProvider.notifier);
-    controller.fetchPendingDeliveryRequests(refresh: true);
-    controller.fetchInProgressDeliveryRequests(refresh: true);
-    controller.fetchDeliveredRequests(refresh: true);
-    controller.fetchCompletedRequests(refresh: true);
   }
 
   void _loadMorePendingRequests() {
@@ -119,10 +155,12 @@ class _BloodRequestPageState extends ConsumerState<BloodRequestPage>
 
   @override
   void dispose() {
+    _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
     _pendingScrollController.dispose();
     _inProgressScrollController.dispose();
     _deliveredScrollController.dispose();
+    _completedScrollController.dispose();
     super.dispose();
   }
 
@@ -324,7 +362,7 @@ class _BloodRequestPageState extends ConsumerState<BloodRequestPage>
     if (error != null && requests.isEmpty) {
       return BloodRequestErrorState(
         message: error,
-        onRetry: () => _loadInitialData(),
+        onRetry: () => _loadDataForCurrentTab(),
       );
     }
 
@@ -342,6 +380,7 @@ class _BloodRequestPageState extends ConsumerState<BloodRequestPage>
       color: ColorPages.COLOR_PRINCIPAL,
       child: ListView.builder(
         controller: scrollController,
+        physics: const AlwaysScrollableScrollPhysics(), // Enable pull-to-refresh even with few items
         padding: const EdgeInsets.all(16),
         itemCount: requests.length + (isLoadingMore ? 1 : 0),
         itemBuilder: (context, index) {
@@ -361,6 +400,7 @@ class _BloodRequestPageState extends ConsumerState<BloodRequestPage>
           return BloodRequestCard(
             request: requests[index],
             onTap: () => _showRequestDetails(requests[index]),
+            onActionCompleted: () => ref.read(bloodRequestCtrlProvider.notifier).refreshAll(),
           );
         },
       ),

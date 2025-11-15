@@ -30,6 +30,13 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        // Ship only the locales you support to reduce resources size
+        resourceConfigurations += listOf("en", "fr")
+        // If you want a single-ABI APK instead of universal, uncomment below
+        // ndk {
+        //     abiFilters += listOf("arm64-v8a")
+        // }
     }
 
     buildTypes {
@@ -39,6 +46,8 @@ android {
             signingConfig = signingConfigs.getByName("debug")
             // Ensure ProGuard/R8 uses our rules file to handle optional ML Kit modules
             isMinifyEnabled = true
+            // Remove unused Android resources after code shrinking
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 file("proguard-rules.pro")

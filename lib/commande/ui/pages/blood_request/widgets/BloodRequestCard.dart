@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:get/get.dart';
 import '../../../../../apps/config/theme/ColorPages.dart';
 import '../../../../business/model/blood_request/BloodRequestModel.dart';
 import '../../../../business/interactor/usecase/blood_request/BloodRequestUseCase.dart';
@@ -9,15 +10,27 @@ import '../../../../business/interactor/usecase/blood_request/BloodRequestTracki
 import '../../../../business/interactor/usecase/delivery_position/DeliveryPositionUseCase.dart';
 import '../BloodRequestTrackingPage.dart';
 import '../../delivery_position/DeliveryPositionPage.dart';
+import 'DeliveryConfirmationDialog.dart';
+import 'BloodBagUsageDialog.dart';
+import 'CoolboxPasswordDialog.dart';
+
+import 'package:path/path.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:sembast/sembast_io.dart';
+import '../../../../../apps/config/AppConfig.dart';
+import '../../../framework/delivery/DeliveryValidationNetworkServiceImpl.dart';
+import '../../../../../utilisateurs/ui/framework/UtilisateurLocalServiceImpl.dart';
 
 class BloodRequestCard extends StatelessWidget {
   final BloodRequestModel request;
   final VoidCallback? onTap;
+  final VoidCallback? onActionCompleted;
 
   const BloodRequestCard({
     super.key,
     required this.request,
     this.onTap,
+    this.onActionCompleted,
   });
 
   @override
@@ -292,6 +305,11 @@ class BloodRequestCard extends StatelessWidget {
                             ),
                           ),
 
+                        // Delivery distance chip (only when delivery is in progress)
+                        if (DeliveryPositionUseCase.canFetchPosition(request))
+                          _DeliveryDistanceChip(request: request),
+
+
                         // Amount
                         if (request.totalAmount != null)
                           Container(
@@ -353,10 +371,278 @@ class BloodRequestCard extends StatelessWidget {
                     ),
                   ),
                 ],
+
+
+                // Action buttons based on status
+                const SizedBox(height: 12),
+                if (request.status == BloodRequestStatus.inProgressDelivery) ...[
+                  SizedBox(
+                    width: double.infinity,
+                    height: 44,
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        await showDialog(
+                          context: context,
+                          builder: (_) => DeliveryConfirmationDialog(
+                            request: request,
+                            onSuccess: () {
+                              if (onActionCompleted != null) onActionCompleted!();
+                            },
+                          ),
+                        );
+                      },
+                      icon: const Icon(Iconsax.verify5, color: Colors.white, size: 18),
+                      label: Text(
+                        'confirm_delivery'.tr,
+                        style: GoogleFonts.ubuntu(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green.shade600,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 2,
+                      ),
+                    ),
+                  ),
+                ]
+                else if (request.status == BloodRequestStatus.delivered) ...[
+                  SizedBox(
+                    width: double.infinity,
+                    height: 44,
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        await showDialog(
+                          context: context,
+                          builder: (_) => BloodBagUsageDialog(
+                            request: request,
+                            onSuccess: () {
+                              if (onActionCompleted != null) onActionCompleted!();
+                            },
+                          ),
+                        );
+                      },
+                      icon: const Icon(Iconsax.bag_tick, color: Colors.white, size: 18),
+                      label: Text(
+                        'mark_bags_as_used'.tr,
+                        style: GoogleFonts.ubuntu(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue.shade600,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 2,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  if (request.deliveryCoolboxId != null && request.deliveryCoolboxId!.isNotEmpty)
+                    SizedBox(
+                      width: double.infinity,
+                      height: 44,
+                      child: OutlinedButton.icon(
+                        onPressed: () async {
+                          await showDialog(
+                            context: context,
+                            builder: (_) => CoolboxPasswordDialog(
+                              request: request,
+                            ),
+                          );
+                        },
+                        icon: const Icon(Iconsax.lock, size: 18),
+                        label: Text(
+                          'request_coolbox_password'.tr,
+                          style: GoogleFonts.ubuntu(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: Colors.orange.shade600),
+                          foregroundColor: Colors.orange.shade800,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+
+
+                      ),
+                    ),
+                ],
+
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+
+class _DeliveryDistanceChip extends StatefulWidget {
+  final BloodRequestModel request;
+  const _DeliveryDistanceChip({required this.request});
+
+  @override
+  State<_DeliveryDistanceChip> createState() => _DeliveryDistanceChipState();
+}
+
+class _DeliveryDistanceChipState extends State<_DeliveryDistanceChip> {
+  bool _loading = true;
+  String? _error;
+  String? _distanceText;
+  int _distanceColor = 0xFF2196F3; // default blue
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchDistance();
+  }
+
+  Future<void> _fetchDistance() async {
+    if (!DeliveryPositionUseCase.canFetchPosition(widget.request)) {
+      setState(() {
+        _loading = false;
+        _error = 'Position non disponible';
+      });
+      return;
+    }
+
+    try {
+      final appDir = await getApplicationDocumentsDirectory();
+      final dbPath = join(appDir.path, "sembast.db");
+      DatabaseFactory dbFactory = databaseFactoryIo;
+      Database db = await dbFactory.openDatabase(dbPath);
+
+      final baseUrl = AppConfig.instance.fullApiUrl;
+      final network = QrCodeActionNetworkServiceImpl(baseUrl);
+      final local = UtilisateurLocalServiceImpl(db);
+      final useCase = DeliveryPositionUseCase(network, local);
+
+      final res = await useCase.fetchPositionFromRequest(widget.request);
+      if (mounted) {
+        if (res != null && res.success && res.info != null) {
+          final dKm = res.info!.distance;
+          setState(() {
+            _loading = false;
+            _distanceText = DeliveryPositionUseCase.formatDistance(dKm);
+            _distanceColor = DeliveryPositionUseCase.getDistanceColor(dKm);
+            _error = null;
+          });
+        } else {
+          setState(() {
+            _loading = false;
+            _error = res?.message ?? 'Position indisponible';
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _error = 'Erreur';
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return Container(
+        margin: const EdgeInsets.only(right: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        decoration: BoxDecoration(
+          color: Colors.blue.shade50,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: Colors.blue.shade200),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 12,
+              height: 12,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.blue.shade600),
+              ),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              'Distance...',
+              style: GoogleFonts.ubuntu(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: Colors.blue.shade600,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_error != null) {
+      return Container(
+        margin: const EdgeInsets.only(right: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        decoration: BoxDecoration(
+          color: Colors.orange.shade50,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: Colors.orange.shade200),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Iconsax.location_slash, size: 12, color: Colors.orange.shade700),
+            const SizedBox(width: 4),
+            Text(
+              'N/A',
+              style: GoogleFonts.ubuntu(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: Colors.orange.shade700,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(right: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: Color(_distanceColor).withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: Color(_distanceColor).withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Iconsax.routing, size: 12, color: Color(_distanceColor)),
+          const SizedBox(width: 4),
+          Text(
+            _distanceText ?? '—',
+            style: GoogleFonts.ubuntu(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: Color(_distanceColor),
+            ),
+          ),
+        ],
       ),
     );
   }

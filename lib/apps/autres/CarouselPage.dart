@@ -8,9 +8,9 @@ class CarouselPage extends StatefulWidget {
 
 class _CarouselPageState extends State<CarouselPage> {
   final List<String> images = [
-    'assets/images/baniere1.png',
-    'assets/images/baniere.png',
-    'assets/images/baniere2.png',
+    'assets/images/baniere1.webp',
+    'assets/images/baniere.webp',
+    'assets/images/baniere2.webp',
   ];
 
   final PageController _pageController = PageController();

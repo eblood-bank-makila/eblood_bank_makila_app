@@ -13,6 +13,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
+import '../../../apps/config/utils/LocaleHelper.dart';
 import '../../business/interactors/BloodBankController.dart';
 import '../../business/model/BloodEnums.dart';
 import '../../business/model/BloodStock.dart';
@@ -1548,14 +1549,16 @@ class _DonorDetailsPageState extends ConsumerState<DonorDetailsPage> with Single
 
   String _formatDate(BuildContext context, DateTime date) {
     final locale = Localizations.localeOf(context).toLanguageTag();
-    return DateFormat.yMMMd(locale).format(date);
+    final safeLocale = LocaleHelper.getSafeLocale(locale);
+    return LocaleHelper.formatDate(date, 'yMMMd', safeLocale);
   }
 
   String _formatDateFromString(BuildContext context, String dateStr) {
     try {
       final date = DateTime.parse(dateStr);
       final locale = Localizations.localeOf(context).toLanguageTag();
-      return DateFormat.yMMMd(locale).format(date);
+      final safeLocale = LocaleHelper.getSafeLocale(locale);
+      return LocaleHelper.formatDate(date, 'yMMMd', safeLocale);
     } catch (e) {
       return dateStr;
     }

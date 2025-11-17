@@ -14,6 +14,7 @@ import '../../../../../apps/config/api/dio_client.dart';
 class PaymentStatusPage extends ConsumerStatefulWidget {
   final String systemRef;
   final String baseUrl;
+  final String? customCheckStatusEndpoint; // Custom endpoint for checking payment status
   final Function({
     required int page,
     required String title,
@@ -25,6 +26,7 @@ class PaymentStatusPage extends ConsumerStatefulWidget {
     Key? key,
     required this.systemRef,
     required this.baseUrl,
+    this.customCheckStatusEndpoint,
     this.onPaymentResult,
   }) : super(key: key);
 
@@ -174,10 +176,12 @@ class _PaymentStatusPageState extends ConsumerState<PaymentStatusPage>
     try {
       print('🔍 Checking payment status for systemRef: ${widget.systemRef}');
 
+      // Use custom endpoint if provided, otherwise use default
+      final endpoint = widget.customCheckStatusEndpoint ??
+          '/eblood-connect/payment-status/checking?identifier=${widget.systemRef}&percent=$percent';
+
       // Use dio_client for automatic auth header injection
-      final response = await getWithDio(
-        '/eblood-connect/payment-status/checking?identifier=${widget.systemRef}&percent=$percent',
-      );
+      final response = await getWithDio(endpoint);
 
       print('📡 Payment status response: ${response.statusCode}');
       print('📄 Response success: ${response.success}');
@@ -349,53 +353,77 @@ class _PaymentStatusPageState extends ConsumerState<PaymentStatusPage>
     // Clear cart after successful payment
     _clearCartAfterPayment();
 
-    // Always show the success screen (don't use callback)
-    // Navigate to success page after a short delay
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => Scaffold(
-              backgroundColor: Colors.white,
-              body: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.red.shade100,
-                      Colors.red.shade50,
-                      Colors.white,
-                    ],
+    // Check if custom callback is provided (for custom success screens like address view)
+    if (widget.onPaymentResult != null) {
+      debugPrint('🎯 Calling onPaymentResult callback for custom success handling');
+      // Call the callback after a short delay
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) {
+          widget.onPaymentResult!(
+            page: 1,
+            title: 'payment_successful'.tr,
+            message: message.isNotEmpty ? message : 'payment_processed_successfully'.tr,
+            paymentSucceed: true,
+          );
+        }
+      });
+    } else {
+      // Default behavior: show the built-in success screen
+      debugPrint('📺 Showing default success screen');
+      // Navigate to success page after a short delay
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => Scaffold(
+                backgroundColor: Colors.white,
+                body: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.red.shade100,
+                        Colors.red.shade50,
+                        Colors.white,
+                      ],
+                    ),
                   ),
-                ),
-                child: SafeArea(
-                  child: OpsSuccessScreen(
-                    message: message.isNotEmpty ? message : 'payment_processed_successfully'.tr,
-                    title: 'payment_successful'.tr,
-                    hidde_all_btn: false,
-                    ref: ref,
-                    amountText: amountText,
-                    bloodRequestId: bloodRequestId,
-                    systemIdentifier: systemIdentifier,
-                    onClosing: () {
-                      debugPrint('🔘 PaymentStatusPage (Success): onClosing callback triggered');
-                      try {
-                        // Use GoRouter to navigate (page-based routing)
-                        context.go('/app/MainApp');
-                        debugPrint('✅ PaymentStatusPage (Success): Navigation completed successfully');
-                      } catch (e) {
-                        debugPrint('❌ PaymentStatusPage (Success): Navigation error: $e');
-                      }
-                    },
+                  child: SafeArea(
+                    child: OpsSuccessScreen(
+                      message: message.isNotEmpty ? message : 'payment_processed_successfully'.tr,
+                      title: 'payment_successful'.tr,
+                      hidde_all_btn: false,
+                      ref: ref,
+                      amountText: amountText,
+                      bloodRequestId: bloodRequestId,
+                      systemIdentifier: systemIdentifier,
+                      onClosing: () {
+                        debugPrint('🔘 PaymentStatusPage (Success): onClosing callback triggered');
+                        try {
+                          // Navigate to main app with bottom bar using GoRouter
+                          context.go('/app/MainApp');
+                          debugPrint('✅ PaymentStatusPage (Success): Navigation to MainApp completed successfully');
+                        } catch (e) {
+                          debugPrint('❌ PaymentStatusPage (Success): GoRouter navigation error: $e');
+                          // Fallback: try Navigator popUntil
+                          try {
+                            Navigator.of(context).popUntil((route) => route.isFirst);
+                            debugPrint('✅ PaymentStatusPage (Success): Fallback navigation completed');
+                          } catch (e2) {
+                            debugPrint('❌ PaymentStatusPage (Success): Fallback navigation also failed: $e2');
+                          }
+                        }
+                      },
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-        );
-      }
-    });
+          );
+        }
+      });
+    }
   }
 
   void _handlePaymentFailure(String message, {String? ref, List<String>? errorMessages}) {
@@ -440,11 +468,18 @@ class _PaymentStatusPageState extends ConsumerState<PaymentStatusPage>
                     onClosing: () {
                       debugPrint('🔘 PaymentStatusPage (Failure): onClosing callback triggered');
                       try {
-                        // Use GoRouter to navigate (page-based routing)
+                        // Navigate to main app with bottom bar using GoRouter
                         context.go('/app/MainApp');
-                        debugPrint('✅ PaymentStatusPage (Failure): Navigation completed successfully');
+                        debugPrint('✅ PaymentStatusPage (Failure): Navigation to MainApp completed successfully');
                       } catch (e) {
-                        debugPrint('❌ PaymentStatusPage (Failure): Navigation error: $e');
+                        debugPrint('❌ PaymentStatusPage (Failure): GoRouter navigation error: $e');
+                        // Fallback: try Navigator popUntil
+                        try {
+                          Navigator.of(context).popUntil((route) => route.isFirst);
+                          debugPrint('✅ PaymentStatusPage (Failure): Fallback navigation completed');
+                        } catch (e2) {
+                          debugPrint('❌ PaymentStatusPage (Failure): Fallback navigation also failed: $e2');
+                        }
                       }
                     },
                   ),

@@ -5,6 +5,7 @@ import 'package:iconsax/iconsax.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import '../../../apps/config/utils/LocaleHelper.dart';
 
 
 class WalletManagementPage extends ConsumerStatefulWidget {
@@ -25,7 +26,7 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
 
   String _formatAmount(num amount, {bool signed = false}) {
     final locale = Get.locale?.toString() ?? 'en_US';
-    final fmt = NumberFormat.currency(locale: locale, symbol: '', decimalDigits: 2);
+    final fmt = LocaleHelper.createNumberFormat(locale: locale, symbol: '', decimalDigits: 2);
     final positive = fmt.format(amount.abs());
     if (!signed) return fmt.format(amount);
     return amount >= 0 ? '+$positive' : '-$positive';
@@ -34,16 +35,17 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
   String _formatDate(DateTime dt) {
     final now = DateTime.now();
     final locale = Get.locale?.toString() ?? 'en_US';
+    final safeLocale = LocaleHelper.getSafeLocale(locale);
     final today = DateTime(now.year, now.month, now.day);
     final dateOnly = DateTime(dt.year, dt.month, dt.day);
-    final time = DateFormat.Hm(locale).format(dt);
+    final time = LocaleHelper.formatDate(dt, 'HH:mm', safeLocale);
     if (dateOnly == today) {
       return '${'today'.tr}, $time';
     }
     if (dateOnly == today.subtract(const Duration(days: 1))) {
       return '${'yesterday'.tr}, $time';
     }
-    final datePart = DateFormat('dd MMM', locale).format(dt);
+    final datePart = LocaleHelper.formatDate(dt, 'dd MMM', safeLocale);
     return '$datePart, $time';
   }
 

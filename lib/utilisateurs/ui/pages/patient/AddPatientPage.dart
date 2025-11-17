@@ -25,6 +25,21 @@ class _AddPatientPageState extends State<AddPatientPage> {
   final _service = PatientNetworkServiceImpl();
   bool _submitting = false;
 
+  /// Convert dropdown format to backend format
+  String _toBackendGender(String? gender) {
+    if (gender == null || gender.isEmpty) return 'm';
+    switch (gender) {
+      case 'MALE':
+        return 'm';
+      case 'FEMALE':
+        return 'f';
+      case 'OTHER':
+        return 'other';
+      default:
+        return 'm';
+    }
+  }
+
   Future<void> _submit() async {
     try {
     if (!_formKey.currentState!.validate()) return;
@@ -35,7 +50,7 @@ class _AddPatientPageState extends State<AddPatientPage> {
         'first_name': _firstNameCtrl.text.trim(),
         'last_name': _lastNameCtrl.text.trim(),
         'date_of_birth': _dobCtrl.text.trim(),
-        'gender': _gender ?? 'MALE',
+        'gender': _toBackendGender(_gender), // Convert to backend format (m/f/other)
         if (_bloodType != null && _bloodType!.isNotEmpty) 'blood_type': _bloodType,
       },
       'contact': {

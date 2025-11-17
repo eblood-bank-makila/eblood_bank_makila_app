@@ -44,7 +44,7 @@ class _HospitalBottomNavBarWidgetState extends ConsumerState<HospitalBottomNavBa
     Banquepage(),
     const HospitalHomePage(),
     Recherchepage(query: ''),
-    PanierPage(),
+    // PanierPage(),
     ProfilePage(),
   ];
 
@@ -65,11 +65,11 @@ class _HospitalBottomNavBarWidgetState extends ConsumerState<HospitalBottomNavBa
       activeIcon: Iconsax.search_normal_15,
       label: 'search',
     ),
-    BottomNavItem(
-      icon: Iconsax.shopping_cart,
-      activeIcon: Iconsax.shopping_cart5,
-      label: 'cart',
-    ),
+    // BottomNavItem(
+    //   icon: Iconsax.shopping_cart,
+    //   activeIcon: Iconsax.shopping_cart5,
+    //   label: 'cart',
+    // ),
     BottomNavItem(
       icon: Iconsax.profile_circle,
       activeIcon: Iconsax.profile_circle5,

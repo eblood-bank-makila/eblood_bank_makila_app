@@ -55,13 +55,12 @@ class _OpsSuccessScreenState extends State<OpsSuccessScreen> {
     final dateText = DateFormat('dd/MM/yyyy HH:mm').format(now);
 
     final Map<String, dynamic> map = {
-      'title': widget.title?.toString() ?? 'Reçu de paiement',
+      'title': widget.title?.toString() ?? 'payment_receipt'.tr,
       'message': widget.message?.toString() ?? '',
-      'ref': widget.ref ?? '-',
       'system_identifier': widget.systemIdentifier ?? (widget.bloodRequestId ?? '-'),
       'amount_text': widget.amountText ?? '-',
       'date_text': dateText,
-      'provider': 'Mobile Money (Onafriq)',
+      'provider': 'mobile_money'.tr,
       'items': <Map<String, dynamic>>[],
       'totals': <String, dynamic>{},
     };
@@ -76,13 +75,13 @@ class _OpsSuccessScreenState extends State<OpsSuccessScreen> {
           }
           final totals = <String, dynamic>{};
           if (data['total_amount'] != null) {
-            totals['Sous-total'] = data['total_amount'].toString();
+            totals['subtotal'.tr] = data['total_amount'].toString();
           }
           if (data['eblood_fee'] != null) {
-            totals['Frais plateforme'] = data['eblood_fee'].toString();
+            totals['platform_fees'.tr] = data['eblood_fee'].toString();
           }
           if (data['total_amount_merged'] != null) {
-            totals['Total'] = data['total_amount_merged'].toString();
+            totals['total'.tr] = data['total_amount_merged'].toString();
           }
           if (totals.isNotEmpty) {
             map['totals'] = totals;
@@ -106,7 +105,7 @@ class _OpsSuccessScreenState extends State<OpsSuccessScreen> {
                   if (volUnit != null && volUnit.isNotEmpty) volUnit,
                 ].join(' ');
                 final name = [
-                  'Sachet',
+                  'blood_bag'.tr,
                   [bt, rh].where((s) => s.isNotEmpty).join(' '),
                   if (volStr.isNotEmpty) '($volStr)',
                 ].join(' ').trim();
@@ -149,10 +148,10 @@ class _OpsSuccessScreenState extends State<OpsSuccessScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Reçu téléchargé: ${file.path}'),
+          content: Text('receipt_downloaded'.trParams({'path': file.path})),
           backgroundColor: Colors.green,
           action: SnackBarAction(
-            label: 'Ouvrir',
+            label: 'open'.tr,
             textColor: Colors.white,
             onPressed: () => OpenFile.open(file.path),
           ),
@@ -161,7 +160,7 @@ class _OpsSuccessScreenState extends State<OpsSuccessScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur lors de la génération: $e'), backgroundColor: Colors.red),
+        SnackBar(content: Text('generation_error'.trParams({'error': e.toString()})), backgroundColor: Colors.red),
       );
     } finally {
       if (mounted) setState(() => _isGeneratingInvoice = false);
@@ -182,13 +181,13 @@ class _OpsSuccessScreenState extends State<OpsSuccessScreen> {
       await file.writeAsBytes(bytes, flush: true);
       await Share.shareXFiles(
         [XFile(file.path)],
-        text: 'Reçu de paiement E-Blood',
-        subject: 'Reçu - ${invoice['ref']}',
+        text: 'eblood_payment_receipt'.tr,
+        subject: 'receipt_subject'.trParams({'identifier': invoice['system_identifier'].toString()}),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur lors du partage: $e'), backgroundColor: Colors.red),
+        SnackBar(content: Text('share_error'.trParams({'error': e.toString()})), backgroundColor: Colors.red),
       );
     } finally {
       if (mounted) setState(() => _isGeneratingInvoice = false);
@@ -212,7 +211,7 @@ class _OpsSuccessScreenState extends State<OpsSuccessScreen> {
         MaterialPageRoute(
           builder: (_) => InvoiceViewerPage(
             filePath: file.path,
-            title: 'Reçu - ${invoice['ref'] ?? safeRef}',
+            title: 'Reçu - ${invoice['system_identifier'] ?? safeRef}',
           ),
         ),
       );
@@ -393,9 +392,9 @@ class _OpsSuccessScreenState extends State<OpsSuccessScreen> {
                         children: [
                           Icon(Icons.payments_outlined, size: 20, color: Colors.grey.shade600),
                           const SizedBox(width: 8),
-                          const Text(
-                            'Montant',
-                            style: TextStyle(
+                          Text(
+                            'amount'.tr,
+                            style: const TextStyle(
                               color: Colors.grey,
                               fontSize: 13,
                               fontWeight: FontWeight.w500,
@@ -429,7 +428,7 @@ class _OpsSuccessScreenState extends State<OpsSuccessScreen> {
                 child: TextButton.icon(
                   onPressed: _isGeneratingInvoice ? null : _viewInvoice,
                   icon: const Icon(Icons.picture_as_pdf),
-                  label: const Text('Voir le reçu'),
+                  label: Text('view_receipt'.tr),
                 ),
               ),
             ),
@@ -445,7 +444,7 @@ class _OpsSuccessScreenState extends State<OpsSuccessScreen> {
                       child: ElevatedButton.icon(
                         onPressed: _isGeneratingInvoice ? null : _downloadInvoice,
                         icon: const Icon(Icons.download, color: Colors.white),
-                        label: const Text('Télécharger reçu'),
+                        label: Text('download_receipt'.tr),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.green,
                           foregroundColor: Colors.white,
@@ -458,7 +457,7 @@ class _OpsSuccessScreenState extends State<OpsSuccessScreen> {
                       child: OutlinedButton.icon(
                         onPressed: _isGeneratingInvoice ? null : _shareInvoice,
                         icon: const Icon(Icons.share),
-                        label: const Text('Partager'),
+                        label: Text('share'.tr),
                         style: OutlinedButton.styleFrom(
                           minimumSize: const Size.fromHeight(48),
                         ),

@@ -9,9 +9,12 @@ import 'package:eblood_bank_mak_app/commande/ui/pages/commande/pages/PaymentStat
 import 'package:eblood_bank_mak_app/commande/ui/pages/commande/widgets/PhoneNumberBottomSheet.dart';
 import 'package:eblood_bank_mak_app/gestionStocks/business/model/banque/BanqueModele.dart';
 import 'package:eblood_bank_mak_app/gestionStocks/business/model/poche/PocheModel.dart';
+import 'package:eblood_bank_mak_app/gestionStocks/ui/pages/banque/BloodBankAddressSuccessPage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:get/get.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 
@@ -98,7 +101,7 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          widget.isViewAddressMode ? 'Adresses des banques' : 'Commander en ligne',
+          widget.isViewAddressMode ? 'blood_bank_addresses'.tr : 'order_online'.tr,
           style: GoogleFonts.ubuntu(
             fontSize: 18,
             fontWeight: FontWeight.bold,
@@ -123,6 +126,34 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
 
   /// Build stepper header with progress indicator
   Widget _buildStepperHeader() {
+    // For view address mode: only 3 steps (bank, confirm, payment)
+    // For order mode: 4 steps (bank, quantity, confirm, payment)
+    if (widget.isViewAddressMode) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            _buildStepIndicator(0, 'bank'.tr, Iconsax.bank),
+            _buildStepConnector(0),
+            _buildStepIndicator(1, 'confirm'.tr, Iconsax.tick_circle),
+            _buildStepConnector(1),
+            _buildStepIndicator(2, 'payment'.tr, Iconsax.wallet_check),
+          ],
+        ),
+      );
+    }
+
+    // Order mode: 4 steps
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
       decoration: BoxDecoration(
@@ -137,13 +168,13 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
       ),
       child: Row(
         children: [
-          _buildStepIndicator(0, 'Banque', Iconsax.bank),
+          _buildStepIndicator(0, 'bank'.tr, Iconsax.bank),
           _buildStepConnector(0),
-          _buildStepIndicator(1, 'Quantité', Iconsax.box),
+          _buildStepIndicator(1, 'quantity'.tr, Iconsax.box),
           _buildStepConnector(1),
-          _buildStepIndicator(2, 'Confirmer', Iconsax.tick_circle),
+          _buildStepIndicator(2, 'confirm'.tr, Iconsax.tick_circle),
           _buildStepConnector(2),
-          _buildStepIndicator(3, 'Paiement', Iconsax.wallet_check),
+          _buildStepIndicator(3, 'payment'.tr, Iconsax.wallet_check),
         ],
       ),
     );
@@ -210,6 +241,21 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
 
   /// Build step content based on current step
   Widget _buildStepContent() {
+    if (widget.isViewAddressMode) {
+      // View address mode: 3 steps (bank, price selection, payment)
+      switch (_currentStep) {
+        case 0:
+          return _buildStep1SelectBloodBank();
+        case 1:
+          return _buildAddressPriceSelection(); // Show price selection for address access
+        case 2:
+          return _buildStep4PaymentProcessing();
+        default:
+          return Container();
+      }
+    }
+
+    // Order mode: 4 steps (bank, quantity, confirm, payment)
     switch (_currentStep) {
       case 0:
         return _buildStep1SelectBloodBank();
@@ -261,7 +307,7 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Groupe sanguin ${widget.bloodType}',
+                          '${'blood_type'.tr} ${widget.bloodType}',
                           style: GoogleFonts.ubuntu(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -269,7 +315,9 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
                           ),
                         ),
                         Text(
-                          '${filteredBanks.length} ${filteredBanks.length == 1 ? 'banque disponible' : 'banques disponibles'}',
+                          filteredBanks.length == 1
+                              ? 'bank_available_singular'.trParams({'count': filteredBanks.length.toString()})
+                              : 'bank_available_plural'.trParams({'count': filteredBanks.length.toString()}),
                           style: GoogleFonts.ubuntu(
                             fontSize: 13,
                             color: Colors.grey.shade600,
@@ -369,7 +417,7 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          'À $distanceText de vous',
+                          'distance_from_you'.trParams({'distance': distanceText}),
                           style: GoogleFonts.ubuntu(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
@@ -391,7 +439,7 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          '\$${pricePerBag.toStringAsFixed(0)} par poche',
+                          'price_per_bag'.trParams({'price': '\$${pricePerBag.toStringAsFixed(0)}'}),
                           style: GoogleFonts.ubuntu(
                             fontSize: 13,
                             color: Colors.grey.shade700,
@@ -426,8 +474,57 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
       _selectedBloodBank = bank;
     });
 
-    // Fetch blood bags and advance to next step
-    _fetchBloodBags(bank);
+    // For view address mode, fetch address access price
+    // For order mode, fetch blood bags
+    if (widget.isViewAddressMode) {
+      _fetchAddressAccessPrice(bank);
+    } else {
+      _fetchBloodBags(bank);
+    }
+  }
+
+  /// Fetch address access price for view address mode
+  Future<void> _fetchAddressAccessPrice(BanqueModele bank) async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+      _currentStep = 1; // Move to confirm step (step 2 in view address mode)
+    });
+
+    try {
+      debugPrint('📍 Fetching address access price for bank: ${bank.id}');
+
+      // Call API to get address access price
+      final response = await getWithDio(
+        '/eblood-connect/address-access-price',
+      );
+
+      debugPrint('📍 Address access price response: ${response.data}');
+
+      if (response.success && response.data != null) {
+        // Parse currency exchange response (same format as amount-exchances)
+        final currencyResponse = CurrencyExchangeResponse.fromJson({
+          'success': response.success,
+          'message': response.message ?? 'Address access price fetched successfully',
+          'data': response.data,
+        });
+
+        setState(() {
+          _currencyExchangeResponse = currencyResponse;
+          _isLoading = false;
+        });
+
+        debugPrint('✅ Address access price fetched successfully');
+      } else {
+        throw Exception(response.message ?? 'Failed to fetch address access price');
+      }
+    } catch (e) {
+      debugPrint('❌ Error fetching address access price: $e');
+      setState(() {
+        _errorMessage = e.toString();
+        _isLoading = false;
+      });
+    }
   }
 
   /// Fetch blood bags from selected blood bank
@@ -511,7 +608,7 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
       debugPrint('❌ Error fetching blood bags: $e');
       debugPrint('Stack trace: $stackTrace');
       setState(() {
-        _errorMessage = 'Erreur lors du chargement des poches: $e';
+        _errorMessage = '${'error_loading_bags'.tr}: $e';
         _isLoading = false;
       });
     }
@@ -526,7 +623,7 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
           child: AppSpinner.bloodDrop(
             size: 80,
             showMessage: true,
-            message: 'Chargement des poches disponibles...',
+            message: 'loading_available_bags'.tr,
           ),
         ),
       );
@@ -569,7 +666,7 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Sélectionnez la quantité',
+                          'select_quantity'.tr,
                           style: GoogleFonts.ubuntu(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -577,7 +674,9 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
                           ),
                         ),
                         Text(
-                          '$_maxQuantity ${_maxQuantity == 1 ? 'poche disponible' : 'poches disponibles'}',
+                          _maxQuantity == 1
+                              ? 'bag_available_singular'.trParams({'count': _maxQuantity.toString()})
+                              : 'bag_available_plural'.trParams({'count': _maxQuantity.toString()}),
                           style: GoogleFonts.ubuntu(
                             fontSize: 13,
                             color: Colors.grey.shade600,
@@ -611,6 +710,171 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
     );
   }
 
+  /// Build address price selection (for view address mode)
+  Widget _buildAddressPriceSelection() {
+    if (_isLoading) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(40),
+          child: AppSpinner.bloodDrop(
+            size: 80,
+            showMessage: true,
+            message: 'loading_prices'.tr,
+          ),
+        ),
+      );
+    }
+
+    if (_errorMessage != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(40),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Iconsax.info_circle,
+                size: 64,
+                color: Colors.red.shade300,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'error'.tr,
+                style: GoogleFonts.ubuntu(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red.shade700,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _errorMessage!,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.ubuntu(
+                  fontSize: 14,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: () {
+                  setState(() {
+                    _currentStep = 0;
+                    _errorMessage = null;
+                  });
+                },
+                icon: const Icon(Iconsax.arrow_left),
+                label: Text('back'.tr),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: ColorPages.COLOR_PRINCIPAL,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        // Header
+        Container(
+          padding: const EdgeInsets.all(20),
+          color: Colors.white,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Iconsax.wallet,
+                      color: ColorPages.COLOR_PRINCIPAL,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'select_payment_option'.tr,
+                          style: GoogleFonts.ubuntu(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'choose_currency_to_pay'.tr,
+                          style: GoogleFonts.ubuntu(
+                            fontSize: 13,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+
+        // Content
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                // Info message (don't show blood bank details until payment succeeds)
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.blue.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Iconsax.info_circle,
+                        color: Colors.blue.shade700,
+                        size: 24,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'address_info_after_payment'.tr,
+                          style: GoogleFonts.ubuntu(
+                            fontSize: 14,
+                            color: Colors.blue.shade900,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Payment options
+                _buildAddressPaymentOptions(),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   /// Step 3: Confirm order and payment
   Widget _buildStep3ConfirmOrder() {
     if (_isCreatingCart) {
@@ -620,7 +884,7 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
           child: AppSpinner.bloodDrop(
             size: 80,
             showMessage: true,
-            message: 'Création du panier...',
+            message: 'creating_cart'.tr,
           ),
         ),
       );
@@ -637,7 +901,7 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
           child: AppSpinner.bloodDrop(
             size: 80,
             showMessage: true,
-            message: 'Préparation de la commande...',
+            message: 'preparing_order'.tr,
           ),
         ),
       );
@@ -672,7 +936,7 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Confirmer la commande',
+                          'confirm_order'.tr,
                           style: GoogleFonts.ubuntu(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -680,7 +944,7 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
                           ),
                         ),
                         Text(
-                          'Vérifiez et payez',
+                          'verify_and_pay'.tr,
                           style: GoogleFonts.ubuntu(
                             fontSize: 13,
                             color: Colors.grey.shade600,
@@ -794,7 +1058,7 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
       debugPrint('❌ Error creating cart: $e');
       debugPrint('Stack trace: $stackTrace');
       setState(() {
-        _errorMessage = 'Erreur lors de la création du panier: $e';
+        _errorMessage = '${'error_creating_cart'.tr}: $e';
         _isCreatingCart = false;
       });
     }
@@ -823,7 +1087,7 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
             ),
             const SizedBox(height: 24),
             Text(
-              'Aucune banque disponible',
+              'no_bank_available'.tr,
               style: GoogleFonts.ubuntu(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -832,7 +1096,7 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
             ),
             const SizedBox(height: 8),
             Text(
-              'Aucune banque de sang n\'a le groupe ${widget.bloodType} en stock',
+              'no_bank_has_blood_type'.trParams({'bloodType': widget.bloodType}),
               style: GoogleFonts.ubuntu(
                 fontSize: 14,
                 color: Colors.grey.shade600,
@@ -868,7 +1132,7 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
             ),
             const SizedBox(height: 24),
             Text(
-              'Erreur',
+              'error'.tr,
               style: GoogleFonts.ubuntu(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -899,7 +1163,7 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
                 ),
               ),
               child: Text(
-                'Réessayer',
+                'retry'.tr,
                 style: GoogleFonts.ubuntu(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -936,7 +1200,7 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
             ),
             const SizedBox(height: 24),
             Text(
-              'Aucune poche disponible',
+              'no_bags_available'.tr,
               style: GoogleFonts.ubuntu(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -945,7 +1209,7 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
             ),
             const SizedBox(height: 8),
             Text(
-              'Cette banque n\'a pas de poches ${widget.bloodType} en stock actuellement',
+              'bank_no_bags_in_stock'.trParams({'bloodType': widget.bloodType}),
               style: GoogleFonts.ubuntu(
                 fontSize: 14,
                 color: Colors.grey.shade600,
@@ -1075,7 +1339,7 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Prix total',
+                    'total_price'.tr,
                     style: GoogleFonts.ubuntu(
                       fontSize: 16,
                       color: Colors.grey.shade700,
@@ -1167,7 +1431,9 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                'Demander $_selectedQuantity ${_selectedQuantity == 1 ? 'poche' : 'poches'}',
+                _selectedQuantity == 1
+                    ? 'request_bag_singular'.trParams({'count': _selectedQuantity.toString()})
+                    : 'request_bag_plural'.trParams({'count': _selectedQuantity.toString()}),
                 style: GoogleFonts.ubuntu(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -1212,7 +1478,7 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
           children: [
             // Title
             Text(
-              'Résumé de la commande',
+              'order_summary'.tr,
               style: GoogleFonts.ubuntu(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -1225,7 +1491,7 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
             // Blood type
             _buildSummaryRow(
               icon: Iconsax.health,
-              label: 'Groupe sanguin',
+              label: 'blood_type'.tr,
               value: widget.bloodType,
               valueColor: ColorPages.COLOR_PRINCIPAL,
             ),
@@ -1235,8 +1501,8 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
             // Quantity
             _buildSummaryRow(
               icon: Iconsax.box,
-              label: 'Quantité',
-              value: '$_selectedQuantity ${_selectedQuantity == 1 ? 'poche' : 'poches'}',
+              label: 'quantity'.tr,
+              value: _selectedQuantity == 1 ? '1 ${'bag'.tr}' : '$_selectedQuantity ${'bags'.tr}',
             ),
 
             const SizedBox(height: 12),
@@ -1244,7 +1510,7 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
             // Price per unit
             _buildSummaryRow(
               icon: Iconsax.dollar_circle,
-              label: 'Prix unitaire',
+              label: 'unit_price'.tr,
               value: '$currencySymbol${_filteredBloodBags.isNotEmpty ? _filteredBloodBags.first.price : 0}',
             ),
 
@@ -1260,7 +1526,7 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Total',
+                  'total'.tr,
                   style: GoogleFonts.ubuntu(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -1375,7 +1641,7 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
               Icon(Iconsax.wallet, color: Colors.white, size: 24),
             const SizedBox(width: 12),
             Text(
-              _isProcessingPayment ? 'Traitement...' : 'Payer $currencySymbol$totalPrice',
+              _isProcessingPayment ? 'processing'.tr : 'pay_amount'.trParams({'amount': '$currencySymbol$totalPrice'}),
               style: GoogleFonts.ubuntu(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -1417,7 +1683,11 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Taux de change: 1 ${convertedOption.currencyFromCode.toUpperCase()} = ${convertedOption.exchangedValue.toStringAsFixed(0)} ${convertedOption.currencyToCode.toUpperCase()}',
+                    'exchange_rate'.trParams({
+                      'from': convertedOption.currencyFromCode.toUpperCase(),
+                      'to': convertedOption.currencyToCode.toUpperCase(),
+                      'rate': convertedOption.exchangedValue.toStringAsFixed(0)
+                    }),
                     style: GoogleFonts.ubuntu(
                       fontSize: 14,
                       color: Colors.blue.shade700,
@@ -1437,8 +1707,8 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
               // Original currency button
               Expanded(
                 child: _buildPaymentButton(
-                  label: 'Payer $currencySymbol${totalPrice.toStringAsFixed(0)}',
-                  subtitle: '${cartCurrency.toUpperCase()} (Original)',
+                  label: 'pay_amount'.trParams({'amount': '$currencySymbol${totalPrice.toStringAsFixed(0)}'}),
+                  subtitle: '${cartCurrency.toUpperCase()} (${'original'.tr})',
                   onPressed: () => _processPaymentWithCurrency(null),
                   isPrimary: true,
                 ),
@@ -1449,14 +1719,116 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
               // Converted currency button
               Expanded(
                 child: _buildPaymentButton(
-                  label: 'Payer ${convertedOption.convertedAmount.toStringAsFixed(0)} ${convertedOption.currencyToCode.toUpperCase()}',
-                  subtitle: '${convertedOption.currencyToCode.toUpperCase()} (Converti)',
+                  label: 'pay_amount'.trParams({'amount': '${convertedOption.convertedAmount.toStringAsFixed(0)} ${convertedOption.currencyToCode.toUpperCase()}'}),
+                  subtitle: '${convertedOption.currencyToCode.toUpperCase()} (${'converted'.tr})',
                   onPressed: () => _processPaymentWithCurrency(convertedOption.currencyTo),
                   isPrimary: false,
                 ),
               ),
             ],
           ),
+        ],
+      ),
+    );
+  }
+
+  /// Build address payment options (for view address mode)
+  Widget _buildAddressPaymentOptions() {
+    if (_currencyExchangeResponse == null || _currencyExchangeResponse!.data.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    // Get the first currency option (address access price)
+    final priceOption = _currencyExchangeResponse!.data.first;
+
+    // Get currency symbol based on currency code
+    String getCurrencySymbol(String currencyCode) {
+      switch (currencyCode.toLowerCase()) {
+        case 'usd':
+          return '\$';
+        case 'cdf':
+          return 'FC';
+        case 'eur':
+          return '€';
+        default:
+          return currencyCode.toUpperCase();
+      }
+    }
+
+    final currencySymbol = getCurrencySymbol(priceOption.currencyFromCode);
+
+    // Filter out same-currency conversions
+    final differentCurrencyOptions = _currencyExchangeResponse!.data.where((option) {
+      final fromCode = option.currencyFromCode.toLowerCase();
+      final toCode = option.currencyToCode.toLowerCase();
+      return fromCode != toCode;
+    }).toList();
+
+    return FadeInUp(
+      duration: const Duration(milliseconds: 400),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Original currency payment button
+          _buildPaymentButton(
+            label: 'pay_amount'.trParams({
+              'amount': '$currencySymbol${priceOption.amount.toStringAsFixed(0)}'
+            }),
+            subtitle: '${priceOption.currencyFromCode.toUpperCase()} (${'original'.tr})',
+            onPressed: () => _processPaymentWithCurrency(priceOption.currencyFrom),
+            isPrimary: true,
+          ),
+
+          // Show converted currency option if available
+          if (differentCurrencyOptions.isNotEmpty) ...[
+            const SizedBox(height: 16),
+
+            // Exchange rate info
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.blue.shade100),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Iconsax.money_change,
+                    color: Colors.blue.shade600,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'exchange_rate'.trParams({
+                        'from': differentCurrencyOptions.first.currencyFromCode.toUpperCase(),
+                        'to': differentCurrencyOptions.first.currencyToCode.toUpperCase(),
+                        'rate': differentCurrencyOptions.first.exchangedValue.toStringAsFixed(0)
+                      }),
+                      style: GoogleFonts.ubuntu(
+                        fontSize: 14,
+                        color: Colors.blue.shade700,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Converted currency payment button
+            _buildPaymentButton(
+              label: 'pay_amount'.trParams({
+                'amount': '${differentCurrencyOptions.first.convertedAmount.toStringAsFixed(0)} ${differentCurrencyOptions.first.currencyToCode.toUpperCase()}'
+              }),
+              subtitle: '${differentCurrencyOptions.first.currencyToCode.toUpperCase()} (${'converted'.tr})',
+              onPressed: () => _processPaymentWithCurrency(differentCurrencyOptions.first.currencyTo),
+              isPrimary: false,
+            ),
+          ],
         ],
       ),
     );
@@ -1482,7 +1854,7 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
               ),
               const SizedBox(height: 32),
               Text(
-                'Soumission du paiement...',
+                'submitting_payment'.tr,
                 style: GoogleFonts.ubuntu(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -1491,7 +1863,7 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
               ),
               const SizedBox(height: 12),
               Text(
-                'Veuillez patienter',
+                'please_wait'.tr,
                 style: GoogleFonts.ubuntu(
                   fontSize: 15,
                   color: Colors.grey.shade600,
@@ -1506,9 +1878,16 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
     // Payment submitted successfully, show PaymentStatusPage embedded
     String baseUrl = dotenv.env['BASE_URL'] ?? 'http://192.168.30.132:3101/eblood-hstdapi/v1';
 
+    // Use custom endpoint for view address mode
+    String? customCheckStatusEndpoint;
+    if (widget.isViewAddressMode) {
+      customCheckStatusEndpoint = '/eblood-connect/blood-bank-address-request/check-payment-status?identifier=${_systemRef!}';
+    }
+
     return PaymentStatusPage(
       systemRef: _systemRef!,
       baseUrl: baseUrl,
+      customCheckStatusEndpoint: customCheckStatusEndpoint,
       onPaymentResult: ({
         required int page,
         required String title,
@@ -1517,21 +1896,39 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
       }) {
         debugPrint("💳 Payment result: $paymentSucceed - $message");
         if (paymentSucceed && mounted) {
-          // Show success message and navigate back
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Paiement réussi! $message'),
-              backgroundColor: Colors.green,
-              duration: const Duration(seconds: 3),
-            ),
-          );
-          // Navigate back to home
-          Navigator.of(context).popUntil((route) => route.isFirst);
+          if (widget.isViewAddressMode && _selectedBloodBank != null) {
+            // For view address mode, navigate to blood bank address details page
+            // This callback is called after the confetti screen (2 seconds delay in PaymentStatusPage)
+            debugPrint("🎯 View address mode: Navigating to blood bank details page");
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (context) => BloodBankAddressSuccessPage(
+                  bloodBank: _selectedBloodBank!,
+                  onClose: () {
+                    debugPrint("🔘 Closing blood bank address details and navigating to home");
+                    // Navigate to home using GoRouter (it will clear the stack)
+                    context.go('/app/MainApp');
+                  },
+                ),
+              ),
+            );
+          } else {
+            // For order mode, show success message and navigate back
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('${'payment_successful'.tr}! $message'),
+                backgroundColor: Colors.green,
+                duration: const Duration(seconds: 3),
+              ),
+            );
+            // Navigate back to home
+            Navigator.of(context).popUntil((route) => route.isFirst);
+          }
         } else if (!paymentSucceed && mounted) {
           // Show error message
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Paiement échoué: $message'),
+              content: Text('${'payment_failed'.tr}: $message'),
               backgroundColor: Colors.red,
               duration: const Duration(seconds: 3),
             ),
@@ -1602,7 +1999,21 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
 
     if (!mounted) return;
 
-    // 2) Ask for blood request configuration (patient/storage, reason, etc.)
+    // For view address mode, skip blood request config dialog
+    if (widget.isViewAddressMode) {
+      setState(() {
+        _phoneNumber = phoneNumber;
+        _selectedCurrencyId = currencyId;
+        // Move to Step 2 (payment step in view address mode)
+        _currentStep = 2;
+      });
+
+      // Submit address request payment
+      _submitAddressRequestPayment(phoneNumber, currencyId);
+      return;
+    }
+
+    // 2) Ask for blood request configuration (patient/storage, reason, etc.) - only for order mode
     final config = await showModalBottomSheet<Map<String, String?>>(
       context: context,
       isScrollControlled: true,
@@ -1707,6 +2118,75 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
       }
     } catch (e) {
       debugPrint('❌ Error processing payment: $e');
+
+      if (!mounted) return;
+
+      setState(() {
+        _isProcessingPayment = false;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  /// Submit address request payment (for view address mode)
+  Future<void> _submitAddressRequestPayment(String phoneNumber, String? currencyId) async {
+    debugPrint("🚀 Starting address request payment with phone: $phoneNumber");
+    debugPrint("💰 Currency ID to send: $currencyId");
+
+    if (!mounted) return;
+
+    setState(() {
+      _isProcessingPayment = true;
+    });
+
+    try {
+      debugPrint("💳 Calling address request payment API...");
+
+      final response = await postWithDio(
+        '/eblood-connect/blood-bank-address-request/submit-payment',
+        body: {
+          'phone_number': phoneNumber,
+          if (currencyId != null) 'transactional_currency_id': currencyId,
+        },
+      );
+
+      debugPrint("🎯 Payment result: ${response.success}");
+      debugPrint("📄 Message: ${response.message}");
+
+      if (!mounted) return;
+
+      setState(() {
+        _isProcessingPayment = false;
+      });
+
+      if (response.success && response.data != null) {
+        final systemRef = response.data['systemRef'] ?? response.data['blood_bank_address_request_identifier'];
+
+        if (systemRef != null) {
+          debugPrint("🎉 Address request payment initiated successfully with systemRef: $systemRef");
+
+          if (!mounted) return;
+
+          // Store systemRef for Step 4 to use
+          setState(() {
+            _systemRef = systemRef;
+          });
+        } else {
+          throw Exception('No system reference returned');
+        }
+      } else {
+        throw Exception(response.message ?? 'Payment failed');
+      }
+    } catch (e) {
+      debugPrint('❌ Error processing address request payment: $e');
 
       if (!mounted) return;
 

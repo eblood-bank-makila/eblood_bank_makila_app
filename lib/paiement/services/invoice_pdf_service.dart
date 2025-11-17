@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
@@ -10,11 +11,10 @@ class InvoicePdfService {
   /// Expected keys in [invoice]:
   /// - title (String)
   /// - message (String)
-  /// - ref (String)                // Onafriq transaction ref
   /// - system_identifier (String)  // Internal identifier
   /// - amount_text (String)        // Formatted amount with currency
   /// - date_text (String)          // Localized date/time string
-  /// - provider (String)           // e.g., "Mobile Money (Onafriq)"
+  /// - provider (String)           // e.g., "Mobile Money"
   /// - items (List<Map>)           // Optional itemized lines
   /// - totals (Map)                // Optional totals breakdown
   static Future<Uint8List> generateReceipt({
@@ -24,16 +24,26 @@ class InvoicePdfService {
 
     final title = (invoice['title'] ?? 'Reçu de paiement').toString();
     final message = (invoice['message'] ?? '').toString();
-    final ref = (invoice['ref'] ?? '-').toString();
     final identifier = (invoice['system_identifier'] ?? '-').toString();
     final amountText = (invoice['amount_text'] ?? '-').toString();
     final dateText = (invoice['date_text'] ?? '').toString();
     final provider = (invoice['provider'] ?? 'Mobile Money').toString();
 
+    // Load app logo
+    pw.ImageProvider? logoImage;
+    try {
+      final logoBytes = await rootBundle.load('assets/icons/app_icon.png');
+      logoImage = pw.MemoryImage(logoBytes.buffer.asUint8List());
+    } catch (e) {
+      // Logo loading failed, continue without it
+      // Silently fail - logo is optional
+    }
+
     final baseText = pw.TextStyle(fontSize: 11);
     final labelStyle = pw.TextStyle(fontSize: 10, color: PdfColors.grey700);
     final valueStyle = pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold);
     final titleStyle = pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColors.red);
+    final appNameStyle = pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold, color: PdfColors.red);
 
     pdf.addPage(
       pw.Page(
@@ -42,19 +52,41 @@ class InvoicePdfService {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.stretch,
             children: [
-              // Top banner
+              // Header with logo and app name
               pw.Container(
-                height: 60,
+                padding: const pw.EdgeInsets.all(20),
                 decoration: const pw.BoxDecoration(
                   gradient: pw.LinearGradient(
-                    colors: [PdfColors.red, PdfColors.blue, PdfColors.amber],
+                    colors: [PdfColors.red, PdfColors.red700],
                     begin: pw.Alignment.topLeft,
                     end: pw.Alignment.bottomRight,
                   ),
-                  borderRadius: pw.BorderRadius.all(pw.Radius.circular(8)),
+                  borderRadius: pw.BorderRadius.all(pw.Radius.circular(12)),
+                ),
+                child: pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.center,
+                  children: [
+                    if (logoImage != null) ...[
+                      pw.Container(
+                        width: 60,
+                        height: 60,
+                        decoration: pw.BoxDecoration(
+                          color: PdfColors.white,
+                          borderRadius: pw.BorderRadius.circular(12),
+                        ),
+                        padding: const pw.EdgeInsets.all(8),
+                        child: pw.Image(logoImage),
+                      ),
+                      pw.SizedBox(width: 16),
+                    ],
+                    pw.Text(
+                      'E-BLOOD',
+                      style: appNameStyle.copyWith(color: PdfColors.white),
+                    ),
+                  ],
                 ),
               ),
-              pw.SizedBox(height: 12),
+              pw.SizedBox(height: 20),
 
               // Card-like body
               pw.Container(
@@ -80,10 +112,9 @@ class InvoicePdfService {
 
                     // Key details
                     _kvRow('Date', dateText, labelStyle, valueStyle),
-                    _kvRow('Référence paiement', ref, labelStyle, valueStyle),
-                    _kvRow('Référence système', identifier, labelStyle, valueStyle),
+                    _kvRow('Référence', identifier, labelStyle, valueStyle),
                     _kvRow('Montant', amountText, labelStyle, valueStyle),
-                    _kvRow('Méthode', provider, labelStyle, valueStyle),
+                    _kvRow('Méthode de paiement', provider, labelStyle, valueStyle),
 
                     // Optional items table
                     if (invoice['items'] is List && (invoice['items'] as List).isNotEmpty) ...[

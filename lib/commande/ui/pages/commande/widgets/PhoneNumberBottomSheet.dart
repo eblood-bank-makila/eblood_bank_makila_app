@@ -77,13 +77,13 @@ class _PhoneNumberBottomSheetState extends State<PhoneNumberBottomSheet> {
       setState(() {
         _isLoading = true;
       });
-      
+
       String formattedNumber = _formatPhoneNumber(_phoneController.text);
-      
+
       // Simulate a small delay for better UX
       Future.delayed(const Duration(milliseconds: 500), () {
+        // Only call the callback - the parent will handle closing the bottom sheet
         widget.onPhoneNumberSubmitted(formattedNumber);
-        Navigator.of(context).pop();
       });
     }
   }

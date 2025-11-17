@@ -1,140 +1,3 @@
-// import 'package:eblood_bank_mak_app/apps/autres/CarouselPage.dart';
-// import 'package:eblood_bank_mak_app/apps/widgets/BanqueWidget.dart';
-// import 'package:eblood_bank_mak_app/commande/ui/pages/NotificationPage.dart';
-// import 'package:eblood_bank_mak_app/gestionStocks/ui/pages/banque/BanqueCtrl.dart';
-// import 'package:flutter/material.dart';
-// import 'package:flutter_riverpod/flutter_riverpod.dart';
-// import 'package:eblood_bank_mak_app/apps/config/theme/ColorPages.dart';
-//
-// class Banquepage extends ConsumerStatefulWidget {
-//   const Banquepage({super.key});
-//
-//   @override
-//   ConsumerState createState() => _BanquepageState();
-// }
-//
-// class _BanquepageState extends ConsumerState<Banquepage> {
-//   int currentSlider = 0;
-//   int selectedIndex = 0;
-//
-//   void initState() {
-//     // TODO: implement initState
-//     super.initState();
-//     WidgetsBinding.instance.addPostFrameCallback((_) {
-//       // action initiale de la page et appel d'un controleur
-//       var ctrl = ref.read(banqueCtrlProvider.notifier);
-//       ctrl.listebanque();
-//     });
-//   }
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     var state = ref.watch(banqueCtrlProvider);
-//
-//     return Scaffold(
-//       backgroundColor: ColorPages.COLOR_BLANCHE,
-//       appBar: AppBar(
-//         automaticallyImplyLeading: false,
-//         backgroundColor: ColorPages.COLOR_BLANCHE,
-//         title: Image.asset(
-//           'images/image4.png',
-//           width: 60,
-//         ),
-//         actions: [
-//           Padding(
-//             padding: const EdgeInsets.only(right: 10),
-//             child: Stack(
-//               children: [
-//                 IconButton(
-//                   onPressed: () {
-//                     Navigator.push(
-//                         context,
-//                         MaterialPageRoute(
-//                             builder: (context) => NotificationPage()));
-//                   },
-//                   icon: Icon(
-//                     Icons.notifications_none,
-//                     color: ColorPages.COLOR_NOIR,
-//                   ),
-//                 ),
-//                 Positioned(
-//                   right: 17,
-//                   top: 15,
-//                   child: Container(
-//                     width: 7, // Largeur du point
-//                     height: 7, // Hauteur du point
-//                     decoration: BoxDecoration(
-//                       color: ColorPages.COLOR_PRINCIPAL, // Couleur du point
-//                       shape: BoxShape.circle, // Forme circulaire
-//                     ),
-//                   ),
-//                 ),
-//               ],
-//             ),
-//           ),
-//         ],
-//       ),
-//       body: Column(
-//         mainAxisAlignment: MainAxisAlignment.start,
-//         crossAxisAlignment: CrossAxisAlignment.start,
-//         children: [
-//           CarouselPage(),
-//           Container(
-//             margin: EdgeInsets.all(10),
-//             padding: EdgeInsets.symmetric(vertical: 6, horizontal: 13),
-//             child: Row(
-//               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-//               children: [
-//                 Text("Banques de sang",
-//                     style: TextStyle(
-//                         color: ColorPages.COLOR_GRIS,
-//                         fontWeight: FontWeight.bold)),
-//                 Text(
-//                   "voir tout.",
-//                   style: TextStyle(
-//                       color: ColorPages.COLOR_NOIR,
-//                       fontWeight: FontWeight.bold),
-//                 ),
-//               ],
-//             ),
-//           ),
-//           Expanded(
-//             child: SizedBox(
-//               child: state.isLoading
-//                   ? _chargement() // Affiche l'indicateur de chargement si `isLoading` est vrai
-//                   : state.banques.isNotEmpty
-//                       ? ListView.builder(
-//                           itemCount: state.banques.length,
-//                           itemBuilder: (context, page) {
-//                             final banque = state.banques[page];
-//                             return BanqueWidget(
-//                               banque: banque,
-//                               authToken: '',
-//                             );
-//                           },
-//                         )
-//                       : Center(
-//                           child: _chargement() // Message pour les données vides
-//                           ),
-//             ),
-//           ),
-//         ],
-//       ),
-//     );
-//   }
-//
-//   /* Widget _chargement(BuildContext context){
-//      var state=ref.watch(banqueCtrlProvider);
-//     return Visibility(visible: state.isLoading, child: CircularProgressIndicator( valueColor:
-//     AlwaysStoppedAnimation<Color>(ColorPages.COLOR_PRINCIPAL),));
-//   } */
-//
-//   Widget _chargement() {
-//     return CircularProgressIndicator(
-//       valueColor: AlwaysStoppedAnimation<Color>(ColorPages.COLOR_PRINCIPAL),
-//     );
-//   }
-// }
 
 import 'package:animate_do/animate_do.dart';
 import 'package:eblood_bank_mak_app/apps/widgets/AppSpinner.dart';
@@ -149,6 +12,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:eblood_bank_mak_app/apps/config/theme/ColorPages.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:get/get.dart';
 
 class Banquepage extends ConsumerStatefulWidget {
   //final List<DatumNotificationModel> notification;
@@ -160,15 +24,7 @@ class Banquepage extends ConsumerStatefulWidget {
 
 class _BanquepageState extends ConsumerState<Banquepage> {
   final TextEditingController searchController = TextEditingController();
-
-  // @override
-  // void initState() {
-  //   super.initState();
-  //   WidgetsBinding.instance.addPostFrameCallback((_) {
-  //     var ctrl = ref.read(banqueCtrlProvider.notifier);
-  //     ctrl.listebanque();
-  //   });
-  // }
+ 
   @override
   void initState() {
     super.initState();
@@ -264,7 +120,7 @@ class _BanquepageState extends ConsumerState<Banquepage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Poches de sang disponibles',
+                        'available_blood_bags'.tr,
                         style: GoogleFonts.ubuntu(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -272,7 +128,7 @@ class _BanquepageState extends ConsumerState<Banquepage> {
                         ),
                       ),
                       Text(
-                        'Trouvez du sang rapidement',
+                        'find_blood_quickly'.tr,
                         style: GoogleFonts.ubuntu(
                           fontSize: 12,
                           color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.7),
@@ -367,7 +223,7 @@ class _BanquepageState extends ConsumerState<Banquepage> {
                     const SizedBox(width: 15),
                     Expanded(
                       child: Text(
-                        'Rechercher une poche... ex. A+',
+                        'search_blood_bag_placeholder'.tr,
                         style: GoogleFonts.ubuntu(
                           color: Colors.grey.shade500,
                           fontSize: 14,
@@ -429,7 +285,7 @@ class _BanquepageState extends ConsumerState<Banquepage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Poches de sang disponibles',
+                      'available_blood_bags'.tr,
                       style: GoogleFonts.ubuntu(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -437,7 +293,7 @@ class _BanquepageState extends ConsumerState<Banquepage> {
                       ),
                     ),
                     Text(
-                      'Stock total disponible',
+                      'total_stock_available'.tr,
                       style: GoogleFonts.ubuntu(
                         fontSize: 14,
                         color: Colors.grey.shade600,
@@ -445,18 +301,18 @@ class _BanquepageState extends ConsumerState<Banquepage> {
                     ),
                   ],
                 ),
-                TextButton(
-                  onPressed: () {
-                    // Add "voir tout" functionality if needed
-                  },
-                  child: Text(
-                    'Voir tout',
-                    style: GoogleFonts.ubuntu(
-                      color: ColorPages.COLOR_PRINCIPAL,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
+                // TextButton(
+                //   onPressed: () {
+                //     // Add "voir tout" functionality if needed
+                //   },
+                //   child: Text(
+                //     'see_all'.tr,
+                //     style: GoogleFonts.ubuntu(
+                //       color: ColorPages.COLOR_PRINCIPAL,
+                //       fontWeight: FontWeight.w600,
+                //     ),
+                //   ),
+                // ),
               ],
             ),
           ),
@@ -582,7 +438,7 @@ class _BanquepageState extends ConsumerState<Banquepage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '$totalBags ${totalBags == 1 ? 'poche' : 'poches'} disponible${totalBags > 1 ? 's' : ''}',
+                        'bags_available'.trParams({'count': totalBags.toString()}),
                         style: GoogleFonts.ubuntu(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -591,7 +447,7 @@ class _BanquepageState extends ConsumerState<Banquepage> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Dans $totalBanks ${totalBanks == 1 ? 'banque' : 'banques'} de sang',
+                        'in_blood_banks'.trParams({'count': totalBanks.toString()}),
                         style: GoogleFonts.ubuntu(
                           fontSize: 13,
                           color: Colors.grey.shade600,
@@ -615,7 +471,7 @@ class _BanquepageState extends ConsumerState<Banquepage> {
 
             // Blood types section
             Text(
-              'Disponibilité par groupe sanguin',
+              'availability_by_blood_type'.tr,
               style: GoogleFonts.ubuntu(
                 fontSize: 15,
                 fontWeight: FontWeight.bold,
@@ -687,7 +543,7 @@ class _BanquepageState extends ConsumerState<Banquepage> {
                                 ),
                               ),
                               Text(
-                                bagCount == 1 ? 'poche' : 'poches',
+                                bagCount == 1 ? 'bag'.tr : 'bags'.tr,
                                 style: GoogleFonts.ubuntu(
                                   fontSize: 11,
                                   color: Colors.grey.shade600,
@@ -717,7 +573,7 @@ class _BanquepageState extends ConsumerState<Banquepage> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Aucun groupe sanguin disponible',
+                      'no_blood_type_available'.tr,
                       style: GoogleFonts.ubuntu(
                         fontSize: 13,
                         color: Colors.grey.shade600,
@@ -757,7 +613,7 @@ class _BanquepageState extends ConsumerState<Banquepage> {
           ),
           const SizedBox(height: 16),
           Text(
-            'Aucune banque disponible',
+            'no_bank_available'.tr,
             style: GoogleFonts.ubuntu(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -766,7 +622,7 @@ class _BanquepageState extends ConsumerState<Banquepage> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Tirez vers le bas pour actualiser',
+            'pull_down_to_refresh'.tr,
             style: GoogleFonts.ubuntu(
               fontSize: 14,
               color: Colors.grey.shade600,
@@ -784,7 +640,7 @@ class _BanquepageState extends ConsumerState<Banquepage> {
         child: AppSpinner.bloodDrop(
           size: 80,
           showMessage: true,
-          message: 'Chargement des banques de sang...',
+          message: 'loading_blood_banks'.tr,
         ),
       ),
     );
@@ -851,7 +707,7 @@ class _BanquepageState extends ConsumerState<Banquepage> {
                             ),
                           ),
                           Text(
-                            '$bagCount ${bagCount == 1 ? 'poche' : 'poches'}',
+                            '$bagCount ${bagCount == 1 ? 'bag'.tr : 'bags'.tr}',
                             style: GoogleFonts.ubuntu(
                               fontSize: 14,
                               color: Colors.white.withValues(alpha: 0.9),
@@ -867,7 +723,7 @@ class _BanquepageState extends ConsumerState<Banquepage> {
 
                 // Title
                 Text(
-                  'Comment souhaitez-vous procéder ?',
+                  'how_would_you_like_to_proceed'.tr,
                   style: GoogleFonts.ubuntu(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -883,8 +739,8 @@ class _BanquepageState extends ConsumerState<Banquepage> {
                   context: context,
                   icon: Iconsax.location,
                   iconColor: Colors.blue,
-                  title: "Voir l'adresse de la banque de sang",
-                  subtitle: "L'adresse sera affichée après le paiement pour aller vous en procurer sur place",
+                  title: "view_blood_bank_address".tr,
+                  subtitle: "address_shown_after_payment".tr,
                   onTap: () {
                     Navigator.pop(context);
                     _showBloodBankAddresses(context, bloodType);
@@ -898,8 +754,8 @@ class _BanquepageState extends ConsumerState<Banquepage> {
                   context: context,
                   icon: Iconsax.shopping_cart,
                   iconColor: ColorPages.COLOR_PRINCIPAL,
-                  title: "Commander en ligne",
-                  subtitle: "Vous pouvez commander et payer en ligne et se faire livrer à l'hôpital",
+                  title: "order_online".tr,
+                  subtitle: "order_and_deliver_to_hospital".tr,
                   onTap: () {
                     Navigator.pop(context);
                     _orderOnline(context, bloodType);
@@ -912,7 +768,7 @@ class _BanquepageState extends ConsumerState<Banquepage> {
                 TextButton(
                   onPressed: () => Navigator.pop(context),
                   child: Text(
-                    'Annuler',
+                    'cancel'.tr,
                     style: GoogleFonts.ubuntu(
                       fontSize: 16,
                       color: Colors.grey.shade600,

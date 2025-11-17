@@ -6,6 +6,7 @@ import 'package:eblood_bank_mak_app/apps/autres/PolitiqueConfidentialitePage.dar
 import 'package:eblood_bank_mak_app/apps/autres/ConditionsGeneralesPage.dart';
 import 'package:eblood_bank_mak_app/apps/config/theme/ColorPages.dart';
 import 'package:eblood_bank_mak_app/apps/config/enums/CommonConfigType.dart';
+import 'package:eblood_bank_mak_app/apps/services/LanguageService.dart';
 import 'package:eblood_bank_mak_app/commande/business/model/DatumPanierModel.dart';
 import 'package:eblood_bank_mak_app/gestionStocks/ui/pages/favoris/FavorisPage.dart';
 import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/notification/NotificationPage.dart';
@@ -286,6 +287,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             },
           ),
 
+          _buildLanguageListTile(),
+
           const SizedBox(height: 32),
 
           // Support Section
@@ -424,6 +427,73 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       ),
     );
+  }
+
+  Widget _buildLanguageListTile() {
+    final languageService = Get.find<LanguageService>();
+
+    return Obx(() {
+      final currentLang = languageService.currentLanguageInfo;
+
+      return Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.2),
+            width: 1,
+          ),
+        ),
+        child: ListTile(
+          onTap: () => _showLanguageBottomSheet(context),
+          leading: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(
+              Iconsax.global,
+              size: 20,
+              color: ColorPages.COLOR_PRINCIPAL,
+            ),
+          ),
+          title: Text(
+            'language'.tr,
+            style: GoogleFonts.ubuntu(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: Colors.black87,
+            ),
+          ),
+          subtitle: Text(
+            currentLang['name'] ?? 'English',
+            style: GoogleFonts.ubuntu(
+              fontSize: 13,
+              color: Colors.grey.shade600,
+            ),
+          ),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                currentLang['flag'] ?? '🇬🇧',
+                style: const TextStyle(fontSize: 20),
+              ),
+              const SizedBox(width: 8),
+              Icon(
+                Iconsax.arrow_right_3,
+                size: 18,
+                color: Colors.grey.shade400,
+              ),
+            ],
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        ),
+      );
+    });
   }
 
   Widget _buildAccountTypeListTile() {
@@ -649,6 +719,152 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  void _showLanguageBottomSheet(BuildContext context) {
+    final languageService = Get.find<LanguageService>();
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (bottomSheetContext) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle bar
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // Title
+            Text(
+              'select_language'.tr,
+              style: GoogleFonts.ubuntu(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: ColorPages.COLOR_PRINCIPAL,
+              ),
+            ),
+
+            const SizedBox(height: 8),
+
+            Text(
+              'choose_preferred_language'.tr,
+              style: GoogleFonts.ubuntu(
+                fontSize: 14,
+                color: Colors.grey.shade600,
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // Language options
+            Obx(() {
+              return Column(
+                children: languageService.availableLanguages.map((lang) {
+                  final isSelected = languageService.currentLanguage == lang['code'];
+
+                  return FadeInUp(
+                    duration: const Duration(milliseconds: 300),
+                    child: ListTile(
+                      leading: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isSelected
+                            ? ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.1)
+                            : Colors.grey.shade100,
+                        ),
+                        child: Center(
+                          child: Text(
+                            lang['flag']!,
+                            style: const TextStyle(fontSize: 20),
+                          ),
+                        ),
+                      ),
+                      title: Text(
+                        lang['name']!,
+                        style: GoogleFonts.ubuntu(
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          color: isSelected ? ColorPages.COLOR_PRINCIPAL : Colors.black87,
+                        ),
+                      ),
+                      subtitle: Text(
+                        lang['nativeName']!,
+                        style: GoogleFonts.ubuntu(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                      trailing: isSelected
+                          ? const Icon(
+                              Icons.check_circle,
+                              color: ColorPages.COLOR_PRINCIPAL,
+                            )
+                          : null,
+                      selected: isSelected,
+                      selectedTileColor: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.05),
+                      onTap: () async {
+                        final navigator = Navigator.of(bottomSheetContext);
+                        final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+                        await languageService.changeLanguage(lang['code']!);
+                        navigator.pop();
+
+                        // Show success message
+                        scaffoldMessenger.showSnackBar(
+                          SnackBar(
+                            content: Row(
+                              children: [
+                                const Icon(
+                                  Icons.check_circle,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    'language_changed'.tr,
+                                    style: const TextStyle(color: Colors.white),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            backgroundColor: ColorPages.COLOR_PRINCIPAL,
+                            duration: const Duration(seconds: 2),
+                            behavior: SnackBarBehavior.floating,
+                            margin: const EdgeInsets.all(16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                }).toList(),
+              );
+            }),
+
+            const SizedBox(height: 20),
+          ],
         ),
       ),
     );

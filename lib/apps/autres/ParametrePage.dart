@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:get/get.dart';
 
 class ParametrePage extends ConsumerStatefulWidget {
   const ParametrePage({super.key});
@@ -107,7 +108,7 @@ class _ParametrePageState extends ConsumerState<ParametrePage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Réglages',
+                  'settings'.tr,
                   style: GoogleFonts.ubuntu(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -115,7 +116,7 @@ class _ParametrePageState extends ConsumerState<ParametrePage> {
                   ),
                 ),
                 Text(
-                  'Paramètres de l\'application',
+                  'app_settings'.tr,
                   style: GoogleFonts.ubuntu(
                     fontSize: 14,
                     color: Colors.white.withValues(alpha: 0.9),
@@ -138,7 +139,7 @@ class _ParametrePageState extends ConsumerState<ParametrePage> {
           // Account Settings Section
           FadeInUp(
             delay: const Duration(milliseconds: 200),
-            child: _buildSectionTitle('COMPTE'),
+            child: _buildSectionTitle('account_section'.tr),
           ),
 
           const SizedBox(height: 16),
@@ -147,8 +148,8 @@ class _ParametrePageState extends ConsumerState<ParametrePage> {
             delay: const Duration(milliseconds: 300),
             child: _buildSettingItem(
               icon: Iconsax.lock,
-              title: 'Modifier le mot de passe',
-              subtitle: 'Changer votre mot de passe',
+              title: 'change_password'.tr,
+              subtitle: 'change_your_password'.tr,
               onTap: () {
                 Navigator.push(
                   context,
@@ -164,8 +165,8 @@ class _ParametrePageState extends ConsumerState<ParametrePage> {
             delay: const Duration(milliseconds: 400),
             child: _buildSettingItem(
               icon: Iconsax.trash,
-              title: 'Supprimer le compte',
-              subtitle: 'Bientôt disponible',
+              title: 'delete_account'.tr,
+              subtitle: 'coming_soon'.tr,
               iconColor: Colors.red.shade600,
               isComingSoon: true,
             ),
@@ -176,7 +177,7 @@ class _ParametrePageState extends ConsumerState<ParametrePage> {
           // App Settings Section
           FadeInUp(
             delay: const Duration(milliseconds: 500),
-            child: _buildSectionTitle('APPLICATION'),
+            child: _buildSectionTitle('application_section'.tr),
           ),
 
           const SizedBox(height: 16),
@@ -185,7 +186,7 @@ class _ParametrePageState extends ConsumerState<ParametrePage> {
             delay: const Duration(milliseconds: 600),
             child: _buildSettingItem(
               icon: Iconsax.info_circle,
-              title: 'Version',
+              title: 'version'.tr,
               subtitle: '2.0.0',
               showArrow: false,
             ),
@@ -197,8 +198,8 @@ class _ParametrePageState extends ConsumerState<ParametrePage> {
             delay: const Duration(milliseconds: 700),
             child: _buildSettingItem(
               icon: Iconsax.broom,
-              title: 'Effacer le cache',
-              subtitle: 'Libérer de l\'espace de stockage',
+              title: 'clear_cache'.tr,
+              subtitle: 'free_storage_space'.tr,
               onTap: () => _showClearCacheDialog(context),
             ),
           ),
@@ -283,7 +284,7 @@ class _ParametrePageState extends ConsumerState<ParametrePage> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  'Bientôt',
+                  'soon'.tr,
                   style: GoogleFonts.ubuntu(
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
@@ -342,7 +343,7 @@ class _ParametrePageState extends ConsumerState<ParametrePage> {
 
                 // Title
                 Text(
-                  'Effacer le cache',
+                  'clear_cache'.tr,
                   style: GoogleFonts.ubuntu(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -354,7 +355,7 @@ class _ParametrePageState extends ConsumerState<ParametrePage> {
 
                 // Message
                 Text(
-                  'Cette action supprimera les fichiers temporaires pour libérer de l\'espace de stockage.',
+                  'clear_cache_message'.tr,
                   textAlign: TextAlign.center,
                   style: GoogleFonts.ubuntu(
                     fontSize: 14,
@@ -382,7 +383,7 @@ class _ParametrePageState extends ConsumerState<ParametrePage> {
                         child: TextButton(
                           onPressed: () => Navigator.pop(context),
                           child: Text(
-                            'Annuler',
+                            'cancel'.tr,
                             style: GoogleFonts.ubuntu(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
@@ -416,7 +417,7 @@ class _ParametrePageState extends ConsumerState<ParametrePage> {
                             _clearCache(context);
                           },
                           child: Text(
-                            'Effacer',
+                            'clear'.tr,
                             style: GoogleFonts.ubuntu(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
@@ -449,7 +450,7 @@ class _ParametrePageState extends ConsumerState<ParametrePage> {
             ),
             const SizedBox(width: 12),
             Text(
-              'Cache effacé avec succès',
+              'cache_cleared_successfully'.tr,
               style: GoogleFonts.ubuntu(
                 fontSize: 14,
                 color: Colors.white,

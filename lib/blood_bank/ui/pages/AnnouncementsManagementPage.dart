@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
 import '../../../apps/config/theme/ColorPages.dart';
+import '../../../apps/config/utils/LocaleHelper.dart';
 import '../../models/announcement_model.dart';
 import '../../providers/announcement_provider.dart';
 
@@ -68,6 +69,7 @@ class _AnnouncementsManagementPageState extends ConsumerState<AnnouncementsManag
 
   String _formatDate(DateTime date) {
     final locale = Get.locale?.toLanguageTag() ?? Localizations.localeOf(context).toLanguageTag();
+    final safeLocale = LocaleHelper.getSafeLocale(locale);
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final yesterday = today.subtract(const Duration(days: 1));
@@ -78,7 +80,7 @@ class _AnnouncementsManagementPageState extends ConsumerState<AnnouncementsManag
     } else if (dateToCheck == yesterday) {
       return 'yesterday'.tr;
     } else {
-      return DateFormat.yMMMMd(locale).format(date);
+      return LocaleHelper.formatDate(date, 'yMMMMd', safeLocale);
     }
   }
 

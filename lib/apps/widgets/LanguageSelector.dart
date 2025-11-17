@@ -252,21 +252,37 @@ class LanguageSelector extends StatelessWidget {
                       selectedTileColor: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.05),
                       onTap: () async {
                         final navigator = Navigator.of(context);
+                        final scaffoldMessenger = ScaffoldMessenger.of(context);
+
                         await languageService.changeLanguage(lang['code']!);
                         navigator.pop();
 
-                        // Show success message
-                        Get.snackbar(
-                          'success'.tr,
-                          'language_changed'.tr,
-                          backgroundColor: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.1),
-                          colorText: ColorPages.COLOR_PRINCIPAL,
-                          duration: const Duration(seconds: 2),
-                          margin: const EdgeInsets.all(16),
-                          borderRadius: 8,
-                          icon: Icon(
-                            Icons.check_circle,
-                            color: ColorPages.COLOR_PRINCIPAL,
+                        // Show success message using ScaffoldMessenger (more reliable than Get.snackbar)
+                        scaffoldMessenger.showSnackBar(
+                          SnackBar(
+                            content: Row(
+                              children: [
+                                Icon(
+                                  Icons.check_circle,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    'language_changed'.tr,
+                                    style: const TextStyle(color: Colors.white),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            backgroundColor: ColorPages.COLOR_PRINCIPAL,
+                            duration: const Duration(seconds: 2),
+                            behavior: SnackBarBehavior.floating,
+                            margin: const EdgeInsets.all(16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
                         );
                       },

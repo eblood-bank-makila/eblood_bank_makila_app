@@ -35,8 +35,43 @@ class _EditPatientPageState extends State<EditPatientPage> {
     _dobCtrl = TextEditingController(text: widget.patient.demographics.dateOfBirth);
     _phoneCtrl = TextEditingController(text: widget.patient.contact.phonePrimary ?? '');
     _emailCtrl = TextEditingController(text: widget.patient.contact.email ?? '');
-    _gender = widget.patient.demographics.gender;
+    // Normalize gender from backend format (m/f/other) to dropdown format (MALE/FEMALE/OTHER)
+    _gender = _normalizeGender(widget.patient.demographics.gender);
     _bloodType = widget.patient.demographics.bloodType;
+  }
+
+  /// Normalize gender value from backend format to dropdown format
+  String _normalizeGender(String? gender) {
+    if (gender == null || gender.isEmpty) return 'MALE';
+    final normalized = gender.toLowerCase().trim();
+    switch (normalized) {
+      case 'm':
+      case 'male':
+        return 'MALE';
+      case 'f':
+      case 'female':
+        return 'FEMALE';
+      case 'other':
+      case 'prefer_not_to_say':
+        return 'OTHER';
+      default:
+        return 'MALE';
+    }
+  }
+
+  /// Convert dropdown format back to backend format
+  String _toBackendGender(String? gender) {
+    if (gender == null || gender.isEmpty) return 'm';
+    switch (gender) {
+      case 'MALE':
+        return 'm';
+      case 'FEMALE':
+        return 'f';
+      case 'OTHER':
+        return 'other';
+      default:
+        return 'm';
+    }
   }
 
   @override
@@ -58,7 +93,7 @@ class _EditPatientPageState extends State<EditPatientPage> {
         'first_name': _firstNameCtrl.text.trim(),
         'last_name': _lastNameCtrl.text.trim(),
         'date_of_birth': _dobCtrl.text.trim(),
-        'gender': _gender ?? 'MALE',
+        'gender': _toBackendGender(_gender), // Convert to backend format (m/f/other)
         if (_bloodType != null && _bloodType!.isNotEmpty) 'blood_type': _bloodType,
       },
       'contact': {

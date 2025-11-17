@@ -14,7 +14,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get/get.dart';
-import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 
@@ -1904,11 +1903,6 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
               MaterialPageRoute(
                 builder: (context) => BloodBankAddressSuccessPage(
                   bloodBank: _selectedBloodBank!,
-                  onClose: () {
-                    debugPrint("🔘 Closing blood bank address details and navigating to home");
-                    // Navigate to home using GoRouter (it will clear the stack)
-                    context.go('/app/MainApp');
-                  },
                 ),
               ),
             );

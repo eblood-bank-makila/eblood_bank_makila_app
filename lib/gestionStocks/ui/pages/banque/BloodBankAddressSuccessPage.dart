@@ -4,6 +4,7 @@ import 'package:eblood_bank_mak_app/gestionStocks/business/model/banque/BanqueMo
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -12,13 +13,11 @@ import 'package:url_launcher/url_launcher.dart';
 /// after successful payment for address access
 class BloodBankAddressSuccessPage extends StatefulWidget {
   final BanqueModele bloodBank;
-  final VoidCallback onClose;
 
   const BloodBankAddressSuccessPage({
-    Key? key,
+    super.key,
     required this.bloodBank,
-    required this.onClose,
-  }) : super(key: key);
+  });
 
   @override
   State<BloodBankAddressSuccessPage> createState() => _BloodBankAddressSuccessPageState();
@@ -572,7 +571,21 @@ class _BloodBankAddressSuccessPageState extends State<BloodBankAddressSuccessPag
         child: ElevatedButton(
           onPressed: () {
             debugPrint("🔘 BloodBankAddressSuccessPage: Close button pressed!");
-            widget.onClose();
+
+            // First, ensure the main container route is selected
+            try {
+              context.go('/app/MainApp');
+              debugPrint('✅ BloodBankAddressSuccessPage: Navigated to /app/MainApp');
+            } catch (e) {
+              debugPrint('❌ BloodBankAddressSuccessPage: GoRouter navigation error: $e');
+            }
+
+            // Then, close this success page route if it is on top of the stack
+            try {
+              Navigator.of(context).pop();
+            } catch (e) {
+              debugPrint('❌ BloodBankAddressSuccessPage: Navigator pop error: $e');
+            }
           },
           style: ElevatedButton.styleFrom(
             backgroundColor: ColorPages.COLOR_PRINCIPAL,

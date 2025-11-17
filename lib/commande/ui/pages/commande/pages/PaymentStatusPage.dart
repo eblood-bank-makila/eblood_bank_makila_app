@@ -400,18 +400,27 @@ class _PaymentStatusPageState extends ConsumerState<PaymentStatusPage>
                       systemIdentifier: systemIdentifier,
                       onClosing: () {
                         debugPrint('🔘 PaymentStatusPage (Success): onClosing callback triggered');
+
+                        // Step 1: navigate to main app using GoRouter
                         try {
-                          // Navigate to main app with bottom bar using GoRouter
                           context.go('/app/MainApp');
                           debugPrint('✅ PaymentStatusPage (Success): Navigation to MainApp completed successfully');
                         } catch (e) {
                           debugPrint('❌ PaymentStatusPage (Success): GoRouter navigation error: $e');
-                          // Fallback: try Navigator popUntil
+                        }
+
+                        // Step 2: close the success screen route so it doesn't stay above home
+                        try {
+                          Navigator.of(context).pop();
+                          debugPrint('✅ PaymentStatusPage (Success): Success screen route popped');
+                        } catch (e) {
+                          debugPrint('❌ PaymentStatusPage (Success): Navigator pop error: $e');
+                          // Fallback: try clearing to the first route if simple pop fails
                           try {
                             Navigator.of(context).popUntil((route) => route.isFirst);
-                            debugPrint('✅ PaymentStatusPage (Success): Fallback navigation completed');
+                            debugPrint('✅ PaymentStatusPage (Success): Fallback popUntil navigation completed');
                           } catch (e2) {
-                            debugPrint('❌ PaymentStatusPage (Success): Fallback navigation also failed: $e2');
+                            debugPrint('❌ PaymentStatusPage (Success): Fallback popUntil also failed: $e2');
                           }
                         }
                       },
@@ -467,18 +476,27 @@ class _PaymentStatusPageState extends ConsumerState<PaymentStatusPage>
                     errorMessages: errorMessages,
                     onClosing: () {
                       debugPrint('🔘 PaymentStatusPage (Failure): onClosing callback triggered');
+
+                      // Step 1: navigate to main app using GoRouter
                       try {
-                        // Navigate to main app with bottom bar using GoRouter
                         context.go('/app/MainApp');
                         debugPrint('✅ PaymentStatusPage (Failure): Navigation to MainApp completed successfully');
                       } catch (e) {
                         debugPrint('❌ PaymentStatusPage (Failure): GoRouter navigation error: $e');
-                        // Fallback: try Navigator popUntil
+                      }
+
+                      // Step 2: close the error screen route so it doesn't stay above home
+                      try {
+                        Navigator.of(context).pop();
+                        debugPrint('✅ PaymentStatusPage (Failure): Error screen route popped');
+                      } catch (e) {
+                        debugPrint('❌ PaymentStatusPage (Failure): Navigator pop error: $e');
+                        // Fallback: try clearing to the first route if simple pop fails
                         try {
                           Navigator.of(context).popUntil((route) => route.isFirst);
-                          debugPrint('✅ PaymentStatusPage (Failure): Fallback navigation completed');
+                          debugPrint('✅ PaymentStatusPage (Failure): Fallback popUntil navigation completed');
                         } catch (e2) {
-                          debugPrint('❌ PaymentStatusPage (Failure): Fallback navigation also failed: $e2');
+                          debugPrint('❌ PaymentStatusPage (Failure): Fallback popUntil also failed: $e2');
                         }
                       }
                     },

@@ -740,7 +740,7 @@ class _BloodRequestPageState extends ConsumerState<BloodRequestPage>
                               final decoded = jsonDecode(result);
                               if (decoded is Map) {
                                 final m = Map<String, dynamic>.from(decoded);
-                                final dId = (m['delivery_id'] ?? m['id'] ?? m['_id'])?.toString();
+                                final dId = (m['ops_delivery_id'] ?? m['id'] ?? m['_id'])?.toString();
                                 final code = (m['delivery_code'] ?? m['code'])?.toString();
                                 if (code != null && code.isNotEmpty) {
                                   codeCtrl.text = code;

@@ -6,6 +6,8 @@ import 'package:iconsax/iconsax.dart';
 import 'package:get/get.dart';
 import '../../../apps/config/theme/ColorPages.dart';
 import '../../business/interactors/DeliveryController.dart';
+import '../widgets/ActiveDeliveryWidget.dart';
+import '../widgets/PendingDeliveryRequestWidget.dart';
 import 'DeliveryManagementPage.dart';
 
 class DeliveryPersonHomePage extends ConsumerStatefulWidget {
@@ -23,50 +25,88 @@ class _DeliveryPersonHomePageState extends ConsumerState<DeliveryPersonHomePage>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(deliveryControllerProvider.notifier).loadDeliveries();
       ref.read(deliveryStatsControllerProvider.notifier).loadStats();
+      // Load pending delivery requests
+      ref.read(pendingDeliveryRequestProvider.notifier).loadPendingRequests();
+      ref.read(pendingDeliveryRequestProvider.notifier).loadActiveDelivery();
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final hasPendingRequests = ref.watch(hasPendingRequestsProvider);
+    final hasActiveDelivery = ref.watch(hasActiveDeliveryProvider);
+
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.red.shade100,
-              Colors.red.shade50,
-              Colors.white,
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header
-                _buildHeader(),
-                const SizedBox(height: 24),
+      body: Stack(
+        children: [
+          // Main content
+          Container(
+            width: double.infinity,
+            height: double.infinity,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.red.shade100,
+                  Colors.red.shade50,
+                  Colors.white,
+                ],
+              ),
+            ),
+            child: SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header
+                    _buildHeader(),
+                    const SizedBox(height: 24),
 
-                // Performance Stats
-                _buildPerformanceSection(),
-                const SizedBox(height: 24),
+                    // Performance Stats
+                    _buildPerformanceSection(),
+                    const SizedBox(height: 24),
 
-                // Today's Deliveries
-                _buildTodayDeliveriesSection(),
-                const SizedBox(height: 24),
+                    // Today's Deliveries
+                    _buildTodayDeliveriesSection(),
+                    const SizedBox(height: 24),
 
-                // Quick Actions
-                _buildQuickActionsSection(),
-              ],
+                    // Quick Actions
+                    _buildQuickActionsSection(),
+
+                    // Add bottom padding for floating widget
+                    if (hasPendingRequests || hasActiveDelivery) const SizedBox(height: 200),
+                  ],
+                ),
+              ),
             ),
           ),
-        ),
+          // Floating active delivery widget (when delivery is in progress)
+          if (hasActiveDelivery && !hasPendingRequests)
+            const Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: ActiveDeliveryWidget(),
+            ),
+          // Floating pending delivery request widget (Yango-style)
+          if (hasPendingRequests)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: PendingDeliveryRequestWidget(
+                onAccepted: () {
+                  // Refresh deliveries after accepting
+                  ref.read(deliveryControllerProvider.notifier).loadDeliveries();
+                },
+                onRejected: () {
+                  // Optional: show feedback
+                },
+              ),
+            ),
+        ],
       ),
     );
   }

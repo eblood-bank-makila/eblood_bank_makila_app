@@ -64,7 +64,7 @@ class ApiConfig {
   static String markBloodBagUsedFor(String bloodBagId) =>
       '$markBloodBagUsed?blood_bag_id=$bloodBagId';
   static String requestCoolboxPasswordForDelivery(String deliveryId) =>
-      '$requestCoolboxPassword?delivery_id=$deliveryId';
+      '$requestCoolboxPassword?ops_delivery_id=$deliveryId';
 
   // Users & Roles
   static const String usersList = '/users/fetch';

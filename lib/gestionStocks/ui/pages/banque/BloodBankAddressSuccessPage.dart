@@ -1,6 +1,7 @@
 import 'package:animate_do/animate_do.dart';
 import 'package:eblood_bank_mak_app/apps/config/theme/ColorPages.dart';
 import 'package:eblood_bank_mak_app/gestionStocks/business/model/banque/BanqueModele.dart';
+import 'package:eblood_bank_mak_app/gestionStocks/ui/widgets/PaymentStreamFloatingButton.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -14,16 +15,16 @@ import 'package:url_launcher/url_launcher.dart';
 class BloodBankAddressSuccessPage extends StatefulWidget {
   final BanqueModele bloodBank;
 
-  const BloodBankAddressSuccessPage({
-    super.key,
-    required this.bloodBank,
-  });
+  const BloodBankAddressSuccessPage({super.key, required this.bloodBank});
 
   @override
-  State<BloodBankAddressSuccessPage> createState() => _BloodBankAddressSuccessPageState();
+  State<BloodBankAddressSuccessPage> createState() =>
+      _BloodBankAddressSuccessPageState();
 }
 
-class _BloodBankAddressSuccessPageState extends State<BloodBankAddressSuccessPage> with SingleTickerProviderStateMixin {
+class _BloodBankAddressSuccessPageState
+    extends State<BloodBankAddressSuccessPage>
+    with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
 
@@ -51,16 +52,14 @@ class _BloodBankAddressSuccessPageState extends State<BloodBankAddressSuccessPag
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      floatingActionButton: const PaymentStreamFloatingButton(isVisible: true),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Colors.green.shade50,
-              Colors.white,
-              Colors.white,
-            ],
+            colors: [Colors.green.shade50, Colors.white, Colors.white],
           ),
         ),
         child: SafeArea(
@@ -68,7 +67,7 @@ class _BloodBankAddressSuccessPageState extends State<BloodBankAddressSuccessPag
             children: [
               // Header
               _buildHeader(),
-              
+
               // Content
               Expanded(
                 child: SingleChildScrollView(
@@ -77,33 +76,33 @@ class _BloodBankAddressSuccessPageState extends State<BloodBankAddressSuccessPag
                     children: [
                       // Success animation
                       _buildSuccessAnimation(),
-                      
+
                       const SizedBox(height: 32),
-                      
+
                       // Blood bank info card
                       _buildBloodBankInfoCard(),
-                      
+
                       const SizedBox(height: 24),
-                      
+
                       // Address card
                       _buildAddressCard(),
-                      
+
                       const SizedBox(height: 24),
-                      
+
                       // Contact card
                       _buildContactCard(),
-                      
+
                       const SizedBox(height: 24),
-                      
+
                       // Map and directions
                       _buildMapCard(),
-                      
+
                       const SizedBox(height: 32),
                     ],
                   ),
                 ),
               ),
-              
+
               // Close button
               _buildCloseButton(),
             ],
@@ -128,11 +127,7 @@ class _BloodBankAddressSuccessPageState extends State<BloodBankAddressSuccessPag
       ),
       child: Row(
         children: [
-          Icon(
-            Iconsax.location5,
-            color: ColorPages.COLOR_PRINCIPAL,
-            size: 28,
-          ),
+          Icon(Iconsax.location5, color: ColorPages.COLOR_PRINCIPAL, size: 28),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -237,7 +232,10 @@ class _BloodBankAddressSuccessPageState extends State<BloodBankAddressSuccessPag
             if (widget.bloodBank.distance != null) ...[
               const SizedBox(height: 16),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.blue.shade50,
                   borderRadius: BorderRadius.circular(8),
@@ -321,7 +319,8 @@ class _BloodBankAddressSuccessPageState extends State<BloodBankAddressSuccessPag
             _buildInfoRow(
               icon: Iconsax.gps,
               label: 'coordinates'.tr,
-              value: '${latitude.toStringAsFixed(6)}, ${longitude.toStringAsFixed(6)}',
+              value:
+                  '${latitude.toStringAsFixed(6)}, ${longitude.toStringAsFixed(6)}',
               isCopyable: true,
             ),
           ],
@@ -454,11 +453,7 @@ class _BloodBankAddressSuccessPageState extends State<BloodBankAddressSuccessPag
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(
-          icon,
-          size: 20,
-          color: Colors.grey.shade600,
-        ),
+        Icon(icon, size: 20, color: Colors.grey.shade600),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
@@ -519,18 +514,11 @@ class _BloodBankAddressSuccessPageState extends State<BloodBankAddressSuccessPag
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: color.withValues(alpha: 0.3),
-            width: 1,
-          ),
+          border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
         ),
         child: Row(
           children: [
-            Icon(
-              icon,
-              size: 20,
-              color: color,
-            ),
+            Icon(icon, size: 20, color: color),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -542,11 +530,7 @@ class _BloodBankAddressSuccessPageState extends State<BloodBankAddressSuccessPag
                 ),
               ),
             ),
-            Icon(
-              Iconsax.arrow_right_3,
-              size: 18,
-              color: color,
-            ),
+            Icon(Iconsax.arrow_right_3, size: 18, color: color),
           ],
         ),
       ),
@@ -575,16 +559,22 @@ class _BloodBankAddressSuccessPageState extends State<BloodBankAddressSuccessPag
             // First, ensure the main container route is selected
             try {
               context.go('/app/MainApp');
-              debugPrint('✅ BloodBankAddressSuccessPage: Navigated to /app/MainApp');
+              debugPrint(
+                '✅ BloodBankAddressSuccessPage: Navigated to /app/MainApp',
+              );
             } catch (e) {
-              debugPrint('❌ BloodBankAddressSuccessPage: GoRouter navigation error: $e');
+              debugPrint(
+                '❌ BloodBankAddressSuccessPage: GoRouter navigation error: $e',
+              );
             }
 
             // Then, close this success page route if it is on top of the stack
             try {
               Navigator.of(context).pop();
             } catch (e) {
-              debugPrint('❌ BloodBankAddressSuccessPage: Navigator pop error: $e');
+              debugPrint(
+                '❌ BloodBankAddressSuccessPage: Navigator pop error: $e',
+              );
             }
           },
           style: ElevatedButton.styleFrom(
@@ -598,11 +588,7 @@ class _BloodBankAddressSuccessPageState extends State<BloodBankAddressSuccessPag
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Iconsax.tick_circle,
-                color: Colors.white,
-                size: 20,
-              ),
+              Icon(Iconsax.tick_circle, color: Colors.white, size: 20),
               const SizedBox(width: 8),
               Text(
                 'close'.tr,
@@ -635,7 +621,8 @@ class _BloodBankAddressSuccessPageState extends State<BloodBankAddressSuccessPag
   }
 
   Future<void> _openInGoogleMaps(double latitude, double longitude) async {
-    final url = 'https://www.google.com/maps/search/?api=1&query=$latitude,$longitude';
+    final url =
+        'https://www.google.com/maps/search/?api=1&query=$latitude,$longitude';
     final uri = Uri.parse(url);
 
     if (await canLaunchUrl(uri)) {
@@ -655,7 +642,8 @@ class _BloodBankAddressSuccessPageState extends State<BloodBankAddressSuccessPag
   }
 
   Future<void> _getDirections(double latitude, double longitude) async {
-    final url = 'https://www.google.com/maps/dir/?api=1&destination=$latitude,$longitude';
+    final url =
+        'https://www.google.com/maps/dir/?api=1&destination=$latitude,$longitude';
     final uri = Uri.parse(url);
 
     if (await canLaunchUrl(uri)) {

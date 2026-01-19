@@ -6,7 +6,7 @@ import 'package:geolocator/geolocator.dart';
 import '../../core/widgets/network_status_widget.dart';
 import '../widgets/CustomTextField.dart';
 import '../widgets/CustomDropdown.dart';
-import '../../core/widgets/location_tree_select.dart';
+import '../../core/widgets/location_bottom_sheet_select.dart';
 import '../models/SystemCountry.dart';
 import '../services/LocationService.dart';
 import '../services/AuthService.dart';
@@ -303,6 +303,13 @@ class _PersonalRegistrationStepperPageState extends State<PersonalRegistrationSt
     return false;
   }
 
+  /// Build the node key in the same format as LocationBottomSheetSelect
+  String _buildNodeKey(Map<String, dynamic> location) {
+    final type = location['type']?.toString().toLowerCase() ?? 'unknown';
+    final id = location['id']?.toString() ?? '';
+    return '$type-$id';
+  }
+
   @override
   void dispose() {
     _firstNameController.dispose();
@@ -328,67 +335,65 @@ class _PersonalRegistrationStepperPageState extends State<PersonalRegistrationSt
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
-      body: NetworkStatusWidget(
-        child: SingleChildScrollView(
-          child: Theme(
-            data: Theme.of(context).copyWith(
-              colorScheme: Theme.of(context).colorScheme.copyWith(
-                primary: ColorPages.COLOR_PRINCIPAL,
-              ),
+      body: SingleChildScrollView(
+        child: Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+              primary: ColorPages.COLOR_PRINCIPAL,
             ),
-            child: Stepper(
-              currentStep: _currentStep,
-              onStepContinue: _onStepContinue,
-              onStepCancel: _onStepCancel,
-              onStepTapped: (step) => _validateAndNavigateToStep(step),
-              steps: _buildSteps(),
-              physics: const ClampingScrollPhysics(),
-              controlsBuilder: (context, details) {
-                // Last step is always 4 (account information)
-                final lastStep = 4;
-                final isSubmitStep = _currentStep == lastStep;
-                return Padding(
-                  padding: const EdgeInsets.only(top: 16),
-                  child: Row(
-                    children: [
-                      ElevatedButton(
-                        onPressed: _isLoading ? null : details.onStepContinue,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: ColorPages.COLOR_PRINCIPAL,
-                          foregroundColor: ColorPages.COLOR_BLANCHE,
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (_isLoading && isSubmitStep)
-                              const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(ColorPages.COLOR_BLANCHE),
-                                ),
+          ),
+          child: Stepper(
+            currentStep: _currentStep,
+            onStepContinue: _onStepContinue,
+            onStepCancel: _onStepCancel,
+            onStepTapped: (step) => _validateAndNavigateToStep(step),
+            steps: _buildSteps(),
+            physics: const ClampingScrollPhysics(),
+            controlsBuilder: (context, details) {
+              // Last step is always 4 (account information)
+              final lastStep = 4;
+              final isSubmitStep = _currentStep == lastStep;
+              return Padding(
+                padding: const EdgeInsets.only(top: 16),
+                child: Row(
+                  children: [
+                    ElevatedButton(
+                      onPressed: _isLoading ? null : details.onStepContinue,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: ColorPages.COLOR_PRINCIPAL,
+                        foregroundColor: ColorPages.COLOR_BLANCHE,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (_isLoading && isSubmitStep)
+                            const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(ColorPages.COLOR_BLANCHE),
                               ),
-                            if (_isLoading && isSubmitStep)
-                              const SizedBox(width: 8),
-                            Text(isSubmitStep ? 'submit'.tr : 'continue'.tr),
-                          ],
-                        ),
+                            ),
+                          if (_isLoading && isSubmitStep)
+                            const SizedBox(width: 8),
+                          Text(isSubmitStep ? 'submit'.tr : 'continue'.tr),
+                        ],
                       ),
-                      const SizedBox(width: 16),
-                      OutlinedButton(
-                        onPressed: _isLoading ? null : details.onStepCancel,
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: ColorPages.COLOR_PRINCIPAL,
-                          side: const BorderSide(color: ColorPages.COLOR_PRINCIPAL),
-                        ),
-                        child: Text(_currentStep == 0 ? 'annuler'.tr : 'back'.tr),
+                    ),
+                    const SizedBox(width: 16),
+                    OutlinedButton(
+                      onPressed: _isLoading ? null : details.onStepCancel,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: ColorPages.COLOR_PRINCIPAL,
+                        side: const BorderSide(color: ColorPages.COLOR_PRINCIPAL),
                       ),
-                    ],
-                  ),
-                );
-              },
-            ),
+                      child: Text(_currentStep == 0 ? 'annuler'.tr : 'back'.tr),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
         ),
       ),
@@ -507,16 +512,16 @@ class _PersonalRegistrationStepperPageState extends State<PersonalRegistrationSt
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  LocationTreeSelect(
-                    label: 'your_location'.tr,
-                    hint: 'hint_select_location'.tr,
+                  LocationBottomSheetSelect(
                     locations: _locationData,
                     onLocationSelected: _onLocationSelected,
+                    selectedLocationId: _selectedLocation.isNotEmpty
+                        ? _buildNodeKey(_selectedLocation)
+                        : null,
+                    label: 'your_location'.tr,
+                    hint: 'hint_select_location'.tr,
                     isRequired: true,
-                    prefixIcon: Icon(Ionicons.location_outline),
-                    showPath: true,
-                    selectOnlyLastChild: true,
-                    useWhiteBackground: true,
+                    isLoading: _isLoadingLocations,
                   ),
                   const SizedBox(height: 16),
                   Column(

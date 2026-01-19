@@ -263,6 +263,256 @@ class DeliveryApiService {
       return ApiResponse.error('Network error: $e');
     }
   }
+
+  // ============================================================================
+  // DELIVERY ASSIGNMENT API (Yango-style)
+  // ============================================================================
+
+  /// Get pending delivery requests for a delivery person
+  Future<ApiResponse<List<PendingDeliveryRequest>>> getPendingDeliveryRequests(String deliveryPersonId) async {
+    try {
+      final headers = await _getHeaders();
+      final response = await http.get(
+        Uri.parse(ApiConfig.buildUrlWithParams(
+          '/eblood-connect/delivery-assignment/pending-requests',
+          {'delivery_person_id': deliveryPersonId},
+        )),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final List<PendingDeliveryRequest> requests = (data['data'] as List?)
+            ?.map((item) => PendingDeliveryRequest.fromJson(item))
+            .toList() ?? [];
+
+        return ApiResponse.success(requests);
+      } else {
+        return ApiResponse.error('Failed to load pending delivery requests');
+      }
+    } catch (e) {
+      return ApiResponse.error('Network error: $e');
+    }
+  }
+
+  /// Get active delivery for a delivery person
+  Future<ApiResponse<ActiveDelivery?>> getActiveDelivery(String deliveryPersonId) async {
+    try {
+      final headers = await _getHeaders();
+      final response = await http.get(
+        Uri.parse(ApiConfig.buildUrlWithParams(
+          '/eblood-connect/delivery-assignment/active-delivery',
+          {'delivery_person_id': deliveryPersonId},
+        )),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['data'] != null) {
+          return ApiResponse.success(ActiveDelivery.fromJson(data['data']));
+        }
+        return ApiResponse.success(null);
+      } else {
+        return ApiResponse.error('Failed to load active delivery');
+      }
+    } catch (e) {
+      return ApiResponse.error('Network error: $e');
+    }
+  }
+
+  /// Accept a delivery request
+  Future<ApiResponse<bool>> acceptDeliveryRequest(String deliveryId, String deliveryPersonId) async {
+    try {
+      final headers = await _getHeaders();
+      final response = await http.post(
+        Uri.parse(ApiConfig.buildUrl('/eblood-connect/delivery-assignment/$deliveryId/accept')),
+        headers: headers,
+        body: json.encode({
+          'delivery_person_id': deliveryPersonId,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        return ApiResponse.success(true);
+      } else {
+        final data = json.decode(response.body);
+        return ApiResponse.error(data['detail'] ?? 'Failed to accept delivery');
+      }
+    } catch (e) {
+      return ApiResponse.error('Network error: $e');
+    }
+  }
+
+  /// Reject a delivery request
+  Future<ApiResponse<bool>> rejectDeliveryRequest(String deliveryId, String deliveryPersonId, {String? reason}) async {
+    try {
+      final headers = await _getHeaders();
+      final response = await http.post(
+        Uri.parse(ApiConfig.buildUrl('/eblood-connect/delivery-assignment/$deliveryId/reject')),
+        headers: headers,
+        body: json.encode({
+          'delivery_person_id': deliveryPersonId,
+          'reason': reason,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        return ApiResponse.success(true);
+      } else {
+        return ApiResponse.error('Failed to reject delivery');
+      }
+    } catch (e) {
+      return ApiResponse.error('Network error: $e');
+    }
+  }
+
+  /// Update delivery phase
+  Future<ApiResponse<bool>> updateDeliveryPhase(String deliveryId, String deliveryPersonId, String phase, {LocationInfo? location}) async {
+    try {
+      final headers = await _getHeaders();
+      final response = await http.put(
+        Uri.parse(ApiConfig.buildUrl('/eblood-connect/delivery-assignment/$deliveryId/phase')),
+        headers: headers,
+        body: json.encode({
+          'delivery_person_id': deliveryPersonId,
+          'phase': phase,
+          if (location != null) 'location': location.toJson(),
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        return ApiResponse.success(true);
+      } else {
+        return ApiResponse.error('Failed to update delivery phase');
+      }
+    } catch (e) {
+      return ApiResponse.error('Network error: $e');
+    }
+  }
+
+  /// Update delivery person location
+  Future<ApiResponse<bool>> updateDeliveryPersonLocation(String deliveryPersonId, double lat, double lng, {double? accuracy}) async {
+    try {
+      final headers = await _getHeaders();
+      final response = await http.put(
+        Uri.parse(ApiConfig.buildUrlWithParams(
+          '/eblood-connect/delivery-assignment/update-location',
+          {'delivery_person_id': deliveryPersonId},
+        )),
+        headers: headers,
+        body: json.encode({
+          'lat': lat,
+          'lng': lng,
+          if (accuracy != null) 'accuracy': accuracy,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        return ApiResponse.success(true);
+      } else {
+        return ApiResponse.error('Failed to update location');
+      }
+    } catch (e) {
+      return ApiResponse.error('Network error: $e');
+    }
+  }
+
+  /// Get delivery tracking info (for hospital)
+  Future<ApiResponse<Map<String, dynamic>>> getDeliveryTracking(String deliveryId) async {
+    try {
+      final headers = await _getHeaders();
+      final response = await http.get(
+        Uri.parse(ApiConfig.buildUrl('/eblood-connect/delivery-assignment/$deliveryId/tracking')),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return ApiResponse.success(data['data'] as Map<String, dynamic>);
+      } else {
+        return ApiResponse.error('Failed to load tracking info');
+      }
+    } catch (e) {
+      return ApiResponse.error('Network error: $e');
+    }
+  }
+
+  /// Confirm delivery receipt (hospital)
+  Future<ApiResponse<bool>> confirmDeliveryReceipt(String deliveryId, String hospitalUserId) async {
+    try {
+      final headers = await _getHeaders();
+      final response = await http.post(
+        Uri.parse(ApiConfig.buildUrl('/eblood-connect/delivery-assignment/$deliveryId/confirm')),
+        headers: headers,
+        body: json.encode({
+          'hospital_user_id': hospitalUserId,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        return ApiResponse.success(true);
+      } else {
+        return ApiResponse.error('Failed to confirm delivery');
+      }
+    } catch (e) {
+      return ApiResponse.error('Network error: $e');
+    }
+  }
+
+  /// Get incoming deliveries for hospital (returns ActiveDelivery)
+  Future<ApiResponse<List<ActiveDelivery>>> getIncomingDeliveries(String hospitalId) async {
+    try {
+      final headers = await _getHeaders();
+      final response = await http.get(
+        Uri.parse(ApiConfig.buildUrlWithParams(
+          '/eblood-connect/delivery-assignment/incoming-deliveries',
+          {'hospital_id': hospitalId},
+        )),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final List<ActiveDelivery> deliveries = (data['data'] as List?)
+            ?.map((item) => ActiveDelivery.fromJson(item))
+            .toList() ?? [];
+
+        return ApiResponse.success(deliveries);
+      } else {
+        return ApiResponse.error('Failed to load incoming deliveries');
+      }
+    } catch (e) {
+      return ApiResponse.error('Network error: $e');
+    }
+  }
+
+  /// Get incoming deliveries for hospital (returns IncomingDelivery)
+  Future<ApiResponse<List<IncomingDelivery>>> getIncomingDeliveriesForHospital(String hospitalId) async {
+    try {
+      final headers = await _getHeaders();
+      final response = await http.get(
+        Uri.parse(ApiConfig.buildUrlWithParams(
+          '/eblood-connect/delivery-assignment/incoming-deliveries',
+          {'hospital_id': hospitalId},
+        )),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final List<IncomingDelivery> deliveries = (data['data'] as List?)
+            ?.map((item) => IncomingDelivery.fromJson(item))
+            .toList() ?? [];
+
+        return ApiResponse.success(deliveries);
+      } else {
+        return ApiResponse.error('Failed to load incoming deliveries');
+      }
+    } catch (e) {
+      return ApiResponse.error('Network error: $e');
+    }
+  }
 }
 
 // Generic API Response wrapper

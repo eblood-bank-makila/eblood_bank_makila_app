@@ -2137,6 +2137,27 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
 
     if (!mounted) return;
 
+    // Validate required data
+    if (_selectedBloodBank == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Erreur: Aucune banque de sang sélectionnée'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (_filteredBloodBags.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Erreur: Aucune poche de sang sélectionnée'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     setState(() {
       _isProcessingPayment = true;
     });
@@ -2144,9 +2165,18 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
     try {
       debugPrint("💳 Calling address request payment API...");
 
+      // Get blood bag ID from the first filtered blood bag
+      final bloodBagId = _filteredBloodBags.first.bloodBagInfo.id;
+      final bloodBankId = _selectedBloodBank!.id;
+
+      debugPrint("🏦 Blood bank ID: $bloodBankId");
+      debugPrint("🩸 Blood bag ID: $bloodBagId");
+
       final response = await postWithDio(
         '/eblood-connect/blood-bank-address-request/submit-payment',
         body: {
+          'blood_bank_id': bloodBankId,
+          'blood_bags_id': bloodBagId,
           'phone_number': phoneNumber,
           if (currencyId != null) 'transactional_currency_id': currencyId,
         },

@@ -281,3 +281,338 @@ final deliveredDeliveriesProvider = Provider<List<Delivery>>((ref) {
       .where((delivery) => delivery.status == DeliveryStatus.delivered)
       .toList();
 });
+
+// ============================================================================
+// PENDING DELIVERY REQUEST CONTROLLER (Yango-style)
+// ============================================================================
+
+// Pending Delivery Request State
+class PendingDeliveryRequestState {
+  final List<PendingDeliveryRequest> pendingRequests;
+  final ActiveDelivery? activeDelivery;
+  final bool isLoading;
+  final String? error;
+  final bool isAccepting;
+  final bool isRejecting;
+
+  PendingDeliveryRequestState({
+    this.pendingRequests = const [],
+    this.activeDelivery,
+    this.isLoading = false,
+    this.error,
+    this.isAccepting = false,
+    this.isRejecting = false,
+  });
+
+  PendingDeliveryRequestState copyWith({
+    List<PendingDeliveryRequest>? pendingRequests,
+    ActiveDelivery? activeDelivery,
+    bool? isLoading,
+    String? error,
+    bool? isAccepting,
+    bool? isRejecting,
+    bool clearActiveDelivery = false,
+  }) {
+    return PendingDeliveryRequestState(
+      pendingRequests: pendingRequests ?? this.pendingRequests,
+      activeDelivery: clearActiveDelivery ? null : (activeDelivery ?? this.activeDelivery),
+      isLoading: isLoading ?? this.isLoading,
+      error: error,
+      isAccepting: isAccepting ?? this.isAccepting,
+      isRejecting: isRejecting ?? this.isRejecting,
+    );
+  }
+
+  bool get hasPendingRequests => pendingRequests.isNotEmpty;
+  bool get hasActiveDelivery => activeDelivery != null;
+  PendingDeliveryRequest? get firstPendingRequest =>
+      pendingRequests.isNotEmpty ? pendingRequests.first : null;
+}
+
+// Pending Delivery Request Controller
+class PendingDeliveryRequestController extends StateNotifier<PendingDeliveryRequestState> {
+  final DeliveryApiService _apiService;
+  final String deliveryPersonId;
+
+  PendingDeliveryRequestController(this._apiService, this.deliveryPersonId)
+      : super(PendingDeliveryRequestState());
+
+  /// Load pending delivery requests
+  Future<void> loadPendingRequests() async {
+    state = state.copyWith(isLoading: true, error: null);
+
+    final response = await _apiService.getPendingDeliveryRequests(deliveryPersonId);
+
+    if (response.success && response.data != null) {
+      // Filter out expired requests
+      final validRequests = response.data!.where((r) => !r.isExpired).toList();
+      state = state.copyWith(
+        pendingRequests: validRequests,
+        isLoading: false,
+      );
+    } else {
+      state = state.copyWith(
+        isLoading: false,
+        error: response.error ?? 'Failed to load pending requests',
+      );
+    }
+  }
+
+  /// Load active delivery
+  Future<void> loadActiveDelivery() async {
+    final response = await _apiService.getActiveDelivery(deliveryPersonId);
+
+    if (response.success) {
+      state = state.copyWith(
+        activeDelivery: response.data,
+        clearActiveDelivery: response.data == null,
+      );
+    }
+  }
+
+  /// Accept a delivery request
+  Future<bool> acceptDelivery(String deliveryId) async {
+    state = state.copyWith(isAccepting: true, error: null);
+
+    final response = await _apiService.acceptDeliveryRequest(deliveryId, deliveryPersonId);
+
+    if (response.success) {
+      // Remove from pending requests
+      final updatedRequests = state.pendingRequests
+          .where((r) => r.id != deliveryId)
+          .toList();
+
+      state = state.copyWith(
+        pendingRequests: updatedRequests,
+        isAccepting: false,
+      );
+
+      // Load the active delivery
+      await loadActiveDelivery();
+      return true;
+    } else {
+      state = state.copyWith(
+        isAccepting: false,
+        error: response.error ?? 'Failed to accept delivery',
+      );
+      return false;
+    }
+  }
+
+  /// Reject a delivery request
+  Future<bool> rejectDelivery(String deliveryId, {String? reason}) async {
+    state = state.copyWith(isRejecting: true, error: null);
+
+    final response = await _apiService.rejectDeliveryRequest(
+      deliveryId,
+      deliveryPersonId,
+      reason: reason,
+    );
+
+    if (response.success) {
+      // Remove from pending requests
+      final updatedRequests = state.pendingRequests
+          .where((r) => r.id != deliveryId)
+          .toList();
+
+      state = state.copyWith(
+        pendingRequests: updatedRequests,
+        isRejecting: false,
+      );
+      return true;
+    } else {
+      state = state.copyWith(
+        isRejecting: false,
+        error: response.error ?? 'Failed to reject delivery',
+      );
+      return false;
+    }
+  }
+
+  /// Update delivery phase
+  Future<bool> updatePhase(String phase, {LocationInfo? location}) async {
+    if (state.activeDelivery == null) return false;
+
+    final response = await _apiService.updateDeliveryPhase(
+      state.activeDelivery!.id,
+      deliveryPersonId,
+      phase,
+      location: location,
+    );
+
+    if (response.success) {
+      await loadActiveDelivery();
+      return true;
+    } else {
+      state = state.copyWith(error: response.error ?? 'Failed to update phase');
+      return false;
+    }
+  }
+
+  /// Update location
+  Future<bool> updateLocation(double lat, double lng, {double? accuracy}) async {
+    final response = await _apiService.updateDeliveryPersonLocation(
+      deliveryPersonId,
+      lat,
+      lng,
+      accuracy: accuracy,
+    );
+
+    return response.success;
+  }
+
+  /// Add a new pending request (from push notification)
+  void addPendingRequest(PendingDeliveryRequest request) {
+    if (!request.isExpired) {
+      final updatedRequests = [...state.pendingRequests, request];
+      state = state.copyWith(pendingRequests: updatedRequests);
+    }
+  }
+
+  /// Remove expired requests
+  void removeExpiredRequests() {
+    final validRequests = state.pendingRequests.where((r) => !r.isExpired).toList();
+    if (validRequests.length != state.pendingRequests.length) {
+      state = state.copyWith(pendingRequests: validRequests);
+    }
+  }
+
+  /// Clear error
+  void clearError() {
+    state = state.copyWith(error: null);
+  }
+
+  /// Clear active delivery (when completed)
+  void clearActiveDelivery() {
+    state = state.copyWith(clearActiveDelivery: true);
+  }
+}
+
+// Provider for delivery person ID (should be set from auth)
+final deliveryPersonIdProvider = StateProvider<String?>((ref) => null);
+
+// Pending Delivery Request Provider
+final pendingDeliveryRequestProvider = StateNotifierProvider<PendingDeliveryRequestController, PendingDeliveryRequestState>((ref) {
+  final apiService = ref.watch(deliveryApiServiceProvider);
+  final deliveryPersonId = ref.watch(deliveryPersonIdProvider) ?? '';
+  return PendingDeliveryRequestController(apiService, deliveryPersonId);
+});
+
+// Computed providers for pending requests
+final hasPendingRequestsProvider = Provider<bool>((ref) {
+  final state = ref.watch(pendingDeliveryRequestProvider);
+  return state.hasPendingRequests;
+});
+
+final hasActiveDeliveryProvider = Provider<bool>((ref) {
+  final state = ref.watch(pendingDeliveryRequestProvider);
+  return state.hasActiveDelivery;
+});
+
+final firstPendingRequestProvider = Provider<PendingDeliveryRequest?>((ref) {
+  final state = ref.watch(pendingDeliveryRequestProvider);
+  return state.firstPendingRequest;
+});
+
+final activeDeliveryProvider = Provider<ActiveDelivery?>((ref) {
+  final state = ref.watch(pendingDeliveryRequestProvider);
+  return state.activeDelivery;
+});
+
+// ============================================================================
+// HOSPITAL SIDE - Incoming Deliveries Controller
+// ============================================================================
+
+/// State for incoming deliveries (hospital view)
+class IncomingDeliveriesState {
+  final List<IncomingDelivery> deliveries;
+  final bool isLoading;
+  final String? error;
+
+  IncomingDeliveriesState({
+    this.deliveries = const [],
+    this.isLoading = false,
+    this.error,
+  });
+
+  IncomingDeliveriesState copyWith({
+    List<IncomingDelivery>? deliveries,
+    bool? isLoading,
+    String? error,
+  }) {
+    return IncomingDeliveriesState(
+      deliveries: deliveries ?? this.deliveries,
+      isLoading: isLoading ?? this.isLoading,
+      error: error,
+    );
+  }
+
+  bool get hasIncomingDeliveries => deliveries.isNotEmpty;
+  IncomingDelivery? get firstDelivery => deliveries.isNotEmpty ? deliveries.first : null;
+}
+
+/// Controller for incoming deliveries (hospital view)
+class IncomingDeliveriesController extends StateNotifier<List<IncomingDelivery>> {
+  final DeliveryApiService _apiService;
+  final String hospitalId;
+  final String hospitalUserId;
+
+  IncomingDeliveriesController(this._apiService, this.hospitalId, this.hospitalUserId) : super([]);
+
+  /// Load incoming deliveries for hospital
+  Future<void> loadIncomingDeliveries() async {
+    try {
+      final response = await _apiService.getIncomingDeliveriesForHospital(hospitalId);
+      if (response.success && response.data != null) {
+        state = response.data!;
+      }
+    } catch (e) {
+      // Keep current state on error
+    }
+  }
+
+  /// Confirm delivery receipt
+  Future<bool> confirmDelivery(String deliveryId) async {
+    try {
+      final response = await _apiService.confirmDeliveryReceipt(deliveryId, hospitalUserId);
+      if (response.success) {
+        // Remove from list
+        state = state.where((d) => d.id != deliveryId).toList();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Refresh deliveries
+  Future<void> refresh() async {
+    await loadIncomingDeliveries();
+  }
+}
+
+// Provider for hospital ID (should be set from auth)
+final hospitalIdProvider = StateProvider<String?>((ref) => null);
+
+// Provider for hospital user ID (should be set from auth)
+final hospitalUserIdProvider = StateProvider<String?>((ref) => null);
+
+// Provider for incoming deliveries (hospital view)
+final incomingDeliveriesProvider = StateNotifierProvider<IncomingDeliveriesController, List<IncomingDelivery>>((ref) {
+  final apiService = ref.watch(deliveryApiServiceProvider);
+  final hospitalId = ref.watch(hospitalIdProvider) ?? '';
+  final hospitalUserId = ref.watch(hospitalUserIdProvider) ?? '';
+  return IncomingDeliveriesController(apiService, hospitalId, hospitalUserId);
+});
+
+// Computed providers for incoming deliveries
+final hasIncomingDeliveriesProvider = Provider<bool>((ref) {
+  final deliveries = ref.watch(incomingDeliveriesProvider);
+  return deliveries.isNotEmpty;
+});
+
+final firstIncomingDeliveryProvider = Provider<IncomingDelivery?>((ref) {
+  final deliveries = ref.watch(incomingDeliveriesProvider);
+  return deliveries.isNotEmpty ? deliveries.first : null;
+});

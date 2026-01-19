@@ -15,6 +15,8 @@ import '../../commande/ui/pages/panier/PanierPage.dart';
 import '../../blood_bank/ui/pages/HealthStructureNetworkPage.dart';
 import '../../utilisateurs/ui/pages/notification/NotificationPage.dart';
 import '../../utilisateurs/ui/pages/users/UserManagementPage.dart';
+import '../../delivery/business/interactors/DeliveryController.dart';
+import '../../delivery/ui/widgets/IncomingDeliveryWidget.dart';
 
 import '../widgets/advertisement/AdvertisementCarousel.dart';
 
@@ -40,6 +42,10 @@ class _HospitalHomePageState extends ConsumerState<HospitalHomePage> {
   void initState() {
     super.initState();
     _loadDashboardData();
+    // Load incoming deliveries
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(incomingDeliveriesProvider.notifier).loadIncomingDeliveries();
+    });
   }
 
   Future<void> _loadDashboardData() async {
@@ -65,36 +71,53 @@ class _HospitalHomePageState extends ConsumerState<HospitalHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final hasIncomingDeliveries = ref.watch(hasIncomingDeliveriesProvider);
+
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.red.shade100,
-              Colors.red.shade50,
-              Colors.white,
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              _buildHeader(context),
-              Expanded(
-                child: Container(
-                  decoration: const BoxDecoration(
-                    color: Colors.transparent,
-                  ),
-                  child: _buildContent(),
-                ),
+      body: Stack(
+        children: [
+          // Main content
+          Container(
+            width: double.infinity,
+            height: double.infinity,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.red.shade100,
+                  Colors.red.shade50,
+                  Colors.white,
+                ],
               ),
-            ],
+            ),
+            child: SafeArea(
+              child: Column(
+                children: [
+                  _buildHeader(context),
+                  Expanded(
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        color: Colors.transparent,
+                      ),
+                      child: _buildContent(),
+                    ),
+                  ),
+                  // Add bottom padding for floating widget
+                  if (hasIncomingDeliveries) const SizedBox(height: 180),
+                ],
+              ),
+            ),
           ),
-        ),
+          // Floating incoming delivery widget
+          if (hasIncomingDeliveries)
+            const Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: IncomingDeliveryWidget(),
+            ),
+        ],
       ),
     );
   }

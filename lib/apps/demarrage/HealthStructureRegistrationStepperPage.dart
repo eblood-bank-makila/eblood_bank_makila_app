@@ -11,7 +11,7 @@ import '../config/theme/ColorPages.dart';
 import 'HealthStructureEmailVerificationPage.dart';
 import '../widgets/CustomTextField.dart';
 import '../widgets/CustomDropdown.dart';
-import '../../core/widgets/location_tree_select.dart';
+import '../../core/widgets/location_bottom_sheet_select.dart';
 import '../models/SystemCountry.dart';
 import '../services/LocationService.dart';
 import '../services/AuthService.dart';
@@ -399,71 +399,69 @@ class _HealthStructureRegistrationStepperPageState
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
-      body: NetworkStatusWidget(
-        child: SingleChildScrollView(
-          child: Theme(
-            data: Theme.of(context).copyWith(
-              colorScheme: Theme.of(
-                context,
-              ).colorScheme.copyWith(primary: ColorPages.COLOR_PRINCIPAL),
-            ),
-            child: Stepper(
-              currentStep: _currentStep,
-              onStepContinue: _onStepContinue,
-              onStepCancel: _onStepCancel,
-              onStepTapped: (step) => _validateAndNavigateToStep(step),
-              steps: _buildSteps(),
-              physics: const ClampingScrollPhysics(),
-              controlsBuilder: (context, details) {
-                final isSubmit = _currentStep == 3;
-                return Padding(
-                  padding: const EdgeInsets.only(top: 16),
-                  child: Row(
-                    children: [
-                      ElevatedButton(
-                        onPressed: _isLoading ? null : details.onStepContinue,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: ColorPages.COLOR_PRINCIPAL,
-                          foregroundColor: ColorPages.COLOR_BLANCHE,
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (_isLoading && isSubmit)
-                              const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    ColorPages.COLOR_BLANCHE,
-                                  ),
+      body: SingleChildScrollView(
+        child: Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(
+              context,
+            ).colorScheme.copyWith(primary: ColorPages.COLOR_PRINCIPAL),
+          ),
+          child: Stepper(
+            currentStep: _currentStep,
+            onStepContinue: _onStepContinue,
+            onStepCancel: _onStepCancel,
+            onStepTapped: (step) => _validateAndNavigateToStep(step),
+            steps: _buildSteps(),
+            physics: const ClampingScrollPhysics(),
+            controlsBuilder: (context, details) {
+              final isSubmit = _currentStep == 3;
+              return Padding(
+                padding: const EdgeInsets.only(top: 16),
+                child: Row(
+                  children: [
+                    ElevatedButton(
+                      onPressed: _isLoading ? null : details.onStepContinue,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: ColorPages.COLOR_PRINCIPAL,
+                        foregroundColor: ColorPages.COLOR_BLANCHE,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (_isLoading && isSubmit)
+                            const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  ColorPages.COLOR_BLANCHE,
                                 ),
                               ),
-                            if (_isLoading && isSubmit)
-                              const SizedBox(width: 8),
-                            Text(isSubmit ? 'submit'.tr : 'continue'.tr),
-                          ],
+                            ),
+                          if (_isLoading && isSubmit)
+                            const SizedBox(width: 8),
+                          Text(isSubmit ? 'submit'.tr : 'continue'.tr),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    OutlinedButton(
+                      onPressed: _isLoading ? null : details.onStepCancel,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: ColorPages.COLOR_PRINCIPAL,
+                        side: const BorderSide(
+                          color: ColorPages.COLOR_PRINCIPAL,
                         ),
                       ),
-                      const SizedBox(width: 16),
-                      OutlinedButton(
-                        onPressed: _isLoading ? null : details.onStepCancel,
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: ColorPages.COLOR_PRINCIPAL,
-                          side: const BorderSide(
-                            color: ColorPages.COLOR_PRINCIPAL,
-                          ),
-                        ),
-                        child: Text(
-                          _currentStep == 0 ? 'annuler'.tr : 'back'.tr,
-                        ),
+                      child: Text(
+                        _currentStep == 0 ? 'annuler'.tr : 'back'.tr,
                       ),
-                    ],
-                  ),
-                );
-              },
-            ),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
         ),
       ),
@@ -515,12 +513,16 @@ class _HealthStructureRegistrationStepperPageState
         else if (_locationError != null)
           Text(_locationError!, style: const TextStyle(color: Colors.red))
         else
-          LocationTreeSelect(
+          LocationBottomSheetSelect(
             locations: _locationData,
             onLocationSelected: _onLocationSelected,
             selectedLocationId: _selectedLocation.isNotEmpty
                 ? _buildNodeKey(_selectedLocation)
                 : null,
+            label: 'location'.tr,
+            hint: 'select_location'.tr,
+            isRequired: true,
+            isLoading: _isLoadingLocations,
           ),
       ],
     );

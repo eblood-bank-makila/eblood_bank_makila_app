@@ -40,17 +40,23 @@ class WelcomePage extends ConsumerWidget {
           child: Stack(
             children: [
               // Main content
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  children: [
-                    // Add some top spacing for the language selector
-                    const SizedBox(height: 60),
-                Expanded(
-                  flex: 2,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  return SingleChildScrollView(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
+                      ),
+                      child: IntrinsicHeight(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          child: Column(
+                            children: [
+                              // Add some top spacing for the language selector
+                              const SizedBox(height: 60),
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -141,11 +147,9 @@ class WelcomePage extends ConsumerWidget {
                       ),
                     ],
                   ),
-                ),
-                
-                Expanded(
-                  flex: 3,
-                  child: Column(
+                  const SizedBox(height: 30),
+                  
+                  Column(
                     children: [
                       // Email login button
                       FadeInUp(
@@ -228,9 +232,8 @@ class WelcomePage extends ConsumerWidget {
                       ),
                     ],
                   ),
-                ),
-                
-                // Register link
+                  
+                  // Register link
                 FadeInUp(
                   duration: const Duration(milliseconds: 600),
                   delay: const Duration(milliseconds: 1100),
@@ -271,8 +274,14 @@ class WelcomePage extends ConsumerWidget {
                   logoHeight: 45,
                   logoSpacing: 12,
                 ),
-                  ],
-                ),
+                const SizedBox(height: 20), // Add padding at the bottom
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
 
               // Language selector positioned on top

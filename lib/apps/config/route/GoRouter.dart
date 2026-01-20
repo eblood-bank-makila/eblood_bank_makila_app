@@ -30,6 +30,10 @@ import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/motdepasse/Reinitialis
 import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/profil/ProfilePage.dart';
 import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/otp_code/OtpCodePage.dart';
 
+// Blood Search Flow imports
+import 'package:eblood_bank_mak_app/blood_search_flow/blood_search_routes.dart';
+import 'package:eblood_bank_mak_app/blood_search_flow/ui/pages/blood_search_welcome_page.dart';
+
 import 'package:eblood_bank_mak_app/apps/services/FirebaseAuthService.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -75,6 +79,9 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
+      // Blood Search Flow Routes
+      ...bloodSearchFlowRoutes,
+      
       // Modern Splash Screen (shows first for all users)
       GoRoute(
         path: '/splash',
@@ -89,9 +96,23 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             const MaterialPage(child: IntroSlidePage()),
       ),
 
-      // Welcome page route
+      // Welcome page route - Blood Search Welcome (Start Search / Scan QR)
       GoRoute(
         path: '/welcome',
+        pageBuilder: (context, state) =>
+            const MaterialPage(child: BloodSearchWelcomePage()),
+      ),
+
+      // About page route (accessible from welcome screen)
+      GoRoute(
+        path: '/about',
+        pageBuilder: (context, state) =>
+            MaterialPage(child: AproposPage()),
+      ),
+
+      // Login options page route (old welcome with email/google/visitor login)
+      GoRoute(
+        path: '/login-options',
         pageBuilder: (context, state) =>
             const MaterialPage(child: WelcomePage()),
       ),

@@ -230,13 +230,21 @@ class WelcomePage extends ConsumerWidget {
                         delay: const Duration(milliseconds: 1000),
                         child: _buildVisitorButton(context),
                       ),
+                      const SizedBox(height: 16),
+                      
+                      // Search Blood button - leads to blood search flow
+                      FadeInUp(
+                        duration: const Duration(milliseconds: 600),
+                        delay: const Duration(milliseconds: 1100),
+                        child: _buildSearchBloodButton(context),
+                      ),
                     ],
                   ),
                   
                   // Register link
                 FadeInUp(
                   duration: const Duration(milliseconds: 600),
-                  delay: const Duration(milliseconds: 1100),
+                  delay: const Duration(milliseconds: 1200),
                   child: Padding(
                     padding: const EdgeInsets.only(bottom: 20),
                     child: Row(
@@ -445,6 +453,59 @@ class WelcomePage extends ConsumerWidget {
                   color: ColorPages.COLOR_PRINCIPAL,
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSearchBloodButton(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      height: 56,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(
+          colors: [
+            Colors.red.shade600,
+            Colors.red.shade400,
+          ],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.red.withOpacity(0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            context.push('/blood-search');
+          },
+          borderRadius: BorderRadius.circular(16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Ionicons.search_outline,
+                color: Colors.white,
+                size: 22,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'search_blood'.tr.isEmpty ? 'Search Blood' : 'search_blood'.tr,
+                style: GoogleFonts.ubuntu(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],

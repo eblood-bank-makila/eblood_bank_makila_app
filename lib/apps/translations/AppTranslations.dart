@@ -1464,6 +1464,132 @@ class AppTranslations extends Translations {
       'request_from_facility_blood_units': '@facility - @blood (@count unités)',
       'blood_units_count': '@blood (@count unités)',
 
+      // =============================================
+      // Blood Search Flow Translations - French
+      // =============================================
+      
+      // Welcome Page
+      'find_blood_title': 'Trouver du Sang',
+      'find_blood_subtitle': 'Recherchez des produits sanguins disponibles près de chez vous',
+      'start_search': 'Commencer la Recherche',
+      'scan_hospital_qr': 'Scanner le QR de l\'Hôpital',
+      'search_blood': 'Rechercher du Sang',
+      
+      // Progress Steps
+      'step_city': 'Ville',
+      'step_blood_type': 'Groupe',
+      'step_results': 'Résultats',
+      'step_confirm': 'Confirmer',
+      
+      // Location Selection (Tree)
+      'select_country': 'Sélectionner le Pays',
+      'select_province': 'Sélectionner la Province',
+      'select_city': 'Sélectionner la Ville',
+      'search_country': 'Rechercher un pays...',
+      'search_province': 'Rechercher une province...',
+      'search_city': 'Rechercher une ville...',
+      'use_current_location': 'Utiliser ma position actuelle',
+      'no_locations_found': 'Aucun emplacement trouvé',
+      'no_cities_found': 'Aucune ville trouvée',
+      'try_different_search': 'Essayez une autre recherche',
+      'error_loading_locations': 'Erreur de chargement des emplacements',
+      'retry': 'Réessayer',
+      'sub_locations': 'sous-emplacements',
+      'location_detection_coming_soon': 'Détection de localisation bientôt disponible',
+      
+      // Blood Type Selection
+      'select_blood_type': 'Sélectionner le Groupe Sanguin',
+      'which_blood_type': 'Quel groupe sanguin recherchez-vous ?',
+      'select_blood_group_subtitle': 'Sélectionnez le groupe sanguin et le facteur Rh',
+      'blood_group': 'Groupe Sanguin',
+      'rh_factor': 'Facteur Rh',
+      'searching_for': 'Recherche de :',
+      
+      // Search Results
+      'search_results': 'Résultats de Recherche',
+      'blood_type_search': 'Recherche de groupe sanguin',
+      'no_results_found': 'Aucun Résultat Trouvé',
+      'no_blood_available': 'Aucun sang de ce type n\'est disponible dans cette zone.',
+      'modify_search': 'Modifier la Recherche',
+      'available': 'Disponible',
+      'limited_stock': 'Stock Limité',
+      'view_options': 'Voir les Options',
+      
+      // Hospital Identification
+      'identify_hospital': 'Identifier l\'Hôpital',
+      'how_identify_hospital': 'Comment identifier l\'hôpital ?',
+      'select_method_below': 'Choisissez une méthode ci-dessous',
+      'scan_qr_code': 'Scanner le QR Code',
+      'scan_hospital_qr_subtitle': 'Scannez le QR affiché à l\'hôpital',
+      'import_from_gallery': 'Importer depuis la Galerie',
+      'select_qr_image': 'Sélectionnez une image QR depuis votre galerie',
+      'enter_code_manually': 'Entrer le Code Manuellement',
+      'enter_8_digit_code': 'Entrez le code à 8 chiffres de l\'hôpital',
+      'ready_to_scan': 'Prêt à Scanner',
+      'hospital_code': 'Code Hôpital',
+      'enter_hospital_code': 'Entrez le code hôpital',
+      'verify_code': 'Vérifier le Code',
+      'invalid_hospital_code': 'Code hôpital invalide',
+      'hospital_found': 'Hôpital Trouvé',
+      
+      // Visitor Registration & OTP
+      'visitor_registration': 'Inscription Visiteur',
+      'enter_phone_number': 'Entrez votre numéro de téléphone',
+      'phone_verification': 'Vérification du Téléphone',
+      'we_will_send_otp': 'Nous vous enverrons un code de vérification',
+      'send_code': 'Envoyer le Code',
+      'enter_otp': 'Entrez le Code OTP',
+      'otp_sent_to': 'Code envoyé au',
+      'enter_complete_code': 'Veuillez entrer le code complet à 6 chiffres',
+      'verify_otp': 'Vérifier le Code',
+      'resend_code': 'Renvoyer le Code',
+      'resend_in': 'Renvoyer dans',
+      'invalid_otp': 'Code de vérification invalide. Veuillez réessayer.',
+      
+      // Payment
+      'payment': 'Paiement',
+      'choose_option': 'Choisissez une option',
+      'choose_how_to_get': 'Comment souhaitez-vous obtenir le sang ?',
+      'view_address': 'Voir l\'Adresse',
+      'view_address_desc': 'Obtenez l\'adresse de l\'hôpital et allez chercher le sang vous-même',
+      'order_delivery': 'Commander la Livraison',
+      'order_delivery_desc': 'Faites livrer le sang à votre adresse',
+      'select_payment_method': 'Sélectionnez le Mode de Paiement',
+      'mobile_money': 'Mobile Money',
+      'card_payment': 'Paiement par Carte',
+      'cash_on_delivery': 'Paiement à la Livraison',
+      'pay_now': 'Payer Maintenant',
+      'processing_payment': 'Traitement du paiement...',
+      'payment_successful': 'Paiement Réussi',
+      'payment_failed': 'Échec du Paiement',
+      
+      // Address View
+      'hospital_address': 'Adresse de l\'Hôpital',
+      'address_unlocked': 'Adresse Débloquée',
+      'get_directions': 'Obtenir l\'Itinéraire',
+      'call_hospital': 'Appeler l\'Hôpital',
+      'copy_address': 'Copier l\'Adresse',
+      'address_copied': 'Adresse copiée',
+      'blood_requested': 'Sang Demandé',
+      
+      // Live Tracking
+      'live_tracking': 'Suivi en Direct',
+      'order_placed': 'Commande Passée',
+      'order_confirmed': 'Confirmée',
+      'picked_up': 'Récupérée',
+      'delivered': 'Livrée',
+      'driver_info': 'Info Livreur',
+      'call_driver': 'Appeler le Livreur',
+      'estimated_arrival': 'Arrivée Estimée',
+      'order_details': 'Détails de la Commande',
+      'refresh_tracking': 'Actualiser le Suivi',
+      
+      // QR Scanner
+      'qr_scanner': 'Scanner QR',
+      'point_camera_at_qr': 'Pointez la caméra vers le code QR',
+      'scanning': 'Scan en cours...',
+      'flash': 'Flash',
+      'switch_camera': 'Changer de Caméra',
 
     },
 
@@ -2800,6 +2926,132 @@ class AppTranslations extends Translations {
       'request_from_facility_blood_units': '@facility - @blood (@count units)',
       'blood_units_count': '@blood (@count units)',
 
+      // =============================================
+      // Blood Search Flow Translations - English
+      // =============================================
+      
+      // Welcome Page
+      'find_blood_title': 'Find Blood',
+      'find_blood_subtitle': 'Search for available blood products near you',
+      'start_search': 'Start Search',
+      'scan_hospital_qr': 'Scan Hospital QR Code',
+      'search_blood': 'Search Blood',
+      
+      // Progress Steps
+      'step_city': 'City',
+      'step_blood_type': 'Blood Type',
+      'step_results': 'Results',
+      'step_confirm': 'Confirm',
+      
+      // Location Selection (Tree)
+      'select_country': 'Select Country',
+      'select_province': 'Select Province',
+      'select_city': 'Select City',
+      'search_country': 'Search country...',
+      'search_province': 'Search province...',
+      'search_city': 'Search city...',
+      'use_current_location': 'Use my current location',
+      'no_locations_found': 'No locations found',
+      'no_cities_found': 'No cities found',
+      'try_different_search': 'Try a different search',
+      'error_loading_locations': 'Error loading locations',
+      'retry': 'Retry',
+      'sub_locations': 'sub-locations',
+      'location_detection_coming_soon': 'Location detection coming soon',
+      
+      // Blood Type Selection
+      'select_blood_type': 'Select Blood Type',
+      'which_blood_type': 'Which blood type are you looking for?',
+      'select_blood_group_subtitle': 'Select the blood group and Rh factor',
+      'blood_group': 'Blood Group',
+      'rh_factor': 'Rh Factor',
+      'searching_for': 'Searching for:',
+      
+      // Search Results
+      'search_results': 'Search Results',
+      'blood_type_search': 'Blood type search',
+      'no_results_found': 'No Results Found',
+      'no_blood_available': 'No blood of this type is available in this area.',
+      'modify_search': 'Modify Search',
+      'available': 'Available',
+      'limited_stock': 'Limited Stock',
+      'view_options': 'View Options',
+      
+      // Hospital Identification
+      'identify_hospital': 'Identify Hospital',
+      'how_identify_hospital': 'How to identify the hospital?',
+      'select_method_below': 'Choose a method below',
+      'scan_qr_code': 'Scan QR Code',
+      'scan_hospital_qr_subtitle': 'Scan the QR displayed at the hospital',
+      'import_from_gallery': 'Import from Gallery',
+      'select_qr_image': 'Select a QR image from your gallery',
+      'enter_code_manually': 'Enter Code Manually',
+      'enter_8_digit_code': 'Enter the 8-digit hospital code',
+      'ready_to_scan': 'Ready to Scan',
+      'hospital_code': 'Hospital Code',
+      'enter_hospital_code': 'Enter hospital code',
+      'verify_code': 'Verify Code',
+      'invalid_hospital_code': 'Invalid hospital code',
+      'hospital_found': 'Hospital Found',
+      
+      // Visitor Registration & OTP
+      'visitor_registration': 'Visitor Registration',
+      'enter_phone_number': 'Enter your phone number',
+      'phone_verification': 'Phone Verification',
+      'we_will_send_otp': 'We will send you a verification code',
+      'send_code': 'Send Code',
+      'enter_otp': 'Enter OTP Code',
+      'otp_sent_to': 'Code sent to',
+      'enter_complete_code': 'Please enter the complete 6-digit code',
+      'verify_otp': 'Verify Code',
+      'resend_code': 'Resend Code',
+      'resend_in': 'Resend in',
+      'invalid_otp': 'Invalid verification code. Please try again.',
+      
+      // Payment
+      'payment': 'Payment',
+      'choose_option': 'Choose an option',
+      'choose_how_to_get': 'How would you like to get the blood?',
+      'view_address': 'View Address',
+      'view_address_desc': 'Get the hospital address and pick up the blood yourself',
+      'order_delivery': 'Order Delivery',
+      'order_delivery_desc': 'Have the blood delivered to your address',
+      'select_payment_method': 'Select Payment Method',
+      'mobile_money': 'Mobile Money',
+      'card_payment': 'Card Payment',
+      'cash_on_delivery': 'Cash on Delivery',
+      'pay_now': 'Pay Now',
+      'processing_payment': 'Processing payment...',
+      'payment_successful': 'Payment Successful',
+      'payment_failed': 'Payment Failed',
+      
+      // Address View
+      'hospital_address': 'Hospital Address',
+      'address_unlocked': 'Address Unlocked',
+      'get_directions': 'Get Directions',
+      'call_hospital': 'Call Hospital',
+      'copy_address': 'Copy Address',
+      'address_copied': 'Address copied',
+      'blood_requested': 'Blood Requested',
+      
+      // Live Tracking
+      'live_tracking': 'Live Tracking',
+      'order_placed': 'Order Placed',
+      'order_confirmed': 'Confirmed',
+      'picked_up': 'Picked Up',
+      'delivered': 'Delivered',
+      'driver_info': 'Driver Info',
+      'call_driver': 'Call Driver',
+      'estimated_arrival': 'Estimated Arrival',
+      'order_details': 'Order Details',
+      'refresh_tracking': 'Refresh Tracking',
+      
+      // QR Scanner
+      'qr_scanner': 'QR Scanner',
+      'point_camera_at_qr': 'Point camera at QR code',
+      'scanning': 'Scanning...',
+      'flash': 'Flash',
+      'switch_camera': 'Switch Camera',
 
     },
 

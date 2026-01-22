@@ -89,20 +89,47 @@ class OptionChoiceBottomSheet extends StatelessWidget {
                           const SizedBox(height: 4),
                           Row(
                             children: [
+                              Icon(Iconsax.routing_2, 
+                                  size: 14, color: Colors.blue.shade600),
+                              const SizedBox(width: 4),
+                              Text(
+                                result.formattedDistance,
+                                style: GoogleFonts.ubuntu(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blue.shade700,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                'away'.tr.isEmpty ? 'away' : 'away'.tr,
+                                style: GoogleFonts.ubuntu(
+                                  fontSize: 11,
+                                  color: Colors.grey.shade500,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
                               Icon(Iconsax.location, 
-                                  size: 14, color: Colors.grey.shade500),
+                                  size: 14, color: Colors.grey.shade400),
                               const SizedBox(width: 4),
                               Expanded(
                                 child: Text(
-                                  result.address ?? 'Address not available',
+                                  result.maskedAddress,
                                   style: GoogleFonts.ubuntu(
-                                    fontSize: 12,
-                                    color: Colors.grey.shade600,
+                                    fontSize: 11,
+                                    color: Colors.grey.shade500,
+                                    fontStyle: FontStyle.italic,
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
+                              Icon(Iconsax.lock_1, 
+                                  size: 12, color: Colors.grey.shade400),
                             ],
                           ),
                           // Price info

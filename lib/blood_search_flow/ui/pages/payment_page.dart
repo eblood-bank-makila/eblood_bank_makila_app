@@ -17,7 +17,7 @@ import '../widgets/search_flow_app_bar.dart';
 
 class PaymentPage extends ConsumerStatefulWidget {
   final String? option;
-  
+
   const PaymentPage({super.key, this.option});
 
   @override
@@ -25,7 +25,6 @@ class PaymentPage extends ConsumerStatefulWidget {
 }
 
 class _PaymentPageState extends ConsumerState<PaymentPage> {
-  PaymentOption _selectedOption = PaymentOption.viewAddress;
   String? _selectedPaymentMethod;
   bool _isLoading = false;
   String? _errorMessage;
@@ -52,18 +51,17 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
     ),
   ];
 
-  @override
-  void initState() {
-    super.initState();
-    if (widget.option == 'delivery') {
-      _selectedOption = PaymentOption.delivery;
-    }
-  }
-
   double get _viewAddressPrice => 500.0; // CDF
   double get _deliveryPrice => 5000.0; // CDF
-  double get _selectedPrice => 
-      _selectedOption == PaymentOption.viewAddress ? _viewAddressPrice : _deliveryPrice;
+
+  PaymentOption get _selectedOption {
+    final state = ref.read(searchFlowProvider);
+    return state.selectedPaymentOption ?? PaymentOption.viewAddress;
+  }
+
+  double get _selectedPrice => _selectedOption == PaymentOption.viewAddress
+      ? _viewAddressPrice
+      : _deliveryPrice;
 
   @override
   Widget build(BuildContext context) {
@@ -80,76 +78,46 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Selected hospital summary
-            if (state.identifiedHospital != null) ...[
-              _HospitalSummaryCard(hospital: state.identifiedHospital!),
+            // Selected hospital/blood bank summary - only distance shown
+            if (state.selectedResult != null) ...[
+              _BloodBankDistanceCard(result: state.selectedResult!),
               const SizedBox(height: 24),
             ],
 
-            // Option selection
-            Text(
-              'choose_option'.tr.isEmpty ? 'Choose an option' : 'choose_option'.tr,
-              style: GoogleFonts.ubuntu(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey.shade800,
-              ),
-            ),
-            
-            const SizedBox(height: 16),
-
-            // View Address option
-            _OptionCard(
-              title: 'view_address'.tr.isEmpty ? 'View Address Only' : 'view_address'.tr,
-              subtitle: 'get_hospital_location'.tr.isEmpty
-                  ? 'Get the hospital location to visit yourself'
-                  : 'get_hospital_location'.tr,
-              icon: Iconsax.location,
-              price: _viewAddressPrice,
-              isSelected: _selectedOption == PaymentOption.viewAddress,
-              onTap: () => setState(() => _selectedOption = PaymentOption.viewAddress),
-            ),
-            
-            const SizedBox(height: 12),
-
-            // Delivery option
-            _OptionCard(
-              title: 'order_delivery'.tr.isEmpty ? 'Order Delivery' : 'order_delivery'.tr,
-              subtitle: 'have_blood_delivered'.tr.isEmpty
-                  ? 'Have the blood product delivered to you'
-                  : 'have_blood_delivered'.tr,
-              icon: Iconsax.truck_fast,
-              price: _deliveryPrice,
-              isSelected: _selectedOption == PaymentOption.delivery,
-              onTap: () => setState(() => _selectedOption = PaymentOption.delivery),
-              isPremium: true,
+            // Selected option summary (read-only)
+            _SelectedOptionSummary(
+              option: _selectedOption,
+              price: _selectedPrice,
             ),
 
-            const SizedBox(height: 32),
+            const SizedBox(height: 24),
 
             // Payment method selection
             Text(
-              'payment_method'.tr.isEmpty ? 'Payment Method' : 'payment_method'.tr,
+              'payment_method'.tr.isEmpty
+                  ? 'Payment Method'
+                  : 'payment_method'.tr,
               style: GoogleFonts.ubuntu(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: Colors.grey.shade800,
               ),
             ),
-            
+
             const SizedBox(height: 16),
 
             ..._paymentMethods.map((method) {
-              final isAvailable = !method.isAvailableForDeliveryOnly || 
+              final isAvailable =
+                  !method.isAvailableForDeliveryOnly ||
                   _selectedOption == PaymentOption.delivery;
-              
+
               return Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: _PaymentMethodCard(
                   method: method,
                   isSelected: _selectedPaymentMethod == method.id,
                   isAvailable: isAvailable,
-                  onTap: isAvailable 
+                  onTap: isAvailable
                       ? () => setState(() => _selectedPaymentMethod = method.id)
                       : null,
                 ),
@@ -168,7 +136,11 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Iconsax.warning_2, size: 20, color: Colors.red.shade700),
+                    Icon(
+                      Iconsax.warning_2,
+                      size: 20,
+                      color: Colors.red.shade700,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -238,17 +210,19 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Pay button
             SizedBox(
               width: double.infinity,
               height: 56,
               child: ElevatedButton.icon(
-                onPressed: _canPay ? (_isLoading ? null : _processPayment) : null,
-                icon: _isLoading 
-                    ? const SizedBox.shrink() 
+                onPressed: _canPay
+                    ? (_isLoading ? null : _processPayment)
+                    : null,
+                icon: _isLoading
+                    ? const SizedBox.shrink()
                     : const Icon(Iconsax.lock, size: 20),
                 label: _isLoading
                     ? const SizedBox(
@@ -256,7 +230,9 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
                         width: 24,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
                         ),
                       )
                     : Text(
@@ -284,11 +260,15 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Iconsax.shield_tick, size: 14, color: Colors.grey.shade500),
+                Icon(
+                  Iconsax.shield_tick,
+                  size: 14,
+                  color: Colors.grey.shade500,
+                ),
                 const SizedBox(width: 4),
                 Text(
-                  'secure_payment'.tr.isEmpty 
-                      ? 'Secure payment powered by E-Blood' 
+                  'secure_payment'.tr.isEmpty
+                      ? 'Secure payment powered by E-Blood'
                       : 'secure_payment'.tr,
                   style: GoogleFonts.ubuntu(
                     fontSize: 12,
@@ -315,14 +295,14 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
 
     try {
       final isDelivery = _selectedOption == PaymentOption.delivery;
-      
+
       if (isDelivery) {
         await ref.read(searchFlowProvider.notifier).processDeliveryPayment({
           'amount': _selectedPrice,
           'method': _selectedPaymentMethod!,
           'option': 'delivery',
         });
-        
+
         if (mounted) {
           context.push('/blood-search/live-tracking');
         }
@@ -332,7 +312,7 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
           'method': _selectedPaymentMethod!,
           'option': 'view_address',
         });
-        
+
         if (mounted) {
           context.push('/blood-search/address-view');
         }
@@ -347,13 +327,22 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
   }
 }
 
-class _HospitalSummaryCard extends StatelessWidget {
-  final IdentifiedHospital hospital;
+/// Shows only the distance to the blood bank (no name or address for privacy)
+class _BloodBankDistanceCard extends StatelessWidget {
+  final BloodSearchResult result;
 
-  const _HospitalSummaryCard({required this.hospital});
+  const _BloodBankDistanceCard({required this.result});
 
   @override
   Widget build(BuildContext context) {
+    // Format distance
+    String distanceText = 'nearby'.tr.isEmpty ? 'Nearby' : 'nearby'.tr;
+    if (result.distanceKm != null) {
+      distanceText = '${result.distanceKm!.toStringAsFixed(1)} km';
+    } else if (result.distance != null && result.distance!.isNotEmpty) {
+      distanceText = result.distance!;
+    }
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -377,7 +366,7 @@ class _HospitalSummaryCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
-              Iconsax.hospital,
+              Iconsax.routing,
               color: ColorPages.COLOR_PRINCIPAL,
               size: 24,
             ),
@@ -388,32 +377,42 @@ class _HospitalSummaryCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  hospital.name,
+                  'distance_from_you'.tr.isEmpty
+                      ? 'Distance from you'
+                      : 'distance_from_you'.tr,
                   style: GoogleFonts.ubuntu(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey.shade800,
+                    fontSize: 13,
+                    color: Colors.grey.shade600,
                   ),
                 ),
                 const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Icon(Iconsax.location, size: 12, color: Colors.grey.shade500),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        hospital.address ?? 'Address not available',
-                        style: GoogleFonts.ubuntu(
-                          fontSize: 12,
-                          color: Colors.grey.shade600,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
+                Text(
+                  distanceText,
+                  style: GoogleFonts.ubuntu(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: ColorPages.COLOR_PRINCIPAL,
+                  ),
                 ),
               ],
+            ),
+          ),
+          // Blood type badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: ColorPages.COLOR_PRINCIPAL,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              result.fullBloodType.isNotEmpty
+                  ? result.fullBloodType
+                  : result.bloodType,
+              style: GoogleFonts.ubuntu(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
             ),
           ),
         ],
@@ -422,142 +421,132 @@ class _HospitalSummaryCard extends StatelessWidget {
   }
 }
 
-class _OptionCard extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final IconData icon;
+/// Shows the selected option (read-only summary)
+class _SelectedOptionSummary extends StatelessWidget {
+  final PaymentOption option;
   final double price;
-  final bool isSelected;
-  final VoidCallback onTap;
-  final bool isPremium;
 
-  const _OptionCard({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.price,
-    required this.isSelected,
-    required this.onTap,
-    this.isPremium = false,
-  });
+  const _SelectedOptionSummary({required this.option, required this.price});
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isSelected 
-              ? (isPremium ? Colors.purple.shade50 : ColorPages.COLOR_PRINCIPAL.withOpacity(0.05))
-              : Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected 
-                ? (isPremium ? Colors.purple : ColorPages.COLOR_PRINCIPAL)
-                : Colors.grey.shade200,
-            width: isSelected ? 2 : 1,
-          ),
+    final isDelivery = option == PaymentOption.delivery;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDelivery
+            ? Colors.purple.shade50
+            : ColorPages.COLOR_PRINCIPAL.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDelivery ? Colors.purple : ColorPages.COLOR_PRINCIPAL,
+          width: 2,
         ),
-        child: Row(
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: isSelected 
-                    ? (isPremium ? Colors.purple.shade100 : ColorPages.COLOR_PRINCIPAL.withOpacity(0.2))
-                    : Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                icon,
-                color: isSelected 
-                    ? (isPremium ? Colors.purple : ColorPages.COLOR_PRINCIPAL)
-                    : Colors.grey.shade600,
-                size: 24,
-              ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: isDelivery
+                  ? Colors.purple.shade100
+                  : ColorPages.COLOR_PRINCIPAL.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        title,
-                        style: GoogleFonts.ubuntu(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: isSelected 
-                              ? (isPremium ? Colors.purple : ColorPages.COLOR_PRINCIPAL)
-                              : Colors.grey.shade800,
+            child: Icon(
+              isDelivery ? Iconsax.truck_fast : Iconsax.location,
+              color: isDelivery ? Colors.purple : ColorPages.COLOR_PRINCIPAL,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      isDelivery
+                          ? ('order_delivery'.tr.isEmpty
+                                ? 'Order Delivery'
+                                : 'order_delivery'.tr)
+                          : ('view_address'.tr.isEmpty
+                                ? 'View Address Only'
+                                : 'view_address'.tr),
+                      style: GoogleFonts.ubuntu(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: isDelivery
+                            ? Colors.purple
+                            : ColorPages.COLOR_PRINCIPAL,
+                      ),
+                    ),
+                    if (isDelivery) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.purple,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          'BEST',
+                          style: GoogleFonts.ubuntu(
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
-                      if (isPremium) ...[
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.purple,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            'BEST',
-                            style: GoogleFonts.ubuntu(
-                              fontSize: 9,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ],
                     ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: GoogleFonts.ubuntu(
-                      fontSize: 12,
-                      color: Colors.grey.shade600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  '${price.toStringAsFixed(0)}',
-                  style: GoogleFonts.ubuntu(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: isSelected 
-                        ? (isPremium ? Colors.purple : ColorPages.COLOR_PRINCIPAL)
-                        : Colors.grey.shade800,
-                  ),
+                  ],
                 ),
+                const SizedBox(height: 4),
                 Text(
-                  'CDF',
+                  isDelivery
+                      ? ('have_blood_delivered'.tr.isEmpty
+                            ? 'Have the blood product delivered to you'
+                            : 'have_blood_delivered'.tr)
+                      : ('get_hospital_location'.tr.isEmpty
+                            ? 'Get the hospital location to visit yourself'
+                            : 'get_hospital_location'.tr),
                   style: GoogleFonts.ubuntu(
-                    fontSize: 11,
-                    color: Colors.grey.shade500,
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
                   ),
                 ),
               ],
             ),
-            const SizedBox(width: 8),
-            if (isSelected)
-              Icon(
-                Iconsax.tick_circle5,
-                color: isPremium ? Colors.purple : ColorPages.COLOR_PRINCIPAL,
-                size: 24,
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '${price.toStringAsFixed(0)}',
+                style: GoogleFonts.ubuntu(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: isDelivery
+                      ? Colors.purple
+                      : ColorPages.COLOR_PRINCIPAL,
+                ),
               ),
-          ],
-        ),
+              Text(
+                'CDF',
+                style: GoogleFonts.ubuntu(
+                  fontSize: 11,
+                  color: Colors.grey.shade500,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -602,10 +591,14 @@ class _PaymentMethodCard extends StatelessWidget {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: isSelected ? ColorPages.COLOR_PRINCIPAL.withOpacity(0.05) : Colors.white,
+            color: isSelected
+                ? ColorPages.COLOR_PRINCIPAL.withOpacity(0.05)
+                : Colors.white,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isSelected ? ColorPages.COLOR_PRINCIPAL : Colors.grey.shade200,
+              color: isSelected
+                  ? ColorPages.COLOR_PRINCIPAL
+                  : Colors.grey.shade200,
               width: isSelected ? 2 : 1,
             ),
           ),
@@ -615,14 +608,16 @@ class _PaymentMethodCard extends StatelessWidget {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: isSelected 
+                  color: isSelected
                       ? ColorPages.COLOR_PRINCIPAL.withOpacity(0.1)
                       : Colors.grey.shade100,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
                   method.icon,
-                  color: isSelected ? ColorPages.COLOR_PRINCIPAL : Colors.grey.shade600,
+                  color: isSelected
+                      ? ColorPages.COLOR_PRINCIPAL
+                      : Colors.grey.shade600,
                   size: 22,
                 ),
               ),
@@ -636,7 +631,9 @@ class _PaymentMethodCard extends StatelessWidget {
                       style: GoogleFonts.ubuntu(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: isSelected ? ColorPages.COLOR_PRINCIPAL : Colors.grey.shade800,
+                        color: isSelected
+                            ? ColorPages.COLOR_PRINCIPAL
+                            : Colors.grey.shade800,
                       ),
                     ),
                     const SizedBox(height: 2),

@@ -65,6 +65,7 @@ dependencies:
   google_mlkit_barcode_scanning: ^0.14.1
   pdf: ^3.11.3
   pin_code_fields: ^8.0.1
+  sms_autofill: ^2.4.0
   web_socket_channel: ^3.0.3
   freezed_annotation: ^2.4.1
   json_annotation: ^4.8.1

@@ -64,10 +64,10 @@ List<RouteBase> bloodSearchFlowRoutes = [
     builder: (context, state) => const QrScannerPage(),
   ),
   
-  // Visitor phone verification
+  // Visitor phone verification (OTP)
   GoRoute(
-    path: '/blood-search/visitor-phone',
-    name: 'blood-search-visitor',
+    path: '/blood-search/visitor-phone-otp',
+    name: 'blood-search-visitor-otp',
     builder: (context, state) => const VisitorPhoneOtpPage(),
   ),
   

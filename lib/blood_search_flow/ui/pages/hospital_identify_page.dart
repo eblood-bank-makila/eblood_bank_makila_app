@@ -540,14 +540,14 @@ class _HospitalIdentifyPageState extends ConsumerState<HospitalIdentifyPage> {
           // User is fully authenticated, go to payment
           context.push('/blood-search/payment', extra: {'option': widget.option});
         } else {
-          // User needs to register/verify
-          context.push('/blood-search/visitor-phone');
+          // User needs to register/verify phone
+          context.push('/blood-search/visitor-phone-otp');
         }
       },
       loading: () {},
       error: (_, __) {
-        // Default to visitor registration
-        context.push('/blood-search/visitor-phone');
+        // Default to visitor phone verification
+        context.push('/blood-search/visitor-phone-otp');
       },
     );
   }

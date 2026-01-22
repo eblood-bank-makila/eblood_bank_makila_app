@@ -12,6 +12,7 @@ import 'package:eblood_bank_mak_app/gestionStocks/ui/pages/favoris/FavorisPage.d
 import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/notification/NotificationPage.dart';
 import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/profil/InformationPage.dart';
 import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/profil/ProfileCtrl.dart';
+import 'package:eblood_bank_mak_app/apps/widgets/HospitalQRCodeWidget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
@@ -238,6 +239,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
           // Account Type
           _buildAccountTypeListTile(),
+
+          // Hospital QR Code (only for hospital accounts)
+          if (_isHospitalAccount()) ...[
+            const SizedBox(height: 8),
+            _buildHospitalQRCodeListTile(),
+          ],
 
           _buildModernListTile(
             icon: Iconsax.heart,
@@ -943,6 +950,96 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           ],
         );
       },
+    );
+  }
+
+  /// Check if current user is a hospital account
+  bool _isHospitalAccount() {
+    var state = ref.watch(profileCtrlProvider);
+    
+    // First try to get account type from user data
+    var accountType = state.user?.accountType ?? ECommonConfigType.none;
+
+    // If still undefined, try to get from stored account_type
+    if (accountType == ECommonConfigType.none) {
+      final storage = GetStorage();
+      final storedAccountType = (storage.read('account_type') as String?)?.toLowerCase().trim() ?? '';
+      accountType = _parseStoredAccountType(storedAccountType);
+    }
+
+    // Also check profil flags for mobile_app_health_structure_profil
+    final storage = GetStorage();
+    final userProfils = storage.read('user_profils');
+    if (userProfils is List && userProfils.isNotEmpty) {
+      for (var profil in userProfils) {
+        if (profil is Map) {
+          final flag = profil['profil']?.toString() ?? '';
+          if (flag == 'mobile_app_health_structure_profil') {
+            return true;
+          }
+        }
+      }
+    }
+
+    return accountType == ECommonConfigType.hospital;
+  }
+
+  /// Build Hospital QR Code list tile
+  Widget _buildHospitalQRCodeListTile() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.2),
+          width: 1,
+        ),
+      ),
+      child: ListTile(
+        onTap: () {
+          showDialog(
+            context: context,
+            builder: (context) => const HospitalQRCodeWidget(showInDialog: true),
+          );
+        },
+        leading: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: const Icon(
+            Iconsax.scan_barcode,
+            size: 20,
+            color: ColorPages.COLOR_PRINCIPAL,
+          ),
+        ),
+        title: Text(
+          'hospital_qr_code'.tr.isEmpty ? 'Hospital QR Code' : 'hospital_qr_code'.tr,
+          style: GoogleFonts.ubuntu(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+            color: Colors.black87,
+          ),
+        ),
+        subtitle: Text(
+          'view_qr_identifier'.tr.isEmpty 
+              ? 'View and share your hospital identifier' 
+              : 'view_qr_identifier'.tr,
+          style: GoogleFonts.ubuntu(
+            fontSize: 13,
+            color: Colors.grey.shade600,
+          ),
+        ),
+        trailing: const Icon(
+          Iconsax.arrow_right_3,
+          size: 18,
+          color: Colors.grey,
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      ),
     );
   }
 

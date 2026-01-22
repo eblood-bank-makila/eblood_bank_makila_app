@@ -794,6 +794,10 @@ class AuthApi {
       await _storage.remove('user_profils');
       await _storage.remove('account_type');
       await _storage.remove('socket_hash');
+      
+      // Clear cached health structure data
+      await _storage.remove('cached_health_structure');
+      await _storage.remove('cached_health_structure_timestamp');
 
       // Sign out from Firebase Auth (Google Sign-In)
       try {

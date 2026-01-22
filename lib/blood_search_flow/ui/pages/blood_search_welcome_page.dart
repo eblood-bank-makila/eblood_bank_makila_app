@@ -10,6 +10,7 @@ import 'package:get/get.dart';
 import 'package:iconsax/iconsax.dart';
 
 import '../../providers/search_flow_provider.dart';
+import '../../data/services/visitor_registration_service_impl.dart';
 import '../../../apps/config/theme/ColorPages.dart';
 
 class BloodSearchWelcomePage extends ConsumerStatefulWidget {
@@ -24,6 +25,10 @@ class _BloodSearchWelcomePageState extends ConsumerState<BloodSearchWelcomePage>
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
+  
+  bool _isStartSearchLoading = false;
+  bool _isScanQrLoading = false;
+  final VisitorRegistrationServiceImpl _visitorService = VisitorRegistrationServiceImpl();
 
   @override
   void initState() {
@@ -56,17 +61,92 @@ class _BloodSearchWelcomePageState extends ConsumerState<BloodSearchWelcomePage>
     super.dispose();
   }
 
-  void _startManualSearch() {
-    ref.read(searchFlowProvider.notifier).startManualSearch();
-    context.push('/blood-search/city-selection');
+  /// Ensure visitor is registered (either locally saved or via backend)
+  Future<bool> _ensureVisitorRegistered() async {
+    // Check if visitor is already saved locally
+    final hasLocal = await _visitorService.hasLocalVisitor();
+    if (hasLocal) {
+      print('✅ Visitor already saved locally');
+      return true;
+    }
+
+    // Check with backend if device has a visitor account
+    print('🔍 Checking visitor status with backend...');
+    final checkResult = await _visitorService.checkVisitorLogin();
+    
+    if (checkResult != null && checkResult['success'] == true) {
+      print('✅ Visitor authenticated via backend');
+      return true;
+    }
+
+    // needs_entity means we need to create a new visitor account
+    // For now, just let them proceed - visitor will be created when needed
+    if (checkResult?['needs_entity'] == true) {
+      print('📝 Device not linked yet - visitor will be created on first action');
+      return true; // Allow to proceed, visitor account will be created later in the flow
+    }
+
+    // Default: allow access (for cases where backend is unreachable)
+    print('⚠️ Could not verify visitor status, proceeding anyway');
+    return true;
+  }
+
+  void _startManualSearch() async {
+    if (_isStartSearchLoading) return;
+    
+    setState(() => _isStartSearchLoading = true);
+    
+    try {
+      // Ensure visitor is registered before proceeding
+      await _ensureVisitorRegistered();
+      
+      ref.read(searchFlowProvider.notifier).startManualSearch();
+      if (mounted) {
+        context.push('/blood-search/city-selection');
+      }
+    } catch (e) {
+      print('❌ Error in _startManualSearch: $e');
+      // Proceed anyway on error
+      ref.read(searchFlowProvider.notifier).startManualSearch();
+      if (mounted) {
+        context.push('/blood-search/city-selection');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isStartSearchLoading = false);
+      }
+    }
   }
 
   void _scanHospitalQr() async {
-    final result = await context.push<String>('/blood-search/qr-scanner');
-    if (result != null && result.isNotEmpty) {
-      await ref.read(searchFlowProvider.notifier).startWithQrScan(result);
+    if (_isScanQrLoading) return;
+    
+    setState(() => _isScanQrLoading = true);
+    
+    try {
+      // Ensure visitor is registered before proceeding
+      await _ensureVisitorRegistered();
+      
+      final result = await context.push<String>('/blood-search/qr-scanner');
+      if (result != null && result.isNotEmpty) {
+        await ref.read(searchFlowProvider.notifier).startWithQrScan(result);
+        if (mounted) {
+          context.push('/blood-search/city-selection');
+        }
+      }
+    } catch (e) {
+      print('❌ Error in _scanHospitalQr: $e');
+      // Proceed to scanner anyway on error
+      final result = await context.push<String>('/blood-search/qr-scanner');
+      if (result != null && result.isNotEmpty) {
+        await ref.read(searchFlowProvider.notifier).startWithQrScan(result);
+        if (mounted) {
+          context.push('/blood-search/city-selection');
+        }
+      }
+    } finally {
       if (mounted) {
-        context.push('/blood-search/city-selection');
+        setState(() => _isScanQrLoading = false);
       }
     }
   }
@@ -262,24 +342,54 @@ class _BloodSearchWelcomePageState extends ConsumerState<BloodSearchWelcomePage>
                           SizedBox(
                             width: double.infinity,
                             height: 56,
-                            child: ElevatedButton.icon(
-                              onPressed: _startManualSearch,
-                              icon: const Icon(Iconsax.search_normal_1, size: 22),
-                              label: Text(
-                                'start_search'.tr.isEmpty ? 'Start Search' : 'start_search'.tr,
-                                style: GoogleFonts.ubuntu(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
+                            child: ElevatedButton(
+                              onPressed: _isStartSearchLoading ? null : _startManualSearch,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.white,
                                 foregroundColor: ColorPages.COLOR_PRINCIPAL,
+                                disabledBackgroundColor: Colors.white.withOpacity(0.7),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(16),
                                 ),
                                 elevation: 4,
                               ),
+                              child: _isStartSearchLoading
+                                  ? Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: ColorPages.COLOR_PRINCIPAL,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Text(
+                                          'loading'.tr.isEmpty ? 'Loading...' : 'loading'.tr,
+                                          style: GoogleFonts.ubuntu(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                            color: ColorPages.COLOR_PRINCIPAL,
+                                          ),
+                                        ),
+                                      ],
+                                    )
+                                  : Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        const Icon(Iconsax.search_normal_1, size: 22),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          'start_search'.tr.isEmpty ? 'Start Search' : 'start_search'.tr,
+                                          style: GoogleFonts.ubuntu(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                             ),
                           ),
 
@@ -289,25 +399,57 @@ class _BloodSearchWelcomePageState extends ConsumerState<BloodSearchWelcomePage>
                           SizedBox(
                             width: double.infinity,
                             height: 56,
-                            child: OutlinedButton.icon(
-                              onPressed: _scanHospitalQr,
-                              icon: const Icon(Iconsax.scan_barcode, size: 22),
-                              label: Text(
-                                'scan_hospital_qr'.tr.isEmpty 
-                                    ? 'Scan Hospital QR Code' 
-                                    : 'scan_hospital_qr'.tr,
-                                style: GoogleFonts.ubuntu(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
+                            child: OutlinedButton(
+                              onPressed: _isScanQrLoading ? null : _scanHospitalQr,
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: Colors.white,
-                                side: const BorderSide(color: Colors.white, width: 2),
+                                disabledForegroundColor: Colors.white.withOpacity(0.5),
+                                side: BorderSide(
+                                  color: _isScanQrLoading ? Colors.white.withOpacity(0.5) : Colors.white, 
+                                  width: 2,
+                                ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(16),
                                 ),
                               ),
+                              child: _isScanQrLoading
+                                  ? Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        const SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Text(
+                                          'loading'.tr.isEmpty ? 'Loading...' : 'loading'.tr,
+                                          style: GoogleFonts.ubuntu(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    )
+                                  : Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        const Icon(Iconsax.scan_barcode, size: 22),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          'scan_hospital_qr'.tr.isEmpty 
+                                              ? 'Scan Hospital QR Code' 
+                                              : 'scan_hospital_qr'.tr,
+                                          style: GoogleFonts.ubuntu(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                             ),
                           ),
 

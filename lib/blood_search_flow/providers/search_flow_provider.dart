@@ -4,7 +4,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:geolocator/geolocator.dart';
 
+import '../../../core/services/location_tracking_service.dart';
 import '../domain/entities/search_flow_state.dart';
 import '../domain/services/service_interfaces.dart';
 import '../data/services/blood_search_service_impl.dart';
@@ -12,24 +14,30 @@ import '../data/services/hospital_identification_service_impl.dart';
 import '../data/services/visitor_registration_service_impl.dart';
 import '../data/services/payment_service_impl.dart';
 import '../data/services/auth_service_impl.dart';
+import '../../services/HealthStructureService.dart';
 
 /// Provider for the search flow state
-final searchFlowProvider = StateNotifierProvider<SearchFlowNotifier, SearchFlowState>((ref) {
-  return SearchFlowNotifier(
-    bloodSearchService: BloodSearchServiceImpl(),
-    hospitalService: HospitalIdentificationServiceImpl(),
-    visitorService: VisitorRegistrationServiceImpl(),
-    paymentService: PaymentServiceImpl(),
-    authService: AuthServiceImpl(),
-  );
-});
+final searchFlowProvider =
+    StateNotifierProvider<SearchFlowNotifier, SearchFlowState>((ref) {
+      final healthStructureService = ref.read(healthStructureServiceProvider);
+
+      return SearchFlowNotifier(
+        bloodSearchService: BloodSearchServiceImpl(),
+        hospitalService: HospitalIdentificationServiceImpl(
+          healthStructureService,
+        ),
+        visitorService: VisitorRegistrationServiceImpl(),
+        paymentService: PaymentServiceImpl(),
+        authService: AuthServiceImpl(),
+      );
+    });
 
 /// Provider for checking if user can access protected routes
 final canAccessProtectedRoutesProvider = FutureProvider<bool>((ref) async {
   final authService = AuthServiceImpl();
   final isAuthenticated = await authService.isAuthenticated();
   if (!isAuthenticated) return false;
-  
+
   // Visitors can only access welcome page
   final isVisitor = await authService.isVisitor();
   return !isVisitor;
@@ -49,6 +57,13 @@ class SearchFlowNotifier extends StateNotifier<SearchFlowState> {
   final IAuthService authService;
 
   String? _visitorSessionId;
+  String? _appSignature;
+
+  /// Set app signature for SMS Retriever API (auto-read OTP)
+  void setAppSignature(String? signature) {
+    _appSignature = signature;
+    print('📱 App signature set for SMS auto-read: $signature');
+  }
 
   SearchFlowNotifier({
     required this.bloodSearchService,
@@ -86,7 +101,7 @@ class SearchFlowNotifier extends StateNotifier<SearchFlowState> {
   /// Start flow with QR scan first
   Future<void> startWithQrScan(String qrContent) async {
     state = state.copyWith(isLoading: true, qrScannedFirst: true);
-    
+
     try {
       final hospital = await hospitalService.identifyFromQrContent(qrContent);
       if (hospital != null) {
@@ -112,7 +127,7 @@ class SearchFlowNotifier extends StateNotifier<SearchFlowState> {
   /// Handle deep link for hospital identification
   Future<void> handleDeepLink(String deepLinkUri) async {
     state = state.copyWith(isLoading: true, qrScannedFirst: true);
-    
+
     try {
       final hospital = await hospitalService.identifyFromDeepLink(deepLinkUri);
       if (hospital != null) {
@@ -177,10 +192,42 @@ class SearchFlowNotifier extends StateNotifier<SearchFlowState> {
         authToken: token,
       );
 
-      state = state.copyWith(
-        searchResults: results,
-        isLoading: false,
-      );
+      // Calculate distances if location is available
+      List<BloodSearchResult> processedResults = results;
+      try {
+        // Use LocationTrackingService to ensure we have permission and get location
+        final locationService = LocationTrackingService();
+        await locationService.requestPermission(); // Ensure we have permission
+        final position = await locationService.updateLocation();
+
+        if (position != null) {
+          processedResults = results.map((result) {
+            if (result.latitude != null && result.longitude != null) {
+              final distanceMeters = Geolocator.distanceBetween(
+                position.latitude,
+                position.longitude,
+                result.latitude!,
+                result.longitude!,
+              );
+              // distanceKm expects km
+              return result.copyWith(distanceKm: distanceMeters / 1000);
+            }
+            return result;
+          }).toList();
+
+          // Sort by distance (closest first)
+          processedResults.sort((a, b) {
+            final distA = a.distanceKm ?? double.infinity;
+            final distB = b.distanceKm ?? double.infinity;
+            return distA.compareTo(distB);
+          });
+        }
+      } catch (locError) {
+        print('Error calculating distances: $locError');
+        // Continue with original results if location fails
+      }
+
+      state = state.copyWith(searchResults: processedResults, isLoading: false);
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
@@ -204,8 +251,8 @@ class SearchFlowNotifier extends StateNotifier<SearchFlowState> {
   void selectPaymentOption(PaymentOption option) {
     state = state.copyWith(
       selectedPaymentOption: option,
-      currentStep: state.hasHospitalIdentified 
-          ? SearchFlowStep.visitorRegistration 
+      currentStep: state.hasHospitalIdentified
+          ? SearchFlowStep.visitorRegistration
           : SearchFlowStep.hospitalIdentification,
     );
   }
@@ -292,31 +339,48 @@ class SearchFlowNotifier extends StateNotifier<SearchFlowState> {
 
   /// Register visitor and send OTP
   Future<void> registerVisitorAndSendOtp(String phoneNumber) async {
-    if (state.identifiedHospital == null) {
-      state = state.copyWith(errorMessage: 'Hospital not identified');
-      return;
-    }
-
     state = state.copyWith(isLoading: true, visitorPhoneNumber: phoneNumber);
 
     try {
-      _visitorSessionId = await visitorService.registerVisitor(
-        phoneNumber: phoneNumber,
-        hospitalId: state.identifiedHospital!.id,
-        locationId: state.selectedCity?.id,
+      // First ensure visitor account exists (if they don't have one)
+      // This is optional - visitor might already be registered via device
+      if (state.identifiedHospital != null && state.selectedCity != null) {
+        try {
+          await visitorService.registerVisitor(
+            phoneNumber: phoneNumber,
+            hospitalId: state.identifiedHospital!.id,
+            locationId: state.selectedCity?.id,
+          );
+        } catch (e) {
+          // Ignore registration errors - visitor might already exist
+          print('Visitor registration (may already exist): $e');
+        }
+      }
+
+      // Store phone number as the session identifier for OTP flow
+      _visitorSessionId = phoneNumber;
+
+      // Send OTP to phone number (with app signature for auto-read)
+      final otpSent = await visitorService.sendOtp(
+        phoneNumber,
+        appSignature: _appSignature,
       );
 
-      final otpSent = await visitorService.sendOtp(_visitorSessionId!);
-      
       state = state.copyWith(
         otpSent: otpSent,
         isLoading: false,
         currentStep: SearchFlowStep.otpVerification,
       );
+
+      if (!otpSent) {
+        state = state.copyWith(
+          errorMessage: 'Failed to send OTP. Please try again.',
+        );
+      }
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
-        errorMessage: 'Failed to register: $e',
+        errorMessage: 'Failed to send OTP: $e',
       );
     }
   }
@@ -328,36 +392,45 @@ class SearchFlowNotifier extends StateNotifier<SearchFlowState> {
       return;
     }
 
-    state = state.copyWith(isLoading: true);
+    state = state.copyWith(isLoading: true, errorMessage: null);
 
     try {
-      final token = await visitorService.verifyOtp(
+      print(
+        '🔐 Provider: verifying OTP "$otpCode" for session "$_visitorSessionId"',
+      );
+
+      // _visitorSessionId is the phone number for visitor OTP flow
+      final result = await visitorService.verifyOtp(
         sessionId: _visitorSessionId!,
         otpCode: otpCode,
       );
 
-      if (token != null) {
-        // Save token locally
-        final storage = GetStorage();
-        await storage.write('visitor_token', token);
+      if (result != null) {
+        // Phone verified successfully
+        // Save the verified phone locally
+        await visitorService.saveVisitorPhone(_visitorSessionId!);
+        print('✅ OTP verified successfully');
 
         state = state.copyWith(
-          visitorToken: token,
           otpVerified: true,
           isLoading: false,
           currentStep: SearchFlowStep.payment,
         );
       } else {
+        print('⚠️ OTP verification returned null');
         state = state.copyWith(
           isLoading: false,
           errorMessage: 'Invalid OTP code',
         );
       }
     } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: 'OTP verification failed: $e',
-      );
+      print('❌ OTP verification error: $e');
+      // Extract meaningful error message from exception
+      String errorMsg = e.toString();
+      if (errorMsg.startsWith('Exception: ')) {
+        errorMsg = errorMsg.substring(11);
+      }
+      state = state.copyWith(isLoading: false, errorMessage: errorMsg);
     }
   }
 
@@ -372,10 +445,7 @@ class SearchFlowNotifier extends StateNotifier<SearchFlowState> {
 
     try {
       final sent = await visitorService.resendOtp(_visitorSessionId!);
-      state = state.copyWith(
-        isLoading: false,
-        otpSent: sent,
-      );
+      state = state.copyWith(isLoading: false, otpSent: sent);
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
@@ -425,8 +495,8 @@ class SearchFlowNotifier extends StateNotifier<SearchFlowState> {
         isLoading: false,
         currentStep: result.success
             ? (state.selectedPaymentOption == PaymentOption.viewAddress
-                ? SearchFlowStep.addressView
-                : SearchFlowStep.deliveryTracking)
+                  ? SearchFlowStep.addressView
+                  : SearchFlowStep.deliveryTracking)
             : state.currentStep,
         errorMessage: result.success ? null : result.message,
       );
@@ -458,13 +528,11 @@ class SearchFlowNotifier extends StateNotifier<SearchFlowState> {
     try {
       // The address would be fetched from a service
       // For now, use the hospital address
-      final address = state.identifiedHospital?.address ?? 
+      final address =
+          state.identifiedHospital?.address ??
           'Address available after payment confirmation';
 
-      state = state.copyWith(
-        unlockedAddress: address,
-        isLoading: false,
-      );
+      state = state.copyWith(unlockedAddress: address, isLoading: false);
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
@@ -489,10 +557,7 @@ class SearchFlowNotifier extends StateNotifier<SearchFlowState> {
         orderTime: DateTime.now(),
       );
 
-      state = state.copyWith(
-        deliveryTracking: trackingInfo,
-        isLoading: false,
-      );
+      state = state.copyWith(deliveryTracking: trackingInfo, isLoading: false);
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
@@ -509,20 +574,25 @@ class SearchFlowNotifier extends StateNotifier<SearchFlowState> {
   void selectCity(SelectedCity city) => setSelectedCity(city);
 
   /// Search blood products (alias for setBloodTypeAndSearch)
-  Future<void> searchBloodProducts(String bloodType) => setBloodTypeAndSearch(bloodType);
+  Future<void> searchBloodProducts(String bloodType) =>
+      setBloodTypeAndSearch(bloodType);
 
   /// Select a search result
   void selectResult(BloodSearchResult result) {
-    // This could be used to pre-fill or navigate with a selected result
-    // For now, just proceed to hospital identification
-    state = state.copyWith(currentStep: SearchFlowStep.hospitalIdentification);
+    state = state.copyWith(
+      selectedResult: result,
+      currentStep: SearchFlowStep.hospitalIdentification,
+    );
   }
 
   /// Register visitor (alias for registerVisitorAndSendOtp)
-  Future<void> registerVisitor(String phoneNumber) => registerVisitorAndSendOtp(phoneNumber);
+  Future<void> registerVisitor(String phoneNumber) =>
+      registerVisitorAndSendOtp(phoneNumber);
 
   /// Process delivery payment
-  Future<void> processDeliveryPayment(Map<String, dynamic> paymentDetails) async {
+  Future<void> processDeliveryPayment(
+    Map<String, dynamic> paymentDetails,
+  ) async {
     state = state.copyWith(selectedPaymentOption: PaymentOption.delivery);
     await processPayment(paymentDetails);
   }

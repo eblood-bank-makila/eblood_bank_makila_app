@@ -98,5 +98,6 @@ flutter:
     - assets/logo/
     - assets/svg/
     - assets/animations/
+    - assets/paymentmethods/
     - .env
   

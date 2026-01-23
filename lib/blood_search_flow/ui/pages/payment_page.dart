@@ -42,19 +42,19 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
     _PaymentMethod(
       id: 'mobile_money',
       name: 'Mobile Money',
-      icon: Iconsax.mobile,
+      imagePath: 'assets/paymentmethods/mobile_money.png',
       description: 'M-Pesa, Airtel Money, Orange Money',
     ),
     _PaymentMethod(
       id: 'card',
       name: 'Card Payment',
-      icon: Iconsax.card,
+      imagePath: 'assets/paymentmethods/card.png',
       description: 'Visa, Mastercard, etc.',
     ),
     _PaymentMethod(
       id: 'cash',
       name: 'cash_on_delivery',
-      icon: Iconsax.money,
+      imagePath: 'assets/paymentmethods/pay_on_receive.png',
       description: 'pay_when_you_receive',
       isAvailableForDeliveryOnly: true,
     ),
@@ -656,14 +656,14 @@ class _SelectedOptionSummary extends StatelessWidget {
 class _PaymentMethod {
   final String id;
   final String name;
-  final IconData icon;
+  final String imagePath;
   final String description;
   final bool isAvailableForDeliveryOnly;
 
   const _PaymentMethod({
     required this.id,
     required this.name,
-    required this.icon,
+    required this.imagePath,
     required this.description,
     this.isAvailableForDeliveryOnly = false,
   });
@@ -723,7 +723,7 @@ class _PaymentMethodCard extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: 44,
+                width: 66,
                 height: 44,
                 decoration: BoxDecoration(
                   color: isSelected
@@ -731,12 +731,21 @@ class _PaymentMethodCard extends StatelessWidget {
                       : Colors.grey.shade100,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(
-                  method.icon,
-                  color: isSelected
-                      ? ColorPages.COLOR_PRINCIPAL
-                      : Colors.grey.shade600,
-                  size: 22,
+                child: Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Image.asset(
+                    method.imagePath,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Icon(
+                        Iconsax.card,
+                        color: isSelected
+                            ? ColorPages.COLOR_PRINCIPAL
+                            : Colors.grey.shade600,
+                        size: 20,
+                      );
+                    },
+                  ),
                 ),
               ),
               const SizedBox(width: 16),
@@ -917,10 +926,19 @@ class _MobileMoneyPhoneBottomSheetState
                           color: ColorPages.COLOR_PRINCIPAL.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Icon(
-                          Iconsax.mobile,
-                          color: ColorPages.COLOR_PRINCIPAL,
-                          size: 24,
+                        child: Padding(
+                          padding: const EdgeInsets.all(10),
+                          child: Image.asset(
+                            'assets/paymentmethods/mobile_money.png',
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Icon(
+                                Iconsax.mobile,
+                                color: ColorPages.COLOR_PRINCIPAL,
+                                size: 24,
+                              );
+                            },
+                          ),
                         ),
                       ),
                       const SizedBox(width: 16),

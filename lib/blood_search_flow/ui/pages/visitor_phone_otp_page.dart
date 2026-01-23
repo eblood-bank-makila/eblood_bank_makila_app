@@ -46,6 +46,54 @@ class _VisitorPhoneOtpPageState extends ConsumerState<VisitorPhoneOtpPage>
   void initState() {
     super.initState();
     _getAppSignature();
+    // Safety check in case user navigates directly to OTP page
+    // Primary check happens before navigation in hospital_identify_page
+    _checkIfAlreadyVerified();
+  }
+
+  /// Safety check if phone is already verified (fallback)
+  /// Primary verification check happens before navigating to this page
+  Future<void> _checkIfAlreadyVerified() async {
+    try {
+      print('🔍 [OTP Page] Checking if phone already verified...');
+      final isVerified = await _visitorService.hasVisitorPhoneNumber();
+      print('📱 [OTP Page] Local verification status: $isVerified');
+      
+      if (isVerified) {
+        print('✅ [OTP Page] Phone verified locally, fetching backend data...');
+        // Fetch fresh visitor data from backend to get updated can_pay_on_delivery status
+        final result = await _visitorService.checkVisitorLogin();
+        print('🔄 [OTP Page] Backend result: ${result != null}');
+        
+        if (result != null) {
+          print('📦 [OTP Page] Result success: ${result['success']}, needs_verification: ${result['needs_phone_verification']}');
+          
+          final needsVerification = result['needs_phone_verification'] == true;
+          
+          if (result['success'] == true && !needsVerification) {
+            print('✅ [OTP Page] Backend confirms verification, navigating to payment');
+            
+            // Wait for build to complete before navigating
+            await Future.delayed(const Duration(milliseconds: 100));
+            
+            if (mounted) {
+              // Skip OTP verification and go directly to payment
+              print('⏭️ [OTP Page] Navigating to payment page...');
+              context.pushReplacement('/blood-search/payment');
+            }
+          } else {
+            print('⚠️ [OTP Page] Backend requires verification, showing OTP input');
+          }
+        } else {
+          print('❌ [OTP Page] No result from backend, showing OTP input');
+        }
+      } else {
+        print('📝 [OTP Page] Phone not verified locally, showing OTP input');
+      }
+    } catch (e) {
+      print('❌ [OTP Page] Error checking verification: $e');
+      // Continue to normal flow if check fails
+    }
   }
 
   Future<void> _getAppSignature() async {

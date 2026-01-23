@@ -8,11 +8,13 @@ class AppTranslations extends Translations {
     'fr_FR': {
       // Registration Success Page
       'registration_successful': 'Inscription Réussie !',
-      'account_created_successfully': 'Votre compte a été créé avec succès. Vous pouvez maintenant vous connecter pour accéder à toutes les fonctionnalités.',
+      'account_created_successfully':
+          'Votre compte a été créé avec succès. Vous pouvez maintenant vous connecter pour accéder à toutes les fonctionnalités.',
       'phone_label': 'Téléphone',
       'continue_to_login': 'Continuer vers la Connexion',
       // Login (standardized keys)
-      'login_subtitle': 'Connectez-vous pour accéder à votre tableau de bord sécurisé',
+      'login_subtitle':
+          'Connectez-vous pour accéder à votre tableau de bord sécurisé',
       'login_no_account': 'Vous n\'avez pas de compte ? ',
 
       // Health Structure Registration
@@ -20,19 +22,24 @@ class AppTranslations extends Translations {
       'health_structure_registration': 'Inscription de Structure de Santé',
       'structure_location': 'Emplacement de la Structure de Santé',
       'health_structure_type': 'Type de Structure de Santé',
-      'select_health_structure_type': 'Sélectionner le type de structure de santé',
-      'select_health_structure_type_error': 'Veuillez sélectionner un type de structure de santé',
+      'select_health_structure_type':
+          'Sélectionner le type de structure de santé',
+      'select_health_structure_type_error':
+          'Veuillez sélectionner un type de structure de santé',
       'structure_information': 'Informations sur la Structure de Santé',
       'structure_name': 'Nom de la Structure de Santé',
       'structure_phone': 'Téléphone de la Structure de Santé',
       'hint_structure_name': 'Entrez le nom de la structure de santé',
       'hint_structure_email': 'Entrez l\'email de la structure de santé',
       'hint_structure_address': 'Entrez l\'adresse de la structure de santé',
-      'health_structure_type_required': 'Veuillez sélectionner un type de structure de santé',
-      'please_fill_all_required_fields': 'Veuillez remplir tous les champs obligatoires',
+      'health_structure_type_required':
+          'Veuillez sélectionner un type de structure de santé',
+      'please_fill_all_required_fields':
+          'Veuillez remplir tous les champs obligatoires',
       'blood_bank_selection': 'Sélection de la Banque de Sang',
       'select_blood_bank': 'Sélectionner une Banque de Sang',
-      'select_blood_bank_description': 'Veuillez choisir une banque de sang pour continuer votre inscription. Cela nous aidera à vous connecter avec les services de sang appropriés.',
+      'select_blood_bank_description':
+          'Veuillez choisir une banque de sang pour continuer votre inscription. Cela nous aidera à vous connecter avec les services de sang appropriés.',
       'blood_bank_required': 'Veuillez sélectionner une banque de sang',
       'no_blood_banks_found': 'Aucune banque de sang trouvée à proximité',
       'hint_select_blood_type': 'Sélectionnez votre groupe sanguin',
@@ -74,7 +81,7 @@ class AppTranslations extends Translations {
       'ok': 'OK',
       'done': 'Terminé',
       'loading': 'Chargement...',
-  'login_in_progress': 'Connexion en cours... ',
+      'login_in_progress': 'Connexion en cours... ',
       'error': 'Erreur',
       'success': 'Succès',
       'warning': 'Avertissement',
@@ -88,9 +95,12 @@ class AppTranslations extends Translations {
       'loading_route': 'Chargement de l\'itinéraire...',
       'position_unavailable': 'Position non disponible',
       'loading_position': 'Chargement de la position...',
-      'error_fetching_position': 'Erreur lors de la récupération de la position',
-      'error_fetching_position_details': 'Erreur lors de la récupération de la position: @error',
-      'no_action_data_available': 'Aucune donnée d\'action disponible pour cette demande',
+      'error_fetching_position':
+          'Erreur lors de la récupération de la position',
+      'error_fetching_position_details':
+          'Erreur lors de la récupération de la position: @error',
+      'no_action_data_available':
+          'Aucune donnée d\'action disponible pour cette demande',
       'unknown_execution_error': 'Erreur inconnue lors de l\'exécution',
       'execution_error_details': 'Erreur lors de l\'exécution: @error',
       'qr_code_scanned': 'QR Code scanné',
@@ -109,9 +119,12 @@ class AppTranslations extends Translations {
       'selected_items_count': '@count élément(s) sélectionné(s)',
       'verification_with_count': 'Vérification (@count)',
       'my_cart': 'Mon Panier',
-      'scan_qr_to_request_password': 'Scannez le QR code pour demander le mot de passe',
-      'scan_qr_to_verify_stock': 'Scannez le QR code pour vérifier les informations du stock',
-      'scan_qr_to_validate_request': 'Scannez le QR code pour valider la demande de sang',
+      'scan_qr_to_request_password':
+          'Scannez le QR code pour demander le mot de passe',
+      'scan_qr_to_verify_stock':
+          'Scannez le QR code pour vérifier les informations du stock',
+      'scan_qr_to_validate_request':
+          'Scannez le QR code pour valider la demande de sang',
       'delivered': 'Livrées',
       'no_pending_requests': 'Aucune demande en attente',
       'no_in_progress_deliveries': 'Aucune livraison en cours',
@@ -130,7 +143,8 @@ class AppTranslations extends Translations {
       // Blood Bank Address Success Page
       'blood_bank_address': 'Adresse de la Banque de Sang',
       'street_address': 'Adresse',
-      'contact_blood_bank_directly': 'Contactez directement la banque de sang pour plus d\'informations sur les heures d\'ouverture et les services disponibles.',
+      'contact_blood_bank_directly':
+          'Contactez directement la banque de sang pour plus d\'informations sur les heures d\'ouverture et les services disponibles.',
       'open_in_google_maps': 'Ouvrir dans Google Maps',
       'get_directions': 'Obtenir l\'itinéraire',
       'could_not_open_maps': 'Impossible d\'ouvrir Google Maps',
@@ -150,527 +164,583 @@ class AppTranslations extends Translations {
       'finish': 'Terminer',
       'get_started': 'Commencer',
 
-  // Announcements
-  'announcements': 'Annonces',
-  'urgent_blood_needed': 'Besoin urgent de sang',
-  'respond': 'Répondre',
-  'no_announcements': 'Aucune annonce',
-  'announcement_deleted': 'Annonce supprimée',
-  'announcement_created_success': 'Annonce créée avec succès',
-  'blood_request': 'Demande de sang',
-  'blood_requests': 'Demandes de sang',
-  'campaign': 'Campagne',
-  'campaigns': 'Campagnes',
-  'event': 'Événement',
-  'events': 'Événements',
-  'news': 'Actualité',
-  'all': 'Tous',
-  'urgent': 'Urgent',
-  'add': 'Ajouter',
-  'dashboard': 'Tableau',
-  'donors': 'Donneurs',
-  'qr_code_actions': 'Actions QR Code',
-  'choose_action': 'Choisissez une action à effectuer',
-  'scan_stock': 'Scanner Stock',
-  'verify_blood_stock': 'Vérifier les stocks de sang',
-  'validate_request': 'Valider Demande',
-  'validate_delivery_receipt': "Valider la réception d'une livraison",
-  'inventory': 'Inventaire',
-  'requests': 'Demandes',
-  'quick_actions': 'Actions rapides',
-'become_donor': 'Devenir donneur',
-'top_donors': 'Top donneurs',
-'worldwide': 'Monde Entier',
-'local': 'Local',
-'donor': 'Donneur',
-'failed_to_load_donors': 'Échec du chargement des donneurs',
-'no_donors_found': 'Aucun donneur trouvé',
-'pull_to_refresh': 'Tirez pour actualiser',
-'close': 'Fermer',
-'delivery_dashboard': 'Tableau de livraison',
-  // Delivery Management Page
-  'delivery_title': 'Mes livraisons',
-  'delivery_header_counts': '@inProgress en cours • @delivered livrées',
-  'delivery_search_hint': 'Rechercher par hôpital ou type de sang...',
-  'delivery_filter_all': 'Toutes',
-  'delivery_filter_in_progress': 'En cours',
-  'delivery_filter_delivered': 'Livrées',
-  'delivery_filter_urgent': 'Urgentes',
-  'delivery_error_title': 'Erreur de chargement',
-  'delivery_empty_title': 'Aucune livraison trouvée',
-  'delivery_empty_desc': 'Essayez de modifier vos filtres',
-  'delivery_units': '@count unité(s)',
-  'delivery_action_start': 'Commencer la livraison',
-  'delivery_action_location': 'Localisation',
-  'delivery_action_complete': 'Terminer',
-  'delivery_completed_label': 'Livraison terminée',
-  'delivery_start_success': 'Livraison @id commencée',
-  'delivery_start_error': 'Erreur lors du démarrage de la livraison',
-  'delivery_complete_success': 'Livraison @id terminée avec succès',
-  'delivery_complete_error': 'Erreur lors de la finalisation de la livraison',
-  'delivery_location_title': 'Localisation',
-  'delivery_location_not_implemented': 'Fonctionnalité de localisation à implémenter',
-  'delivery_status_pending': 'En attente',
-  'delivery_status_assigned': 'Assignée',
-  'delivery_status_in_progress': 'En cours',
-  'delivery_status_delivered': 'Livrée',
-  'delivery_status_cancelled': 'Annulée',
-  'delivery_priority_normal': 'Normal',
-  'delivery_priority_urgent': 'Urgent',
-  'delivery_priority_emergency': 'Urgence',
-'request_blood': 'Demander du sang',
-'donation_history': 'Historique des dons',
-'my_donations': 'Mes dons',
-'nearby_blood_banks': 'Banques de sang à proximité',
-'location_services_disabled': 'Services de localisation désactivés',
+      // Announcements
+      'announcements': 'Annonces',
+      'urgent_blood_needed': 'Besoin urgent de sang',
+      'respond': 'Répondre',
+      'no_announcements': 'Aucune annonce',
+      'announcement_deleted': 'Annonce supprimée',
+      'announcement_created_success': 'Annonce créée avec succès',
+      'blood_request': 'Demande de sang',
+      'blood_requests': 'Demandes de sang',
+      'campaign': 'Campagne',
+      'campaigns': 'Campagnes',
+      'event': 'Événement',
+      'events': 'Événements',
+      'news': 'Actualité',
+      'all': 'Tous',
+      'urgent': 'Urgent',
+      'add': 'Ajouter',
+      'dashboard': 'Tableau',
+      'donors': 'Donneurs',
+      'qr_code_actions': 'Actions QR Code',
+      'choose_action': 'Choisissez une action à effectuer',
+      'scan_stock': 'Scanner Stock',
+      'verify_blood_stock': 'Vérifier les stocks de sang',
+      'validate_request': 'Valider Demande',
+      'validate_delivery_receipt': "Valider la réception d'une livraison",
+      'inventory': 'Inventaire',
+      'requests': 'Demandes',
+      'quick_actions': 'Actions rapides',
+      'become_donor': 'Devenir donneur',
+      'top_donors': 'Top donneurs',
+      'worldwide': 'Monde Entier',
+      'local': 'Local',
+      'donor': 'Donneur',
+      'failed_to_load_donors': 'Échec du chargement des donneurs',
+      'no_donors_found': 'Aucun donneur trouvé',
+      'pull_to_refresh': 'Tirez pour actualiser',
+      'close': 'Fermer',
+      'delivery_dashboard': 'Tableau de livraison',
+      // Delivery Management Page
+      'delivery_title': 'Mes livraisons',
+      'delivery_header_counts': '@inProgress en cours • @delivered livrées',
+      'delivery_search_hint': 'Rechercher par hôpital ou type de sang...',
+      'delivery_filter_all': 'Toutes',
+      'delivery_filter_in_progress': 'En cours',
+      'delivery_filter_delivered': 'Livrées',
+      'delivery_filter_urgent': 'Urgentes',
+      'delivery_error_title': 'Erreur de chargement',
+      'delivery_empty_title': 'Aucune livraison trouvée',
+      'delivery_empty_desc': 'Essayez de modifier vos filtres',
+      'delivery_units': '@count unité(s)',
+      'delivery_action_start': 'Commencer la livraison',
+      'delivery_action_location': 'Localisation',
+      'delivery_action_complete': 'Terminer',
+      'delivery_completed_label': 'Livraison terminée',
+      'delivery_start_success': 'Livraison @id commencée',
+      'delivery_start_error': 'Erreur lors du démarrage de la livraison',
+      'delivery_complete_success': 'Livraison @id terminée avec succès',
+      'delivery_complete_error':
+          'Erreur lors de la finalisation de la livraison',
+      'delivery_location_title': 'Localisation',
+      'delivery_location_not_implemented':
+          'Fonctionnalité de localisation à implémenter',
+      'delivery_status_pending': 'En attente',
+      'delivery_status_assigned': 'Assignée',
+      'delivery_status_in_progress': 'En cours',
+      'delivery_status_delivered': 'Livrée',
+      'delivery_status_cancelled': 'Annulée',
+      'delivery_priority_normal': 'Normal',
+      'delivery_priority_urgent': 'Urgent',
+      'delivery_priority_emergency': 'Urgence',
+      'request_blood': 'Demander du sang',
+      'donation_history': 'Historique des dons',
+      'my_donations': 'Mes dons',
+      'nearby_blood_banks': 'Banques de sang à proximité',
+      'location_services_disabled': 'Services de localisation désactivés',
 
-// Delivery Person Page
-'performance': 'Performance',
-'total_deliveries': 'Livraisons Totales',
-'in_progress': 'En Cours',
-'completed': 'Terminées',
-'urgent_deliveries': 'Urgentes',
-'todays_deliveries': 'Livraisons Aujourd\'hui',
-'in_progress_count': '@count en cours',
-'my_deliveries': 'Mes Livraisons',
-'manage_deliveries': 'Gérer livraisons',
-'scan_qr': 'Scanner QR',
-'qr_feature_coming_soon': 'Scanner QR - Fonctionnalité à implémenter',
-'en_route': 'En route',
-'finished': 'Terminé',
-'location_services_disabled_message': 'Veuillez activer les services de localisation pour trouver les banques de sang à proximité.',
-'location_permission_denied': 'Permission de localisation refusée',
-'location_permission_denied_forever': 'Permission de localisation refusée définitivement',
-'location_permission_required': 'Permission de localisation requise',
-'location_permission_required_message': 'Pour trouver les banques de sang à proximité, nous avons besoin d\'accéder à votre localisation. Veuillez autoriser l\'accès.',
-'location_permission_permanently_denied_message': 'L\'accès à la localisation a été refusé définitivement. Veuillez activer manuellement l\'autorisation dans les paramètres de l\'application.',
-'location_permission_description': 'Nous avons besoin de votre localisation pour vous offrir la meilleure expérience. Cela nous aide à vous montrer les structures de santé et les services d\'urgence à proximité.',
-'location_benefit_health_structures': 'Trouver les hôpitaux et banques de sang à proximité',
-'location_benefit_navigation': 'Obtenir des itinéraires précis vers les établissements de santé',
-'location_benefit_emergency': 'Recevoir des alertes d\'urgence dans votre région',
-'enable_location': 'Activer la Localisation',
-'skip_for_now': 'Ignorer pour l\'instant',
-'location_permission_granted': 'Autorisation de localisation accordée avec succès',
-'location_permission_error': 'Erreur lors de la demande d\'autorisation de localisation',
-'could_not_open_settings': 'Impossible d\'ouvrir les paramètres',
-'location_permission_denied_forever_message': 'L\'autorisation de localisation a été définitivement refusée. Veuillez l\'activer dans les paramètres de votre appareil.',
-'location_status_granted': 'Permission Accordée',
-'location_status_denied': 'Permission Refusée',
-'location_status_denied_forever': 'Refusée Définitivement',
-'location_status_services_disabled': 'Services Désactivés',
-'location_status_unknown': 'Statut Inconnu',
-'open_settings': 'Ouvrir les paramètres',
-'allow_location': 'Autoriser la localisation',
-'become_benevol_donor': 'Devenir donneur bénévole',
-'benevol_button_why': 'Pourquoi devenir donneur bénévole ?',
-'benevol_button_why_sub': 'Découvrez les avantages et l\'impact',
-'benevol_button_yes': 'Oui, je veux m\'inscrire',
-'benevol_button_yes_sub': 'Commencer mon inscription',
-'donor_page_title': 'Devenir donneur de sang',
-'donor_button_why': 'Pourquoi donner son sang ?',
-'donor_button_why_sub': 'Découvrez l\'importance du don',
-'donor_button_yes': 'Oui, je veux donner',
-'donor_button_yes_sub': 'Commencer mon inscription',
-'request_your_ins': 'Demander votre INS',
-'view_my_ins_request': 'Voir ma demande INS',
-'ins_request_details': 'Détails de la demande INS',
-'status': 'Statut',
-  'documents': 'Documents',
-  'id_card': "Pièce d'identité",
-  'face_photo': 'Photo de visage',
-  'country': 'Pays',
-  'province': 'Province',
-  'town': 'Ville/Commune',
-  'rhesus_factor': 'Facteur Rhésus',
+      // Delivery Person Page
+      'performance': 'Performance',
+      'total_deliveries': 'Livraisons Totales',
+      'in_progress': 'En Cours',
+      'completed': 'Terminées',
+      'urgent_deliveries': 'Urgentes',
+      'todays_deliveries': 'Livraisons Aujourd\'hui',
+      'in_progress_count': '@count en cours',
+      'my_deliveries': 'Mes Livraisons',
+      'manage_deliveries': 'Gérer livraisons',
+      'scan_qr': 'Scanner QR',
+      'qr_feature_coming_soon': 'Scanner QR - Fonctionnalité à implémenter',
+      'en_route': 'En route',
+      'finished': 'Terminé',
+      'location_services_disabled_message':
+          'Veuillez activer les services de localisation pour trouver les banques de sang à proximité.',
+      'location_permission_denied': 'Permission de localisation refusée',
+      'location_permission_denied_forever':
+          'Permission de localisation refusée définitivement',
+      'location_permission_required': 'Permission de localisation requise',
+      'location_permission_required_message':
+          'Pour trouver les banques de sang à proximité, nous avons besoin d\'accéder à votre localisation. Veuillez autoriser l\'accès.',
+      'location_permission_permanently_denied_message':
+          'L\'accès à la localisation a été refusé définitivement. Veuillez activer manuellement l\'autorisation dans les paramètres de l\'application.',
+      'location_permission_description':
+          'Nous avons besoin de votre localisation pour vous offrir la meilleure expérience. Cela nous aide à vous montrer les structures de santé et les services d\'urgence à proximité.',
+      'location_benefit_health_structures':
+          'Trouver les hôpitaux et banques de sang à proximité',
+      'location_benefit_navigation':
+          'Obtenir des itinéraires précis vers les établissements de santé',
+      'location_benefit_emergency':
+          'Recevoir des alertes d\'urgence dans votre région',
+      'enable_location': 'Activer la Localisation',
+      'skip_for_now': 'Ignorer pour l\'instant',
+      'location_permission_granted':
+          'Autorisation de localisation accordée avec succès',
+      'location_permission_error':
+          'Erreur lors de la demande d\'autorisation de localisation',
+      'could_not_open_settings': 'Impossible d\'ouvrir les paramètres',
+      'location_permission_denied_forever_message':
+          'L\'autorisation de localisation a été définitivement refusée. Veuillez l\'activer dans les paramètres de votre appareil.',
+      'location_status_granted': 'Permission Accordée',
+      'location_status_denied': 'Permission Refusée',
+      'location_status_denied_forever': 'Refusée Définitivement',
+      'location_status_services_disabled': 'Services Désactivés',
+      'location_status_unknown': 'Statut Inconnu',
+      'open_settings': 'Ouvrir les paramètres',
+      'allow_location': 'Autoriser la localisation',
+      'become_benevol_donor': 'Devenir donneur bénévole',
+      'benevol_button_why': 'Pourquoi devenir donneur bénévole ?',
+      'benevol_button_why_sub': 'Découvrez les avantages et l\'impact',
+      'benevol_button_yes': 'Oui, je veux m\'inscrire',
+      'benevol_button_yes_sub': 'Commencer mon inscription',
+      'donor_page_title': 'Devenir donneur de sang',
+      'donor_button_why': 'Pourquoi donner son sang ?',
+      'donor_button_why_sub': 'Découvrez l\'importance du don',
+      'donor_button_yes': 'Oui, je veux donner',
+      'donor_button_yes_sub': 'Commencer mon inscription',
+      'request_your_ins': 'Demander votre INS',
+      'view_my_ins_request': 'Voir ma demande INS',
+      'ins_request_details': 'Détails de la demande INS',
+      'status': 'Statut',
+      'documents': 'Documents',
+      'id_card': "Pièce d'identité",
+      'face_photo': 'Photo de visage',
+      'country': 'Pays',
+      'province': 'Province',
+      'town': 'Ville/Commune',
+      'rhesus_factor': 'Facteur Rhésus',
 
+      'my_blood_donor_profile': 'Mon profil de donneur',
 
-'my_blood_donor_profile': 'Mon profil de donneur',
+      // Donor Profile and History (only new unique keys)
+      'donor_code': 'Code donneur',
+      'qr_code': 'Code QR',
+      'donor_since': 'Donneur depuis',
+      'download': 'Télécharger',
+      'emergency_contact': 'Contact d\'urgence',
+      'donation_statistics': 'Statistiques de don',
+      'total_donations': 'Total des dons',
+      'last_donation': 'Dernier don',
+      'badges': 'Badges',
+      'not_available': 'Non disponible',
+      'failed_to_load_profile': 'Échec du chargement du profil',
+      'my_donor_id_card': 'Ma carte de donneur',
+      'failed_to_share_id_card': 'Échec du partage de la carte',
+      'failed_to_download_id_card': 'Échec du téléchargement de la carte',
+      'id_card_saved': 'Carte d\'identité sauvegardée avec succès',
+      'failed_to_load_history': 'Échec du chargement de l\'historique',
+      'no_donations_yet': 'Aucun don pour le moment',
+      'your_donations_will_appear_here':
+          'Vos dons apparaîtront ici une fois enregistrés',
+      'blood_donation': 'Don de sang',
 
-  // Donor Profile and History (only new unique keys)
-  'donor_code': 'Code donneur',
-  'qr_code': 'Code QR',
-  'donor_since': 'Donneur depuis',
-  'download': 'Télécharger',
-  'emergency_contact': 'Contact d\'urgence',
-  'donation_statistics': 'Statistiques de don',
-  'total_donations': 'Total des dons',
-  'last_donation': 'Dernier don',
-  'badges': 'Badges',
-  'not_available': 'Non disponible',
-  'failed_to_load_profile': 'Échec du chargement du profil',
-  'my_donor_id_card': 'Ma carte de donneur',
-  'failed_to_share_id_card': 'Échec du partage de la carte',
-  'failed_to_download_id_card': 'Échec du téléchargement de la carte',
-  'id_card_saved': 'Carte d\'identité sauvegardée avec succès',
-  'failed_to_load_history': 'Échec du chargement de l\'historique',
-  'no_donations_yet': 'Aucun don pour le moment',
-  'your_donations_will_appear_here': 'Vos dons apparaîtront ici une fois enregistrés',
-  'blood_donation': 'Don de sang',
+      // Volunteer Donor Dashboard
+      'my_volunteer_dashboard': 'Mon espace bénévole',
+      'volunteer_donor_dashboard': 'Tableau de bord donneur bénévole',
+      'your_volunteer_status': 'Votre statut de bénévole',
+      'volunteer_donor_status': 'Statut Donneur Bénévole',
+      'thank_you_for_commitment':
+          'Merci pour votre engagement à sauver des vies',
+      'volunteer_benefits': 'Avantages du donneur bénévole',
+      'priority_access': 'Accès Prioritaire',
+      'priority_access_desc':
+          'Bénéficiez d\'un accès prioritaire lors des campagnes de don',
+      'exclusive_badges': 'Badges Exclusifs',
+      'exclusive_badges_desc':
+          'Obtenez des badges spéciaux réservés aux donneurs bénévoles',
+      'urgent_notifications': 'Notifications Urgentes',
+      'urgent_notifications_desc':
+          'Recevez des alertes pour les besoins urgents en sang',
+      'donation_tracking': 'Suivi des Dons',
+      'donation_tracking_desc':
+          'Suivez votre historique et votre impact sur la communauté',
+      'community_recognition': 'Reconnaissance Communautaire',
+      'community_recognition_desc': 'Soyez reconnu comme héros du don de sang',
+      'your_commitment': 'Votre engagement',
+      'volunteer_commitment_title': 'En tant que donneur bénévole',
+      'regular_donations':
+          'Donner régulièrement du sang (minimum 2 fois par an)',
+      'emergency_response': 'Répondre aux appels d\'urgence quand possible',
+      'health_requirements': 'Maintenir les exigences de santé pour le don',
+      'community_support': 'Encourager d\'autres à devenir donneurs',
 
-  // Volunteer Donor Dashboard
-  'my_volunteer_dashboard': 'Mon espace bénévole',
-  'volunteer_donor_dashboard': 'Tableau de bord donneur bénévole',
-  'your_volunteer_status': 'Votre statut de bénévole',
-  'volunteer_donor_status': 'Statut Donneur Bénévole',
-  'thank_you_for_commitment': 'Merci pour votre engagement à sauver des vies',
-  'volunteer_benefits': 'Avantages du donneur bénévole',
-  'priority_access': 'Accès Prioritaire',
-  'priority_access_desc': 'Bénéficiez d\'un accès prioritaire lors des campagnes de don',
-  'exclusive_badges': 'Badges Exclusifs',
-  'exclusive_badges_desc': 'Obtenez des badges spéciaux réservés aux donneurs bénévoles',
-  'urgent_notifications': 'Notifications Urgentes',
-  'urgent_notifications_desc': 'Recevez des alertes pour les besoins urgents en sang',
-  'donation_tracking': 'Suivi des Dons',
-  'donation_tracking_desc': 'Suivez votre historique et votre impact sur la communauté',
-  'community_recognition': 'Reconnaissance Communautaire',
-  'community_recognition_desc': 'Soyez reconnu comme héros du don de sang',
-  'your_commitment': 'Votre engagement',
-  'volunteer_commitment_title': 'En tant que donneur bénévole',
-  'regular_donations': 'Donner régulièrement du sang (minimum 2 fois par an)',
-  'emergency_response': 'Répondre aux appels d\'urgence quand possible',
-  'health_requirements': 'Maintenir les exigences de santé pour le don',
-  'community_support': 'Encourager d\'autres à devenir donneurs',
+      // Benevol Donor Registration (new keys only, others already exist)
+      'benevol_donor_info':
+          'En devenant donneur bénévole, vous vous engagez à donner régulièrement du sang et à aider à sauver des vies. Votre engagement est précieux.',
+      'volunteer_password_required':
+          'Mot de passe requis : En tant que donneur bénévole, vous devez créer un mot de passe sécurisé pour votre compte.',
+      'benevol_registration_success':
+          'Votre inscription en tant que donneur bénévole a été enregistrée avec succès ! Merci pour votre engagement.',
+      'photo_validation_required':
+          'Une photo de profil valide est requise. Veuillez capturer ou sélectionner une photo claire de votre visage.',
+      'terms_acceptance_required':
+          'Vous devez accepter les termes et conditions pour continuer',
 
-  // Benevol Donor Registration (new keys only, others already exist)
-  'benevol_donor_info': 'En devenant donneur bénévole, vous vous engagez à donner régulièrement du sang et à aider à sauver des vies. Votre engagement est précieux.',
-  'volunteer_password_required': 'Mot de passe requis : En tant que donneur bénévole, vous devez créer un mot de passe sécurisé pour votre compte.',
-  'benevol_registration_success': 'Votre inscription en tant que donneur bénévole a été enregistrée avec succès ! Merci pour votre engagement.',
-  'photo_validation_required': 'Une photo de profil valide est requise. Veuillez capturer ou sélectionner une photo claire de votre visage.',
-  'terms_acceptance_required': 'Vous devez accepter les termes et conditions pour continuer',
+      'volunteer_page_title': 'Donneur bénévole',
+      'volunteer_why_title': 'Pourquoi devenir donneur bénévole',
+      'volunteer_button_why': 'Pourquoi devenir donneur bénévole ?',
+      'volunteer_button_yes': 'Oui, je souhaite devenir donneur bénévole',
+      'volunteer_button_why_sub': 'Découvrez les avantages et responsabilités',
+      'volunteer_button_yes_sub': "Commencer l'inscription en 2 étapes",
+      'reasons_failed_to_load': 'Échec du chargement des raisons',
+      'reasons_empty': 'Aucune raison disponible',
+      'volunteer_register_title': 'Devenir donneur bénévole',
+      'volunteer_step_photo': 'Photo',
+      'volunteer_step_form': 'Formulaire donneur',
+      'take_photo': 'Prendre une photo',
+      'choose_photo': 'Choisir une photo',
+      'required_field': 'Champ requis',
+      'profile_photo': 'Photo de profil',
+      'profile_photo_tip':
+          'Prenez une belle photo de profil claire, bien éclairée et centrée. Elle sera utilisée sur votre carte d\'identité de donneur de sang.',
+      'hint_blood_type': 'Sélectionnez votre groupe sanguin',
+      'accept_terms': 'J\'accepte les conditions d\'utilisation',
 
-  'volunteer_page_title': 'Donneur bénévole',
-  'volunteer_why_title': 'Pourquoi devenir donneur bénévole',
-  'volunteer_button_why': 'Pourquoi devenir donneur bénévole ?',
-  'volunteer_button_yes': 'Oui, je souhaite devenir donneur bénévole',
-  'volunteer_button_why_sub': 'Découvrez les avantages et responsabilités',
-  'volunteer_button_yes_sub': "Commencer l'inscription en 2 étapes",
-  'reasons_failed_to_load': 'Échec du chargement des raisons',
-  'reasons_empty': 'Aucune raison disponible',
-  'volunteer_register_title': 'Devenir donneur bénévole',
-  'volunteer_step_photo': 'Photo',
-  'volunteer_step_form': 'Formulaire donneur',
-  'take_photo': 'Prendre une photo',
-  'choose_photo': 'Choisir une photo',
-  'required_field': 'Champ requis',
-  'profile_photo': 'Photo de profil',
-  'profile_photo_tip': 'Prenez une belle photo de profil claire, bien éclairée et centrée. Elle sera utilisée sur votre carte d\'identité de donneur de sang.',
-  'hint_blood_type': 'Sélectionnez votre groupe sanguin',
-  'accept_terms': 'J\'accepte les conditions d\'utilisation',
+      'photo_required': 'La photo de profil est requise',
+      'must_be_18_or_older': 'Vous devez avoir au moins 18 ans',
+      'face_required': 'Une photo claire de votre visage est requise',
+      'face_no_face':
+          'Aucun visage détecté. Veuillez prendre une photo de votre visage.',
+      'face_no_face_detected':
+          'Aucun visage détecté. Veuillez prendre une photo claire de votre visage.',
+      'face_multiple_faces':
+          'Plusieurs visages détectés. Prenez une photo avec uniquement votre visage.',
+      'face_checking': 'Vérification du visage...',
 
-  'photo_required': 'La photo de profil est requise',
-  'must_be_18_or_older': 'Vous devez avoir au moins 18 ans',
-'face_required': 'Une photo claire de votre visage est requise',
-'face_no_face': 'Aucun visage détecté. Veuillez prendre une photo de votre visage.',
-'face_no_face_detected': 'Aucun visage détecté. Veuillez prendre une photo claire de votre visage.',
-'face_multiple_faces': 'Plusieurs visages détectés. Prenez une photo avec uniquement votre visage.',
-'face_checking': 'Vérification du visage...',
+      'face_too_small':
+          "Le visage est trop petit dans l'image. Approchez-vous et centrez votre visage.",
+      'face_too_close':
+          "Le visage est trop proche. Éloignez-vous un peu de la caméra.",
+      'face_not_centered': 'Le visage doit être centré dans l’image.',
+      'face_not_straight':
+          'Veuillez regarder directement la caméra (pas de rotation gauche/droite).',
+      'face_tilted': 'Veuillez redresser votre tête (pas d\'inclinaison).',
+      'face_eyes_closed': 'Veuillez garder les yeux ouverts.',
+      'face_landmarks_not_detected':
+          'Visage non clair. Assurez-vous que votre visage est bien visible et éclairé.',
 
-
-'face_too_small': "Le visage est trop petit dans l'image. Approchez-vous et centrez votre visage.",
-'face_too_close': "Le visage est trop proche. Éloignez-vous un peu de la caméra.",
-'face_not_centered': 'Le visage doit être centré dans l’image.',
-'face_not_straight': 'Veuillez regarder directement la caméra (pas de rotation gauche/droite).',
-'face_tilted': 'Veuillez redresser votre tête (pas d\'inclinaison).',
-'face_eyes_closed': 'Veuillez garder les yeux ouverts.',
-'face_landmarks_not_detected': 'Visage non clair. Assurez-vous que votre visage est bien visible et éclairé.',
-
-
-
-  'manage_view_donors': 'Gérer/consulter les donneurs',
-  'create_manage_announcements': 'Créer et gérer les annonces',
-  'confirm_delivery': 'Confirmer la livraison',
-  'scan_qr_to_confirm': 'Scanner le QR code pour confirmer la réception',
-  'delivery_code': 'Code de livraison',
-  'invalid_or_empty_code': 'Code invalide ou vide',
-  'delivery_not_found': 'Livraison introuvable',
+      'manage_view_donors': 'Gérer/consulter les donneurs',
+      'create_manage_announcements': 'Créer et gérer les annonces',
+      'confirm_delivery': 'Confirmer la livraison',
+      'scan_qr_to_confirm': 'Scanner le QR code pour confirmer la réception',
+      'delivery_code': 'Code de livraison',
+      'invalid_or_empty_code': 'Code invalide ou vide',
+      'delivery_not_found': 'Livraison introuvable',
 
       'mark_bags_as_used': 'Marquer les poches comme utilisées',
       'request_coolbox_password': 'Demander le mot de passe',
 
-  'request_password': 'Demander le mot de passe',
-  'get_secure_access_code': "Obtenir le code d'accès sécurisé",
-  'create_announcement': 'Créer une annonce',
-  'information': 'Informations',
-  'title': 'Titre',
-  'title_required': 'Titre requis',
-  'type': 'Type',
-  'location': 'Lieu',
-  'location_required': 'Lieu requis',
-  'details': 'Détails',
-  'priority': 'Priorité',
-  'description': 'Description',
-  'description_required': 'Description requise',
-  'publish': 'Publier',
-  'high': 'Élevée',
-  'ins_button_what': "C'est quoi l'INS ?",
-  'ins_button_yes': "Oui, je veux demander mon INS",
-  'ins_button_what_sub': "Comprendre l'INS et ses bénéfices",
-  'ins_button_yes_sub': "Démarrer la demande d'INS",
-  'ins_explain_title': "Qu'est-ce que l'INS ?",
-  'ins_explain_body': "L'Identifiant National de Santé (INS) est un identifiant unique pour sécuriser et unifier vos informations de santé. Il facilite votre prise en charge, évite les doublons et améliore la coordination des soins.",
-  'ins_explain_hint': "Pour obtenir votre INS, vous devrez fournir une preuve d'identité valide.",
-  'ins_step_id_scan': "Scanner votre pièce d'identité",
-  'ins_step_personal_info': 'Informations personnelles',
-  'ins_step_address': 'Adresse',
-  'ins_step_photo': 'Photo de visage',
-  'ins_step_review': 'Vérification',
-  'scan_id_card': "Scanner la pièce d'identité",
-  'choose_id_photo': "Choisir une photo de la pièce",
-  'id_scan_tip': "Prenez une photo nette de votre pièce d'identité (carte nationale, passeport ou permis de conduire). Assurez-vous qu'elle soit lisible, bien éclairée et entière.",
-  'id_required': "La photo de la pièce d'identité est requise",
-  'id_detected_ok': "Pièce d'identité reconnue",
-  'id_not_recognized': "Pièce d'identité non reconnue. Réessayez avec une photo plus nette.",
-  'id_validation_error': "Erreur lors de la validation de la pièce d'identité",
+      'request_password': 'Demander le mot de passe',
+      'get_secure_access_code': "Obtenir le code d'accès sécurisé",
+      'create_announcement': 'Créer une annonce',
+      'information': 'Informations',
+      'title': 'Titre',
+      'title_required': 'Titre requis',
+      'type': 'Type',
+      'location': 'Lieu',
+      'location_required': 'Lieu requis',
+      'details': 'Détails',
+      'priority': 'Priorité',
+      'description': 'Description',
+      'description_required': 'Description requise',
+      'publish': 'Publier',
+      'high': 'Élevée',
+      'ins_button_what': "C'est quoi l'INS ?",
+      'ins_button_yes': "Oui, je veux demander mon INS",
+      'ins_button_what_sub': "Comprendre l'INS et ses bénéfices",
+      'ins_button_yes_sub': "Démarrer la demande d'INS",
+      'ins_explain_title': "Qu'est-ce que l'INS ?",
+      'ins_explain_body':
+          "L'Identifiant National de Santé (INS) est un identifiant unique pour sécuriser et unifier vos informations de santé. Il facilite votre prise en charge, évite les doublons et améliore la coordination des soins.",
+      'ins_explain_hint':
+          "Pour obtenir votre INS, vous devrez fournir une preuve d'identité valide.",
+      'ins_step_id_scan': "Scanner votre pièce d'identité",
+      'ins_step_personal_info': 'Informations personnelles',
+      'ins_step_address': 'Adresse',
+      'ins_step_photo': 'Photo de visage',
+      'ins_step_review': 'Vérification',
+      'scan_id_card': "Scanner la pièce d'identité",
+      'choose_id_photo': "Choisir une photo de la pièce",
+      'id_scan_tip':
+          "Prenez une photo nette de votre pièce d'identité (carte nationale, passeport ou permis de conduire). Assurez-vous qu'elle soit lisible, bien éclairée et entière.",
+      'id_required': "La photo de la pièce d'identité est requise",
+      'id_detected_ok': "Pièce d'identité reconnue",
+      'id_not_recognized':
+          "Pièce d'identité non reconnue. Réessayez avec une photo plus nette.",
+      'id_validation_error':
+          "Erreur lors de la validation de la pièce d'identité",
 
-  // INS Form Fields
-  'township': 'Commune',
-  'address_quarter': 'Quartier',
-  'avenue': 'Avenue',
-  'house_number': 'Numéro de maison',
-  'marital_status': 'État civil',
-  'middle_name': 'Deuxième prénom',
+      // INS Form Fields
+      'township': 'Commune',
+      'address_quarter': 'Quartier',
+      'avenue': 'Avenue',
+      'house_number': 'Numéro de maison',
+      'marital_status': 'État civil',
+      'middle_name': 'Deuxième prénom',
 
-  // Face Photo
-  'face_photo_tip': 'Prenez une photo claire de votre visage. Assurez-vous que votre visage est bien visible, centré et bien éclairé.',
-  'face_photo_required': 'Photo de visage requise',
-  'face_detected_ok': 'Visage détecté avec succès',
-  'no_face_detected': 'Aucun visage détecté dans la photo. Veuillez réessayer.',
-  'face_validation_error': 'Erreur lors de la validation du visage',
+      // Face Photo
+      'face_photo_tip':
+          'Prenez une photo claire de votre visage. Assurez-vous que votre visage est bien visible, centré et bien éclairé.',
+      'face_photo_required': 'Photo de visage requise',
+      'face_detected_ok': 'Visage détecté avec succès',
+      'no_face_detected':
+          'Aucun visage détecté dans la photo. Veuillez réessayer.',
+      'face_validation_error': 'Erreur lors de la validation du visage',
 
-  // INS Review & Submission
-  'ins_review_title': 'Vérification des informations',
-  'ins_review_confirm': 'Veuillez vérifier attentivement toutes les informations avant de soumettre votre demande d\'INS.',
-  'ins_request_success': 'Demande d\'INS soumise avec succès !',
-  'ins_request_failed': 'Échec de la soumission de la demande d\'INS',
-  'submitting_ins_request': 'Soumission de la demande en cours...',
+      // INS Review & Submission
+      'ins_review_title': 'Vérification des informations',
+      'ins_review_confirm':
+          'Veuillez vérifier attentivement toutes les informations avant de soumettre votre demande d\'INS.',
+      'ins_request_success': 'Demande d\'INS soumise avec succès !',
+      'ins_request_failed': 'Échec de la soumission de la demande d\'INS',
+      'submitting_ins_request': 'Soumission de la demande en cours...',
 
-  'normal': 'Normale',
-  'low': 'Faible',
+      'normal': 'Normale',
+      'low': 'Faible',
 
-  // Network
-  'medical_network': 'Réseau médical',
-  'find_nearby_hospitals_banks': 'Trouvez des hôpitaux et banques de sang à proximité',
-  'search_hospitals_blood_banks': 'Rechercher hôpitaux, banques de sang... ',
-  'no_facilities_found': 'Aucun établissement trouvé',
-  'hospital': 'Hôpital',
-  'blood_bank_space': 'Espace Banque de Sang',
-  'emergency': 'Urgence',
-  'all_caps': 'TOUS',
-  'call_number': 'Appeler @number',
+      // Network
+      'medical_network': 'Réseau médical',
+      'find_nearby_hospitals_banks':
+          'Trouvez des hôpitaux et banques de sang à proximité',
+      'search_hospitals_blood_banks':
+          'Rechercher hôpitaux, banques de sang... ',
+      'no_facilities_found': 'Aucun établissement trouvé',
+      'hospital': 'Hôpital',
+      'blood_bank_space': 'Espace Banque de Sang',
+      'emergency': 'Urgence',
+      'all_caps': 'TOUS',
+      'call_number': 'Appeler @number',
 
-  // Home labels
-  'customer_space': 'Espace client',
-  'featured_campaigns': 'Campagnes en vedette',
-  'blood_donation_campaign': 'Campagne don de sang',
-  'location_unspecified': 'Localisation non précisée',
-  'recent_announcements': 'Annonces récentes',
-  'no_announcements_now': 'Aucune annonce pour le moment.',
-  'announcement': 'Annonce',
-  'donor_space': 'Espace Donneur',
-  'donation_campaigns': 'Campagnes de don',
-  'no_campaigns_now': 'Aucune campagne pour le moment.',
-  'my_announcements': 'Mes annonces',
-  'no_announcements_published': 'Aucune annonce publiée.',
-  'active_requests': 'Demandes actives',
-  'stock_alerts': 'Alertes de stock',
-  'donations_today': "Dons d'aujourd'hui",
-  // Dashboard - New keys only
-  'blood_bags': 'Poches de sang',
-  'alerts': 'Alertes',
-  'active': 'Actif',
-  'in_stock': 'En stock',
-  'ordered': 'Commandées',
-  'low_stock': 'Stock faible',
-  'partners': 'Partenaires',
-  'users': 'Utilisateurs',
-  'manage_users': 'Gérer les utilisateurs',
-  'manage_requests': 'Gérer les demandes',
-  'user_management': 'Gestion des utilisateurs',
-  'add_user': 'Ajouter un utilisateur',
-  'edit_user': 'Modifier l\'utilisateur',
-  'delete_user': 'Supprimer l\'utilisateur',
-  'user_details': 'Détails de l\'utilisateur',
-  'role': 'Rôle',
-  'select_role': 'Sélectionner un rôle',
-  'user_created_successfully': 'Utilisateur créé avec succès',
-  'user_updated_successfully': 'Utilisateur mis à jour avec succès',
-  'user_deleted_successfully': 'Utilisateur supprimé avec succès',
-  'confirm_delete_user': 'Voulez-vous vraiment supprimer cet utilisateur ?',
-  'search_users': 'Rechercher des utilisateurs',
-  'no_users_found': 'Aucun utilisateur trouvé',
-  'auto_generate_password': 'Générer automatiquement le mot de passe',
-  'passwords_dont_match': 'Les mots de passe ne correspondent pas',
-  'find_blood': 'Trouver du sang',
-  'search_blood_bags': 'Rechercher des poches',
-  'view_cart': 'Voir le panier',
+      // Home labels
+      'customer_space': 'Espace client',
+      'featured_campaigns': 'Campagnes en vedette',
+      'blood_donation_campaign': 'Campagne don de sang',
+      'location_unspecified': 'Localisation non précisée',
+      'recent_announcements': 'Annonces récentes',
+      'no_announcements_now': 'Aucune annonce pour le moment.',
+      'announcement': 'Annonce',
+      'donor_space': 'Espace Donneur',
+      'donation_campaigns': 'Campagnes de don',
+      'no_campaigns_now': 'Aucune campagne pour le moment.',
+      'my_announcements': 'Mes annonces',
+      'no_announcements_published': 'Aucune annonce publiée.',
+      'active_requests': 'Demandes actives',
+      'stock_alerts': 'Alertes de stock',
+      'donations_today': "Dons d'aujourd'hui",
+      // Dashboard - New keys only
+      'blood_bags': 'Poches de sang',
+      'alerts': 'Alertes',
+      'active': 'Actif',
+      'in_stock': 'En stock',
+      'ordered': 'Commandées',
+      'low_stock': 'Stock faible',
+      'partners': 'Partenaires',
+      'users': 'Utilisateurs',
+      'manage_users': 'Gérer les utilisateurs',
+      'manage_requests': 'Gérer les demandes',
+      'user_management': 'Gestion des utilisateurs',
+      'add_user': 'Ajouter un utilisateur',
+      'edit_user': 'Modifier l\'utilisateur',
+      'delete_user': 'Supprimer l\'utilisateur',
+      'user_details': 'Détails de l\'utilisateur',
+      'role': 'Rôle',
+      'select_role': 'Sélectionner un rôle',
+      'user_created_successfully': 'Utilisateur créé avec succès',
+      'user_updated_successfully': 'Utilisateur mis à jour avec succès',
+      'user_deleted_successfully': 'Utilisateur supprimé avec succès',
+      'confirm_delete_user': 'Voulez-vous vraiment supprimer cet utilisateur ?',
+      'search_users': 'Rechercher des utilisateurs',
+      'no_users_found': 'Aucun utilisateur trouvé',
+      'auto_generate_password': 'Générer automatiquement le mot de passe',
+      'passwords_dont_match': 'Les mots de passe ne correspondent pas',
+      'find_blood': 'Trouver du sang',
+      'search_blood_bags': 'Rechercher des poches',
+      'view_cart': 'Voir le panier',
 
-  // BanquePage translations
-  'available_blood_bags': 'Poches de sang disponibles',
-  'find_blood_quickly': 'Trouvez du sang rapidement',
-  'search_blood_bag_placeholder': 'Rechercher une poche... ex. A+',
-  'total_stock_available': 'Stock total disponible',
-  'see_all': 'Voir tout',
-  'bags_available': '@count poche disponible|@count poches disponibles',
-  'in_blood_banks': 'Dans @count banque de sang|Dans @count banques de sang',
-  'availability_by_blood_type': 'Disponibilité par groupe sanguin',
-  'bag': 'poche',
-  'bags': 'poches',
-  'no_blood_type_available': 'Aucun groupe sanguin disponible',
-  'no_bank_available': 'Aucune banque disponible',
-  'pull_down_to_refresh': 'Tirez vers le bas pour actualiser',
-  'loading_blood_banks': 'Chargement des banques de sang...',
-  'how_would_you_like_to_proceed': 'Comment souhaitez-vous procéder ?',
-  'view_blood_bank_address': "Voir l'adresse de la banque de sang",
-  'address_shown_after_payment': "L'adresse sera affichée après le paiement pour aller vous en procurer sur place",
-  'order_online': 'Commander en ligne',
-  'order_and_deliver_to_hospital': "Vous pouvez commander et payer en ligne et se faire livrer à l'hôpital",
+      // BanquePage translations
+      'available_blood_bags': 'Poches de sang disponibles',
+      'find_blood_quickly': 'Trouvez du sang rapidement',
+      'search_blood_bag_placeholder': 'Rechercher une poche... ex. A+',
+      'total_stock_available': 'Stock total disponible',
+      'see_all': 'Voir tout',
+      'bags_available': '@count poche disponible|@count poches disponibles',
+      'in_blood_banks':
+          'Dans @count banque de sang|Dans @count banques de sang',
+      'availability_by_blood_type': 'Disponibilité par groupe sanguin',
+      'bag': 'poche',
+      'bags': 'poches',
+      'no_blood_type_available': 'Aucun groupe sanguin disponible',
+      'no_bank_available': 'Aucune banque disponible',
+      'pull_down_to_refresh': 'Tirez vers le bas pour actualiser',
+      'loading_blood_banks': 'Chargement des banques de sang...',
+      'how_would_you_like_to_proceed': 'Comment souhaitez-vous procéder ?',
+      'view_blood_bank_address': "Voir l'adresse de la banque de sang",
+      'address_shown_after_payment':
+          "L'adresse sera affichée après le paiement pour aller vous en procurer sur place",
+      'order_online': 'Commander en ligne',
+      'order_and_deliver_to_hospital':
+          "Vous pouvez commander et payer en ligne et se faire livrer à l'hôpital",
 
-  // BloodBagOrderStepperPage translations
-  'blood_bank_addresses': 'Adresses des banques',
-  'bank': 'Banque',
-  'payment': 'Paiement',
-  'bank_available_singular': '@count banque disponible',
-  'bank_available_plural': '@count banques disponibles',
-  'distance_from_you': 'À @distance de vous',
-  'price_per_bag': '@price par poche',
-  'error_loading_bags': 'Erreur lors du chargement des poches',
-  'loading_available_bags': 'Chargement des poches disponibles...',
-  'select_quantity': 'Sélectionnez la quantité',
-  'bag_available_singular': '@count poche disponible',
-  'bag_available_plural': '@count poches disponibles',
-  'creating_cart': 'Création du panier...',
-  'preparing_order': 'Préparation de la commande...',
-  'confirm_order': 'Confirmer la commande',
-  'verify_and_pay': 'Vérifiez et payez',
-  'error_creating_cart': 'Erreur lors de la création du panier',
-  'no_bank_has_blood_type': 'Aucune banque de sang n\'a le groupe @bloodType en stock',
-  'no_bags_available': 'Aucune poche disponible',
-  'bank_no_bags_in_stock': 'Cette banque n\'a pas de poches @bloodType en stock actuellement',
-  'total_price': 'Prix total',
-  'request_bag_singular': 'Demander @count poche',
-  'request_bag_plural': 'Demander @count poches',
-  'order_summary': 'Résumé de la commande',
-  'unit_price': 'Prix unitaire',
-  'processing': 'Traitement...',
-  'pay_amount': 'Payer @amount',
-  'exchange_rate': 'Taux de change: 1 @from = @rate @to',
-  'original': 'Original',
-  'converted': 'Converti',
-  'submitting_payment': 'Soumission du paiement...',
-  'loading_prices': 'Chargement des prix...',
-  'select_payment_option': 'Sélectionner l\'option de paiement',
-  'choose_currency_to_pay': 'Choisissez la devise pour payer',
-  'address_info_after_payment': 'Les informations de la banque de sang seront affichées après le paiement réussi',
+      // BloodBagOrderStepperPage translations
+      'blood_bank_addresses': 'Adresses des banques',
+      'bank': 'Banque',
+      'payment': 'Paiement',
+      'bank_available_singular': '@count banque disponible',
+      'bank_available_plural': '@count banques disponibles',
+      'distance_from_you': 'À @distance de vous',
+      'price_per_bag': '@price par poche',
+      'error_loading_bags': 'Erreur lors du chargement des poches',
+      'loading_available_bags': 'Chargement des poches disponibles...',
+      'select_quantity': 'Sélectionnez la quantité',
+      'bag_available_singular': '@count poche disponible',
+      'bag_available_plural': '@count poches disponibles',
+      'creating_cart': 'Création du panier...',
+      'preparing_order': 'Préparation de la commande...',
+      'confirm_order': 'Confirmer la commande',
+      'verify_and_pay': 'Vérifiez et payez',
+      'error_creating_cart': 'Erreur lors de la création du panier',
+      'no_bank_has_blood_type':
+          'Aucune banque de sang n\'a le groupe @bloodType en stock',
+      'no_bags_available': 'Aucune poche disponible',
+      'bank_no_bags_in_stock':
+          'Cette banque n\'a pas de poches @bloodType en stock actuellement',
+      'total_price': 'Prix total',
+      'request_bag_singular': 'Demander @count poche',
+      'request_bag_plural': 'Demander @count poches',
+      'order_summary': 'Résumé de la commande',
+      'unit_price': 'Prix unitaire',
+      'processing': 'Traitement...',
+      'pay_amount': 'Payer @amount',
+      'exchange_rate': 'Taux de change: 1 @from = @rate @to',
+      'original': 'Original',
+      'converted': 'Converti',
+      'submitting_payment': 'Soumission du paiement...',
+      'loading_prices': 'Chargement des prix...',
+      'select_payment_option': 'Sélectionner l\'option de paiement',
+      'choose_currency_to_pay': 'Choisissez la devise pour payer',
+      'address_info_after_payment':
+          'Les informations de la banque de sang seront affichées après le paiement réussi',
 
-  // Success/Failure Screen Translations
-  'payment_receipt': 'Reçu de paiement',
-  'platform_fees': 'Frais plateforme',
-  'blood_bag': 'Sachet',
-  'receipt_downloaded': 'Reçu téléchargé: @path',
-  'generation_error': 'Erreur lors de la génération: @error',
-  'eblood_payment_receipt': 'Reçu de paiement E-Blood',
-  'receipt_subject': 'Reçu - @identifier',
-  'share_error': 'Erreur lors du partage: @error',
-  'view_receipt': 'Voir le reçu',
-  'download_receipt': 'Télécharger reçu',
+      // Success/Failure Screen Translations
+      'payment_receipt': 'Reçu de paiement',
+      'platform_fees': 'Frais plateforme',
+      'blood_bag': 'Sachet',
+      'receipt_downloaded': 'Reçu téléchargé: @path',
+      'generation_error': 'Erreur lors de la génération: @error',
+      'eblood_payment_receipt': 'Reçu de paiement E-Blood',
+      'receipt_subject': 'Reçu - @identifier',
+      'share_error': 'Erreur lors du partage: @error',
+      'view_receipt': 'Voir le reçu',
+      'download_receipt': 'Télécharger reçu',
 
-  // Settings Page Translations
-  'account_section': 'COMPTE',
-  'change_password': 'Modifier le mot de passe',
-  'change_your_password': 'Changer votre mot de passe',
-  'delete_account': 'Supprimer le compte',
-  'application_section': 'APPLICATION',
-  'free_storage_space': 'Libérer de l\'espace de stockage',
-  'soon': 'Bientôt',
-  'clear_cache_message': 'Cette action supprimera les fichiers temporaires pour libérer de l\'espace de stockage.',
-  'cache_cleared_successfully': 'Cache effacé avec succès',
+      // Settings Page Translations
+      'account_section': 'COMPTE',
+      'change_password': 'Modifier le mot de passe',
+      'change_your_password': 'Changer votre mot de passe',
+      'delete_account': 'Supprimer le compte',
+      'application_section': 'APPLICATION',
+      'free_storage_space': 'Libérer de l\'espace de stockage',
+      'soon': 'Bientôt',
+      'clear_cache_message':
+          'Cette action supprimera les fichiers temporaires pour libérer de l\'espace de stockage.',
+      'cache_cleared_successfully': 'Cache effacé avec succès',
 
-  'manage_patients': 'Gérer les patients',
-          'manage_storage': 'Gérer le stockage',
-          'mark_as_used': 'Marquer comme utilisé',
-          'mark_as_expired': 'Marquer comme expiré',
-  'patients': 'Patients',
-  'patient_management': 'Gestion des patients',
-  'add_patient': 'Ajouter un patient',
-  'edit_patient': 'Modifier le patient',
-  'patient_details': 'Détails du patient',
-  'search_patients': 'Rechercher des patients',
-  'no_patients_found': 'Aucun patient trouvé',
-  'patient_created_successfully': 'Patient créé avec succès',
-  'patient_updated_successfully': 'Patient mis à jour avec succès',
-  'save_patient': 'Enregistrer le patient',
-  'configure_blood_request': 'Configurer la demande de sang',
-  'request_for': 'Demande pour',
-  'storage': 'Stockage',
-  'patient': 'Patient',
-  'select_patient': 'Sélectionner un patient',
-  'add_new_patient': 'Ajouter un nouveau patient',
-  'request_reason': 'Motif de la demande',
-  'please_select_patient': 'Veuillez sélectionner un patient',
+      'manage_patients': 'Gérer les patients',
+      'manage_storage': 'Gérer le stockage',
+      'mark_as_used': 'Marquer comme utilisé',
+      'mark_as_expired': 'Marquer comme expiré',
+      'patients': 'Patients',
+      'patient_management': 'Gestion des patients',
+      'add_patient': 'Ajouter un patient',
+      'edit_patient': 'Modifier le patient',
+      'patient_details': 'Détails du patient',
+      'search_patients': 'Rechercher des patients',
+      'no_patients_found': 'Aucun patient trouvé',
+      'patient_created_successfully': 'Patient créé avec succès',
+      'patient_updated_successfully': 'Patient mis à jour avec succès',
+      'save_patient': 'Enregistrer le patient',
+      'configure_blood_request': 'Configurer la demande de sang',
+      'request_for': 'Demande pour',
+      'storage': 'Stockage',
+      'patient': 'Patient',
+      'select_patient': 'Sélectionner un patient',
+      'add_new_patient': 'Ajouter un nouveau patient',
+      'request_reason': 'Motif de la demande',
+      'please_select_patient': 'Veuillez sélectionner un patient',
 
-  'recent_activity': 'Activité récente',
-  'view_all': 'Voir tout',
-  'new_blood_request': 'Nouvelle demande de sang',
-  'request_completed': 'Demande complétée',
-  'low_stock_alert': 'Alerte de stock faible',
-  '2_hours_ago': 'Il y a 2 heures',
-  '5_hours_ago': 'Il y a 5 heures',
-  '1_day_ago': 'Il y a 1 jour',
-  // Profile & Information
-  'my_profile': 'Mon profil',
-  'my_account': 'Mon compte',
-  'general': 'Général',
-  'support_and_feedback': 'Support et commentaires',
-  'app_information': "Informations sur l'application",
-  'account_information': 'Informations du compte',
-  'full_name': 'Nom complet',
-  'registered_email': 'E-mail enregistré',
-  'account_type': 'Type de compte',
-  'account_type_undefined': 'Non défini',
-  'edit_profile': 'Modifier le profil',
-  'edit_profile_coming_soon': 'Fonctionnalité de modification du profil à venir',
-  'contact_us': 'Contactez-nous',
-  'rate_app': "Noter l'application",
-  'share_app': "Partager l'application",
-  'logout_confirmation': 'Êtes-vous sûr de vouloir vous déconnecter ?',
-  'logging_out': 'Déconnexion en cours...',
-  'system_account': 'Compte Système',
+      'recent_activity': 'Activité récente',
+      'view_all': 'Voir tout',
+      'new_blood_request': 'Nouvelle demande de sang',
+      'request_completed': 'Demande complétée',
+      'low_stock_alert': 'Alerte de stock faible',
+      '2_hours_ago': 'Il y a 2 heures',
+      '5_hours_ago': 'Il y a 5 heures',
+      '1_day_ago': 'Il y a 1 jour',
+      // Profile & Information
+      'my_profile': 'Mon profil',
+      'my_account': 'Mon compte',
+      'general': 'Général',
+      'support_and_feedback': 'Support et commentaires',
+      'app_information': "Informations sur l'application",
+      'account_information': 'Informations du compte',
+      'full_name': 'Nom complet',
+      'registered_email': 'E-mail enregistré',
+      'account_type': 'Type de compte',
+      'account_type_undefined': 'Non défini',
+      'edit_profile': 'Modifier le profil',
+      'edit_profile_coming_soon':
+          'Fonctionnalité de modification du profil à venir',
+      'contact_us': 'Contactez-nous',
+      'rate_app': "Noter l'application",
+      'share_app': "Partager l'application",
+      'logout_confirmation': 'Êtes-vous sûr de vouloir vous déconnecter ?',
+      'logging_out': 'Déconnexion en cours...',
+      'system_account': 'Compte Système',
 
       // Onboarding
       'onboarding_title_1': 'Bienvenue sur E-blood Bank Makila',
       'onboarding_subtitle_1': 'Votre Connexion Vitale au Sang',
-      'onboarding_description_1': 'Connectez-vous avec les donneurs de sang et les banques en temps réel. Sauvez des vies en quelques clics.',
+      'onboarding_description_1':
+          'Connectez-vous avec les donneurs de sang et les banques en temps réel. Sauvez des vies en quelques clics.',
 
       'onboarding_title_2': 'Trouvez du Sang à Proximité',
       'onboarding_subtitle_2': 'Localisation Rapide et Facile',
-      'onboarding_description_2': 'Localisez instantanément les banques de sang et donneurs les plus proches grâce à notre système de géolocalisation intelligent.',
+      'onboarding_description_2':
+          'Localisez instantanément les banques de sang et donneurs les plus proches grâce à notre système de géolocalisation intelligent.',
 
       'onboarding_title_3': 'Sauvons des Vies Ensemble',
       'onboarding_subtitle_3': 'Soyez un Héros Aujourd\'hui',
-      'onboarding_description_3': 'Rejoignez notre communauté de sauveurs. Donnez votre sang, demandez quand vous en avez besoin, et faites la différence.',
+      'onboarding_description_3':
+          'Rejoignez notre communauté de sauveurs. Donnez votre sang, demandez quand vous en avez besoin, et faites la différence.',
 
       'onboarding_title_4': 'Sûr et Sécurisé',
       'onboarding_subtitle_4': 'Votre Vie Privée Compte',
-      'onboarding_description_4': 'Toutes vos données sont cryptées et sécurisées. Nous priorisons votre confidentialité tout en vous connectant aux ressources vitales.',
+      'onboarding_description_4':
+          'Toutes vos données sont cryptées et sécurisées. Nous priorisons votre confidentialité tout en vous connectant aux ressources vitales.',
 
       // Welcome Page
-      'welcome_message': 'Connectez-vous pour accéder à votre\ncompte E-Blood Bank Makila',
+      'welcome_message':
+          'Connectez-vous pour accéder à votre\ncompte E-Blood Bank Makila',
       'sign_in_with_google': 'Se connecter avec Google',
       'sign_in_with_email': 'Se connecter avec Email',
       'sign_in_with_phone_number': 'Se connecter avec Numéro de Téléphone',
       'create_account_with_google': 'S\'inscrire avec Google',
       'create_account_with_email': 'S\'inscrire avec Email',
-      'create_account_with_phone_number': 'S\'inscrire avec Numéro de Téléphone',
+      'create_account_with_phone_number':
+          'S\'inscrire avec Numéro de Téléphone',
       'continue_as_visitor': 'Continuer en tant que visiteur',
       'create_account': 'Créer un compte',
-      'join_eblood_message': 'Rejoignez E-Blood Bank Makila et\naidez à sauver des vies',
+      'join_eblood_message':
+          'Rejoignez E-Blood Bank Makila et\naidez à sauver des vies',
       'or': 'ou',
       'already_have_account': 'Vous avez déjà un compte ?',
       'sign_in_link': 'Se connecter',
       'coming_soon': 'Bientôt disponible',
-      'coming_soon_message': 'La connexion avec @platform sera bientôt disponible.',
+      'coming_soon_message':
+          'La connexion avec @platform sera bientôt disponible.',
       'connection_error': 'Erreur de connexion',
-      'connection_error_message': 'Une erreur est survenue lors de la connexion avec Google. Veuillez réessayer.',
+      'connection_error_message':
+          'Une erreur est survenue lors de la connexion avec Google. Veuillez réessayer.',
       'login_error': 'Erreur de connexion',
 
       // Authentication
@@ -688,43 +758,58 @@ class AppTranslations extends Translations {
       'verify_email': 'Vérifier l\'email',
       'verify_phone': 'Vérifier le téléphone',
       'waiting_for_sms': 'En attente du SMS...',
-  'verify_emails': 'Vérifier les emails',
-  'verify_each_email_before_submission': 'Veuillez vérifier chaque email avant la soumission',
+      'verify_emails': 'Vérifier les emails',
+      'verify_each_email_before_submission':
+          'Veuillez vérifier chaque email avant la soumission',
       'otp_verification': 'Vérification OTP',
-      'verification_code_sent_to': 'Nous avons envoyé un code de vérification à\n@email',
-      'verification_code_sent_to_phone': 'Nous avons envoyé un code de vérification au\n@phone',
+      'verification_code_sent_to':
+          'Nous avons envoyé un code de vérification à\n@email',
+      'verification_code_sent_to_phone':
+          'Nous avons envoyé un code de vérification au\n@phone',
       'didnt_receive_code': 'Vous n\'avez pas reçu de code ? ',
       'sending': 'Envoi en cours...',
       'resend': 'Renvoyer',
       'verify': 'Vérifier',
       'please_enter_six_digits': 'Veuillez entrer les 6 chiffres du code OTP',
-      'missing_validation_key': 'Clé de validation manquante. Veuillez revenir en arrière et réessayer.',
+      'missing_validation_key':
+          'Clé de validation manquante. Veuillez revenir en arrière et réessayer.',
       'verification_error': 'Erreur de vérification',
-      'missing_validation_key_try_again': 'Clé de validation manquante. Veuillez revenir en arrière et réessayer.',
+      'missing_validation_key_try_again':
+          'Clé de validation manquante. Veuillez revenir en arrière et réessayer.',
       'registration_failed': 'Inscription échouée',
-      'registration_failed_after_verification': 'L\'inscription a échoué après la vérification',
+      'registration_failed_after_verification':
+          'L\'inscription a échoué après la vérification',
       'verification_failed': 'Vérification échouée',
       'check_otp_code': 'Veuillez vérifier votre code OTP et réessayer',
-      'verification_error_occurred': 'Une erreur s\'est produite lors de la vérification',
-      'verification_error_details': 'Une erreur s\'est produite lors de la vérification: @error',
-      'new_code_sent_email': 'Un nouveau code de vérification a été envoyé à votre adresse email',
-      'code_resent_email': 'Le code de vérification a été renvoyé à votre adresse email',
+      'verification_error_occurred':
+          'Une erreur s\'est produite lors de la vérification',
+      'verification_error_details':
+          'Une erreur s\'est produite lors de la vérification: @error',
+      'new_code_sent_email':
+          'Un nouveau code de vérification a été envoyé à votre adresse email',
+      'code_resent_email':
+          'Le code de vérification a été renvoyé à votre adresse email',
       'failed_resend_code': 'Échec de l\'envoi du code de vérification',
-      'failed_resend_code_details': 'Échec de l\'envoi du code de vérification: @error',
-  'otp_verification_in_progress': 'Vérification du code OTP... ',
+      'failed_resend_code_details':
+          'Échec de l\'envoi du code de vérification: @error',
+      'otp_verification_in_progress': 'Vérification du code OTP... ',
 
       // Account Types
       'select_account_type': 'Sélectionner le type de compte',
-      'account_type_description': 'Choisissez le type de compte qui correspond le mieux à vos besoins',
+      'account_type_description':
+          'Choisissez le type de compte qui correspond le mieux à vos besoins',
       'personal_account': 'Compte Personnel',
-      'personal_account_description': 'Pour les donneurs et receveurs individuels',
+      'personal_account_description':
+          'Pour les donneurs et receveurs individuels',
       'hospital_account': 'Compte Hôpital',
       'hospital_account_description': 'Pour les établissements hospitaliers',
-  // New generalized health structure keys (replacing hospital_account in UI)
-  'health_structure_account': 'Structure de Santé',
-  'health_structure_account_description': 'Pour les structures et établissements de santé',
+      // New generalized health structure keys (replacing hospital_account in UI)
+      'health_structure_account': 'Structure de Santé',
+      'health_structure_account_description':
+          'Pour les structures et établissements de santé',
       'blood_bank_account': 'Compte Banque de Sang',
-      'blood_bank_account_description': 'Pour les banques de sang et centres de transfusion',
+      'blood_bank_account_description':
+          'Pour les banques de sang et centres de transfusion',
 
       // Registration Forms
       'personal_information': 'Informations Personnelles',
@@ -744,10 +829,12 @@ class AppTranslations extends Translations {
       'phone_number': 'Numéro de téléphone',
       'address': 'Adresse',
       'city': 'Ville',
-  'your_location': 'Votre localisation',
-  'select_your_location': 'Sélectionnez votre localisation',
-  'select_location_hint': 'Recherchez et choisissez votre lieu (pays > province > ville/commune)',
-  'select_location_to_enter_phone': 'Veuillez sélectionner votre localisation pour activer la saisie du numéro de téléphone',
+      'your_location': 'Votre localisation',
+      'select_your_location': 'Sélectionnez votre localisation',
+      'select_location_hint':
+          'Recherchez et choisissez votre lieu (pays > province > ville/commune)',
+      'select_location_to_enter_phone':
+          'Veuillez sélectionner votre localisation pour activer la saisie du numéro de téléphone',
       'registration_reason': 'Raison d\'inscription',
       'blood_donor': 'Donneur de sang',
       'blood_recipient': 'Receveur de sang',
@@ -812,7 +899,6 @@ class AppTranslations extends Translations {
 
       'status_approved': 'Approuvé',
 
-
       'blood_types': 'types de sang',
       'in_7_days': 'dans 7 jours',
 
@@ -874,7 +960,8 @@ class AppTranslations extends Translations {
       'blood_units_per': 'Unités de sang par @period',
       'collected': 'Collecté',
       'distributed': 'Distribué',
-      'no_trend_data': 'Aucune donnée de tendance disponible pour cette période',
+      'no_trend_data':
+          'Aucune donnée de tendance disponible pour cette période',
       'day': 'jour',
       'week': 'semaine',
       'month': 'mois',
@@ -897,7 +984,8 @@ class AppTranslations extends Translations {
 
       // Settings Tab
       'inventory_settings': 'Paramètres d\'Inventaire',
-      'configure_stock_management': 'Configurez les paramètres de gestion de stock',
+      'configure_stock_management':
+          'Configurez les paramètres de gestion de stock',
       'last_updated': 'Dernière mise à jour: @time',
       'unable_to_load_settings': 'Impossible de charger les paramètres.',
 
@@ -916,41 +1004,53 @@ class AppTranslations extends Translations {
       'threshold_updated': 'Seuil mis à jour pour @bloodType',
       'threshold_update_error': 'Erreur lors de la mise à jour du seuil',
       'configure_all_blood_types': 'Configurer tous les types sanguins',
-      'detailed_threshold_config_coming': 'Configuration détaillée des seuils à venir',
+      'detailed_threshold_config_coming':
+          'Configuration détaillée des seuils à venir',
 
       // Expiration Settings
       'expiration_settings': 'Paramètres d\'Expiration',
       'expiration_alerts': 'Alertes d\'expiration',
-      'expiration_alerts_description': 'Recevoir des notifications pour les produits qui expirent bientôt',
+      'expiration_alerts_description':
+          'Recevoir des notifications pour les produits qui expirent bientôt',
       'expiration_alerts_enabled': 'Alertes d\'expiration: activées',
       'expiration_alerts_disabled': 'Alertes d\'expiration: désactivées',
       'early_alert': 'Alerte anticipée',
-      'days_before_expiration': 'Jours avant expiration pour déclencher l\'alerte',
-      'early_alert_modification_coming': 'Modification de l\'alerte anticipée à venir',
+      'days_before_expiration':
+          'Jours avant expiration pour déclencher l\'alerte',
+      'early_alert_modification_coming':
+          'Modification de l\'alerte anticipée à venir',
       'validity_period': 'Durée de validité',
-      'configure_validity_by_product': 'Configurer la durée de validité par type de produit',
+      'configure_validity_by_product':
+          'Configurer la durée de validité par type de produit',
       'validity_config_coming': 'Configuration des durées de validité à venir',
 
       // Notification Settings
       'notification_settings': 'Paramètres de Notifications',
       'critical_stock_alerts': 'Alertes de stock critique',
-      'critical_stock_alerts_description': 'Recevoir des notifications lorsque le stock est faible',
+      'critical_stock_alerts_description':
+          'Recevoir des notifications lorsque le stock est faible',
       'critical_stock_alerts_enabled': 'Alertes de stock critique: activées',
-      'critical_stock_alerts_disabled': 'Alertes de stock critique: désactivées',
+      'critical_stock_alerts_disabled':
+          'Alertes de stock critique: désactivées',
       'daily_notifications': 'Notifications journalières',
-      'daily_summary_description': 'Recevoir un résumé journalier de l\'état du stock',
+      'daily_summary_description':
+          'Recevoir un résumé journalier de l\'état du stock',
       'daily_notifications_enabled': 'Notifications journalières: activées',
       'daily_notifications_disabled': 'Notifications journalières: désactivées',
       'notification_channels': 'Canaux de notification',
-      'configure_notification_channels': 'Configurer où recevoir les alertes (email, SMS, etc.)',
-      'notification_channels_config_coming': 'Configuration des canaux de notification à venir',
+      'configure_notification_channels':
+          'Configurer où recevoir les alertes (email, SMS, etc.)',
+      'notification_channels_config_coming':
+          'Configuration des canaux de notification à venir',
 
       // General Settings Note
       'note': 'Note',
-      'general_settings_in_profile': 'Les paramètres généraux de l\'application (thème, langue, etc.) sont disponibles dans l\'onglet Profil.',
+      'general_settings_in_profile':
+          'Les paramètres généraux de l\'application (thème, langue, etc.) sont disponibles dans l\'onglet Profil.',
 
       'seven_days': '7 jours',
-      'no_trend_data_period': 'Aucune donnée de tendance disponible pour cette période',
+      'no_trend_data_period':
+          'Aucune donnée de tendance disponible pour cette période',
       'format': 'Format',
       'exp': 'Exp',
       'id': 'ID',
@@ -985,7 +1085,8 @@ class AppTranslations extends Translations {
       'stock_summary': 'Résumé du Stock',
       'units_available': '{count} unités disponibles',
       'quality_volume': 'Qualité: {quality} • {volume} ml',
-      'general_settings_note': 'Les paramètres généraux de l\'application (thème, langue, etc.) sont disponibles dans l\'onglet Profil.',
+      'general_settings_note':
+          'Les paramètres généraux de l\'application (thème, langue, etc.) sont disponibles dans l\'onglet Profil.',
       'unit': 'unité',
       'key_metrics': 'Métriques Clés',
       'blood_units_per_period': 'Unités de sang par {period}',
@@ -1018,7 +1119,8 @@ class AppTranslations extends Translations {
       'payment_failed': 'Échec du Paiement',
       'operation_successful': 'Opération Réussie !',
       'operation_failed': 'Échec de l\'Opération !',
-      'payment_processed_successfully': 'Votre paiement a été traité avec succès',
+      'payment_processed_successfully':
+          'Votre paiement a été traité avec succès',
       'payment_processing_failed': 'Le traitement de votre paiement a échoué',
       'reference': 'Référence',
       'copy': 'Copier',
@@ -1043,9 +1145,11 @@ class AppTranslations extends Translations {
       'copied_to_clipboard': 'Copié dans le presse-papiers',
       'confirm_pickup': 'Confirmer le Retrait',
       'confirm_pickup_title': 'Confirmer le Retrait',
-      'confirm_pickup_message': 'Confirmez-vous que le livreur a récupéré le sang ?',
+      'confirm_pickup_message':
+          'Confirmez-vous que le livreur a récupéré le sang ?',
       'pickup_confirmed': 'Retrait Confirmé',
-      'pickup_confirmed_message': 'Le retrait du sang a été confirmé avec succès',
+      'pickup_confirmed_message':
+          'Le retrait du sang a été confirmé avec succès',
       'confirming_pickup': 'Confirmation en cours...',
       'error_confirming_pickup': 'Erreur lors de la confirmation du retrait',
 
@@ -1064,14 +1168,16 @@ class AppTranslations extends Translations {
       'email_required': 'L\'email est obligatoire',
       'email_invalid': 'Veuillez entrer une adresse email valide',
       'password_required': 'Le mot de passe est obligatoire',
-      'password_min_length': 'Le mot de passe doit contenir au moins 8 caractères',
+      'password_min_length':
+          'Le mot de passe doit contenir au moins 8 caractères',
       'confirm_password_required': 'Veuillez confirmer votre mot de passe',
       'passwords_not_match': 'Les mots de passe ne correspondent pas',
       'date_of_birth_required': 'La date de naissance est obligatoire',
       'invalid_date_format': 'Format de date invalide. Utilisez JJ/MM/AAAA',
       'minimum_age_requirement': 'Vous devez avoir au moins 16 ans',
       'invalid_date': 'Date invalide',
-      'accept_terms_conditions': 'Veuillez accepter les conditions d\'utilisation',
+      'accept_terms_conditions':
+          'Veuillez accepter les conditions d\'utilisation',
       'select_valid_location': 'Veuillez sélectionner un emplacement valide',
       'terms_and_conditions_acceptance': 'J\'accepte les conditions générales',
       'select_date_of_birth': 'Sélectionnez votre date de naissance',
@@ -1110,12 +1216,16 @@ class AppTranslations extends Translations {
       'hint_latitude': 'Entrez la latitude',
       'hint_contact_email': 'Entrez l\'email de contact',
       'hint_admin_email': 'Entrez l\'email de l\'administrateur',
-      'hint_admin_username': 'Entrez le nom d\'utilisateur de l\'administrateur',
-      'select_valid_location_for_phone': 'Veuillez sélectionner un emplacement valide pour le numéro de téléphone',
+      'hint_admin_username':
+          'Entrez le nom d\'utilisateur de l\'administrateur',
+      'select_valid_location_for_phone':
+          'Veuillez sélectionner un emplacement valide pour le numéro de téléphone',
       'form_validation_error': 'Erreur de validation du formulaire',
-      'form_validation_error_with_details': 'Erreur de validation du formulaire: {error}',
+      'form_validation_error_with_details':
+          'Erreur de validation du formulaire: {error}',
       'hospital_registration_successful': 'Inscription de l\'hôpital réussie!',
-      'location_service_implementation': 'Le service de localisation sera implémenté prochainement',
+      'location_service_implementation':
+          'Le service de localisation sera implémenté prochainement',
       // Submission actions
       'submit_registration': 'Soumettre l\'inscription',
       'submitting': 'Soumission en cours...',
@@ -1163,9 +1273,12 @@ class AppTranslations extends Translations {
       'donor_list_updated': 'Liste des donneurs mise à jour',
       'filter_by_blood_type': 'Filtrer par groupe sanguin',
       'no_donors_registered': 'Aucun donneur enregistré',
-      'add_first_donor_hint': 'Ajoutez votre premier donneur avec le bouton ci-dessous',
-      'try_different_search_terms': 'Essayez avec d\'autres termes de recherche',
-      'data_loaded_but_empty': 'Données chargées avec succès, mais la liste est vide',
+      'add_first_donor_hint':
+          'Ajoutez votre premier donneur avec le bouton ci-dessous',
+      'try_different_search_terms':
+          'Essayez avec d\'autres termes de recherche',
+      'data_loaded_but_empty':
+          'Données chargées avec succès, mais la liste est vide',
       'donors_found_count': '@count donneur(s) trouvé(s)',
       'total_donors': 'Total donneurs',
       'active_donors': 'Donneurs actifs',
@@ -1177,13 +1290,16 @@ class AppTranslations extends Translations {
       'not_available_short': 'N/A',
       'enter_donor_name_hint': 'Entrez le nom du donneur...',
       'enter_donor_phone_hint': 'Entrez le numéro de téléphone...',
-      'donor_code_format_hint': 'Format: XXX-XXXX-XXXXX-XX (ex: 9EC-2510-Z41QT-1D)',
+      'donor_code_format_hint':
+          'Format: XXX-XXXX-XXXXX-XX (ex: 9EC-2510-Z41QT-1D)',
       'click_camera_icon_hint': 'Cliquez sur l\'icône appareil photo...',
       'search_donor_hint': 'Rechercher un donneur...',
       'search_error_occurred': 'Une erreur est survenue pendant la recherche',
       'no_matching_donor_found': 'Aucun donneur correspondant trouvé',
-      'photo_search_help_desc': 'Utilisez l\'icône appareil photo pour rechercher par reconnaissance faciale (démo).',
-      'scan_donor_code_help_desc': 'Utilisez l\'icône scanner pour lire un QR code et rechercher rapidement un donneur.',
+      'photo_search_help_desc':
+          'Utilisez l\'icône appareil photo pour rechercher par reconnaissance faciale (démo).',
+      'scan_donor_code_help_desc':
+          'Utilisez l\'icône scanner pour lire un QR code et rechercher rapidement un donneur.',
 
       // Donor details page
       'donor_details': 'Détails du Donneur',
@@ -1194,15 +1310,19 @@ class AppTranslations extends Translations {
       'medical_summary': 'Résumé Médical',
       'donations_count': '@count don(s)',
       'no_donations_recorded': 'Aucun don enregistré',
-      'donations_will_appear_here': 'Les dons apparaîtront ici une fois enregistrés',
-      'unable_to_check_donor_eligibility': 'Impossible de vérifier l\'éligibilité du donneur',
+      'donations_will_appear_here':
+          'Les dons apparaîtront ici une fois enregistrés',
+      'unable_to_check_donor_eligibility':
+          'Impossible de vérifier l\'éligibilité du donneur',
       'error_checking_eligibility': 'Erreur lors de la vérification: @error',
       'donations': 'Dons',
       'main_donation_center': 'Centre de don principal',
       'welcome_badge': 'Badge de Bienvenue',
-      'welcome_badge_desc': 'Décerné aux nouveaux donneurs lors de leur enregistrement.',
+      'welcome_badge_desc':
+          'Décerné aux nouveaux donneurs lors de leur enregistrement.',
       'first_donation_badge': 'Premier Don',
-      'first_donation_badge_desc': 'Décerné après avoir complété le premier don de sang.',
+      'first_donation_badge_desc':
+          'Décerné après avoir complété le premier don de sang.',
       'regular_donor_badge': 'Donneur Régulier',
       'regular_donor_badge_desc': 'Pour avoir effectué au moins 3 dons.',
       'donation_type': 'Type de don',
@@ -1215,7 +1335,8 @@ class AppTranslations extends Translations {
       'badges_rewards': 'Badges et Récompenses',
       'obtained_on': 'Obtenu le @date',
       'donor_id_card': 'Carte d\'identité du donneur',
-      'valid_in_all_centers': 'Valide dans tous les centres partenaires du réseau eBlood.',
+      'valid_in_all_centers':
+          'Valide dans tous les centres partenaires du réseau eBlood.',
       'download_card': 'Télécharger la carte',
       'share_card': 'Partager la carte',
       'generating_card': 'Génération de la carte...',
@@ -1230,7 +1351,8 @@ class AppTranslations extends Translations {
       'until_date': 'jusqu\'au @date',
       'next_eligible_date': 'Prochaine date admissible : @date',
       'recommendations': 'Recommandations',
-      'donor_not_eligible_now': 'Le donneur n\'est pas éligible pour le moment.',
+      'donor_not_eligible_now':
+          'Le donneur n\'est pas éligible pour le moment.',
       'recent': 'Récent',
       'none': 'Aucun',
       'notes_optional': 'Notes (optionnel)',
@@ -1242,7 +1364,8 @@ class AppTranslations extends Translations {
       'phone': 'Téléphone',
       'photo': 'Photo',
       'feature_coming_soon': 'Fonctionnalité à venir',
-      'no_summary_data_available': 'Aucune donnée de synthèse disponible pour le moment.',
+      'no_summary_data_available':
+          'Aucune donnée de synthèse disponible pour le moment.',
       'no_data_available': 'Aucune donnée disponible.',
       'donation_frequency': 'Fréquence des Donations',
       'no_recent_donation_data': 'Aucune donnée de donation récente.',
@@ -1262,17 +1385,22 @@ class AppTranslations extends Translations {
       'unable_to_launch_search': 'Impossible de lancer la recherche: @error',
       'scan_donor_code_title': 'Scanner le Code Donneur',
       'donor_code_scanned_success': 'Code donneur scanné avec succès',
-      'invalid_qr_code_format': 'Code QR invalide. Format attendu: XXX-XXXX-XXXXX-XX',
+      'invalid_qr_code_format':
+          'Code QR invalide. Format attendu: XXX-XXXX-XXXXX-XX',
       'how_to_search_donor': 'Comment rechercher un donneur',
       'search_by_name': 'Recherche par nom',
       'search_by_name_desc': 'Tapez le nom complet ou partiel du donneur.',
       'search_by_phone': 'Recherche par téléphone',
-      'search_by_phone_desc': 'Entrez le numéro de téléphone complet ou partiel.',
+      'search_by_phone_desc':
+          'Entrez le numéro de téléphone complet ou partiel.',
       'search_by_donor_code': 'Recherche par code donneur',
-      'search_by_donor_code_desc': 'Entrez le code unique du donneur pour une recherche précise.',
+      'search_by_donor_code_desc':
+          'Entrez le code unique du donneur pour une recherche précise.',
       'filter_by_gender': 'Filtrer par genre',
-      'filter_by_gender_desc': 'Utilisez les options Homme ou Femme pour filtrer par genre.',
-      'filter_by_blood_type_desc': 'Sélectionnez un groupe sanguin pour affiner les résultats.',
+      'filter_by_gender_desc':
+          'Utilisez les options Homme ou Femme pour filtrer par genre.',
+      'filter_by_blood_type_desc':
+          'Sélectionnez un groupe sanguin pour affiner les résultats.',
       'unknown': 'Inconnu',
 
       // Health Structure Network Page
@@ -1292,7 +1420,8 @@ class AppTranslations extends Translations {
       // Health Structure Detail Page
       'invalid_coordinates': 'Coordonnées incorrectes',
       'gps_coordinates': 'Coordonnées GPS',
-      'coordinates_out_of_region_warning': '⚠️ Ces coordonnées semblent incorrectes (hors d\'Afrique)',
+      'coordinates_out_of_region_warning':
+          '⚠️ Ces coordonnées semblent incorrectes (hors d\'Afrique)',
       'structure_type': 'Type de structure',
       'altitude': 'Altitude',
       'structure_status': 'État de la structure',
@@ -1320,22 +1449,26 @@ class AppTranslations extends Translations {
       // Donor Registration Page
       'donor_registration': 'Inscription Donneur de Sang',
       'donor_photo': 'Photo du Donneur',
-      'take_clear_photo_instruction': 'Prenez une photo claire, bien éclairée et centrée du visage du donneur.',
+      'take_clear_photo_instruction':
+          'Prenez une photo claire, bien éclairée et centrée du visage du donneur.',
       'analyzing_photo': 'Analyse de la photo...',
       'photo_validated_continue': 'Photo validée, vous pouvez continuer.',
       'donor_information': 'Informations du donneur',
       'email_optional': 'Email (optionnel)',
       'emergency_contact_name': 'Nom du contact d\'urgence',
       'emergency_contact_phone': 'Téléphone du contact d\'urgence',
-      'create_user_account_for_donor': 'Créer un compte utilisateur pour le donneur',
+      'create_user_account_for_donor':
+          'Créer un compte utilisateur pour le donneur',
       'email_username': 'Email / Nom d\'utilisateur',
       'password_min_8_chars': 'Mot de passe (min. 8 caractères)',
       'verification_information': 'Vérification des informations',
       'registration_in_progress': 'Inscription en cours...',
       'please_wait': 'Veuillez patienter',
       'registration_successful_title': 'Inscription réussie',
-      'donor_registered_successfully': 'Le donneur a été enregistré avec succès.',
-      'keep_donor_code_reference': 'Veuillez conserver le code du donneur comme référence.',
+      'donor_registered_successfully':
+          'Le donneur a été enregistré avec succès.',
+      'keep_donor_code_reference':
+          'Veuillez conserver le code du donneur comme référence.',
       'donor_code_label': 'Code du donneur',
       'donor_id_label': 'ID du donneur',
       'photo_uploaded_successfully': 'Photo téléversée avec succès.',
@@ -1343,10 +1476,13 @@ class AppTranslations extends Translations {
       'return_to_home': 'Retour à l\'accueil',
       'view_donors': 'Voir les donneurs',
       'step_x_of_y': 'Étape @x sur @y',
-      'take_donor_photo_required': 'Veuillez prendre la photo du donneur (obligatoire).',
-      'photo_analysis_wait': 'Analyse de la photo en cours, veuillez patienter...',
+      'take_donor_photo_required':
+          'Veuillez prendre la photo du donneur (obligatoire).',
+      'photo_analysis_wait':
+          'Analyse de la photo en cours, veuillez patienter...',
       'select_gender_required': 'Veuillez sélectionner le sexe.',
-      'error_occurred_try_again': 'Une erreur est survenue. Veuillez réessayer.',
+      'error_occurred_try_again':
+          'Une erreur est survenue. Veuillez réessayer.',
       'invalid_date_format_yyyy_mm_dd': 'Format de date invalide (aaaa-mm-jj).',
 
       // Add Blood Stock Page
@@ -1386,7 +1522,6 @@ class AppTranslations extends Translations {
       'quarantine': 'Quarantaine',
       'testing_required': 'Test requis',
 
-
       'communications': 'Communications',
       'emergencies': 'Urgences',
       'no_announcements_available': 'Aucune communication disponible',
@@ -1395,7 +1530,8 @@ class AppTranslations extends Translations {
       'new_announcement': 'Nouvelle Communication',
       'edit_announcement': 'Modifier la Communication',
       'delete_announcement': 'Supprimer la communication',
-      'delete_announcement_confirm': 'Êtes-vous sûr de vouloir supprimer "@title" ? Cette action est irréversible.',
+      'delete_announcement_confirm':
+          'Êtes-vous sûr de vouloir supprimer "@title" ? Cette action est irréversible.',
       'creating_in_progress': 'Création en cours...',
       'updating_in_progress': 'Mise à jour en cours...',
       'deleting_in_progress': 'Suppression en cours...',
@@ -1434,25 +1570,30 @@ class AppTranslations extends Translations {
       'bank_account': 'Compte bancaire',
       'mobile_money': 'Mobile Money',
       'email_notifications': 'Notifications Email',
-      'email_for_transaction_notifications': 'Email pour les notifications de transactions',
+      'email_for_transaction_notifications':
+          'Email pour les notifications de transactions',
       'email_address': 'Adresse Email',
       'settings_saved': 'Paramètres enregistrés',
       'mobile_payment': 'Paiement Mobile',
       'phone_number_for_mobile_payments': 'Numéro pour les paiements mobiles',
       'phone_number_saved': 'Numéro de téléphone enregistré',
       'reception_mode': 'Mode de Réception',
-      'configure_payment_reception_mode': 'Configurer le mode de réception des paiements',
+      'configure_payment_reception_mode':
+          'Configurer le mode de réception des paiements',
       'automatic_reception': 'Réception Automatique',
-      'accept_incoming_payments_automatically': 'Accepter automatiquement les paiements entrants',
+      'accept_incoming_payments_automatically':
+          'Accepter automatiquement les paiements entrants',
       'automatic_reception_enabled': 'Réception automatique activée',
       'on_demand_reception_enabled': 'Réception sur demande activée',
-      'manual_approval_notification_message': 'Vous recevrez une notification pour chaque paiement entrant et devrez approuver manuellement.',
+      'manual_approval_notification_message':
+          'Vous recevrez une notification pour chaque paiement entrant et devrez approuver manuellement.',
 
       'ann_status_draft': 'Brouillon',
       'ann_status_archived': 'Archivé',
 
       'dashboard_title': 'Tableau de bord',
-      'limited_permission_warning': 'Permission limitée. Certaines données peuvent être incomplètes.',
+      'limited_permission_warning':
+          'Permission limitée. Certaines données peuvent être incomplètes.',
       'loading_error_retry': 'Erreur de chargement. Appuyez pour réessayer.',
       'manage_stock': 'Gérer Stock',
       'database': 'Base de données',
@@ -1468,20 +1609,21 @@ class AppTranslations extends Translations {
       // =============================================
       // Blood Search Flow Translations - French
       // =============================================
-      
+
       // Welcome Page
       'find_blood_title': 'Trouver du Sang',
-      'find_blood_subtitle': 'Recherchez des produits sanguins disponibles près de chez vous',
+      'find_blood_subtitle':
+          'Recherchez des produits sanguins disponibles près de chez vous',
       'start_search': 'Commencer la Recherche',
       'scan_hospital_qr': 'Scanner le QR de l\'Hôpital',
       'search_blood': 'Rechercher du Sang',
-      
+
       // Progress Steps
       'step_city': 'Ville',
       'step_blood_type': 'Groupe',
       'step_results': 'Résultats',
       'step_confirm': 'Confirmer',
-      
+
       // Location Selection (Tree)
       'select_country': 'Sélectionner le Pays',
       'select_province': 'Sélectionner la Province',
@@ -1496,21 +1638,24 @@ class AppTranslations extends Translations {
       'error_loading_locations': 'Erreur de chargement des emplacements',
       'retry': 'Réessayer',
       'sub_locations': 'sous-emplacements',
-      'location_detection_coming_soon': 'Détection de localisation bientôt disponible',
-      
+      'location_detection_coming_soon':
+          'Détection de localisation bientôt disponible',
+
       // Blood Type Selection
       'select_blood_type': 'Sélectionner le Groupe Sanguin',
       'which_blood_type': 'Quel groupe sanguin recherchez-vous ?',
-      'select_blood_group_subtitle': 'Sélectionnez le groupe sanguin et le facteur Rh',
+      'select_blood_group_subtitle':
+          'Sélectionnez le groupe sanguin et le facteur Rh',
       'blood_group': 'Groupe Sanguin',
       'rh_factor': 'Facteur Rh',
       'searching_for': 'Recherche de :',
-      
+
       // Search Results
       'search_results': 'Résultats de Recherche',
       'blood_type_search': 'Recherche de groupe sanguin',
       'no_results_found': 'Aucun Résultat Trouvé',
-      'no_blood_available': 'Aucun sang de ce type n\'est disponible dans cette zone.',
+      'no_blood_available':
+          'Aucun sang de ce type n\'est disponible dans cette zone.',
       'modify_search': 'Modifier la Recherche',
       'available': 'Disponible',
       'limited_stock': 'Stock Limité',
@@ -1520,23 +1665,26 @@ class AppTranslations extends Translations {
       'view_full_address': 'Voir l\'Adresse Complète',
       'tap_to_choose': 'Appuyez pour choisir une option',
       'away': 'de distance',
-      
+
       // Hospital QR Code
       'hospital_qr_code': 'QR Code Hôpital',
       'view_qr_identifier': 'Voir et partager votre identifiant hôpital',
       'health_structure_not_found': 'Structure de santé non trouvée',
       'hospital_not_found': 'Hôpital non trouvé',
       'failed_load_qr': 'Échec du chargement du QR code',
-      'scan_qr_info': 'Les visiteurs peuvent scanner ce QR code pour identifier votre hôpital',
+      'scan_qr_info':
+          'Les visiteurs peuvent scanner ce QR code pour identifier votre hôpital',
       'scan_actions': 'Actions de scan',
       'share': 'Partager',
       'download': 'Télécharger',
       'copied': 'Copié',
       'identifier_copied': 'Identifiant copié dans le presse-papiers',
-      'share_qr_text': 'Mon Identifiant Hôpital: @identifier\nScannez ou entrez ce code pour nous trouver dans l\'application E-Blood Bank.',
-      'qr_download_soon': 'Fonctionnalité de téléchargement du QR code bientôt disponible',
+      'share_qr_text':
+          'Mon Identifiant Hôpital: @identifier\nScannez ou entrez ce code pour nous trouver dans l\'application E-Blood Bank.',
+      'qr_download_soon':
+          'Fonctionnalité de téléchargement du QR code bientôt disponible',
       'copy': 'Copier',
-      
+
       // Hospital Identification
       'identify_hospital': 'Identifier l\'Hôpital',
       'how_identify_hospital': 'Comment identifier l\'hôpital ?',
@@ -1561,7 +1709,7 @@ class AppTranslations extends Translations {
       'verify_code': 'Vérifier le Code',
       'invalid_hospital_code': 'Code hôpital invalide',
       'hospital_found': 'Hôpital Trouvé',
-      
+
       // Visitor Registration & OTP
       'visitor_registration': 'Inscription Visiteur',
       'enter_phone': 'Entrer le Téléphone',
@@ -1570,7 +1718,8 @@ class AppTranslations extends Translations {
       'phone_verification': 'Vérification du Téléphone',
       'we_will_send_code': 'Nous vous enverrons un code de vérification',
       'we_will_send_otp': 'Nous vous enverrons un code de vérification',
-      'privacy_note': 'Vos informations sont protégées et ne seront pas partagées',
+      'privacy_note':
+          'Vos informations sont protégées et ne seront pas partagées',
       'send_code': 'Envoyer le Code',
       'enter_otp': 'Entrez le Code OTP',
       'enter_verification_code': 'Entrez le code de vérification',
@@ -1582,17 +1731,40 @@ class AppTranslations extends Translations {
       'resend_code': 'Renvoyer le Code',
       'resend_in': 'Renvoyer dans',
       'invalid_otp': 'Code de vérification invalide. Veuillez réessayer.',
-      
+      'phone_verification_required': 'Vérification du téléphone requise',
+      'login_and_phone_verification_required':
+          'Connexion et vérification du téléphone requises',
+      'contact_support_to_enable_cod':
+          'Contactez l\'équipe support eBlood pour activer le paiement à la livraison',
+      'contact_support': 'Contacter le Support',
+      'previously_identified': 'Hôpital Identifié Précédemment',
+      'continue_with_hospital':
+          'Continuer avec cet hôpital ou en choisir un autre',
+      'choose_another_hospital': 'Choisir un Autre Hôpital',
+      'next': 'Suivant',
+      'your_previous_city': 'Votre Ville Précédente',
+      'continue_with_previous': 'Continuer avec votre ville précédemment sélectionnée',
+      'select_other_cities': 'Sélectionner d\'Autres Villes',
+
       // Payment
       'payment': 'Paiement',
+      'cash_on_delivery': 'Paiement à la Livraison',
+      'pay_when_you_receive': 'Payez à la réception',
+      'backoffice_activation_required': 'Activation requise depuis le back-office',
+      'mobile_money_number': 'Numéro Mobile Money',
+      'enter_number_for_payment': 'Entrez votre numéro pour le paiement',
+      'mobile_money_info': 'Vous recevrez une demande de paiement sur ce numéro. Assurez-vous qu\'il est actif et dispose d\'un solde suffisant.',
       'choose_option': 'Choisissez une option',
       'choose_how_to_get': 'Comment souhaitez-vous obtenir le sang ?',
       'view_address': 'Voir l\'Adresse',
-      'view_address_desc': 'Obtenez l\'adresse de l\'hôpital et allez chercher le sang vous-même',
-      'get_hospital_location': 'Obtenez l\'emplacement de l\'hôpital pour vous y rendre',
+      'view_address_desc':
+          'Obtenez l\'adresse de l\'hôpital et allez chercher le sang vous-même',
+      'get_hospital_location':
+          'Obtenez l\'emplacement de l\'hôpital pour vous y rendre',
       'order_delivery': 'Commander la Livraison',
       'order_delivery_desc': 'Faites livrer le sang à votre adresse',
       'have_blood_delivered': 'Faites livrer le produit sanguin chez vous',
+      'have_it_delivered': 'Faites-le livrer directement chez vous',
       'select_payment_method': 'Sélectionnez le Mode de Paiement',
       'payment_method': 'Mode de Paiement',
       'mobile_money': 'Mobile Money',
@@ -1604,7 +1776,7 @@ class AppTranslations extends Translations {
       'payment_failed': 'Échec du Paiement',
       'secure_payment': 'Paiement sécurisé par E-Blood',
       'distance_from_you': 'Distance de vous',
-      
+
       // Address View
       'hospital_address': 'Adresse de l\'Hôpital',
       'address_unlocked': 'Adresse Débloquée',
@@ -1613,9 +1785,10 @@ class AppTranslations extends Translations {
       'copy_address': 'Copier l\'Adresse',
       'address_copied': 'Adresse copiée',
       'blood_requested': 'Sang Demandé',
-      
+
       // Live Tracking
       'live_tracking': 'Suivi en Direct',
+      'loading_tracking': 'Chargement du suivi...',
       'order_placed': 'Commande Passée',
       'order_confirmed': 'Confirmée',
       'picked_up': 'Récupérée',
@@ -1625,21 +1798,21 @@ class AppTranslations extends Translations {
       'estimated_arrival': 'Arrivée Estimée',
       'order_details': 'Détails de la Commande',
       'refresh_tracking': 'Actualiser le Suivi',
-      
+
       // QR Scanner
       'qr_scanner': 'Scanner QR',
       'point_camera_at_qr': 'Pointez la caméra vers le code QR',
       'scanning': 'Scan en cours...',
       'flash': 'Flash',
       'switch_camera': 'Changer de Caméra',
-
     },
 
     // English translations
     'en_US': {
       // Registration Success Page
       'registration_successful': 'Registration Successful!',
-      'account_created_successfully': 'Your account has been created successfully. You can now log in to access all features.',
+      'account_created_successfully':
+          'Your account has been created successfully. You can now log in to access all features.',
       'phone_label': 'Phone',
       'continue_to_login': 'Continue to Login',
       // Login (standardized keys)
@@ -1652,7 +1825,8 @@ class AppTranslations extends Translations {
       'structure_location': 'Health Structure Location',
       'health_structure_type': 'Health Structure Type',
       'select_health_structure_type': 'Select health structure type',
-      'select_health_structure_type_error': 'Please select a health structure type',
+      'select_health_structure_type_error':
+          'Please select a health structure type',
       'structure_information': 'Health Structure Information',
       'structure_name': 'Health Structure Name',
       'structure_phone': 'Health Structure Phone',
@@ -1663,7 +1837,8 @@ class AppTranslations extends Translations {
       'please_fill_all_required_fields': 'Please fill all required fields',
       'blood_bank_selection': 'Blood Bank Selection',
       'select_blood_bank': 'Select a Blood Bank',
-      'select_blood_bank_description': 'Please choose a blood bank to continue your registration. This will help us connect you with appropriate blood services.',
+      'select_blood_bank_description':
+          'Please choose a blood bank to continue your registration. This will help us connect you with appropriate blood services.',
       'blood_bank_required': 'Please select a blood bank',
       'no_blood_banks_found': 'No blood banks found nearby',
       'hint_select_blood_type': 'Select your blood type',
@@ -1705,7 +1880,7 @@ class AppTranslations extends Translations {
       'ok': 'OK',
       'done': 'Done',
       'loading': 'Loading...',
-  'login_in_progress': 'Logging in...',
+      'login_in_progress': 'Logging in...',
       'error': 'Error',
       'request_number': 'Request #@id',
       'loading_route': 'Loading route...',
@@ -1734,7 +1909,8 @@ class AppTranslations extends Translations {
       'my_cart': 'My Cart',
       'scan_qr_to_request_password': 'Scan QR code to request password',
       'scan_qr_to_verify_stock': 'Scan QR code to verify stock information',
-      'scan_qr_to_validate_request': 'Scan QR code to validate the blood request',
+      'scan_qr_to_validate_request':
+          'Scan QR code to validate the blood request',
       'delivered': 'Delivered',
       'no_pending_requests': 'No pending requests',
       'no_in_progress_deliveries': 'No deliveries in progress',
@@ -1753,7 +1929,8 @@ class AppTranslations extends Translations {
       // Blood Bank Address Success Page
       'blood_bank_address': 'Blood Bank Address',
       'street_address': 'Address',
-      'contact_blood_bank_directly': 'Contact the blood bank directly for more information about opening hours and available services.',
+      'contact_blood_bank_directly':
+          'Contact the blood bank directly for more information about opening hours and available services.',
       'open_in_google_maps': 'Open in Google Maps',
       'get_directions': 'Get Directions',
       'could_not_open_maps': 'Could not open Google Maps',
@@ -1782,545 +1959,585 @@ class AppTranslations extends Translations {
       'finish': 'Finish',
       'get_started': 'Get Started',
 
-  // Announcements
-  'announcements': 'Announcements',
-  'urgent_blood_needed': 'URGENT BLOOD NEEDED',
-  'respond': 'RESPOND',
-  'no_announcements': 'No announcements',
-  'announcement_deleted': 'Announcement deleted',
-  'announcement_created_success': 'Announcement created successfully',
-  'blood_request': 'Blood Request',
-  'blood_requests': 'Blood Requests',
-  'campaign': 'Campaign',
-  'campaigns': 'Campaigns',
-  'event': 'Event',
-  'events': 'Events',
-  'news': 'News',
-  'all': 'All',
-  'urgent': 'Urgent',
-  'add': 'Add',
-  'dashboard': 'Dashboard',
-  'donors': 'Donors',
-  'qr_code_actions': 'QR Code Actions',
-  'choose_action': 'Choose an action to perform',
-  'scan_stock': 'Scan Stock',
-  'verify_blood_stock': 'Verify blood stock',
-  'validate_request': 'Validate Request',
-  'validate_delivery_receipt': 'Validate delivery receipt',
-  'inventory': 'Inventory',
-  'requests': 'Requests',
-  'quick_actions': 'Quick actions',
+      // Announcements
+      'announcements': 'Announcements',
+      'urgent_blood_needed': 'URGENT BLOOD NEEDED',
+      'respond': 'RESPOND',
+      'no_announcements': 'No announcements',
+      'announcement_deleted': 'Announcement deleted',
+      'announcement_created_success': 'Announcement created successfully',
+      'blood_request': 'Blood Request',
+      'blood_requests': 'Blood Requests',
+      'campaign': 'Campaign',
+      'campaigns': 'Campaigns',
+      'event': 'Event',
+      'events': 'Events',
+      'news': 'News',
+      'all': 'All',
+      'urgent': 'Urgent',
+      'add': 'Add',
+      'dashboard': 'Dashboard',
+      'donors': 'Donors',
+      'qr_code_actions': 'QR Code Actions',
+      'choose_action': 'Choose an action to perform',
+      'scan_stock': 'Scan Stock',
+      'verify_blood_stock': 'Verify blood stock',
+      'validate_request': 'Validate Request',
+      'validate_delivery_receipt': 'Validate delivery receipt',
+      'inventory': 'Inventory',
+      'requests': 'Requests',
+      'quick_actions': 'Quick actions',
       'unit': 'unit',
       'units': 'units',
 
-  'inventory_management': 'Inventory Management',
-  'blood_bank_makila': 'Blood Bank Makila',
-  'add_stock': 'Add Stock',
-  'units_available': '{count} units available',
-  'generating_report': 'Generating report...',
-  'total_stock': 'Total Stock',
+      'inventory_management': 'Inventory Management',
+      'blood_bank_makila': 'Blood Bank Makila',
+      'add_stock': 'Add Stock',
+      'units_available': '{count} units available',
+      'generating_report': 'Generating report...',
+      'total_stock': 'Total Stock',
 
-  'configure_all_blood_types': 'Configure all blood types',
-  'detailed_threshold_config_coming': 'Detailed threshold configuration coming soon',
-  'expiration_settings': 'Expiration Settings',
-  'expiration_alerts': 'Expiration alerts',
-  'expiration_alerts_description': 'Receive notifications for products expiring soon',
-  'expiration_alerts_enabled': 'Expiration alerts: enabled',
-  'expiration_alerts_disabled': 'Expiration alerts: disabled',
-  'early_alert': 'Early alert',
-  'days_before_expiration': 'Days before expiration to trigger the alert',
-  'early_alert_modification_coming': 'Early alert modification coming soon',
-  'validity_period': 'Validity duration',
-  'configure_validity_by_product': 'Configure validity duration by product type',
-  'validity_config_coming': 'Validity duration configuration coming soon',
-  'notification_channels': 'Notification channels',
-  'configure_notification_channels': 'Configure where to receive alerts (email, SMS, etc.)',
-  'notification_channels_config_coming': 'Notification channels configuration coming soon',
-  'note': 'Note',
-  'configuration': 'Configuration',
-  'id': 'ID',
-  'exp': 'Exp',
-  'seven_days': '7 days',
-  'last_30_days': 'Last 30 days',
-  'inventory_trend': 'Inventory Trend',
-  'no_trend_data_period': 'No trend data available for this period',
-  'format': 'Format',
-  'export': 'Export',
+      'configure_all_blood_types': 'Configure all blood types',
+      'detailed_threshold_config_coming':
+          'Detailed threshold configuration coming soon',
+      'expiration_settings': 'Expiration Settings',
+      'expiration_alerts': 'Expiration alerts',
+      'expiration_alerts_description':
+          'Receive notifications for products expiring soon',
+      'expiration_alerts_enabled': 'Expiration alerts: enabled',
+      'expiration_alerts_disabled': 'Expiration alerts: disabled',
+      'early_alert': 'Early alert',
+      'days_before_expiration': 'Days before expiration to trigger the alert',
+      'early_alert_modification_coming': 'Early alert modification coming soon',
+      'validity_period': 'Validity duration',
+      'configure_validity_by_product':
+          'Configure validity duration by product type',
+      'validity_config_coming': 'Validity duration configuration coming soon',
+      'notification_channels': 'Notification channels',
+      'configure_notification_channels':
+          'Configure where to receive alerts (email, SMS, etc.)',
+      'notification_channels_config_coming':
+          'Notification channels configuration coming soon',
+      'note': 'Note',
+      'configuration': 'Configuration',
+      'id': 'ID',
+      'exp': 'Exp',
+      'seven_days': '7 days',
+      'last_30_days': 'Last 30 days',
+      'inventory_trend': 'Inventory Trend',
+      'no_trend_data_period': 'No trend data available for this period',
+      'format': 'Format',
+      'export': 'Export',
 
-  'status_approved': 'Approved',
+      'status_approved': 'Approved',
 
+      'become_donor': 'Become donor',
+      'top_donors': 'Top donors',
+      'worldwide': 'Worldwide',
+      'local': 'Local',
+      'donor': 'Donor',
+      'failed_to_load_donors': 'Failed to load donors',
+      'no_donors_found': 'No donors found',
+      'pull_to_refresh': 'Pull to refresh',
+      'close': 'Close',
+      'delivery_dashboard': 'Delivery dashboard',
+      // Delivery Management Page
+      'delivery_title': 'My deliveries',
+      'delivery_header_counts':
+          '@inProgress in progress • @delivered delivered',
+      'delivery_search_hint': 'Search by hospital or blood type...',
+      'delivery_filter_all': 'All',
+      'delivery_filter_in_progress': 'In progress',
+      'delivery_filter_delivered': 'Delivered',
+      'delivery_filter_urgent': 'Urgent',
+      'delivery_error_title': 'Loading error',
+      'delivery_empty_title': 'No deliveries found',
+      'delivery_empty_desc': 'Try adjusting your filters',
+      'delivery_units': '@count unit(s)',
+      'delivery_action_start': 'Start delivery',
+      'delivery_action_location': 'Location',
+      'delivery_action_complete': 'Complete',
+      'delivery_completed_label': 'Delivery completed',
+      'delivery_start_success': 'Delivery @id started',
+      'delivery_start_error': 'Failed to start delivery',
+      'delivery_complete_success': 'Delivery @id completed successfully',
+      'delivery_complete_error': 'Failed to complete delivery',
+      'delivery_location_title': 'Location',
+      'delivery_location_not_implemented': 'Location feature to be implemented',
+      'delivery_status_pending': 'Pending',
+      'delivery_status_assigned': 'Assigned',
+      'delivery_status_in_progress': 'In progress',
+      'delivery_status_delivered': 'Delivered',
+      'delivery_status_cancelled': 'Cancelled',
+      'delivery_priority_normal': 'Normal',
+      'delivery_priority_urgent': 'Urgent',
+      'delivery_priority_emergency': 'Emergency',
+      'request_blood': 'Request blood',
+      'donation_history': 'Donation history',
+      'my_donations': 'My donations',
+      'nearby_blood_banks': 'Nearby blood banks',
+      'location_services_disabled': 'Location services disabled',
+      'location_services_disabled_message':
+          'Please enable location services to find nearby blood banks.',
 
+      // Delivery Person Page
+      'performance': 'Performance',
+      'total_deliveries': 'Total Deliveries',
+      'in_progress': 'In Progress',
+      'completed': 'Completed',
+      'urgent_deliveries': 'Urgent',
+      'todays_deliveries': 'Today\'s Deliveries',
+      'in_progress_count': '@count in progress',
+      'my_deliveries': 'My Deliveries',
+      'manage_deliveries': 'Manage deliveries',
+      'scan_qr': 'Scan QR',
+      'qr_feature_coming_soon': 'Scan QR - Feature coming soon',
+      'en_route': 'En route',
+      'finished': 'Finished',
+      'location_permission_denied': 'Location permission denied',
+      'location_permission_denied_forever':
+          'Location permission permanently denied',
+      'location_permission_required': 'Location permission required',
+      'location_permission_required_message':
+          'To find nearby blood banks, we need access to your location. Please allow access.',
+      'location_permission_permanently_denied_message':
+          'Location access has been permanently denied. Please manually enable the permission in app settings.',
+      'location_permission_description':
+          'We need your location to provide you with the best experience. This helps us show you nearby health structures and emergency services.',
+      'location_benefit_health_structures':
+          'Find nearby hospitals and blood banks',
+      'location_benefit_navigation':
+          'Get accurate directions to health facilities',
+      'location_benefit_emergency': 'Receive emergency alerts in your area',
+      'enable_location': 'Enable Location',
+      'skip_for_now': 'Skip for Now',
+      'location_permission_granted': 'Location permission granted successfully',
+      'location_permission_error': 'Error requesting location permission',
+      'could_not_open_settings': 'Could not open settings',
+      'location_permission_denied_forever_message':
+          'Location permission has been permanently denied. Please enable it in your device settings.',
+      'location_status_granted': 'Permission Granted',
+      'location_status_denied': 'Permission Denied',
+      'location_status_denied_forever': 'Permanently Denied',
+      'location_status_services_disabled': 'Services Disabled',
+      'documents': 'Documents',
+      'id_card': 'ID Card',
+      'face_photo': 'Face Photo',
+      'country': 'Country',
+      'province': 'Province',
+      'town': 'Town/City',
+      'rhesus_factor': 'Rhesus Factor',
 
-'become_donor': 'Become donor',
-'top_donors': 'Top donors',
-'worldwide': 'Worldwide',
-'local': 'Local',
-'donor': 'Donor',
-'failed_to_load_donors': 'Failed to load donors',
-'no_donors_found': 'No donors found',
-'pull_to_refresh': 'Pull to refresh',
-'close': 'Close',
-'delivery_dashboard': 'Delivery dashboard',
-  // Delivery Management Page
-  'delivery_title': 'My deliveries',
-  'delivery_header_counts': '@inProgress in progress • @delivered delivered',
-  'delivery_search_hint': 'Search by hospital or blood type...',
-  'delivery_filter_all': 'All',
-  'delivery_filter_in_progress': 'In progress',
-  'delivery_filter_delivered': 'Delivered',
-  'delivery_filter_urgent': 'Urgent',
-  'delivery_error_title': 'Loading error',
-  'delivery_empty_title': 'No deliveries found',
-  'delivery_empty_desc': 'Try adjusting your filters',
-  'delivery_units': '@count unit(s)',
-  'delivery_action_start': 'Start delivery',
-  'delivery_action_location': 'Location',
-  'delivery_action_complete': 'Complete',
-  'delivery_completed_label': 'Delivery completed',
-  'delivery_start_success': 'Delivery @id started',
-  'delivery_start_error': 'Failed to start delivery',
-  'delivery_complete_success': 'Delivery @id completed successfully',
-  'delivery_complete_error': 'Failed to complete delivery',
-  'delivery_location_title': 'Location',
-  'delivery_location_not_implemented': 'Location feature to be implemented',
-  'delivery_status_pending': 'Pending',
-  'delivery_status_assigned': 'Assigned',
-  'delivery_status_in_progress': 'In progress',
-  'delivery_status_delivered': 'Delivered',
-  'delivery_status_cancelled': 'Cancelled',
-  'delivery_priority_normal': 'Normal',
-  'delivery_priority_urgent': 'Urgent',
-  'delivery_priority_emergency': 'Emergency',
-'request_blood': 'Request blood',
-'donation_history': 'Donation history',
-'my_donations': 'My donations',
-'nearby_blood_banks': 'Nearby blood banks',
-'location_services_disabled': 'Location services disabled',
-'location_services_disabled_message': 'Please enable location services to find nearby blood banks.',
+      'location_status_unknown': 'Unknown Status',
+      'open_settings': 'Open settings',
+      'allow_location': 'Allow location',
+      'become_benevol_donor': 'Become benevol donor',
+      'benevol_button_why': 'Why become a benevol donor?',
+      'benevol_button_why_sub': 'Discover the benefits and impact',
+      'benevol_button_yes': 'Yes, I want to register',
+      'benevol_button_yes_sub': 'Start my registration',
+      'donor_page_title': 'Become a Blood Donor',
+      'donor_button_why': 'Why donate blood?',
+      'donor_button_why_sub': 'Discover the importance of donation',
+      'donor_button_yes': 'Yes, I want to donate',
+      'donor_button_yes_sub': 'Start my registration',
+      'request_your_ins': 'Request your INS',
+      'view_my_ins_request': 'View my INS request',
+      'ins_request_details': 'INS Request Details',
+      'status': 'Status',
 
-// Delivery Person Page
-'performance': 'Performance',
-'total_deliveries': 'Total Deliveries',
-'in_progress': 'In Progress',
-'completed': 'Completed',
-'urgent_deliveries': 'Urgent',
-'todays_deliveries': 'Today\'s Deliveries',
-'in_progress_count': '@count in progress',
-'my_deliveries': 'My Deliveries',
-'manage_deliveries': 'Manage deliveries',
-'scan_qr': 'Scan QR',
-'qr_feature_coming_soon': 'Scan QR - Feature coming soon',
-'en_route': 'En route',
-'finished': 'Finished',
-'location_permission_denied': 'Location permission denied',
-'location_permission_denied_forever': 'Location permission permanently denied',
-'location_permission_required': 'Location permission required',
-'location_permission_required_message': 'To find nearby blood banks, we need access to your location. Please allow access.',
-'location_permission_permanently_denied_message': 'Location access has been permanently denied. Please manually enable the permission in app settings.',
-'location_permission_description': 'We need your location to provide you with the best experience. This helps us show you nearby health structures and emergency services.',
-'location_benefit_health_structures': 'Find nearby hospitals and blood banks',
-'location_benefit_navigation': 'Get accurate directions to health facilities',
-'location_benefit_emergency': 'Receive emergency alerts in your area',
-'enable_location': 'Enable Location',
-'skip_for_now': 'Skip for Now',
-'location_permission_granted': 'Location permission granted successfully',
-'location_permission_error': 'Error requesting location permission',
-'could_not_open_settings': 'Could not open settings',
-'location_permission_denied_forever_message': 'Location permission has been permanently denied. Please enable it in your device settings.',
-'location_status_granted': 'Permission Granted',
-'location_status_denied': 'Permission Denied',
-'location_status_denied_forever': 'Permanently Denied',
-'location_status_services_disabled': 'Services Disabled',
-  'documents': 'Documents',
-  'id_card': 'ID Card',
-  'face_photo': 'Face Photo',
-  'country': 'Country',
-  'province': 'Province',
-  'town': 'Town/City',
-  'rhesus_factor': 'Rhesus Factor',
+      // Benevol Donor Registration (new keys only, others already exist)
+      'benevol_donor_info':
+          'By becoming a volunteer donor, you commit to regularly donating blood and helping save lives. Your commitment is valuable.',
+      'volunteer_password_required':
+          'Password required: As a volunteer donor, you must create a secure password for your account.',
+      'benevol_registration_success':
+          'Your registration as a volunteer donor has been successful! Thank you for your commitment.',
+      'photo_validation_required':
+          'A valid profile photo is required. Please capture or select a clear photo of your face.',
+      'terms_acceptance_required':
+          'You must accept the terms and conditions to continue',
 
-'location_status_unknown': 'Unknown Status',
-'open_settings': 'Open settings',
-'allow_location': 'Allow location',
-'become_benevol_donor': 'Become benevol donor',
-'benevol_button_why': 'Why become a benevol donor?',
-'benevol_button_why_sub': 'Discover the benefits and impact',
-'benevol_button_yes': 'Yes, I want to register',
-'benevol_button_yes_sub': 'Start my registration',
-'donor_page_title': 'Become a Blood Donor',
-'donor_button_why': 'Why donate blood?',
-'donor_button_why_sub': 'Discover the importance of donation',
-'donor_button_yes': 'Yes, I want to donate',
-'donor_button_yes_sub': 'Start my registration',
-'request_your_ins': 'Request your INS',
-'view_my_ins_request': 'View my INS request',
-'ins_request_details': 'INS Request Details',
-'status': 'Status',
+      'my_blood_donor_profile': 'My blood donor profile',
 
+      // Donor Profile and History (only new unique keys)
+      'donor_code': 'Donor code',
+      'qr_code': 'QR Code',
+      'donor_since': 'Donor since',
+      'download': 'Download',
+      'emergency_contact': 'Emergency Contact',
+      'donation_statistics': 'Donation Statistics',
+      'total_donations': 'Total Donations',
+      'last_donation': 'Last Donation',
+      'badges': 'Badges',
+      'not_available': 'Not available',
+      'failed_to_load_profile': 'Failed to load profile',
+      'my_donor_id_card': 'My Donor ID Card',
+      'failed_to_share_id_card': 'Failed to share ID card',
+      'failed_to_download_id_card': 'Failed to download ID card',
+      'id_card_saved': 'ID card saved successfully',
+      'failed_to_load_history': 'Failed to load history',
+      'no_donations_yet': 'No donations yet',
+      'your_donations_will_appear_here':
+          'Your donations will appear here once recorded',
+      'blood_donation': 'Blood Donation',
 
-  // Benevol Donor Registration (new keys only, others already exist)
-  'benevol_donor_info': 'By becoming a volunteer donor, you commit to regularly donating blood and helping save lives. Your commitment is valuable.',
-  'volunteer_password_required': 'Password required: As a volunteer donor, you must create a secure password for your account.',
-  'benevol_registration_success': 'Your registration as a volunteer donor has been successful! Thank you for your commitment.',
-  'photo_validation_required': 'A valid profile photo is required. Please capture or select a clear photo of your face.',
-  'terms_acceptance_required': 'You must accept the terms and conditions to continue',
+      // Volunteer Donor Dashboard
+      'my_volunteer_dashboard': 'My Volunteer Dashboard',
+      'volunteer_donor_dashboard': 'Volunteer Donor Dashboard',
+      'your_volunteer_status': 'Your volunteer status',
+      'volunteer_donor_status': 'Volunteer Donor Status',
+      'thank_you_for_commitment':
+          'Thank you for your commitment to saving lives',
+      'volunteer_benefits': 'Volunteer Donor Benefits',
+      'priority_access': 'Priority Access',
+      'priority_access_desc':
+          'Get priority access during blood donation campaigns',
+      'exclusive_badges': 'Exclusive Badges',
+      'exclusive_badges_desc':
+          'Earn special badges reserved for volunteer donors',
+      'urgent_notifications': 'Urgent Notifications',
+      'urgent_notifications_desc': 'Receive alerts for urgent blood needs',
+      'donation_tracking': 'Donation Tracking',
+      'donation_tracking_desc':
+          'Track your donation history and community impact',
+      'community_recognition': 'Community Recognition',
+      'community_recognition_desc': 'Be recognized as a blood donation hero',
+      'your_commitment': 'Your Commitment',
+      'volunteer_commitment_title': 'As a volunteer donor',
+      'regular_donations': 'Donate blood regularly (minimum twice a year)',
+      'emergency_response': 'Respond to emergency calls when possible',
+      'health_requirements': 'Maintain health requirements for donation',
+      'community_support': 'Encourage others to become donors',
 
-'my_blood_donor_profile': 'My blood donor profile',
+      'volunteer_page_title': 'Volunteer',
+      'volunteer_why_title': 'Why become a volunteer donor',
+      'volunteer_button_why': 'Why become a volunteer donor?',
+      'volunteer_button_yes': "Yes, I'd like to become a volunteer donor",
+      'volunteer_button_why_sub': 'Learn about benefits and responsibilities',
+      'volunteer_button_yes_sub': 'Start the 2-step registration',
+      'reasons_failed_to_load': 'Failed to load reasons',
+      'reasons_empty': 'No reasons available',
+      'volunteer_register_title': 'Become a volunteer donor',
+      'volunteer_step_photo': 'Photo',
+      'volunteer_step_form': 'Donor form',
+      'profile_photo': 'Profile Photo',
+      'profile_photo_tip':
+          'Take a beautiful, clear and centered profile photo. It will be used on your blood donor ID card.',
+      'hint_blood_type': 'Select your blood type',
+      'accept_terms': 'I accept the terms and conditions',
 
-  // Donor Profile and History (only new unique keys)
-  'donor_code': 'Donor code',
-  'qr_code': 'QR Code',
-  'donor_since': 'Donor since',
-  'download': 'Download',
-  'emergency_contact': 'Emergency Contact',
-  'donation_statistics': 'Donation Statistics',
-  'total_donations': 'Total Donations',
-  'last_donation': 'Last Donation',
-  'badges': 'Badges',
-  'not_available': 'Not available',
-  'failed_to_load_profile': 'Failed to load profile',
-  'my_donor_id_card': 'My Donor ID Card',
-  'failed_to_share_id_card': 'Failed to share ID card',
-  'failed_to_download_id_card': 'Failed to download ID card',
-  'id_card_saved': 'ID card saved successfully',
-  'failed_to_load_history': 'Failed to load history',
-  'no_donations_yet': 'No donations yet',
-  'your_donations_will_appear_here': 'Your donations will appear here once recorded',
-  'blood_donation': 'Blood Donation',
+      'take_photo': 'Take Photo',
+      'choose_photo': 'Choose Photo',
+      'required_field': 'Required',
+      'photo_required': 'Profile photo is required',
+      'must_be_18_or_older': 'You must be at least 18 years old',
+      'face_required': 'A clear photo of your face is required',
+      'face_no_face': 'No face detected. Please take a photo of your face.',
+      'face_no_face_detected':
+          'No face detected. Please take a clear photo of your face.',
+      'face_multiple_faces':
+          'Multiple faces detected. Take a photo with only your face.',
+      'ins_button_what': "What's INS?",
+      'ins_button_yes': "Yes, I want to request my INS",
+      'ins_button_what_sub': 'Understand INS and its benefits',
+      'ins_button_yes_sub': 'Start your INS request',
+      'ins_explain_title': "What is INS?",
+      'ins_explain_body':
+          "The National Health Identifier (INS) is a unique ID that secures and unifies your health information. It improves your care journey, avoids duplicates, and enhances care coordination.",
+      'ins_explain_hint':
+          "To obtain your INS, you must provide a valid proof of identity.",
+      'ins_step_id_scan': 'Scan your ID card',
+      'ins_step_personal_info': 'Personal Information',
+      'ins_step_address': 'Address',
+      'ins_step_photo': 'Face Photo',
+      'ins_step_review': 'Review',
+      'scan_id_card': 'Scan ID card',
+      'choose_id_photo': 'Choose ID photo',
+      'id_scan_tip':
+          'Take a clear photo of your identity document (national ID, passport, or driver\'s license). Ensure it\'s readable, well-lit, and fully visible.',
+      'id_required': 'ID card photo is required',
+      'id_detected_ok': 'ID card recognized',
+      'id_not_recognized':
+          'ID card not recognized. Try again with a clearer photo.',
+      'id_validation_error': 'Error validating ID card',
 
-  // Volunteer Donor Dashboard
-  'my_volunteer_dashboard': 'My Volunteer Dashboard',
-  'volunteer_donor_dashboard': 'Volunteer Donor Dashboard',
-  'your_volunteer_status': 'Your volunteer status',
-  'volunteer_donor_status': 'Volunteer Donor Status',
-  'thank_you_for_commitment': 'Thank you for your commitment to saving lives',
-  'volunteer_benefits': 'Volunteer Donor Benefits',
-  'priority_access': 'Priority Access',
-  'priority_access_desc': 'Get priority access during blood donation campaigns',
-  'exclusive_badges': 'Exclusive Badges',
-  'exclusive_badges_desc': 'Earn special badges reserved for volunteer donors',
-  'urgent_notifications': 'Urgent Notifications',
-  'urgent_notifications_desc': 'Receive alerts for urgent blood needs',
-  'donation_tracking': 'Donation Tracking',
-  'donation_tracking_desc': 'Track your donation history and community impact',
-  'community_recognition': 'Community Recognition',
-  'community_recognition_desc': 'Be recognized as a blood donation hero',
-  'your_commitment': 'Your Commitment',
-  'volunteer_commitment_title': 'As a volunteer donor',
-  'regular_donations': 'Donate blood regularly (minimum twice a year)',
-  'emergency_response': 'Respond to emergency calls when possible',
-  'health_requirements': 'Maintain health requirements for donation',
-  'community_support': 'Encourage others to become donors',
+      // INS Form Fields
+      'township': 'Township',
+      'address_quarter': 'Quarter',
+      'avenue': 'Avenue',
+      'house_number': 'House Number',
+      'marital_status': 'Marital Status',
+      'middle_name': 'Middle Name',
 
-  'volunteer_page_title': 'Volunteer',
-  'volunteer_why_title': 'Why become a volunteer donor',
-  'volunteer_button_why': 'Why become a volunteer donor?',
-  'volunteer_button_yes': "Yes, I'd like to become a volunteer donor",
-  'volunteer_button_why_sub': 'Learn about benefits and responsibilities',
-  'volunteer_button_yes_sub': 'Start the 2-step registration',
-  'reasons_failed_to_load': 'Failed to load reasons',
-  'reasons_empty': 'No reasons available',
-  'volunteer_register_title': 'Become a volunteer donor',
-  'volunteer_step_photo': 'Photo',
-  'volunteer_step_form': 'Donor form',
-  'profile_photo': 'Profile Photo',
-  'profile_photo_tip': 'Take a beautiful, clear and centered profile photo. It will be used on your blood donor ID card.',
-  'hint_blood_type': 'Select your blood type',
-  'accept_terms': 'I accept the terms and conditions',
+      // Face Photo
+      'face_photo_tip':
+          'Take a clear photo of your face. Make sure your face is clearly visible, centered, and well-lit.',
+      'face_photo_required': 'Face photo required',
+      'face_detected_ok': 'Face detected successfully',
+      'no_face_detected': 'No face detected in the photo. Please try again.',
+      'face_validation_error': 'Error validating face',
 
-  'take_photo': 'Take Photo',
-  'choose_photo': 'Choose Photo',
-  'required_field': 'Required',
-  'photo_required': 'Profile photo is required',
-  'must_be_18_or_older': 'You must be at least 18 years old',
-'face_required': 'A clear photo of your face is required',
-'face_no_face': 'No face detected. Please take a photo of your face.',
-'face_no_face_detected': 'No face detected. Please take a clear photo of your face.',
-'face_multiple_faces': 'Multiple faces detected. Take a photo with only your face.',
-  'ins_button_what': "What's INS?",
-  'ins_button_yes': "Yes, I want to request my INS",
-  'ins_button_what_sub': 'Understand INS and its benefits',
-  'ins_button_yes_sub': 'Start your INS request',
-  'ins_explain_title': "What is INS?",
-  'ins_explain_body': "The National Health Identifier (INS) is a unique ID that secures and unifies your health information. It improves your care journey, avoids duplicates, and enhances care coordination.",
-  'ins_explain_hint': "To obtain your INS, you must provide a valid proof of identity.",
-  'ins_step_id_scan': 'Scan your ID card',
-  'ins_step_personal_info': 'Personal Information',
-  'ins_step_address': 'Address',
-  'ins_step_photo': 'Face Photo',
-  'ins_step_review': 'Review',
-  'scan_id_card': 'Scan ID card',
-  'choose_id_photo': 'Choose ID photo',
-  'id_scan_tip': 'Take a clear photo of your identity document (national ID, passport, or driver\'s license). Ensure it\'s readable, well-lit, and fully visible.',
-  'id_required': 'ID card photo is required',
-  'id_detected_ok': 'ID card recognized',
-  'id_not_recognized': 'ID card not recognized. Try again with a clearer photo.',
-  'id_validation_error': 'Error validating ID card',
+      // INS Review & Submission
+      'ins_review_title': 'Review Information',
+      'ins_review_confirm':
+          'Please carefully review all information before submitting your INS request.',
+      'ins_request_success': 'INS request submitted successfully!',
+      'ins_request_failed': 'Failed to submit INS request',
+      'submitting_ins_request': 'Submitting request...',
 
-  // INS Form Fields
-  'township': 'Township',
-  'address_quarter': 'Quarter',
-  'avenue': 'Avenue',
-  'house_number': 'House Number',
-  'marital_status': 'Marital Status',
-  'middle_name': 'Middle Name',
+      'face_checking': 'Checking face...',
 
-  // Face Photo
-  'face_photo_tip': 'Take a clear photo of your face. Make sure your face is clearly visible, centered, and well-lit.',
-  'face_photo_required': 'Face photo required',
-  'face_detected_ok': 'Face detected successfully',
-  'no_face_detected': 'No face detected in the photo. Please try again.',
-  'face_validation_error': 'Error validating face',
+      'face_too_small':
+          'Face is too small in the image. Move closer and center your face.',
+      'face_too_close': 'Face is too close. Move back a bit from the camera.',
+      'face_not_centered': 'Please center your face in the image.',
+      'face_not_straight':
+          'Please look directly at the camera (no left/right rotation).',
+      'face_tilted': 'Please straighten your head (no tilt).',
+      'face_eyes_closed': 'Please keep your eyes open.',
+      'face_landmarks_not_detected':
+          'Face not clear. Make sure your face is well visible and lit.',
 
-  // INS Review & Submission
-  'ins_review_title': 'Review Information',
-  'ins_review_confirm': 'Please carefully review all information before submitting your INS request.',
-  'ins_request_success': 'INS request submitted successfully!',
-  'ins_request_failed': 'Failed to submit INS request',
-  'submitting_ins_request': 'Submitting request...',
-
-'face_checking': 'Checking face...',
-
-'face_too_small': 'Face is too small in the image. Move closer and center your face.',
-'face_too_close': 'Face is too close. Move back a bit from the camera.',
-'face_not_centered': 'Please center your face in the image.',
-'face_not_straight': 'Please look directly at the camera (no left/right rotation).',
-'face_tilted': 'Please straighten your head (no tilt).',
-'face_eyes_closed': 'Please keep your eyes open.',
-'face_landmarks_not_detected': 'Face not clear. Make sure your face is well visible and lit.',
-
-
-
-  'manage_view_donors': 'Manage/View donors',
-  'create_manage_announcements': 'Create and manage announcements',
-  'confirm_delivery': 'Confirm delivery',
-  'scan_qr_to_confirm': 'Scan QR code to confirm receipt',
+      'manage_view_donors': 'Manage/View donors',
+      'create_manage_announcements': 'Create and manage announcements',
+      'confirm_delivery': 'Confirm delivery',
+      'scan_qr_to_confirm': 'Scan QR code to confirm receipt',
       'mark_bags_as_used': 'Mark bags as used',
       'request_coolbox_password': 'Request password',
 
-  'delivery_code': 'Delivery code',
-  'invalid_or_empty_code': 'Invalid or empty code',
-  'delivery_not_found': 'Delivery not found',
+      'delivery_code': 'Delivery code',
+      'invalid_or_empty_code': 'Invalid or empty code',
+      'delivery_not_found': 'Delivery not found',
 
-  'request_password': 'Request password',
-  'get_secure_access_code': 'Get secure access code',
-  'create_announcement': 'Create Announcement',
-  'information': 'Information',
-  'title': 'Title',
-  'title_required': 'Title is required',
-  'type': 'Type',
-  'location': 'Location',
-  'location_required': 'Location is required',
-  'details': 'Details',
-  'priority': 'Priority',
-  'description': 'Description',
-  'description_required': 'Description is required',
-  'publish': 'Publish',
-  'high': 'High',
-  'normal': 'Normal',
-  'low': 'Low',
+      'request_password': 'Request password',
+      'get_secure_access_code': 'Get secure access code',
+      'create_announcement': 'Create Announcement',
+      'information': 'Information',
+      'title': 'Title',
+      'title_required': 'Title is required',
+      'type': 'Type',
+      'location': 'Location',
+      'location_required': 'Location is required',
+      'details': 'Details',
+      'priority': 'Priority',
+      'description': 'Description',
+      'description_required': 'Description is required',
+      'publish': 'Publish',
+      'high': 'High',
+      'normal': 'Normal',
+      'low': 'Low',
 
-  // Network
-  'medical_network': 'Medical Network',
-  'find_nearby_hospitals_banks': 'Find nearby hospitals & blood banks',
-  'search_hospitals_blood_banks': 'Search hospitals, blood banks...',
-  'no_facilities_found': 'No facilities found',
-  'hospital': 'Hospital',
-  'blood_bank_space': 'Blood Bank Space',
-  'emergency': 'Emergency',
-  'all_caps': 'ALL',
-  'call_number': 'Call @number',
+      // Network
+      'medical_network': 'Medical Network',
+      'find_nearby_hospitals_banks': 'Find nearby hospitals & blood banks',
+      'search_hospitals_blood_banks': 'Search hospitals, blood banks...',
+      'no_facilities_found': 'No facilities found',
+      'hospital': 'Hospital',
+      'blood_bank_space': 'Blood Bank Space',
+      'emergency': 'Emergency',
+      'all_caps': 'ALL',
+      'call_number': 'Call @number',
 
-  // Home labels
-  'customer_space': 'Customer Space',
-  'featured_campaigns': 'Featured campaigns',
-  'blood_donation_campaign': 'Blood donation campaign',
-  'location_unspecified': 'Location unspecified',
-  'recent_announcements': 'Recent announcements',
-  'no_announcements_now': 'No announcements for now.',
-  'announcement': 'Announcement',
-  'donor_space': 'Donor Space',
-  'donation_campaigns': 'Donation campaigns',
-  'no_campaigns_now': 'No campaigns for now.',
-  'my_announcements': 'My announcements',
-  'no_announcements_published': 'No announcements published.',
-  'active_requests': 'Active requests',
-  'stock_alerts': 'Stock alerts',
-  'donations_today': 'Donations today',
-  // Dashboard - New keys only
-  'blood_bags': 'Blood bags',
-  'alerts': 'Alerts',
-  'active': 'Active',
-  'in_stock': 'In stock',
-  'ordered': 'Ordered',
-  'low_stock': 'Low stock',
-  'partners': 'Partners',
-  'users': 'Users',
-  'manage_users': 'Manage users',
-  'manage_requests': 'Manage requests',
-  'user_management': 'User management',
-  'add_user': 'Add user',
-  'edit_user': 'Edit user',
-  'delete_user': 'Delete user',
-  'user_details': 'User details',
-  'role': 'Role',
-  'select_role': 'Select role',
-  'user_created_successfully': 'User created successfully',
-  'user_updated_successfully': 'User updated successfully',
-  'user_deleted_successfully': 'User deleted successfully',
-  'confirm_delete_user': 'Are you sure you want to delete this user?',
-  'search_users': 'Search users',
-  'no_users_found': 'No users found',
-  'auto_generate_password': 'Auto-generate password',
-  'passwords_dont_match': 'Passwords don\'t match',
-  'find_blood': 'Find blood',
-  'search_blood_bags': 'Search blood bags',
-  'view_cart': 'View cart',
-  'manage_patients': 'Manage patients',
+      // Home labels
+      'customer_space': 'Customer Space',
+      'featured_campaigns': 'Featured campaigns',
+      'blood_donation_campaign': 'Blood donation campaign',
+      'location_unspecified': 'Location unspecified',
+      'recent_announcements': 'Recent announcements',
+      'no_announcements_now': 'No announcements for now.',
+      'announcement': 'Announcement',
+      'donor_space': 'Donor Space',
+      'donation_campaigns': 'Donation campaigns',
+      'no_campaigns_now': 'No campaigns for now.',
+      'my_announcements': 'My announcements',
+      'no_announcements_published': 'No announcements published.',
+      'active_requests': 'Active requests',
+      'stock_alerts': 'Stock alerts',
+      'donations_today': 'Donations today',
+      // Dashboard - New keys only
+      'blood_bags': 'Blood bags',
+      'alerts': 'Alerts',
+      'active': 'Active',
+      'in_stock': 'In stock',
+      'ordered': 'Ordered',
+      'low_stock': 'Low stock',
+      'partners': 'Partners',
+      'users': 'Users',
+      'manage_users': 'Manage users',
+      'manage_requests': 'Manage requests',
+      'user_management': 'User management',
+      'add_user': 'Add user',
+      'edit_user': 'Edit user',
+      'delete_user': 'Delete user',
+      'user_details': 'User details',
+      'role': 'Role',
+      'select_role': 'Select role',
+      'user_created_successfully': 'User created successfully',
+      'user_updated_successfully': 'User updated successfully',
+      'user_deleted_successfully': 'User deleted successfully',
+      'confirm_delete_user': 'Are you sure you want to delete this user?',
+      'search_users': 'Search users',
+      'no_users_found': 'No users found',
+      'auto_generate_password': 'Auto-generate password',
+      'passwords_dont_match': 'Passwords don\'t match',
+      'find_blood': 'Find blood',
+      'search_blood_bags': 'Search blood bags',
+      'view_cart': 'View cart',
+      'manage_patients': 'Manage patients',
 
-  // BanquePage translations
-  'available_blood_bags': 'Available Blood Bags',
-  'find_blood_quickly': 'Find blood quickly',
-  'search_blood_bag_placeholder': 'Search for a bag... e.g. A+',
-  'total_stock_available': 'Total stock available',
-  'see_all': 'See all',
-  'bags_available': '@count bag available|@count bags available',
-  'in_blood_banks': 'In @count blood bank|In @count blood banks',
-  'availability_by_blood_type': 'Availability by blood type',
-  'bag': 'bag',
-  'bags': 'bags',
-  'no_blood_type_available': 'No blood type available',
-  'no_bank_available': 'No bank available',
-  'pull_down_to_refresh': 'Pull down to refresh',
-  'loading_blood_banks': 'Loading blood banks...',
-  'how_would_you_like_to_proceed': 'How would you like to proceed?',
-  'view_blood_bank_address': 'View blood bank address',
-  'address_shown_after_payment': 'The address will be shown after payment so you can pick it up on site',
-  'order_online': 'Order online',
-  'order_and_deliver_to_hospital': 'You can order and pay online and have it delivered to the hospital',
+      // BanquePage translations
+      'available_blood_bags': 'Available Blood Bags',
+      'find_blood_quickly': 'Find blood quickly',
+      'search_blood_bag_placeholder': 'Search for a bag... e.g. A+',
+      'total_stock_available': 'Total stock available',
+      'see_all': 'See all',
+      'bags_available': '@count bag available|@count bags available',
+      'in_blood_banks': 'In @count blood bank|In @count blood banks',
+      'availability_by_blood_type': 'Availability by blood type',
+      'bag': 'bag',
+      'bags': 'bags',
+      'no_blood_type_available': 'No blood type available',
+      'no_bank_available': 'No bank available',
+      'pull_down_to_refresh': 'Pull down to refresh',
+      'loading_blood_banks': 'Loading blood banks...',
+      'how_would_you_like_to_proceed': 'How would you like to proceed?',
+      'view_blood_bank_address': 'View blood bank address',
+      'address_shown_after_payment':
+          'The address will be shown after payment so you can pick it up on site',
+      'order_online': 'Order online',
+      'order_and_deliver_to_hospital':
+          'You can order and pay online and have it delivered to the hospital',
 
-  // BloodBagOrderStepperPage translations
-  'blood_bank_addresses': 'Blood Bank Addresses',
-  'bank': 'Bank',
-  'payment': 'Payment',
-  'bank_available_singular': '@count bank available',
-  'bank_available_plural': '@count banks available',
-  'distance_from_you': '@distance from you',
-  'price_per_bag': '@price per bag',
-  'error_loading_bags': 'Error loading bags',
-  'loading_available_bags': 'Loading available bags...',
-  'select_quantity': 'Select quantity',
-  'bag_available_singular': '@count bag available',
-  'bag_available_plural': '@count bags available',
-  'creating_cart': 'Creating cart...',
-  'preparing_order': 'Preparing order...',
-  'confirm_order': 'Confirm order',
-  'verify_and_pay': 'Verify and pay',
-  'error_creating_cart': 'Error creating cart',
-  'no_bank_has_blood_type': 'No blood bank has @bloodType in stock',
-  'no_bags_available': 'No bags available',
-  'bank_no_bags_in_stock': 'This bank has no @bloodType bags in stock currently',
-  'total_price': 'Total price',
-  'request_bag_singular': 'Request @count bag',
-  'request_bag_plural': 'Request @count bags',
-  'order_summary': 'Order summary',
-  'unit_price': 'Unit price',
-  'processing': 'Processing...',
-  'pay_amount': 'Pay @amount',
-  'exchange_rate': 'Exchange rate: 1 @from = @rate @to',
-  'original': 'Original',
-  'converted': 'Converted',
-  'submitting_payment': 'Submitting payment...',
-  'loading_prices': 'Loading prices...',
-  'select_payment_option': 'Select payment option',
-  'choose_currency_to_pay': 'Choose currency to pay',
-  'address_info_after_payment': 'Blood bank information will be displayed after successful payment',
+      // BloodBagOrderStepperPage translations
+      'blood_bank_addresses': 'Blood Bank Addresses',
+      'bank': 'Bank',
+      'payment': 'Payment',
+      'bank_available_singular': '@count bank available',
+      'bank_available_plural': '@count banks available',
+      'distance_from_you': '@distance from you',
+      'price_per_bag': '@price per bag',
+      'error_loading_bags': 'Error loading bags',
+      'loading_available_bags': 'Loading available bags...',
+      'select_quantity': 'Select quantity',
+      'bag_available_singular': '@count bag available',
+      'bag_available_plural': '@count bags available',
+      'creating_cart': 'Creating cart...',
+      'preparing_order': 'Preparing order...',
+      'confirm_order': 'Confirm order',
+      'verify_and_pay': 'Verify and pay',
+      'error_creating_cart': 'Error creating cart',
+      'no_bank_has_blood_type': 'No blood bank has @bloodType in stock',
+      'no_bags_available': 'No bags available',
+      'bank_no_bags_in_stock':
+          'This bank has no @bloodType bags in stock currently',
+      'total_price': 'Total price',
+      'request_bag_singular': 'Request @count bag',
+      'request_bag_plural': 'Request @count bags',
+      'order_summary': 'Order summary',
+      'unit_price': 'Unit price',
+      'processing': 'Processing...',
+      'pay_amount': 'Pay @amount',
+      'exchange_rate': 'Exchange rate: 1 @from = @rate @to',
+      'original': 'Original',
+      'converted': 'Converted',
+      'submitting_payment': 'Submitting payment...',
+      'loading_prices': 'Loading prices...',
+      'select_payment_option': 'Select payment option',
+      'choose_currency_to_pay': 'Choose currency to pay',
+      'address_info_after_payment':
+          'Blood bank information will be displayed after successful payment',
 
-  // Success/Failure Screen Translations
-  'payment_receipt': 'Payment receipt',
-  'platform_fees': 'Platform fees',
-  'blood_bag': 'Blood bag',
-  'receipt_downloaded': 'Receipt downloaded: @path',
-  'generation_error': 'Generation error: @error',
-  'eblood_payment_receipt': 'E-Blood payment receipt',
-  'receipt_subject': 'Receipt - @identifier',
-  'share_error': 'Share error: @error',
-  'view_receipt': 'View receipt',
-  'download_receipt': 'Download receipt',
+      // Success/Failure Screen Translations
+      'payment_receipt': 'Payment receipt',
+      'platform_fees': 'Platform fees',
+      'blood_bag': 'Blood bag',
+      'receipt_downloaded': 'Receipt downloaded: @path',
+      'generation_error': 'Generation error: @error',
+      'eblood_payment_receipt': 'E-Blood payment receipt',
+      'receipt_subject': 'Receipt - @identifier',
+      'share_error': 'Share error: @error',
+      'view_receipt': 'View receipt',
+      'download_receipt': 'Download receipt',
 
-  // Settings Page Translations
-  'account_section': 'ACCOUNT',
-  'change_password': 'Change password',
-  'change_your_password': 'Change your password',
-  'delete_account': 'Delete account',
-  'application_section': 'APPLICATION',
-  'free_storage_space': 'Free up storage space',
-  'soon': 'Soon',
-  'clear_cache_message': 'This action will delete temporary files to free up storage space.',
-  'cache_cleared_successfully': 'Cache cleared successfully',
+      // Settings Page Translations
+      'account_section': 'ACCOUNT',
+      'change_password': 'Change password',
+      'change_your_password': 'Change your password',
+      'delete_account': 'Delete account',
+      'application_section': 'APPLICATION',
+      'free_storage_space': 'Free up storage space',
+      'soon': 'Soon',
+      'clear_cache_message':
+          'This action will delete temporary files to free up storage space.',
+      'cache_cleared_successfully': 'Cache cleared successfully',
 
-  'patients': 'Patients',
-  'patient_management': 'Patient management',
-  'add_patient': 'Add patient',
-  'edit_patient': 'Edit patient',
-  'patient_details': 'Patient details',
-  'search_patients': 'Search patients',
-  'no_patients_found': 'No patients found',
-  'patient_created_successfully': 'Patient created successfully',
-  'patient_updated_successfully': 'Patient updated successfully',
-  'save_patient': 'Save patient',
-  'configure_blood_request': 'Configure blood request',
-  'request_for': 'Request for',
-  'storage': 'Storage',
-  'patient': 'Patient',
-  'select_patient': 'Select patient',
-  'add_new_patient': 'Add new patient',
-  'request_reason': 'Request reason',
-  'please_select_patient': 'Please select a patient',
+      'patients': 'Patients',
+      'patient_management': 'Patient management',
+      'add_patient': 'Add patient',
+      'edit_patient': 'Edit patient',
+      'patient_details': 'Patient details',
+      'search_patients': 'Search patients',
+      'no_patients_found': 'No patients found',
+      'patient_created_successfully': 'Patient created successfully',
+      'patient_updated_successfully': 'Patient updated successfully',
+      'save_patient': 'Save patient',
+      'configure_blood_request': 'Configure blood request',
+      'request_for': 'Request for',
+      'storage': 'Storage',
+      'patient': 'Patient',
+      'select_patient': 'Select patient',
+      'add_new_patient': 'Add new patient',
+      'request_reason': 'Request reason',
+      'please_select_patient': 'Please select a patient',
 
-  'view_all': 'View all',
-  'new_blood_request': 'New blood request',
-  'request_completed': 'Request completed',
-  'low_stock_alert': 'Low stock alert',
-  '2_hours_ago': '2 hours ago',
-  '5_hours_ago': '5 hours ago',
-  '1_day_ago': '1 day ago',
-  // Profile & Information
-  'my_profile': 'My profile',
-  'my_account': 'My account',
-  'general': 'General',
-  'support_and_feedback': 'Support & Feedback',
-  'app_information': 'App Information',
-  'account_information': 'Account information',
-  'full_name': 'Full name',
-  'registered_email': 'Registered email',
-  'account_type': 'Account type',
-  'account_type_undefined': 'Not defined',
-  'edit_profile': 'Edit profile',
-  'edit_profile_coming_soon': 'Profile editing feature coming soon',
-  'contact_us': 'Contact us',
-  'rate_app': 'Rate the app',
-  'share_app': 'Share the app',
-  'logout_confirmation': 'Are you sure you want to sign out?',
-  'logging_out': 'Signing out...',
-  'system_account': 'System Account',
+      'view_all': 'View all',
+      'new_blood_request': 'New blood request',
+      'request_completed': 'Request completed',
+      'low_stock_alert': 'Low stock alert',
+      '2_hours_ago': '2 hours ago',
+      '5_hours_ago': '5 hours ago',
+      '1_day_ago': '1 day ago',
+      // Profile & Information
+      'my_profile': 'My profile',
+      'my_account': 'My account',
+      'general': 'General',
+      'support_and_feedback': 'Support & Feedback',
+      'app_information': 'App Information',
+      'account_information': 'Account information',
+      'full_name': 'Full name',
+      'registered_email': 'Registered email',
+      'account_type': 'Account type',
+      'account_type_undefined': 'Not defined',
+      'edit_profile': 'Edit profile',
+      'edit_profile_coming_soon': 'Profile editing feature coming soon',
+      'contact_us': 'Contact us',
+      'rate_app': 'Rate the app',
+      'share_app': 'Share the app',
+      'logout_confirmation': 'Are you sure you want to sign out?',
+      'logging_out': 'Signing out...',
+      'system_account': 'System Account',
 
       // Onboarding
       'onboarding_title_1': 'Welcome to E-blood Bank Makila',
       'onboarding_subtitle_1': 'Your Vital Blood Connection',
-      'onboarding_description_1': 'Connect with blood donors and banks in real-time. Save lives with just a few clicks.',
+      'onboarding_description_1':
+          'Connect with blood donors and banks in real-time. Save lives with just a few clicks.',
 
       'onboarding_title_2': 'Find Blood Nearby',
       'onboarding_subtitle_2': 'Quick and Easy Location',
-      'onboarding_description_2': 'Instantly locate the nearest blood banks and donors through our intelligent geolocation system.',
+      'onboarding_description_2':
+          'Instantly locate the nearest blood banks and donors through our intelligent geolocation system.',
 
       'onboarding_title_3': 'Let\'s Save Lives Together',
       'onboarding_subtitle_3': 'Be a Hero Today',
-      'onboarding_description_3': 'Join our community of lifesavers. Donate your blood, request when you need it, and make a difference.',
+      'onboarding_description_3':
+          'Join our community of lifesavers. Donate your blood, request when you need it, and make a difference.',
 
       'onboarding_title_4': 'Safe and Secure',
       'onboarding_subtitle_4': 'Your Privacy Matters',
-      'onboarding_description_4': 'All your data is encrypted and secure. We prioritize your confidentiality while connecting you to vital resources.',
+      'onboarding_description_4':
+          'All your data is encrypted and secure. We prioritize your confidentiality while connecting you to vital resources.',
 
       // Welcome Page
       'welcome_message': 'Sign in to access your\neBlood Bank Makila account',
@@ -2339,7 +2556,8 @@ class AppTranslations extends Translations {
       'coming_soon': 'Coming Soon',
       'coming_soon_message': 'Sign in with @platform will be available soon.',
       'connection_error': 'Connection Error',
-      'connection_error_message': 'An error occurred while signing in with Google. Please try again.',
+      'connection_error_message':
+          'An error occurred while signing in with Google. Please try again.',
       'login_error': 'Login Error',
 
       // Authentication
@@ -2357,43 +2575,55 @@ class AppTranslations extends Translations {
       'verify_email': 'Verify Email',
       'verify_phone': 'Verify Phone',
       'waiting_for_sms': 'Waiting for SMS...',
-  'verify_emails': 'Verify Emails',
-  'verify_each_email_before_submission': 'Verify each email before submission',
+      'verify_emails': 'Verify Emails',
+      'verify_each_email_before_submission':
+          'Verify each email before submission',
       'otp_verification': 'OTP Verification',
-      'verification_code_sent_to': 'We have sent a verification code to\n@email',
-      'verification_code_sent_to_phone': 'We have sent a verification code to\n@phone',
+      'verification_code_sent_to':
+          'We have sent a verification code to\n@email',
+      'verification_code_sent_to_phone':
+          'We have sent a verification code to\n@phone',
       'didnt_receive_code': 'Didn\'t receive code? ',
       'sending': 'Sending...',
       'resend': 'Resend',
       'verify': 'Verify',
       'please_enter_six_digits': 'Please enter all 6 digits of the OTP code',
-      'missing_validation_key': 'Missing validation key. Please go back and try again.',
+      'missing_validation_key':
+          'Missing validation key. Please go back and try again.',
       'verification_error': 'Verification Error',
-      'missing_validation_key_try_again': 'Missing validation key. Please go back and try again.',
+      'missing_validation_key_try_again':
+          'Missing validation key. Please go back and try again.',
       'registration_failed': 'Registration Failed',
-      'registration_failed_after_verification': 'Registration failed after verification',
+      'registration_failed_after_verification':
+          'Registration failed after verification',
       'verification_failed': 'Verification Failed',
       'check_otp_code': 'Please check your OTP code and try again',
       'verification_error_occurred': 'An error occurred during verification',
-      'verification_error_details': 'An error occurred during verification: @error',
-      'new_code_sent_email': 'A new verification code has been sent to your email',
+      'verification_error_details':
+          'An error occurred during verification: @error',
+      'new_code_sent_email':
+          'A new verification code has been sent to your email',
       'code_resent_email': 'Verification code has been resent to your email',
       'failed_resend_code': 'Failed to resend verification code',
-      'failed_resend_code_details': 'Failed to resend verification code: @error',
-  'otp_verification_in_progress': 'Verifying OTP code...',
+      'failed_resend_code_details':
+          'Failed to resend verification code: @error',
+      'otp_verification_in_progress': 'Verifying OTP code...',
 
       // Account Types
       'select_account_type': 'Select Account Type',
-      'account_type_description': 'Choose the account type that best fits your needs',
+      'account_type_description':
+          'Choose the account type that best fits your needs',
       'personal_account': 'Personal Account',
       'personal_account_description': 'For individual donors and recipients',
       'hospital_account': 'Hospital Account',
       'hospital_account_description': 'For hospital establishments',
-  // New generalized health structure keys (replacing hospital_account in UI)
-  'health_structure_account': 'Health Structure Account',
-  'health_structure_account_description': 'For health structures and medical establishments',
+      // New generalized health structure keys (replacing hospital_account in UI)
+      'health_structure_account': 'Health Structure Account',
+      'health_structure_account_description':
+          'For health structures and medical establishments',
       'blood_bank_account': 'Blood Bank Account',
-      'blood_bank_account_description': 'For blood banks and transfusion centers',
+      'blood_bank_account_description':
+          'For blood banks and transfusion centers',
 
       // Registration Forms
       'personal_information': 'Personal Information',
@@ -2431,10 +2661,12 @@ class AppTranslations extends Translations {
       'latitude': 'Latitude',
       'get_location': 'Get Location',
       'use_current_location': 'Use Current Location',
-  'obtaining_location': 'Obtaining location',
-  'select_your_location': 'Select your location',
-  'select_location_hint': 'Search and choose your place (country > province > city/commune)',
-  'select_location_to_enter_phone': 'Please select your location to enable phone number entry',
+      'obtaining_location': 'Obtaining location',
+      'select_your_location': 'Select your location',
+      'select_location_hint':
+          'Search and choose your place (country > province > city/commune)',
+      'select_location_to_enter_phone':
+          'Please select your location to enable phone number entry',
 
       // Blood Types
       'blood_type': 'Blood Type',
@@ -2511,7 +2743,8 @@ class AppTranslations extends Translations {
       'payment_failed': 'Payment Failed',
       'operation_successful': 'Operation Successful!',
       'operation_failed': 'Operation Failed!',
-      'payment_processed_successfully': 'Your payment has been processed successfully',
+      'payment_processed_successfully':
+          'Your payment has been processed successfully',
       'payment_processing_failed': 'Your payment processing has failed',
       'reference': 'Reference',
       'copy': 'Copy',
@@ -2536,9 +2769,11 @@ class AppTranslations extends Translations {
       'copied_to_clipboard': 'Copied to clipboard',
       'confirm_pickup': 'Confirm Pickup',
       'confirm_pickup_title': 'Confirm Pickup',
-      'confirm_pickup_message': 'Do you confirm that the delivery person has picked up the blood?',
+      'confirm_pickup_message':
+          'Do you confirm that the delivery person has picked up the blood?',
       'pickup_confirmed': 'Pickup Confirmed',
-      'pickup_confirmed_message': 'Blood pickup has been confirmed successfully',
+      'pickup_confirmed_message':
+          'Blood pickup has been confirmed successfully',
       'confirming_pickup': 'Confirming pickup...',
       'error_confirming_pickup': 'Error confirming pickup',
 
@@ -2604,11 +2839,13 @@ class AppTranslations extends Translations {
       'hint_contact_email': 'Enter contact email',
       'hint_admin_email': 'Enter admin email',
       'hint_admin_username': 'Enter admin username',
-      'select_valid_location_for_phone': 'Please select a valid location for phone number',
+      'select_valid_location_for_phone':
+          'Please select a valid location for phone number',
       'form_validation_error': 'Form validation error',
       'form_validation_error_with_details': 'Form validation error: {error}',
       'hospital_registration_successful': 'Hospital registration successful!',
-      'location_service_implementation': 'Location service will be implemented soon',
+      'location_service_implementation':
+          'Location service will be implemented soon',
       // Submission actions
       'submit_registration': 'Submit Registration',
       'submitting': 'Submitting...',
@@ -2628,7 +2865,8 @@ class AppTranslations extends Translations {
       'no_donors_registered': 'No donors registered',
       'add_first_donor_hint': 'Add your first donor with the button below',
       'try_different_search_terms': 'Try different search terms',
-      'data_loaded_but_empty': 'Data loaded successfully, but the list is empty',
+      'data_loaded_but_empty':
+          'Data loaded successfully, but the list is empty',
       'donors_found_count': '@count donor(s) found',
       'total_donors': 'Total donors',
       'active_donors': 'Active donors',
@@ -2641,7 +2879,8 @@ class AppTranslations extends Translations {
       'not_available_short': 'N/A',
       'enter_donor_name_hint': 'Enter donor name...',
       'enter_donor_phone_hint': 'Enter phone number...',
-      'donor_code_format_hint': 'Format: XXX-XXXX-XXXXX-XX (e.g., 9EC-2510-Z41QT-1D)',
+      'donor_code_format_hint':
+          'Format: XXX-XXXX-XXXXX-XX (e.g., 9EC-2510-Z41QT-1D)',
       'click_camera_icon_hint': 'Click the camera icon...',
       'search_donor_hint': 'Search for a donor...',
       'search_error_occurred': 'An error occurred during search',
@@ -2663,7 +2902,8 @@ class AppTranslations extends Translations {
       'welcome_badge': 'Welcome Badge',
       'welcome_badge_desc': 'Awarded to new donors upon registration.',
       'first_donation_badge': 'First Donation',
-      'first_donation_badge_desc': 'Awarded after completing the first blood donation.',
+      'first_donation_badge_desc':
+          'Awarded after completing the first blood donation.',
       'regular_donor_badge': 'Regular Donor',
       'regular_donor_badge_desc': 'For having made at least 3 donations.',
       'donation_type': 'Donation type',
@@ -2677,7 +2917,8 @@ class AppTranslations extends Translations {
       'badges_rewards': 'Badges & Rewards',
       'obtained_on': 'Obtained on @date',
       'donor_id_card': 'Donor ID Card',
-      'valid_in_all_centers': 'Valid in all partner centers of the eBlood network.',
+      'valid_in_all_centers':
+          'Valid in all partner centers of the eBlood network.',
       'download_card': 'Download card',
       'share_card': 'Share card',
       'generating_card': 'Generating card...',
@@ -2720,14 +2961,16 @@ class AppTranslations extends Translations {
       'unable_to_launch_search': 'Unable to launch search: @error',
       'scan_donor_code_title': 'Scan Donor Code',
       'donor_code_scanned_success': 'Donor code scanned successfully',
-      'invalid_qr_code_format': 'Invalid QR code. Expected format: XXX-XXXX-XXXXX-XX',
+      'invalid_qr_code_format':
+          'Invalid QR code. Expected format: XXX-XXXX-XXXXX-XX',
       'how_to_search_donor': 'How to search for a donor',
       'search_by_name': 'Search by name',
       'search_by_name_desc': 'Type the donor’s full or partial name.',
       'search_by_phone': 'Search by phone',
       'search_by_phone_desc': 'Enter the full or partial phone number.',
       'search_by_donor_code': 'Search by donor code',
-      'search_by_donor_code_desc': 'Enter the donor’s unique code for a precise search.',
+      'search_by_donor_code_desc':
+          'Enter the donor’s unique code for a precise search.',
       'filter_by_gender': 'Filter by gender',
       'filter_by_gender_desc': 'Use Male or Female to filter by gender.',
       'filter_by_blood_type_desc': 'Select a blood type to refine results.',
@@ -2740,8 +2983,10 @@ class AppTranslations extends Translations {
       'digital_id_card': 'Digital ID Card',
 
       'no_matching_donor_found': 'No matching donor found',
-      'photo_search_help_desc': 'Use the camera icon to search via face recognition (demo).',
-      'scan_donor_code_help_desc': 'Use the scanner icon to read a QR code and quickly find a donor.',
+      'photo_search_help_desc':
+          'Use the camera icon to search via face recognition (demo).',
+      'scan_donor_code_help_desc':
+          'Use the scanner icon to read a QR code and quickly find a donor.',
 
       'loading_blood_requests': 'Loading requests...',
       'blood_requests_appear_here': 'Blood requests will appear here',
@@ -2760,7 +3005,8 @@ class AppTranslations extends Translations {
       // Donor Registration Page
       'donor_registration': 'Donor Registration',
       'donor_photo': 'Donor Photo',
-      'take_clear_photo_instruction': 'Take a clear, well-lit and centered photo of the donor\'s face.',
+      'take_clear_photo_instruction':
+          'Take a clear, well-lit and centered photo of the donor\'s face.',
       'analyzing_photo': 'Analyzing photo...',
       'photo_validated_continue': 'Photo validated, you can continue.',
       'donor_information': 'Donor Information',
@@ -2844,7 +3090,8 @@ class AppTranslations extends Translations {
       'new_announcement': 'New Communication',
       'edit_announcement': 'Edit Communication',
       'delete_announcement': 'Delete communication',
-      'delete_announcement_confirm': 'Are you sure you want to delete "@title"? This action is irreversible.',
+      'delete_announcement_confirm':
+          'Are you sure you want to delete "@title"? This action is irreversible.',
       'creating_in_progress': 'Creating...',
       'updating_in_progress': 'Updating...',
       'deleting_in_progress': 'Deleting...',
@@ -2880,7 +3127,8 @@ class AppTranslations extends Translations {
       'bank_account': 'Bank account',
       'mobile_money': 'Mobile Money',
       'email_notifications': 'Email Notifications',
-      'email_for_transaction_notifications': 'Email for transaction notifications',
+      'email_for_transaction_notifications':
+          'Email for transaction notifications',
       'email_address': 'Email Address',
       'settings_saved': 'Settings saved',
       'mobile_payment': 'Mobile Payment',
@@ -2889,10 +3137,12 @@ class AppTranslations extends Translations {
       'reception_mode': 'Reception Mode',
       'configure_payment_reception_mode': 'Configure payment reception mode',
       'automatic_reception': 'Automatic Reception',
-      'accept_incoming_payments_automatically': 'Automatically accept incoming payments',
+      'accept_incoming_payments_automatically':
+          'Automatically accept incoming payments',
       'automatic_reception_enabled': 'Automatic reception enabled',
       'on_demand_reception_enabled': 'On-demand reception enabled',
-      'manual_approval_notification_message': 'You will receive a notification for each incoming payment and must approve manually.',
+      'manual_approval_notification_message':
+          'You will receive a notification for each incoming payment and must approve manually.',
 
       'ann_status_critical': 'Critical',
       'ann_status_resolved': 'Resolved',
@@ -2924,7 +3174,8 @@ class AppTranslations extends Translations {
       // Health Structure Detail Page
       'invalid_coordinates': 'Invalid coordinates',
       'gps_coordinates': 'GPS coordinates',
-      'coordinates_out_of_region_warning': '⚠️ These coordinates seem incorrect (outside Africa)',
+      'coordinates_out_of_region_warning':
+          '⚠️ These coordinates seem incorrect (outside Africa)',
       'structure_type': 'Structure Type',
       'altitude': 'Altitude',
       'structure_status': 'Structure status',
@@ -2951,7 +3202,8 @@ class AppTranslations extends Translations {
       'deliveries_count': '@count delivery(ies)',
 
       'dashboard_title': 'Dashboard',
-      'limited_permission_warning': 'Limited permission. Some data may be incomplete.',
+      'limited_permission_warning':
+          'Limited permission. Some data may be incomplete.',
       'loading_error_retry': 'Loading error. Tap to retry.',
       'manage_stock': 'Manage Stock',
       'database': 'Database',
@@ -2972,20 +3224,20 @@ class AppTranslations extends Translations {
       // =============================================
       // Blood Search Flow Translations - English
       // =============================================
-      
+
       // Welcome Page
       'find_blood_title': 'Find Blood',
       'find_blood_subtitle': 'Search for available blood products near you',
       'start_search': 'Start Search',
       'scan_hospital_qr': 'Scan Hospital QR Code',
       'search_blood': 'Search Blood',
-      
+
       // Progress Steps
       'step_city': 'City',
       'step_blood_type': 'Blood Type',
       'step_results': 'Results',
       'step_confirm': 'Confirm',
-      
+
       // Location Selection (Tree)
       'select_country': 'Select Country',
       'select_province': 'Select Province',
@@ -3001,7 +3253,7 @@ class AppTranslations extends Translations {
       'retry': 'Retry',
       'sub_locations': 'sub-locations',
       'location_detection_coming_soon': 'Location detection coming soon',
-      
+
       // Blood Type Selection
       'select_blood_type': 'Select Blood Type',
       'which_blood_type': 'Which blood type are you looking for?',
@@ -3009,7 +3261,7 @@ class AppTranslations extends Translations {
       'blood_group': 'Blood Group',
       'rh_factor': 'Rh Factor',
       'searching_for': 'Searching for:',
-      
+
       // Search Results
       'search_results': 'Search Results',
       'blood_type_search': 'Blood type search',
@@ -3024,23 +3276,25 @@ class AppTranslations extends Translations {
       'view_full_address': 'View Full Address',
       'tap_to_choose': 'Tap to choose an option',
       'away': 'away',
-      
+
       // Hospital QR Code
       'hospital_qr_code': 'Hospital QR Code',
       'view_qr_identifier': 'View and share your hospital identifier',
       'health_structure_not_found': 'Health structure not found',
       'hospital_not_found': 'Hospital not found',
       'failed_load_qr': 'Failed to load QR code',
-      'scan_qr_info': 'Visitors can scan this QR code to identify your hospital',
+      'scan_qr_info':
+          'Visitors can scan this QR code to identify your hospital',
       'scan_actions': 'Scan Actions',
       'share': 'Share',
       'download': 'Download',
       'copied': 'Copied',
       'identifier_copied': 'Identifier copied to clipboard',
-      'share_qr_text': 'My Hospital Identifier: @identifier\nScan or enter this code to find us in E-Blood Bank app.',
+      'share_qr_text':
+          'My Hospital Identifier: @identifier\nScan or enter this code to find us in E-Blood Bank app.',
       'qr_download_soon': 'QR code download feature coming soon',
       'copy': 'Copy',
-      
+
       // Hospital Identification
       'identify_hospital': 'Identify Hospital',
       'how_identify_hospital': 'How to identify the hospital?',
@@ -3065,7 +3319,7 @@ class AppTranslations extends Translations {
       'verify_code': 'Verify Code',
       'invalid_hospital_code': 'Invalid hospital code',
       'hospital_found': 'Hospital Found',
-      
+
       // Visitor Registration & OTP
       'visitor_registration': 'Visitor Registration',
       'enter_phone': 'Enter Phone',
@@ -3086,17 +3340,38 @@ class AppTranslations extends Translations {
       'resend_code': 'Resend Code',
       'resend_in': 'Resend in',
       'invalid_otp': 'Invalid verification code. Please try again.',
-      
+      'phone_verification_required': 'Phone verification required',
+      'login_and_phone_verification_required':
+          'Login and phone verification required',
+      'contact_support_to_enable_cod':
+          'Contact eBlood support team to enable pay on delivery',
+      'contact_support': 'Contact Support',
+      'previously_identified': 'Previously Identified Hospital',
+      'continue_with_hospital': 'Continue with this hospital or choose another',
+      'choose_another_hospital': 'Choose Another Hospital',
+      'next': 'Next',
+      'your_previous_city': 'Your Previous City',
+      'continue_with_previous': 'Continue with your previously selected city',
+      'select_other_cities': 'Select Other Cities',
+
       // Payment
       'payment': 'Payment',
+      'cash_on_delivery': 'Cash on Delivery',
+      'pay_when_you_receive': 'Pay when you receive',
+      'backoffice_activation_required': 'Requires activation from backoffice',
+      'mobile_money_number': 'Mobile Money Number',
+      'enter_number_for_payment': 'Enter your number for payment',
+      'mobile_money_info': 'You will receive a payment request on this number. Make sure it\'s active and has sufficient balance.',
       'choose_option': 'Choose an option',
       'choose_how_to_get': 'How would you like to get the blood?',
       'view_address': 'View Address',
-      'view_address_desc': 'Get the hospital address and pick up the blood yourself',
+      'view_address_desc':
+          'Get the hospital address and pick up the blood yourself',
       'get_hospital_location': 'Get the hospital location to visit yourself',
       'order_delivery': 'Order Delivery',
       'order_delivery_desc': 'Have the blood delivered to your address',
       'have_blood_delivered': 'Have the blood product delivered to you',
+      'have_it_delivered': 'Have it delivered directly to you',
       'select_payment_method': 'Select Payment Method',
       'payment_method': 'Payment Method',
       'mobile_money': 'Mobile Money',
@@ -3108,7 +3383,7 @@ class AppTranslations extends Translations {
       'payment_failed': 'Payment Failed',
       'secure_payment': 'Secure payment powered by E-Blood',
       'distance_from_you': 'Distance from you',
-      
+
       // Address View
       'hospital_address': 'Hospital Address',
       'address_unlocked': 'Address Unlocked',
@@ -3117,9 +3392,10 @@ class AppTranslations extends Translations {
       'copy_address': 'Copy Address',
       'address_copied': 'Address copied',
       'blood_requested': 'Blood Requested',
-      
+
       // Live Tracking
       'live_tracking': 'Live Tracking',
+      'loading_tracking': 'Loading tracking...',
       'order_placed': 'Order Placed',
       'order_confirmed': 'Confirmed',
       'picked_up': 'Picked Up',
@@ -3129,14 +3405,13 @@ class AppTranslations extends Translations {
       'estimated_arrival': 'Estimated Arrival',
       'order_details': 'Order Details',
       'refresh_tracking': 'Refresh Tracking',
-      
+
       // QR Scanner
       'qr_scanner': 'QR Scanner',
       'point_camera_at_qr': 'Point camera at QR code',
       'scanning': 'Scanning...',
       'flash': 'Flash',
       'switch_camera': 'Switch Camera',
-
     },
 
     // Spanish translations
@@ -3146,7 +3421,8 @@ class AppTranslations extends Translations {
       'payment_failed': 'Pago Fallido',
       'operation_successful': '¡Operación Exitosa!',
       'operation_failed': '¡Operación Fallida!',
-      'payment_processed_successfully': 'Su pago ha sido procesado exitosamente',
+      'payment_processed_successfully':
+          'Su pago ha sido procesado exitosamente',
       'payment_processing_failed': 'El procesamiento de su pago ha fallado',
       'reference': 'Referencia',
       'copy': 'Copiar',
@@ -3171,9 +3447,11 @@ class AppTranslations extends Translations {
       'copied_to_clipboard': 'Copiado al portapapeles',
       'confirm_pickup': 'Confirmar Recogida',
       'confirm_pickup_title': 'Confirmar Recogida',
-      'confirm_pickup_message': '¿Confirma que el repartidor ha recogido la sangre?',
+      'confirm_pickup_message':
+          '¿Confirma que el repartidor ha recogido la sangre?',
       'pickup_confirmed': 'Recogida Confirmada',
-      'pickup_confirmed_message': 'La recogida de sangre ha sido confirmada exitosamente',
+      'pickup_confirmed_message':
+          'La recogida de sangre ha sido confirmada exitosamente',
       'confirming_pickup': 'Confirmando recogida...',
       'error_confirming_pickup': 'Error al confirmar la recogida',
 
@@ -3189,27 +3467,37 @@ class AppTranslations extends Translations {
       // Health Structure Registration
       'health_structure_registration': 'Registro de Estructura de Salud',
       'select_blood_bank': 'Seleccionar un Banco de Sangre',
-      'select_blood_bank_description': 'Por favor, elige un banco de sangre para continuar tu registro. Esto nos ayudará a conectarte con los servicios de sangre apropiados.',
+      'select_blood_bank_description':
+          'Por favor, elige un banco de sangre para continuar tu registro. Esto nos ayudará a conectarte con los servicios de sangre apropiados.',
       'blood_bank_selection': 'Selección de Banco de Sangre',
       'blood_bank_required': 'Por favor, selecciona un banco de sangre',
       'no_blood_banks_found': 'No se encontraron bancos de sangre cercanos',
       'location_services_disabled': 'Servicios de ubicación desactivados',
-      'location_services_disabled_message': 'Por favor, active los servicios de ubicación para encontrar bancos de sangre cercanos.',
+      'location_services_disabled_message':
+          'Por favor, active los servicios de ubicación para encontrar bancos de sangre cercanos.',
       'location_permission_denied': 'Permiso de ubicación denegado',
-      'location_permission_denied_forever': 'Permiso de ubicación denegado permanentemente',
+      'location_permission_denied_forever':
+          'Permiso de ubicación denegado permanentemente',
       'location_permission_required': 'Permiso de ubicación requerido',
-      'location_permission_required_message': 'Para encontrar bancos de sangre cercanos, necesitamos acceso a su ubicación. Por favor, permita el acceso.',
-      'location_permission_permanently_denied_message': 'El acceso a la ubicación ha sido denegado permanentemente. Por favor, habilite manualmente el permiso en la configuración de la aplicación.',
+      'location_permission_required_message':
+          'Para encontrar bancos de sangre cercanos, necesitamos acceso a su ubicación. Por favor, permita el acceso.',
+      'location_permission_permanently_denied_message':
+          'El acceso a la ubicación ha sido denegado permanentemente. Por favor, habilite manualmente el permiso en la configuración de la aplicación.',
       'open_settings': 'Abrir configuración',
       'allow_location': 'Permitir ubicación',
       'accompanied_by': 'Acompañado por:',
 
       // Benevol Donor Registration (new keys only)
-      'benevol_donor_info': 'Al convertirte en donante voluntario, te comprometes a donar sangre regularmente y ayudar a salvar vidas. Tu compromiso es valioso.',
-      'volunteer_password_required': 'Contraseña requerida: Como donante voluntario, debes crear una contraseña segura para tu cuenta.',
-      'benevol_registration_success': '¡Tu registro como donante voluntario ha sido exitoso! Gracias por tu compromiso.',
-      'photo_validation_required': 'Se requiere una foto de perfil válida. Por favor captura o selecciona una foto clara de tu rostro.',
-      'terms_acceptance_required': 'Debes aceptar los términos y condiciones para continuar',
+      'benevol_donor_info':
+          'Al convertirte en donante voluntario, te comprometes a donar sangre regularmente y ayudar a salvar vidas. Tu compromiso es valioso.',
+      'volunteer_password_required':
+          'Contraseña requerida: Como donante voluntario, debes crear una contraseña segura para tu cuenta.',
+      'benevol_registration_success':
+          '¡Tu registro como donante voluntario ha sido exitoso! Gracias por tu compromiso.',
+      'photo_validation_required':
+          'Se requiere una foto de perfil válida. Por favor captura o selecciona una foto clara de tu rostro.',
+      'terms_acceptance_required':
+          'Debes aceptar los términos y condiciones para continuar',
 
       // General
       'app_name': 'eBlood Bank Makila',
@@ -3229,46 +3517,56 @@ class AppTranslations extends Translations {
       'unit': 'unidad',
       'units': 'unidades',
 
-  'inventory_management': 'Gestión de Inventario',
-  'blood_bank_makila': 'Banco de Sangre Makila',
-  'add_stock': 'Agregar Stock',
-  'units_available': '{count} unidades disponibles',
-  'generating_report': 'Generando informe...',
-  'total_stock': 'Stock Total',
+      'inventory_management': 'Gestión de Inventario',
+      'blood_bank_makila': 'Banco de Sangre Makila',
+      'add_stock': 'Agregar Stock',
+      'units_available': '{count} unidades disponibles',
+      'generating_report': 'Generando informe...',
+      'total_stock': 'Stock Total',
 
-  'status_approved': 'Aprobado',
+      'status_approved': 'Aprobado',
 
-  'configure_all_blood_types': 'Configurar todos los tipos sanguíneos',
-  'detailed_threshold_config_coming': 'Configuración detallada de umbrales próximamente',
-  'expiration_settings': 'Configuración de expiración',
-  'expiration_alerts': 'Alertas de expiración',
-  'expiration_alerts_description': 'Recibir notificaciones de productos que expiran pronto',
-  'expiration_alerts_enabled': 'Alertas de expiración: activadas',
-  'expiration_alerts_disabled': 'Alertas de expiración: desactivadas',
-  'early_alert': 'Alerta anticipada',
-  'days_before_expiration': 'Días antes del vencimiento para activar la alerta',
-  'early_alert_modification_coming': 'Modificación de alerta anticipada próximamente',
-  'validity_period': 'Duración de validez',
-  'configure_validity_by_product': 'Configurar duración de validez por tipo de producto',
-  'validity_config_coming': 'Configuración de duraciones de validez próximamente',
-  'notification_channels': 'Canales de notificación',
-  'configure_notification_channels': 'Configurar dónde recibir alertas (correo, SMS, etc.)',
-  'notification_channels_config_coming': 'Configuración de canales de notificación próximamente',
-  'note': 'Nota',
-  'configuration': 'Configuración',
-  'id': 'ID',
-  'exp': 'Exp',
-  'seven_days': '7 días',
-  'last_30_days': 'Últimos 30 días',
-  'inventory_trend': 'Tendencia del Inventario',
-  'no_trend_data_period': 'No hay datos de tendencia disponibles para este período',
+      'configure_all_blood_types': 'Configurar todos los tipos sanguíneos',
+      'detailed_threshold_config_coming':
+          'Configuración detallada de umbrales próximamente',
+      'expiration_settings': 'Configuración de expiración',
+      'expiration_alerts': 'Alertas de expiración',
+      'expiration_alerts_description':
+          'Recibir notificaciones de productos que expiran pronto',
+      'expiration_alerts_enabled': 'Alertas de expiración: activadas',
+      'expiration_alerts_disabled': 'Alertas de expiración: desactivadas',
+      'early_alert': 'Alerta anticipada',
+      'days_before_expiration':
+          'Días antes del vencimiento para activar la alerta',
+      'early_alert_modification_coming':
+          'Modificación de alerta anticipada próximamente',
+      'validity_period': 'Duración de validez',
+      'configure_validity_by_product':
+          'Configurar duración de validez por tipo de producto',
+      'validity_config_coming':
+          'Configuración de duraciones de validez próximamente',
+      'notification_channels': 'Canales de notificación',
+      'configure_notification_channels':
+          'Configurar dónde recibir alertas (correo, SMS, etc.)',
+      'notification_channels_config_coming':
+          'Configuración de canales de notificación próximamente',
+      'note': 'Nota',
+      'configuration': 'Configuración',
+      'id': 'ID',
+      'exp': 'Exp',
+      'seven_days': '7 días',
+      'last_30_days': 'Últimos 30 días',
+      'inventory_trend': 'Tendencia del Inventario',
+      'no_trend_data_period':
+          'No hay datos de tendencia disponibles para este período',
       'request_number': 'Solicitud #@id',
       'loading_route': 'Cargando ruta...',
       'position_unavailable': 'Posición no disponible',
       'loading_position': 'Cargando posición...',
       'error_fetching_position': 'Error al obtener la posición',
       'error_fetching_position_details': 'Error al obtener la posición: @error',
-      'no_action_data_available': 'No hay datos de acción disponibles para esta solicitud',
+      'no_action_data_available':
+          'No hay datos de acción disponibles para esta solicitud',
       'unknown_execution_error': 'Error desconocido durante la ejecución',
       'execution_error_details': 'Error durante la ejecución: @error',
       'qr_code_scanned': 'Código QR escaneado',
@@ -3293,7 +3591,8 @@ class AppTranslations extends Translations {
       // Blood Bank Address Success Page
       'blood_bank_address': 'Dirección del Banco de Sangre',
       'street_address': 'Dirección',
-      'contact_blood_bank_directly': 'Contacte directamente con el banco de sangre para obtener más información sobre horarios y servicios disponibles.',
+      'contact_blood_bank_directly':
+          'Contacte directamente con el banco de sangre para obtener más información sobre horarios y servicios disponibles.',
       'open_in_google_maps': 'Abrir en Google Maps',
       'get_directions': 'Obtener Direcciones',
       'could_not_open_maps': 'No se pudo abrir Google Maps',
@@ -3314,9 +3613,12 @@ class AppTranslations extends Translations {
       'verification_with_count': 'Verificación (@count)',
       'my_cart': 'Mi Carrito',
       'scan_qr': 'Escanear QR',
-      'scan_qr_to_request_password': 'Escanee el código QR para solicitar la contraseña',
-      'scan_qr_to_verify_stock': 'Escanee el código QR para verificar la información del stock',
-      'scan_qr_to_validate_request': 'Escanee el código QR para validar la solicitud de sangre',
+      'scan_qr_to_request_password':
+          'Escanee el código QR para solicitar la contraseña',
+      'scan_qr_to_verify_stock':
+          'Escanee el código QR para verificar la información del stock',
+      'scan_qr_to_validate_request':
+          'Escanee el código QR para validar la solicitud de sangre',
       'scan_qr_to_confirm': 'Escanee el código QR para confirmar la recepción',
       'user_management': 'Gestión de usuarios',
       'add_user': 'Agregar usuario',
@@ -3334,16 +3636,13 @@ class AppTranslations extends Translations {
       'auto_generate_password': 'Generar contraseña automáticamente',
       'passwords_dont_match': 'Las contraseñas no coinciden',
 
+      'delivery_code': 'Código de entrega',
+      'invalid_or_empty_code': 'Código inválido o vacío',
+      'delivery_not_found': 'Entrega no encontrada',
 
-  'delivery_code': 'Código de entrega',
-  'invalid_or_empty_code': 'Código inválido o vacío',
-  'delivery_not_found': 'Entrega no encontrada',
-
-  'format': 'Formato',
-  'export': 'Exportar',
-  'description': 'Descripción',
-
-
+      'format': 'Formato',
+      'export': 'Exportar',
+      'description': 'Descripción',
 
       'delivery_position': 'Posición de entrega',
       'no_content': 'Sin contenido',
@@ -3357,36 +3656,37 @@ class AppTranslations extends Translations {
       'info': 'Información',
       'retry': 'Reintentar',
       'refresh': 'Actualizar',
-    // Submission actions
-    'submit_registration': 'Enviar Registro',
-    'submitting': 'Enviando...',
-  // Profile & Information
-  'my_profile': 'Mi perfil',
-  'my_account': 'Mi cuenta',
-  'general': 'General',
-  'support_and_feedback': 'Soporte y comentarios',
-  'app_information': 'Información de la aplicación',
-  'account_information': 'Información de la cuenta',
-  'full_name': 'Nombre completo',
-  'registered_email': 'Correo registrado',
-  'account_type': 'Tipo de cuenta',
-  'account_type_undefined': 'No definido',
-  'edit_profile': 'Editar perfil',
-  'edit_profile_coming_soon': 'Función de edición de perfil próximamente',
-  'contact_us': 'Contáctanos',
-  'rate_app': 'Calificar la app',
-  'share_app': 'Compartir la app',
-  'logout_confirmation': '¿Seguro que deseas cerrar sesión?',
-  'logging_out': 'Cerrando sesión...',
-  'system_account': 'Cuenta del sistema',
-  'personal_account': 'Cuenta personal',
-  'health_structure_account': 'Cuenta de entidad de salud',
-  'blood_bank_account': 'Cuenta de banco de sangre',
-  'hospital_account': 'Cuenta de hospital',
-  'delivery_person': 'Repartidor',
-  // OTP (additions for health structure multi-email)
-  'verify_emails': 'Verificar correos',
-  'verify_each_email_before_submission': 'Verifique cada correo antes de enviar',
+      // Submission actions
+      'submit_registration': 'Enviar Registro',
+      'submitting': 'Enviando...',
+      // Profile & Information
+      'my_profile': 'Mi perfil',
+      'my_account': 'Mi cuenta',
+      'general': 'General',
+      'support_and_feedback': 'Soporte y comentarios',
+      'app_information': 'Información de la aplicación',
+      'account_information': 'Información de la cuenta',
+      'full_name': 'Nombre completo',
+      'registered_email': 'Correo registrado',
+      'account_type': 'Tipo de cuenta',
+      'account_type_undefined': 'No definido',
+      'edit_profile': 'Editar perfil',
+      'edit_profile_coming_soon': 'Función de edición de perfil próximamente',
+      'contact_us': 'Contáctanos',
+      'rate_app': 'Calificar la app',
+      'share_app': 'Compartir la app',
+      'logout_confirmation': '¿Seguro que deseas cerrar sesión?',
+      'logging_out': 'Cerrando sesión...',
+      'system_account': 'Cuenta del sistema',
+      'personal_account': 'Cuenta personal',
+      'health_structure_account': 'Cuenta de entidad de salud',
+      'blood_bank_account': 'Cuenta de banco de sangre',
+      'hospital_account': 'Cuenta de hospital',
+      'delivery_person': 'Repartidor',
+      // OTP (additions for health structure multi-email)
+      'verify_emails': 'Verificar correos',
+      'verify_each_email_before_submission':
+          'Verifique cada correo antes de enviar',
       'search_action': 'Buscar',
       'filter': 'Filtrar',
       'sort': 'Ordenar',
@@ -3404,15 +3704,18 @@ class AppTranslations extends Translations {
       // Onboarding
       'onboarding_title_1': 'Bienvenido a E-blood Bank Makila',
       'onboarding_subtitle_1': 'Tu Conexión Vital de Sangre',
-      'onboarding_description_1': 'Conéctate con donantes de sangre y bancos en tiempo real. Salva vidas con solo unos clics.',
+      'onboarding_description_1':
+          'Conéctate con donantes de sangre y bancos en tiempo real. Salva vidas con solo unos clics.',
 
       'onboarding_title_2': 'Encuentra Sangre Cerca',
       'onboarding_subtitle_2': 'Ubicación Rápida y Fácil',
-      'onboarding_description_2': 'Localiza instantáneamente los bancos de sangre y donantes más cercanos a través de nuestro sistema de geolocalización inteligente.',
+      'onboarding_description_2':
+          'Localiza instantáneamente los bancos de sangre y donantes más cercanos a través de nuestro sistema de geolocalización inteligente.',
 
       'onboarding_title_3': 'Salvemos Vidas Juntos',
       'onboarding_subtitle_3': 'Sé un Héroe Hoy',
-      'onboarding_description_3': 'Únete a nuestra comunidad de salvavidas. Dona tu sangre, solicita cuando la necesites, y marca la diferencia.',
+      'onboarding_description_3':
+          'Únete a nuestra comunidad de salvavidas. Dona tu sangre, solicita cuando la necesites, y marca la diferencia.',
 
       'onboarding_title_4': 'Seguro y Protegido',
       'onboarding_subtitle_4': 'Tu Privacidad Importa',
@@ -3426,15 +3729,18 @@ class AppTranslations extends Translations {
       'medical_summary': 'Resumen Médico',
       'donations_count': '@count donación(es)',
       'no_donations_recorded': 'No hay donaciones registradas',
-      'donations_will_appear_here': 'Las donaciones aparecerán aquí una vez registradas',
-      'unable_to_check_donor_eligibility': 'No se puede verificar la elegibilidad del donante',
+      'donations_will_appear_here':
+          'Las donaciones aparecerán aquí una vez registradas',
+      'unable_to_check_donor_eligibility':
+          'No se puede verificar la elegibilidad del donante',
       'error_checking_eligibility': 'Error durante la verificación: @error',
       'donations': 'Donaciones',
       'main_donation_center': 'Centro de donación principal',
       'welcome_badge': 'Insignia de Bienvenida',
       'welcome_badge_desc': 'Otorgada a los nuevos donantes al registrarse.',
       'first_donation_badge': 'Primera Donación',
-      'first_donation_badge_desc': 'Otorgada después de completar la primera donación de sangre.',
+      'first_donation_badge_desc':
+          'Otorgada después de completar la primera donación de sangre.',
       'regular_donor_badge': 'Donante Regular',
       'regular_donor_badge_desc': 'Por haber realizado al menos 3 donaciones.',
       'donation_type': 'Tipo de donación',
@@ -3448,7 +3754,8 @@ class AppTranslations extends Translations {
       'badges_rewards': 'Insignias y Recompensas',
       'obtained_on': 'Obtenido el @date',
       'donor_id_card': 'Tarjeta de Identidad del Donante',
-      'valid_in_all_centers': 'Válida en todos los centros asociados de la red eBlood.',
+      'valid_in_all_centers':
+          'Válida en todos los centros asociados de la red eBlood.',
       'download_card': 'Descargar tarjeta',
       'share_card': 'Compartir tarjeta',
       'generating_card': 'Generando tarjeta...',
@@ -3470,10 +3777,12 @@ class AppTranslations extends Translations {
       'observations_details_hint': 'Observaciones o detalles adicionales',
       'digital_id_card': 'Tarjeta de Identidad Digital',
 
-      'onboarding_description_4': 'Todos tus datos están encriptados y seguros. Priorizamos tu confidencialidad mientras te conectamos con recursos vitales.',
+      'onboarding_description_4':
+          'Todos tus datos están encriptados y seguros. Priorizamos tu confidencialidad mientras te conectamos con recursos vitales.',
 
       // Welcome Page
-      'welcome_message': 'Inicia sesión para acceder a tu\ncuenta de eBlood Bank Makila',
+      'welcome_message':
+          'Inicia sesión para acceder a tu\ncuenta de eBlood Bank Makila',
       'sign_in_with_google': 'Iniciar sesión con Google',
       'sign_in_with_email': 'Iniciar sesión con Email',
       'sign_in_with_phone_number': 'Iniciar sesión con Número de Teléfono',
@@ -3482,14 +3791,17 @@ class AppTranslations extends Translations {
       'create_account_with_phone_number': 'Crear cuenta con Número de Teléfono',
       'continue_as_visitor': 'Continuar como Visitante',
       'create_account': 'Crear Cuenta',
-      'join_eblood_message': 'Únete a E-Blood Bank Makila y\nayuda a salvar vidas',
+      'join_eblood_message':
+          'Únete a E-Blood Bank Makila y\nayuda a salvar vidas',
       'or': 'o',
       'already_have_account': '¿Ya tienes una cuenta?',
       'sign_in_link': 'Iniciar sesión',
       'coming_soon': 'Próximamente',
-      'coming_soon_message': 'Iniciar sesión con @platform estará disponible pronto.',
+      'coming_soon_message':
+          'Iniciar sesión con @platform estará disponible pronto.',
       'connection_error': 'Error de Conexión',
-      'connection_error_message': 'Ocurrió un error al iniciar sesión con Google. Por favor, inténtalo de nuevo.',
+      'connection_error_message':
+          'Ocurrió un error al iniciar sesión con Google. Por favor, inténtalo de nuevo.',
       'login_error': 'Error de Inicio de Sesión',
 
       // Authentication
@@ -3503,18 +3815,22 @@ class AppTranslations extends Translations {
       'sign_up': 'Registrarse',
       'sign_out': 'Cerrar Sesión',
 
-  // OTP Verification
-  'otp_verification': 'Verificación OTP',
-  'verification_code_sent_to': 'Hemos enviado un código de verificación a\n@email',
-  'verification_code_sent_to_phone': 'Hemos enviado un código de verificación a\n@phone',
-  'didnt_receive_code': '¿No recibiste el código? ',
-  'sending': 'Enviando...',
-  'resend': 'Reenviar',
-  'verify': 'Verificar',
-  'please_enter_six_digits': 'Por favor ingresa los 6 dígitos del código OTP',
-  'code_resent_email': 'El código de verificación ha sido reenviado a tu correo',
-  'failed_resend_code': 'Error al reenviar el código de verificación',
-  'otp_verification_in_progress': 'Verificando código OTP...',
+      // OTP Verification
+      'otp_verification': 'Verificación OTP',
+      'verification_code_sent_to':
+          'Hemos enviado un código de verificación a\n@email',
+      'verification_code_sent_to_phone':
+          'Hemos enviado un código de verificación a\n@phone',
+      'didnt_receive_code': '¿No recibiste el código? ',
+      'sending': 'Enviando...',
+      'resend': 'Reenviar',
+      'verify': 'Verificar',
+      'please_enter_six_digits':
+          'Por favor ingresa los 6 dígitos del código OTP',
+      'code_resent_email':
+          'El código de verificación ha sido reenviado a tu correo',
+      'failed_resend_code': 'Error al reenviar el código de verificación',
+      'otp_verification_in_progress': 'Verificando código OTP...',
 
       // Blood Types
       'blood_type': 'Tipo de Sangre',
@@ -3526,7 +3842,6 @@ class AppTranslations extends Translations {
       'blood_type_ab_negative': 'AB-',
       'blood_type_o_positive': 'O+',
       'blood_type_o_negative': 'O-',
-
 
       // Donors management (page + widgets)
       'donor_management': 'Gestión de Donantes',
@@ -3547,7 +3862,8 @@ class AppTranslations extends Translations {
       'choose_your_region': 'Elija su región',
       'no_results_found': 'No se encontraron resultados',
       'try_different_search': 'Intente una búsqueda diferente',
-      'data_loaded_but_empty': 'Datos cargados correctamente, pero la lista está vacía',
+      'data_loaded_but_empty':
+          'Datos cargados correctamente, pero la lista está vacía',
       'donors_found_count': 'Se encontraron @count donante(s)',
       'total_donors': 'Donantes totales',
       'active_donors': 'Donantes activos',
@@ -3560,13 +3876,16 @@ class AppTranslations extends Translations {
       'not_available_short': 'N/D',
       'enter_donor_name_hint': 'Ingrese el nombre del donante...',
       'enter_donor_phone_hint': 'Ingrese el número de teléfono...',
-      'donor_code_format_hint': 'Formato: XXX-XXXX-XXXXX-XX (ej.: 9EC-2510-Z41QT-1D)',
+      'donor_code_format_hint':
+          'Formato: XXX-XXXX-XXXXX-XX (ej.: 9EC-2510-Z41QT-1D)',
       'click_camera_icon_hint': 'Haga clic en el ícono de la cámara...',
       'search_donor_hint': 'Buscar un donante...',
       'search_error_occurred': 'Ocurrió un error durante la búsqueda',
       'no_matching_donor_found': 'No se encontró ningún donante coincidente',
-      'photo_search_help_desc': 'Use el ícono de la cámara para buscar por reconocimiento facial (demo).',
-      'scan_donor_code_help_desc': 'Use el ícono del escáner para leer un código QR y encontrar un donante rápidamente.',
+      'photo_search_help_desc':
+          'Use el ícono de la cámara para buscar por reconocimiento facial (demo).',
+      'scan_donor_code_help_desc':
+          'Use el ícono del escáner para leer un código QR y encontrar un donante rápidamente.',
 
       // Blood Components (Spanish)
       'whole_blood': 'Sangre Completa',
@@ -3607,7 +3926,8 @@ class AppTranslations extends Translations {
       'phone': 'Teléfono',
       'photo': 'Foto',
       'feature_coming_soon': 'Funcionalidad próximamente',
-      'no_summary_data_available': 'No hay datos de resumen disponibles por ahora.',
+      'no_summary_data_available':
+          'No hay datos de resumen disponibles por ahora.',
       'no_data_available': 'No hay datos disponibles.',
       'donation_frequency': 'Frecuencia de donaciones',
       'no_recent_donation_data': 'No hay datos de donaciones recientes.',
@@ -3627,28 +3947,35 @@ class AppTranslations extends Translations {
       'unable_to_launch_search': 'No se puede iniciar la búsqueda: @error',
       'scan_donor_code_title': 'Escanear código de donante',
       'donor_code_scanned_success': 'Código de donante escaneado con éxito',
-      'invalid_qr_code_format': 'Código QR inválido. Formato esperado: XXX-XXXX-XXXXX-XX',
+      'invalid_qr_code_format':
+          'Código QR inválido. Formato esperado: XXX-XXXX-XXXXX-XX',
       'how_to_search_donor': 'Cómo buscar un donante',
       'search_by_name': 'Buscar por nombre',
-      'search_by_name_desc': 'Escriba el nombre completo o parcial del donante.',
+      'search_by_name_desc':
+          'Escriba el nombre completo o parcial del donante.',
       'search_by_phone': 'Buscar por teléfono',
-      'search_by_phone_desc': 'Ingrese el número de teléfono completo o parcial.',
+      'search_by_phone_desc':
+          'Ingrese el número de teléfono completo o parcial.',
       'search_by_donor_code': 'Buscar por código de donante',
-      'search_by_donor_code_desc': 'Ingrese el código único del donante para una búsqueda precisa.',
+      'search_by_donor_code_desc':
+          'Ingrese el código único del donante para una búsqueda precisa.',
       'filter_by_gender': 'Filtrar por género',
       'filter_by_gender_desc': 'Use Hombre o Mujer para filtrar por género.',
-      'filter_by_blood_type_desc': 'Seleccione un grupo sanguíneo para refinar los resultados.',
+      'filter_by_blood_type_desc':
+          'Seleccione un grupo sanguíneo para refinar los resultados.',
       // Donor Registration Page
       'donor_registration': 'Registro de Donante',
       'donor_photo': 'Foto del Donante',
-      'take_clear_photo_instruction': 'Tome una foto clara, bien iluminada y centrada del rostro del donante.',
+      'take_clear_photo_instruction':
+          'Tome una foto clara, bien iluminada y centrada del rostro del donante.',
       'analyzing_photo': 'Analizando la foto...',
       'photo_validated_continue': 'Foto validada, puede continuar.',
       'donor_information': 'Información del donante',
       'email_optional': 'Correo electrónico (opcional)',
       'emergency_contact_name': 'Nombre del contacto de emergencia',
       'emergency_contact_phone': 'Teléfono del contacto de emergencia',
-      'create_user_account_for_donor': 'Crear una cuenta de usuario para el donante',
+      'create_user_account_for_donor':
+          'Crear una cuenta de usuario para el donante',
       'email_username': 'Correo / Nombre de usuario',
       'password_min_8_chars': 'Contraseña (mín. 8 caracteres)',
       'verification_information': 'Verificación de información',
@@ -3656,7 +3983,8 @@ class AppTranslations extends Translations {
       'please_wait': 'Por favor, espere',
       'registration_successful_title': 'Registro exitoso',
       'donor_registered_successfully': 'El donante fue registrado con éxito.',
-      'keep_donor_code_reference': 'Guarde el código del donante como referencia.',
+      'keep_donor_code_reference':
+          'Guarde el código del donante como referencia.',
       'donor_code_label': 'Código del donante',
       'donor_id_label': 'ID del donante',
       'photo_uploaded_successfully': 'Foto subida con éxito.',
@@ -3664,11 +3992,13 @@ class AppTranslations extends Translations {
       'return_to_home': 'Volver al inicio',
       'view_donors': 'Ver donantes',
       'step_x_of_y': 'Paso @x de @y',
-      'take_donor_photo_required': 'Por favor, tome la foto del donante (obligatorio).',
+      'take_donor_photo_required':
+          'Por favor, tome la foto del donante (obligatorio).',
       'photo_analysis_wait': 'Analizando la foto, por favor espere...',
       'select_gender_required': 'Seleccione el género.',
       'error_occurred_try_again': 'Ocurrió un error. Intente nuevamente.',
-      'invalid_date_format_yyyy_mm_dd': 'Formato de fecha inválido (aaaa-mm-dd).',
+      'invalid_date_format_yyyy_mm_dd':
+          'Formato de fecha inválido (aaaa-mm-dd).',
 
       // Add Blood Stock Page
       'add_blood_stock': 'Agregar stock de sangre',
@@ -3752,8 +4082,10 @@ class AppTranslations extends Translations {
       'invalid_phone_prefix': 'El prefijo del teléfono es inválido',
       'invalid_phone_length': 'La longitud del número de teléfono es inválida',
       'select_your_location': 'Seleccione su ubicación',
-      'select_location_hint': 'Busque y elija su lugar (país > provincia > ciudad/comuna)',
-      'select_location_to_enter_phone': 'Por favor seleccione su ubicación para habilitar la entrada del número de teléfono',
+      'select_location_hint':
+          'Busque y elija su lugar (país > provincia > ciudad/comuna)',
+      'select_location_to_enter_phone':
+          'Por favor seleccione su ubicación para habilitar la entrada del número de teléfono',
 
       // Blood Requests (Lista y Detalle)
       'search_clinical_indication': 'Buscar por indicación clínica...',
@@ -3771,7 +4103,8 @@ class AppTranslations extends Translations {
       'new_announcement': 'Nueva comunicación',
       'edit_announcement': 'Editar comunicación',
       'delete_announcement': 'Eliminar comunicación',
-      'delete_announcement_confirm': '¿Seguro que deseas eliminar "@title"? Esta acción es irreversible.',
+      'delete_announcement_confirm':
+          '¿Seguro que deseas eliminar "@title"? Esta acción es irreversible.',
       'creating_in_progress': 'Creando...',
       'announcement_created_success': 'Comunicación creada con éxito',
       'updating_in_progress': 'Actualizando...',
@@ -3829,7 +4162,8 @@ class AppTranslations extends Translations {
       'loading_structures': 'Cargando estructuras...',
       'no_structures_found': 'No se encontraron estructuras',
       'no_structures_of_type': 'No hay estructuras de tipo @type',
-      'no_health_structures_available': 'No hay estructuras de salud disponibles',
+      'no_health_structures_available':
+          'No hay estructuras de salud disponibles',
       'inactive': 'Inactivo',
       'undefined': 'Indefinido',
       'identifier': 'Identificador',
@@ -3840,7 +4174,8 @@ class AppTranslations extends Translations {
       // Health Structure Detail Page
       'invalid_coordinates': 'Coordenadas inválidas',
       'gps_coordinates': 'Coordenadas GPS',
-      'coordinates_out_of_region_warning': '⚠️ Estas coordenadas parecen incorrectas (fuera de África)',
+      'coordinates_out_of_region_warning':
+          '⚠️ Estas coordenadas parecen incorrectas (fuera de África)',
       'structure_type': 'Tipo de estructura',
       'altitude': 'Altitud',
       'structure_status': 'Estado de la estructura',
@@ -3897,23 +4232,28 @@ class AppTranslations extends Translations {
       'bank_account': 'Cuenta bancaria',
       'mobile_money': 'Dinero móvil',
       'email_notifications': 'Notificaciones por correo',
-      'email_for_transaction_notifications': 'Correo para notificaciones de transacciones',
+      'email_for_transaction_notifications':
+          'Correo para notificaciones de transacciones',
       'email_address': 'Dirección de correo',
       'settings_saved': 'Configuración guardada',
       'mobile_payment': 'Pago móvil',
       'phone_number_for_mobile_payments': 'Número para pagos móviles',
       'phone_number_saved': 'Número de teléfono guardado',
       'reception_mode': 'Modo de recepción',
-      'configure_payment_reception_mode': 'Configurar el modo de recepción de pagos',
+      'configure_payment_reception_mode':
+          'Configurar el modo de recepción de pagos',
       'automatic_reception': 'Recepción automática',
-      'accept_incoming_payments_automatically': 'Aceptar automáticamente los pagos entrantes',
+      'accept_incoming_payments_automatically':
+          'Aceptar automáticamente los pagos entrantes',
       'automatic_reception_enabled': 'Recepción automática activada',
       'on_demand_reception_enabled': 'Recepción bajo demanda activada',
-      'manual_approval_notification_message': 'Recibirás una notificación por cada pago entrante y deberás aprobarlo manualmente.',
+      'manual_approval_notification_message':
+          'Recibirás una notificación por cada pago entrante y deberás aprobarlo manualmente.',
 
       'emergency_center': 'Centro de Urgencias',
       'dashboard_title': 'Panel de control',
-      'limited_permission_warning': 'Permiso limitado. Algunos datos pueden estar incompletos.',
+      'limited_permission_warning':
+          'Permiso limitado. Algunos datos pueden estar incompletos.',
       'loading_error_retry': 'Error de carga. Toque para reintentar.',
       'manage_patients': 'Gestionar pacientes',
 
@@ -3934,9 +4274,11 @@ class AppTranslations extends Translations {
       'loading_blood_banks': 'Cargando bancos de sangre...',
       'how_would_you_like_to_proceed': '¿Cómo desea proceder?',
       'view_blood_bank_address': 'Ver dirección del banco de sangre',
-      'address_shown_after_payment': 'La dirección se mostrará después del pago para que pueda recogerla en el sitio',
+      'address_shown_after_payment':
+          'La dirección se mostrará después del pago para que pueda recogerla en el sitio',
       'order_online': 'Ordenar en línea',
-      'order_and_deliver_to_hospital': 'Puede ordenar y pagar en línea y recibirlo en el hospital',
+      'order_and_deliver_to_hospital':
+          'Puede ordenar y pagar en línea y recibirlo en el hospital',
 
       // BloodBagOrderStepperPage translations
       'blood_bank_addresses': 'Direcciones de Bancos de Sangre',
@@ -3956,9 +4298,11 @@ class AppTranslations extends Translations {
       'confirm_order': 'Confirmar pedido',
       'verify_and_pay': 'Verificar y pagar',
       'error_creating_cart': 'Error al crear carrito',
-      'no_bank_has_blood_type': 'Ningún banco de sangre tiene @bloodType en stock',
+      'no_bank_has_blood_type':
+          'Ningún banco de sangre tiene @bloodType en stock',
       'no_bags_available': 'No hay bolsas disponibles',
-      'bank_no_bags_in_stock': 'Este banco no tiene bolsas @bloodType en stock actualmente',
+      'bank_no_bags_in_stock':
+          'Este banco no tiene bolsas @bloodType en stock actualmente',
       'total_price': 'Precio total',
       'request_bag_singular': 'Solicitar @count bolsa',
       'request_bag_plural': 'Solicitar @count bolsas',
@@ -3973,7 +4317,8 @@ class AppTranslations extends Translations {
       'loading_prices': 'Cargando precios...',
       'select_payment_option': 'Seleccionar opción de pago',
       'choose_currency_to_pay': 'Elija la moneda para pagar',
-      'address_info_after_payment': 'La información del banco de sangre se mostrará después del pago exitoso',
+      'address_info_after_payment':
+          'La información del banco de sangre se mostrará después del pago exitoso',
 
       // Success/Failure Screen Translations
       'payment_receipt': 'Recibo de pago',
@@ -3995,7 +4340,8 @@ class AppTranslations extends Translations {
       'application_section': 'APLICACIÓN',
       'free_storage_space': 'Liberar espacio de almacenamiento',
       'soon': 'Pronto',
-      'clear_cache_message': 'Esta acción eliminará los archivos temporales para liberar espacio de almacenamiento.',
+      'clear_cache_message':
+          'Esta acción eliminará los archivos temporales para liberar espacio de almacenamiento.',
       'cache_cleared_successfully': 'Caché borrado con éxito',
 
       'patients': 'Pacientes',
@@ -4017,7 +4363,6 @@ class AppTranslations extends Translations {
       'request_reason': 'Motivo de la solicitud',
       'please_select_patient': 'Por favor seleccione un paciente',
 
-
       'manage_stock': 'Gestionar stock',
       'database': 'Base de datos',
       'announcements_events': 'Anuncios y eventos',
@@ -4038,11 +4383,9 @@ class AppTranslations extends Translations {
       'donors': 'Donantes',
       'recent_activity': 'Actividad reciente',
       'stock_added': 'Stock añadido',
-      'request_from_facility_blood_units': '@facility - @blood (@count unidades)',
+      'request_from_facility_blood_units':
+          '@facility - @blood (@count unidades)',
       'blood_units_count': '@blood (@count unidades)',
-
-
-
     },
 
     // Lingala translations
@@ -4103,14 +4446,17 @@ class AppTranslations extends Translations {
       'donations_count': '@count don(s)',
       'no_donations_recorded': 'Ba don ezalaki te',
       'donations_will_appear_here': 'Ba don ekomonana awa soki ebombami',
-      'unable_to_check_donor_eligibility': 'Tokoki te koyeba eligibilité ya donneur',
+      'unable_to_check_donor_eligibility':
+          'Tokoki te koyeba eligibilité ya donneur',
       'error_checking_eligibility': 'Libunga na verification: @error',
       'donations': 'Ba don',
       'main_donation_center': 'Centre ya don ya monene',
       'welcome_badge': 'Badge ya boyei',
-      'welcome_badge_desc': 'Epésamaka na ba donneur ya sika tango bazali kokomisa.',
+      'welcome_badge_desc':
+          'Epésamaka na ba donneur ya sika tango bazali kokomisa.',
       'first_donation_badge': 'Don ya liboso',
-      'first_donation_badge_desc': 'Epésamaka sima ya kosala don ya liboso ya makila.',
+      'first_donation_badge_desc':
+          'Epésamaka sima ya kosala don ya liboso ya makila.',
       'regular_donor_badge': 'Donneur ya mbala mingi',
       'regular_donor_badge_desc': 'Mpo na kosala ba don ata 3.',
       'whole_blood': 'Makila mobimba',
@@ -4126,7 +4472,8 @@ class AppTranslations extends Translations {
       'badges_rewards': 'Ba badges mpe ba récompenses',
       'obtained_on': 'Ezuwami na @date',
       'donor_id_card': 'Karte ya identité ya donneur',
-      'valid_in_all_centers': 'Eza valable na ba centre nyonso ya partenaire ya réseau eBlood.',
+      'valid_in_all_centers':
+          'Eza valable na ba centre nyonso ya partenaire ya réseau eBlood.',
       'download_card': 'Télécharger karte',
       'share_card': 'Kabolá karte',
       'generating_card': 'Kobakisa karte...',
@@ -4150,24 +4497,28 @@ class AppTranslations extends Translations {
 
       'health_structure_registration': 'Liseli ya Ndako ya Malaki',
       'select_blood_bank': 'Pona Banki ya Makila',
-      'select_blood_bank_description': 'Tala pona banki ya makila mpo na kokoba na liseli na yo. Yango ekosalisa biso na kokutana na yo na serbis ya makila oyo esengo.',
+      'select_blood_bank_description':
+          'Tala pona banki ya makila mpo na kokoba na liseli na yo. Yango ekosalisa biso na kokutana na yo na serbis ya makila oyo esengo.',
       'blood_bank_selection': 'Pona Banki ya Makila',
       'blood_bank_required': 'Tala pona banki ya makila',
       'no_blood_banks_found': 'Banki ya makila te na kanda',
       'location_services_disabled': 'Misala ya esika elongwa',
-      'location_services_disabled_message': 'Tala bingisa misala ya esika mpo na koluka banki ya makila oyo ezali pene.',
+      'location_services_disabled_message':
+          'Tala bingisa misala ya esika mpo na koluka banki ya makila oyo ezali pene.',
       'location_permission_denied': 'Nzembo ya esika eboyami',
       'location_permission_denied_forever': 'Nzembo ya esika eboyami libela',
       'location_permission_required': 'Nzembo ya esika esengi',
-      'location_permission_required_message': 'Mpo na koluka banki ya makila oyo ezali pene, tozali na mposa ya koyeba esika na yo. Tala ndima nzela.',
-      'location_permission_permanently_denied_message': 'Nzela ya esika eboyami libela. Tala bingisa yango na maboko na parametres ya application.',
+      'location_permission_required_message':
+          'Mpo na koluka banki ya makila oyo ezali pene, tozali na mposa ya koyeba esika na yo. Tala ndima nzela.',
+      'location_permission_permanently_denied_message':
+          'Nzela ya esika eboyami libela. Tala bingisa yango na maboko na parametres ya application.',
       'open_settings': 'Fungola parametres',
       'delivered': 'Livrées',
       'no_pending_requests': 'Aucune demande en attente',
       'no_in_progress_deliveries': 'Aucune livraison en cours',
-  'delivery_code': 'Code ya livraison',
-  'invalid_or_empty_code': 'Code ya libunga to mpamba',
-  'delivery_not_found': 'Livraison ezwami te',
+      'delivery_code': 'Code ya livraison',
+      'invalid_or_empty_code': 'Code ya libunga to mpamba',
+      'delivery_not_found': 'Livraison ezwami te',
 
       'no_delivered_requests': 'Aucune demande livrée',
       'no_used_bags': 'Aucune poche utilisée',
@@ -4184,7 +4535,8 @@ class AppTranslations extends Translations {
       // Blood Bank Address Success Page
       'blood_bank_address': 'Adresse ya Banque ya Makila',
       'street_address': 'Adresse',
-      'contact_blood_bank_directly': 'Benga banque ya makila mpo na koyeba ntango ya kofungwama na misala oyo ezali.',
+      'contact_blood_bank_directly':
+          'Benga banque ya makila mpo na koyeba ntango ya kofungwama na misala oyo ezali.',
       'open_in_google_maps': 'Fungola na Google Maps',
       'get_directions': 'Zwa nzela',
       'could_not_open_maps': 'Tokoki kofungola Google Maps te',
@@ -4222,8 +4574,10 @@ class AppTranslations extends Translations {
       'my_cart': 'Panier na ngai',
       'scan_qr': 'Scan QR',
       'scan_qr_to_request_password': 'Scan QR code mpo na kosenga mot de passe',
-      'scan_qr_to_verify_stock': 'Scan QR code mpo na kotala ba informations ya stock',
-      'scan_qr_to_validate_request': 'Scan QR code mpo na ko valider bosenga ya makila',
+      'scan_qr_to_verify_stock':
+          'Scan QR code mpo na kotala ba informations ya stock',
+      'scan_qr_to_validate_request':
+          'Scan QR code mpo na ko valider bosenga ya makila',
       'scan_qr_to_confirm': 'Scan QR code mpo na kokonfirme kozwa livraison',
       'user_management': 'Boyangeli ya basaleli',
       'add_user': 'Bakisa mosaleli',
@@ -4241,13 +4595,17 @@ class AppTranslations extends Translations {
       'auto_generate_password': 'Sala liloba ya kobatela na yango moko',
       'passwords_dont_match': 'Maloba ya kobatela ekokani te',
 
-
       // Benevol Donor Registration (new keys only)
-      'benevol_donor_info': 'Na kokoma mopesi makila ya bolingo, ozali komipesa mpo na kopesa makila mingi mingi pe kosalisa kobikisa bomoi. Engagement na yo ezali na motuya.',
-      'volunteer_password_required': 'Password esengeli: Lokola mopesi makila ya bolingo, osengeli kosala password ya bolingo mpo na compte na yo.',
-      'benevol_registration_success': 'Liseli na yo lokola mopesi makila ya bolingo esalemi malamu! Matondo mpo na engagement na yo.',
-      'photo_validation_required': 'Photo ya profil ya malamu esengeli. Tala kamata to pona photo ya polo ya elongi na yo.',
-      'terms_acceptance_required': 'Osengeli kondima mibeko pe bameko mpo na kokoba',
+      'benevol_donor_info':
+          'Na kokoma mopesi makila ya bolingo, ozali komipesa mpo na kopesa makila mingi mingi pe kosalisa kobikisa bomoi. Engagement na yo ezali na motuya.',
+      'volunteer_password_required':
+          'Password esengeli: Lokola mopesi makila ya bolingo, osengeli kosala password ya bolingo mpo na compte na yo.',
+      'benevol_registration_success':
+          'Liseli na yo lokola mopesi makila ya bolingo esalemi malamu! Matondo mpo na engagement na yo.',
+      'photo_validation_required':
+          'Photo ya profil ya malamu esengeli. Tala kamata to pona photo ya polo ya elongi na yo.',
+      'terms_acceptance_required':
+          'Osengeli kondima mibeko pe bameko mpo na kokoba',
 
       // General
       'app_name': 'eBlood Bank Makila',
@@ -4280,14 +4638,17 @@ class AppTranslations extends Translations {
 
       'status_approved': 'Approuvé',
       'configure_all_blood_types': 'Configurer tous les types sanguins',
-      'detailed_threshold_config_coming': 'Configuration détaillée des seuils à venir',
+      'detailed_threshold_config_coming':
+          'Configuration détaillée des seuils à venir',
       'expiration_settings': 'Paramètres d\'Expiration',
       'expiration_alerts': 'Alertes d\'expiration',
-      'expiration_alerts_description': 'Recevoir des notifications pour les produits qui expirent bientôt',
+      'expiration_alerts_description':
+          'Recevoir des notifications pour les produits qui expirent bientôt',
       'expiration_alerts_enabled': 'Alertes d\'expiration: activées',
       'expiration_alerts_disabled': 'Alertes d\'expiration: désactivées',
       'early_alert': 'Alerte anticipée',
-      'days_before_expiration': 'Jours avant expiration pour déclencher l\'alerte',
+      'days_before_expiration':
+          'Jours avant expiration pour déclencher l\'alerte',
 
       // Donors management (page + widgets)
       'donor_management': 'Bokambi ya BaDonneurs',
@@ -4320,21 +4681,28 @@ class AppTranslations extends Translations {
       'not_available_short': 'N/A',
       'enter_donor_name_hint': 'Kota kombo ya donneur...',
       'enter_donor_phone_hint': 'Kota numéro ya téléphone...',
-      'donor_code_format_hint': 'Format: XXX-XXXX-XXXXX-XX (ndakisa: 9EC-2510-Z41QT-1D)',
+      'donor_code_format_hint':
+          'Format: XXX-XXXX-XXXXX-XX (ndakisa: 9EC-2510-Z41QT-1D)',
       'click_camera_icon_hint': 'Finá ikoni ya kamera...',
       'search_donor_hint': 'Luka donneur...',
       'search_error_occurred': 'Libunga esalemaki na boluki',
       'no_matching_donor_found': 'Donneur oyo ekokanaka te emonani te',
-      'photo_search_help_desc': 'Salelá ikoni ya kamera mpo na boluki ya elongi (demo).',
-      'scan_donor_code_help_desc': 'Salelá ikoni ya scanner mpo na kotánga QR code mpe kozwa donneur noki.',
+      'photo_search_help_desc':
+          'Salelá ikoni ya kamera mpo na boluki ya elongi (demo).',
+      'scan_donor_code_help_desc':
+          'Salelá ikoni ya scanner mpo na kotánga QR code mpe kozwa donneur noki.',
 
-      'early_alert_modification_coming': 'Modification de l\'alerte anticipée à venir',
+      'early_alert_modification_coming':
+          'Modification de l\'alerte anticipée à venir',
       'validity_period': 'Durée de validité',
-      'configure_validity_by_product': 'Configurer la durée de validité par type de produit',
+      'configure_validity_by_product':
+          'Configurer la durée de validité par type de produit',
       'validity_config_coming': 'Configuration des durées de validité à venir',
       'notification_channels': 'Canaux de notification',
-      'configure_notification_channels': 'Configurer où recevoir les alertes (email, SMS, etc.)',
-      'notification_channels_config_coming': 'Configuration des canaux de notification à venir',
+      'configure_notification_channels':
+          'Configurer où recevoir les alertes (email, SMS, etc.)',
+      'notification_channels_config_coming':
+          'Configuration des canaux de notification à venir',
       'note': 'Note',
       'configuration': 'Configuration',
       'id': 'ID',
@@ -4342,15 +4710,12 @@ class AppTranslations extends Translations {
       'seven_days': '7 jours',
       'last_30_days': 'Dernier 30 jours',
       'inventory_trend': 'Tendance de l\'Inventaire',
-      'no_trend_data_period': 'Aucune donnée de tendance disponible pour cette période',
+      'no_trend_data_period':
+          'Aucune donnée de tendance disponible pour cette période',
       'format': 'Format',
       'export': 'Exporter',
       'expired': 'Expiré',
       'description': 'Description',
-
-
-
-
 
       'loading': 'Ezali kozonga...',
       'error': 'Libunga',
@@ -4372,7 +4737,8 @@ class AppTranslations extends Translations {
       'total_stock_available': 'Stock mobimba ezali',
       'see_all': 'Mona nyonso',
       'bags_available': 'Poche @count ezali|Ba poche @count ezali',
-      'in_blood_banks': 'Na banque @count ya makila|Na ba banques @count ya makila',
+      'in_blood_banks':
+          'Na banque @count ya makila|Na ba banques @count ya makila',
       'availability_by_blood_type': 'Kozala na lolenge ya makila',
       'bag': 'poche',
       'bags': 'ba poche',
@@ -4382,9 +4748,11 @@ class AppTranslations extends Translations {
       'loading_blood_banks': 'Kozwa ba banques ya makila...',
       'how_would_you_like_to_proceed': 'Ndenge nini olingi kosala?',
       'view_blood_bank_address': 'Mona adresse ya banque ya makila',
-      'address_shown_after_payment': 'Adresse ekomonisama nsima ya kofuta mpo okende kozwa yango',
+      'address_shown_after_payment':
+          'Adresse ekomonisama nsima ya kofuta mpo okende kozwa yango',
       'order_online': 'Senga na internet',
-      'order_and_deliver_to_hospital': 'Okoki kosenga mpe kofuta na internet mpe bakabola yango na lopitalo',
+      'order_and_deliver_to_hospital':
+          'Okoki kosenga mpe kofuta na internet mpe bakabola yango na lopitalo',
 
       // BloodBagOrderStepperPage translations
       'blood_bank_addresses': 'Ba adresse ya ba banque ya makila',
@@ -4406,7 +4774,8 @@ class AppTranslations extends Translations {
       'error_creating_cart': 'Libunga na kosala panier',
       'no_bank_has_blood_type': 'Banque moko te ezali na groupe @bloodType',
       'no_bags_available': 'Poche moko te ezali',
-      'bank_no_bags_in_stock': 'Banque oyo ezali na ba poche @bloodType te sikoyo',
+      'bank_no_bags_in_stock':
+          'Banque oyo ezali na ba poche @bloodType te sikoyo',
       'total_price': 'Ntalo mobimba',
       'request_bag_singular': 'Senga poche @count',
       'request_bag_plural': 'Senga ba poche @count',
@@ -4421,7 +4790,8 @@ class AppTranslations extends Translations {
       'loading_prices': 'Ezali ko charger ba prix...',
       'select_payment_option': 'Pona option ya kofuta',
       'choose_currency_to_pay': 'Pona mbongo oyo okofuta na yango',
-      'address_info_after_payment': 'Ba informations ya banque ya makila ekomonisama sima ya kofuta malamu',
+      'address_info_after_payment':
+          'Ba informations ya banque ya makila ekomonisama sima ya kofuta malamu',
 
       // Success/Failure Screen Translations
       'payment_receipt': 'Reçu ya kofuta',
@@ -4443,7 +4813,8 @@ class AppTranslations extends Translations {
       'application_section': 'APPLICATION',
       'free_storage_space': 'Kopesa esika ya kobomba',
       'soon': 'Nokinoki',
-      'clear_cache_message': 'Likambo oyo ekolongola ba fichiers temporaires mpo na kopesa esika ya kobomba.',
+      'clear_cache_message':
+          'Likambo oyo ekolongola ba fichiers temporaires mpo na kopesa esika ya kobomba.',
       'cache_cleared_successfully': 'Cache elongwami malamu',
 
       'current_language': 'Lokota ya sik\'oyo',
@@ -4454,25 +4825,30 @@ class AppTranslations extends Translations {
       'get_started': 'Kobanda',
       'onboarding_title_1': 'Boyei na E-blood Bank Makila',
       'onboarding_subtitle_1': 'Bokutani na Yo ya Bomoi',
-      'onboarding_description_1': 'Zonga na esika ya liboso mpo na kozwa makila ya bomoi. Tozali awa mpo na kosalisa yo.',
+      'onboarding_description_1':
+          'Zonga na esika ya liboso mpo na kozwa makila ya bomoi. Tozali awa mpo na kosalisa yo.',
       'onboarding_title_2': 'Luka Makila na Pete',
       'onboarding_subtitle_2': 'Luka Nokinoki',
-      'onboarding_description_2': 'Luka makila oyo osengeli na pete moko. Tozali na ba banque ya makila mingi.',
+      'onboarding_description_2':
+          'Luka makila oyo osengeli na pete moko. Tozali na ba banque ya makila mingi.',
       'onboarding_title_3': 'Kotinda Nokinoki',
       'onboarding_subtitle_3': 'Kotinda na Libanda te',
-      'onboarding_description_3': 'Tinda makila na esika oyo osengeli yango nokinoki mpe na libanda te.',
+      'onboarding_description_3':
+          'Tinda makila na esika oyo osengeli yango nokinoki mpe na libanda te.',
 
       // Donor Registration Page
       'donor_registration': 'Kokoma donneur',
       'donor_photo': 'Foto ya donneur',
-      'take_clear_photo_instruction': 'Bózwa foto polele, eclairée malamu mpe na kati ya elongi ya donneur.',
+      'take_clear_photo_instruction':
+          'Bózwa foto polele, eclairée malamu mpe na kati ya elongi ya donneur.',
       'analyzing_photo': 'Koyekola foto...',
       'photo_validated_continue': 'Foto endimami, bokoki kokoba.',
       'donor_information': 'Makambo ya donneur',
       'email_optional': 'Email (opsionel)',
       'emergency_contact_name': 'Kombo ya contact ya urgence',
       'emergency_contact_phone': 'Téléphone ya contact ya urgence',
-      'create_user_account_for_donor': 'Kokela compte ya mosaleli mpo na donneur',
+      'create_user_account_for_donor':
+          'Kokela compte ya mosaleli mpo na donneur',
       'email_username': 'Email / nkombo ya mosaleli',
       'password_min_8_chars': 'Mot de passe (min. 8)',
       'verification_information': 'Verification ya makambo',
@@ -4532,13 +4908,15 @@ class AppTranslations extends Translations {
       'testing_required': 'Esengeli test',
 
       // Welcome & Authentication
-      'welcome_message': 'Boyei na E-blood Bank Makila, esika na yo ya liboso mpo na makila ya bomoi.',
+      'welcome_message':
+          'Boyei na E-blood Bank Makila, esika na yo ya liboso mpo na makila ya bomoi.',
       'sign_in_with_google': 'Kota na Google',
       'sign_in_with_email': 'Kota na Email',
       'sign_in_with_phone_number': 'Kota na Número ya Téléphone',
       'continue_as_visitor': 'Kokoba lokola Motali',
       'create_account': 'Sala Compte',
-      'join_eblood_message': 'Kota na E-Blood Bank Makila mpe\nsalisa kobikisa bomoi',
+      'join_eblood_message':
+          'Kota na E-Blood Bank Makila mpe\nsalisa kobikisa bomoi',
       'or': 'to',
       'already_have_account': 'Ozali na compte?',
       'sign_in_link': 'Kota',
@@ -4584,17 +4962,21 @@ class AppTranslations extends Translations {
       'unable_to_launch_search': 'Ekoki kobanda boluki te: @error',
       'scan_donor_code_title': 'Scan code ya donneur',
       'donor_code_scanned_success': 'Code ya donneur eskanami malamu',
-      'invalid_qr_code_format': 'QR code ezali malamu te. Format: XXX-XXXX-XXXXX-XX',
+      'invalid_qr_code_format':
+          'QR code ezali malamu te. Format: XXX-XXXX-XXXXX-XX',
       'how_to_search_donor': 'Ndenge ya koluka donneur',
       'search_by_name': 'Boluki na kombo',
       'search_by_name_desc': 'Koma kombo mobimba to ya ndambo ya donneur.',
       'search_by_phone': 'Boluki na telephone',
       'search_by_phone_desc': 'Koma numero ya telephone mobimba to ya ndambo.',
       'search_by_donor_code': 'Boluki na code ya donneur',
-      'search_by_donor_code_desc': 'Kota code ya donneur mpo na boluki ya malamu.',
+      'search_by_donor_code_desc':
+          'Kota code ya donneur mpo na boluki ya malamu.',
       'filter_by_gender': 'Filtre na mobali to mwasi',
-      'filter_by_gender_desc': 'Salela Mobali to Mwasi mpo na kofilter na ndenge ya ekobo.',
-      'filter_by_blood_type_desc': 'Pona lolenge ya makila mpo na kobongisa bazulta.',
+      'filter_by_gender_desc':
+          'Salela Mobali to Mwasi mpo na kofilter na ndenge ya ekobo.',
+      'filter_by_blood_type_desc':
+          'Pona lolenge ya makila mpo na kobongisa bazulta.',
       'blood_type_distribution': 'Bokaboli ya lolenge ya makila',
       'last_updated': 'Derniere mise a jour: @time',
       'unknown': 'Eyebi te',
@@ -4657,14 +5039,15 @@ class AppTranslations extends Translations {
       'account_type': 'Lolenge ya compte',
       'account_type_undefined': 'Epesami te',
       'edit_profile': 'Bongisa profil',
-      'edit_profile_coming_soon': 'Mosala ya kobongisa profil ekozonga kala muke',
+      'edit_profile_coming_soon':
+          'Mosala ya kobongisa profil ekozonga kala muke',
       'contact_us': 'Kokutana na biso',
       'rate_app': 'Pesa note na application',
       'share_app': 'Kabela application',
       'logout_confirmation': 'Olingi kobima na compte mpenza?',
       'logging_out': 'Kobima ezali kosalama...',
       'system_account': 'Compte ya système',
-  'hospital_account': 'Compte ya lopitalo',
+      'hospital_account': 'Compte ya lopitalo',
       'blood_bank_account': 'Compte Banque ya Makila',
       'health_structure_account': 'Compte ya structure ya bokolongono',
       'personal_account': 'Compte ya moto moko',
@@ -4674,14 +5057,15 @@ class AppTranslations extends Translations {
       // Phone validation
       'phone_required': 'Numero ya telephone esengeli',
 
-
       'phone_only_digits': 'Numero esengeli kozala na chiffres kaka',
       'phone_too_short': 'Numero ya telephone ezali koto mingi',
       'invalid_phone_prefix': 'Prefixe ya telephone ezali malamu te',
       'invalid_phone_length': 'Molayi ya numero ya telephone ezali malamu te',
       'select_your_location': 'Pona esika na yo',
-      'select_location_hint': 'Luka mpe pona esika (mboka > provinsi > engumba/komine)',
-      'select_location_to_enter_phone': 'Pona esika na yo mpo na kokotisa numero ya telephone',
+      'select_location_hint':
+          'Luka mpe pona esika (mboka > provinsi > engumba/komine)',
+      'select_location_to_enter_phone':
+          'Pona esika na yo mpo na kokotisa numero ya telephone',
 
       // Basɛngi ya Makila (liste na détails)
       'search_clinical_indication': 'Luka na indication clinique...',
@@ -4733,7 +5117,8 @@ class AppTranslations extends Translations {
       // Health Structure Detail Page
       'invalid_coordinates': 'Ba coordonnées ezali malamu te',
       'gps_coordinates': 'Coordonnées GPS',
-      'coordinates_out_of_region_warning': '⚠️ Coordonnées oyo eza lokola ezali mabe (na libanda ya Afrika)',
+      'coordinates_out_of_region_warning':
+          '⚠️ Coordonnées oyo eza lokola ezali mabe (na libanda ya Afrika)',
       'structure_type': 'Lolenge ya structure',
       'altitude': 'Altitude',
       'structure_status': 'Etat ya structure',
@@ -4784,7 +5169,8 @@ class AppTranslations extends Translations {
       'new_announcement': 'Nouvelle Communication',
       'edit_announcement': 'Modifier la Communication',
       'delete_announcement': 'Supprimer la communication',
-      'delete_announcement_confirm': 'Êtes-vous sûr de vouloir supprimer "@title" ? Cette action est irréversible.',
+      'delete_announcement_confirm':
+          'Êtes-vous sûr de vouloir supprimer "@title" ? Cette action est irréversible.',
       'creating_in_progress': 'Création en cours...',
       'updating_in_progress': 'Mise à jour en cours...',
       'deleting_in_progress': 'Suppression en cours...',
@@ -4798,7 +5184,8 @@ class AppTranslations extends Translations {
       'title': 'Titre',
       'type': 'Type',
       'status': 'Statut',
-      'please_fill_all_required_fields': 'Veuillez remplir tous les champs obligatoires',
+      'please_fill_all_required_fields':
+          'Veuillez remplir tous les champs obligatoires',
       'ann_status_upcoming': 'À venir',
       'ann_status_active': 'En cours',
       'ann_status_past': 'Passé',
@@ -4828,7 +5215,8 @@ class AppTranslations extends Translations {
       'bank_account': 'Compte bancaire',
       'mobile_money': 'Mobile Money',
       'email_notifications': 'Ba notification ya email',
-      'email_for_transaction_notifications': 'Email ya ba notification ya transaksioni',
+      'email_for_transaction_notifications':
+          'Email ya ba notification ya transaksioni',
       'email_address': 'Adresse email',
       'manage_patients': 'Kokamba ba pasiente',
       'patients': 'Ba pasiente',
@@ -4850,24 +5238,29 @@ class AppTranslations extends Translations {
       'request_reason': 'Ntina ya bosenga',
       'please_select_patient': 'Svp pona pasiente',
 
-
       'settings_saved': 'Ba paramètres ebombami',
       'mobile_payment': 'Paiement mobile',
-      'phone_number_for_mobile_payments': 'Numero ya téléphone mpo na paiement mobile',
+      'phone_number_for_mobile_payments':
+          'Numero ya téléphone mpo na paiement mobile',
       'phone_number_saved': 'Numero ya téléphone ebombami',
       'reception_mode': 'Mode ya kozwa',
-      'configure_payment_reception_mode': 'Configurer mode ya kozwa ba paiement',
+      'configure_payment_reception_mode':
+          'Configurer mode ya kozwa ba paiement',
       'automatic_reception': 'Kozwa automatique',
-      'accept_incoming_payments_automatically': 'Kobɔkɔla ba paiement oyo ezali koya na ndenge automatique',
+      'accept_incoming_payments_automatically':
+          'Kobɔkɔla ba paiement oyo ezali koya na ndenge automatique',
       'automatic_reception_enabled': 'Kozwa automatique esalemi',
       'on_demand_reception_enabled': 'Kozwa na bosengi esalemi',
-      'manual_approval_notification_message': 'Okobakisa ndingisa na maboko mpo na paiement moko na moko oyo ezali koya.',
+      'manual_approval_notification_message':
+          'Okobakisa ndingisa na maboko mpo na paiement moko na moko oyo ezali koya.',
 
       'ann_status_draft': 'Brouillon',
       'ann_status_archived': 'Archivé',
       'dashboard_title': 'Tableau de bord',
-      'limited_permission_warning': 'Permission limitée. Ba données mosusu ekoki kozala ebele te.',
-      'loading_error_retry': 'Libunga na chargement. Finá mpo na kozongisa lisusu.',
+      'limited_permission_warning':
+          'Permission limitée. Ba données mosusu ekoki kozala ebele te.',
+      'loading_error_retry':
+          'Libunga na chargement. Finá mpo na kozongisa lisusu.',
       'manage_stock': 'Gérer Stock',
       'database': 'Base de données',
       'announcements_events': 'Annonces & Événements',
@@ -4891,8 +5284,6 @@ class AppTranslations extends Translations {
       'new_request_received': 'Demande ya sika eyaki',
       'delivery_confirmed': 'Livraison endimami',
       'days_ago': '@days mikolo eleki',
-
-
     },
 
     // Arabic translations
@@ -4944,26 +5335,34 @@ class AppTranslations extends Translations {
       // Health Structure Registration
       'health_structure_registration': 'تسجيل هيكل الرعاية الصحية',
       'select_blood_bank': 'اختر بنك دم',
-      'select_blood_bank_description': 'يرجى اختيار بنك دم لمتابعة تسجيلك. سيساعدنا هذا على ربطك بخدمات الدم المناسبة.',
+      'select_blood_bank_description':
+          'يرجى اختيار بنك دم لمتابعة تسجيلك. سيساعدنا هذا على ربطك بخدمات الدم المناسبة.',
       'blood_bank_selection': 'اختيار بنك الدم',
       'blood_bank_required': 'يرجى اختيار بنك دم',
       'no_blood_banks_found': 'لم يتم العثور على بنوك دم قريبة',
       'location_services_disabled': 'خدمات الموقع معطلة',
-      'location_services_disabled_message': 'يرجى تفعيل خدمات الموقع للعثور على بنوك الدم القريبة.',
+      'location_services_disabled_message':
+          'يرجى تفعيل خدمات الموقع للعثور على بنوك الدم القريبة.',
       'location_permission_denied': 'تم رفض إذن الموقع',
       'location_permission_denied_forever': 'تم رفض إذن الموقع بشكل دائم',
       'location_permission_required': 'إذن الموقع مطلوب',
-      'location_permission_required_message': 'للعثور على بنوك الدم القريبة، نحتاج للوصول إلى موقعك. يرجى السماح بالوصول.',
-      'location_permission_permanently_denied_message': 'تم رفض الوصول إلى الموقع بشكل دائم. يرجى تفعيل الإذن يدوياً في إعدادات التطبيق.',
+      'location_permission_required_message':
+          'للعثور على بنوك الدم القريبة، نحتاج للوصول إلى موقعك. يرجى السماح بالوصول.',
+      'location_permission_permanently_denied_message':
+          'تم رفض الوصول إلى الموقع بشكل دائم. يرجى تفعيل الإذن يدوياً في إعدادات التطبيق.',
       'open_settings': 'فتح الإعدادات',
       'allow_location': 'السماح بالموقع',
       'accompanied_by': 'برفقة:',
 
       // Benevol Donor Registration (new keys only)
-      'benevol_donor_info': 'من خلال أن تصبح متبرعاً تطوعياً، فإنك تلتزم بالتبرع بالدم بانتظام والمساعدة في إنقاذ الأرواح. التزامك قيم.',
-      'volunteer_password_required': 'كلمة المرور مطلوبة: كمتبرع تطوعي، يجب عليك إنشاء كلمة مرور آمنة لحسابك.',
-      'benevol_registration_success': 'تم تسجيلك كمتبرع تطوعي بنجاح! شكراً لالتزامك.',
-      'photo_validation_required': 'مطلوب صورة ملف شخصي صحيحة. يرجى التقاط أو اختيار صورة واضحة لوجهك.',
+      'benevol_donor_info':
+          'من خلال أن تصبح متبرعاً تطوعياً، فإنك تلتزم بالتبرع بالدم بانتظام والمساعدة في إنقاذ الأرواح. التزامك قيم.',
+      'volunteer_password_required':
+          'كلمة المرور مطلوبة: كمتبرع تطوعي، يجب عليك إنشاء كلمة مرور آمنة لحسابك.',
+      'benevol_registration_success':
+          'تم تسجيلك كمتبرع تطوعي بنجاح! شكراً لالتزامك.',
+      'photo_validation_required':
+          'مطلوب صورة ملف شخصي صحيحة. يرجى التقاط أو اختيار صورة واضحة لوجهك.',
       'terms_acceptance_required': 'يجب قبول الشروط والأحكام للمتابعة',
 
       // General
@@ -4990,22 +5389,24 @@ class AppTranslations extends Translations {
       'total_stock': 'إجمالي المخزون',
 
       'status_approved': 'موافق عليه',
-  'configure_all_blood_types': 'تكوين جميع فصائل الدم',
-  'detailed_threshold_config_coming': 'إعداد تفصيلي للعتبات قريبًا',
-  'expiration_settings': 'إعدادات انتهاء الصلاحية',
-  'expiration_alerts': 'تنبيهات انتهاء الصلاحية',
-  'expiration_alerts_description': 'تلقي إشعارات بالمنتجات التي ستنتهي صلاحيتها قريبًا',
-  'expiration_alerts_enabled': 'تنبيهات انتهاء الصلاحية: مفعلة',
-  'expiration_alerts_disabled': 'تنبيهات انتهاء الصلاحية: معطلة',
-  'early_alert': 'تنبيه مبكر',
-  'days_before_expiration': 'أيام قبل انتهاء الصلاحية لتفعيل التنبيه',
-  'early_alert_modification_coming': 'تعديل التنبيه المبكر قريبًا',
-  'validity_period': 'مدة الصلاحية',
-  'configure_validity_by_product': 'تكوين مدة الصلاحية حسب نوع المنتج',
-  'validity_config_coming': 'إعداد مدة الصلاحية قريبًا',
-  'notification_channels': 'قنوات الإشعارات',
-  'configure_notification_channels': 'حدد مكان استقبال التنبيهات (البريد، SMS، إلخ)',
-  'notification_channels_config_coming': 'إعداد قنوات الإشعارات قريبًا',
+      'configure_all_blood_types': 'تكوين جميع فصائل الدم',
+      'detailed_threshold_config_coming': 'إعداد تفصيلي للعتبات قريبًا',
+      'expiration_settings': 'إعدادات انتهاء الصلاحية',
+      'expiration_alerts': 'تنبيهات انتهاء الصلاحية',
+      'expiration_alerts_description':
+          'تلقي إشعارات بالمنتجات التي ستنتهي صلاحيتها قريبًا',
+      'expiration_alerts_enabled': 'تنبيهات انتهاء الصلاحية: مفعلة',
+      'expiration_alerts_disabled': 'تنبيهات انتهاء الصلاحية: معطلة',
+      'early_alert': 'تنبيه مبكر',
+      'days_before_expiration': 'أيام قبل انتهاء الصلاحية لتفعيل التنبيه',
+      'early_alert_modification_coming': 'تعديل التنبيه المبكر قريبًا',
+      'validity_period': 'مدة الصلاحية',
+      'configure_validity_by_product': 'تكوين مدة الصلاحية حسب نوع المنتج',
+      'validity_config_coming': 'إعداد مدة الصلاحية قريبًا',
+      'notification_channels': 'قنوات الإشعارات',
+      'configure_notification_channels':
+          'حدد مكان استقبال التنبيهات (البريد، SMS، إلخ)',
+      'notification_channels_config_coming': 'إعداد قنوات الإشعارات قريبًا',
 
       // Donors management (page + widgets)
       'donor_management': 'إدارة المتبرعين',
@@ -5039,17 +5440,21 @@ class AppTranslations extends Translations {
       'not_available_short': 'غير متاح',
       'enter_donor_name_hint': 'أدخل اسم المتبرع...',
       'enter_donor_phone_hint': 'أدخل رقم الهاتف...',
-      'donor_code_format_hint': 'الصيغة: XXX-XXXX-XXXXX-XX (مثال: 9EC-2510-Z41QT-1D)',
+      'donor_code_format_hint':
+          'الصيغة: XXX-XXXX-XXXXX-XX (مثال: 9EC-2510-Z41QT-1D)',
       'click_camera_icon_hint': 'انقر على أيقونة الكاميرا...',
       'search_donor_hint': 'ابحث عن متبرع...',
       'search_error_occurred': 'حدث خطأ أثناء البحث',
       'no_matching_donor_found': 'لم يتم العثور على متبرع مطابق',
-      'photo_search_help_desc': 'استخدم أيقونة الكاميرا للبحث بالتعرف على الوجه (عرض).',
-      'scan_donor_code_help_desc': 'استخدم أيقونة الماسح لقراءة رمز QR والعثور على متبرع بسرعة.',
+      'photo_search_help_desc':
+          'استخدم أيقونة الكاميرا للبحث بالتعرف على الوجه (عرض).',
+      'scan_donor_code_help_desc':
+          'استخدم أيقونة الماسح لقراءة رمز QR والعثور على متبرع بسرعة.',
       // Donor Registration Page
       'donor_registration': 'تسجيل المتبرع',
       'donor_photo': 'صورة المتبرع',
-      'take_clear_photo_instruction': 'التقط صورة واضحة ومضاءة جيداً ومركّزة لوجه المتبرع.',
+      'take_clear_photo_instruction':
+          'التقط صورة واضحة ومضاءة جيداً ومركّزة لوجه المتبرع.',
       'analyzing_photo': 'جارٍ تحليل الصورة...',
       'photo_validated_continue': 'تم التحقق من الصورة، يمكنك المتابعة.',
       'donor_information': 'معلومات المتبرع',
@@ -5095,9 +5500,9 @@ class AppTranslations extends Translations {
       'no_pending_requests': 'لا توجد طلبات قيد الانتظار',
       'no_in_progress_deliveries': 'لا توجد عمليات تسليم قيد التنفيذ',
       'no_delivered_requests': 'لا توجد طلبات تم تسليمها',
-  'delivery_code': 'رمز التسليم',
-  'invalid_or_empty_code': 'رمز غير صالح أو فارغ',
-  'delivery_not_found': 'لم يتم العثور على التسليم',
+      'delivery_code': 'رمز التسليم',
+      'invalid_or_empty_code': 'رمز غير صالح أو فارغ',
+      'delivery_not_found': 'لم يتم العثور على التسليم',
 
       'no_used_bags': 'لا توجد أكياس مستخدمة',
       'quantity': 'الكمية',
@@ -5113,7 +5518,8 @@ class AppTranslations extends Translations {
       // Blood Bank Address Success Page
       'blood_bank_address': 'عنوان بنك الدم',
       'street_address': 'العنوان',
-      'contact_blood_bank_directly': 'اتصل ببنك الدم مباشرة لمزيد من المعلومات حول ساعات العمل والخدمات المتاحة.',
+      'contact_blood_bank_directly':
+          'اتصل ببنك الدم مباشرة لمزيد من المعلومات حول ساعات العمل والخدمات المتاحة.',
       'open_in_google_maps': 'فتح في خرائط جوجل',
       'get_directions': 'الحصول على الاتجاهات',
       'could_not_open_maps': 'تعذر فتح خرائط جوجل',
@@ -5186,33 +5592,27 @@ class AppTranslations extends Translations {
       'auto_generate_password': 'إنشاء كلمة مرور تلقائيًا',
       'passwords_dont_match': 'كلمات المرور غير متطابقة',
 
-
       'cpd_solution': 'محلول CPD',
       'bad_quality': 'جودة سيئة',
       'quarantine': 'حجر صحي',
       'testing_required': 'يتطلب فحصاً',
 
-
-  'note': 'ملاحظة',
-  'configuration': 'إعداد',
-  'id': 'المعرّف',
-  'exp': 'انتهاء',
-  'seven_days': '7 أيام',
-  'last_30_days': 'آخر 30 يومًا',
-  'inventory_trend': 'اتجاه المخزون',
-  'no_trend_data_period': 'لا توجد بيانات اتجاه متاحة لهذه الفترة',
-  'format': 'التنسيق',
-  'export': 'تصدير',
+      'note': 'ملاحظة',
+      'configuration': 'إعداد',
+      'id': 'المعرّف',
+      'exp': 'انتهاء',
+      'seven_days': '7 أيام',
+      'last_30_days': 'آخر 30 يومًا',
+      'inventory_trend': 'اتجاه المخزون',
+      'no_trend_data_period': 'لا توجد بيانات اتجاه متاحة لهذه الفترة',
+      'format': 'التنسيق',
+      'export': 'تصدير',
       'delivery_position': 'موقع التسليم',
       'no_content': 'لا يوجد محتوى',
       'processing_in_progress': 'جاري المعالجة...',
 
-  'expired': 'منتهي',
-  'description': 'الوصف',
-
-
-
-
+      'expired': 'منتهي',
+      'description': 'الوصف',
 
       'ok': 'موافق',
       'done': 'تم',
@@ -5249,9 +5649,11 @@ class AppTranslations extends Translations {
       'loading_blood_banks': 'جاري تحميل بنوك الدم...',
       'how_would_you_like_to_proceed': 'كيف تريد المتابعة؟',
       'view_blood_bank_address': 'عرض عنوان بنك الدم',
-      'address_shown_after_payment': 'سيتم عرض العنوان بعد الدفع حتى تتمكن من استلامه في الموقع',
+      'address_shown_after_payment':
+          'سيتم عرض العنوان بعد الدفع حتى تتمكن من استلامه في الموقع',
       'order_online': 'اطلب عبر الإنترنت',
-      'order_and_deliver_to_hospital': 'يمكنك الطلب والدفع عبر الإنترنت وتسليمه إلى المستشفى',
+      'order_and_deliver_to_hospital':
+          'يمكنك الطلب والدفع عبر الإنترنت وتسليمه إلى المستشفى',
 
       // BloodBagOrderStepperPage translations
       'blood_bank_addresses': 'عناوين بنوك الدم',
@@ -5273,7 +5675,8 @@ class AppTranslations extends Translations {
       'error_creating_cart': 'خطأ في إنشاء السلة',
       'no_bank_has_blood_type': 'لا يوجد بنك دم لديه @bloodType في المخزون',
       'no_bags_available': 'لا توجد أكياس متاحة',
-      'bank_no_bags_in_stock': 'هذا البنك ليس لديه أكياس @bloodType في المخزون حالياً',
+      'bank_no_bags_in_stock':
+          'هذا البنك ليس لديه أكياس @bloodType في المخزون حالياً',
       'total_price': 'السعر الإجمالي',
       'request_bag_singular': 'طلب كيس @count',
       'request_bag_plural': 'طلب أكياس @count',
@@ -5288,7 +5691,8 @@ class AppTranslations extends Translations {
       'loading_prices': 'جارٍ تحميل الأسعار...',
       'select_payment_option': 'اختر خيار الدفع',
       'choose_currency_to_pay': 'اختر العملة للدفع',
-      'address_info_after_payment': 'سيتم عرض معلومات بنك الدم بعد الدفع الناجح',
+      'address_info_after_payment':
+          'سيتم عرض معلومات بنك الدم بعد الدفع الناجح',
 
       // Success/Failure Screen Translations
       'payment_receipt': 'إيصال الدفع',
@@ -5310,7 +5714,8 @@ class AppTranslations extends Translations {
       'application_section': 'التطبيق',
       'free_storage_space': 'تحرير مساحة التخزين',
       'soon': 'قريباً',
-      'clear_cache_message': 'سيؤدي هذا الإجراء إلى حذف الملفات المؤقتة لتحرير مساحة التخزين.',
+      'clear_cache_message':
+          'سيؤدي هذا الإجراء إلى حذف الملفات المؤقتة لتحرير مساحة التخزين.',
       'cache_cleared_successfully': 'تم مسح ذاكرة التخزين المؤقت بنجاح',
 
       'skip': 'تخطي',
@@ -5322,7 +5727,8 @@ class AppTranslations extends Translations {
       // Onboarding
       'onboarding_title_1': 'مرحباً بك في E-blood Bank Makila',
       'onboarding_subtitle_1': 'اتصالك الحيوي بالدم',
-      'onboarding_description_1': 'تواصل مع متبرعي الدم وبنوك الدم في الوقت الفعلي. أنقذ الأرواح بنقرات قليلة.',
+      'onboarding_description_1':
+          'تواصل مع متبرعي الدم وبنوك الدم في الوقت الفعلي. أنقذ الأرواح بنقرات قليلة.',
 
       'onboarding_title_2': 'ابحث عن الدم القريب',
       'onboarding_subtitle_2': 'موقع سريع وسهل',
@@ -5351,14 +5757,16 @@ class AppTranslations extends Translations {
       'unable_to_launch_search': 'يتعذر بدء البحث: @error',
       'scan_donor_code_title': 'مسح رمز المتبرع',
       'donor_code_scanned_success': 'تم مسح رمز المتبرع بنجاح',
-      'invalid_qr_code_format': 'رمز QR غير صالح. التنسيق المتوقع: XXX-XXXX-XXXXX-XX',
+      'invalid_qr_code_format':
+          'رمز QR غير صالح. التنسيق المتوقع: XXX-XXXX-XXXXX-XX',
       'how_to_search_donor': 'كيفية البحث عن متبرع',
       'search_by_name': 'البحث بالاسم',
       'search_by_name_desc': 'اكتب الاسم الكامل أو الجزئي للمتبرع.',
       'search_by_phone': 'البحث برقم الهاتف',
       'search_by_phone_desc': 'أدخل رقم الهاتف الكامل أو الجزئي.',
       'search_by_donor_code': 'البحث برمز المتبرع',
-      'search_by_donor_code_desc': 'أدخل الرمز الفريد للمتبرع للحصول على بحث دقيق.',
+      'search_by_donor_code_desc':
+          'أدخل الرمز الفريد للمتبرع للحصول على بحث دقيق.',
       'filter_by_gender': 'تصفية حسب الجنس',
       'filter_by_gender_desc': 'استخدم ذكر أو أنثى للتصفية حسب الجنس.',
       'filter_by_blood_type_desc': 'اختر فصيلة دم لتنقية النتائج.',
@@ -5376,18 +5784,22 @@ class AppTranslations extends Translations {
       'regular_donor_badge': 'متبرع منتظم',
       'regular_donor_badge_desc': 'لإجراء ما لا يقل عن 3 تبرعات.',
 
-      'onboarding_description_2': 'حدد موقع أقرب بنوك الدم والمتبرعين على الفور من خلال نظام تحديد الموقع الجغرافي الذكي.',
+      'onboarding_description_2':
+          'حدد موقع أقرب بنوك الدم والمتبرعين على الفور من خلال نظام تحديد الموقع الجغرافي الذكي.',
 
       'onboarding_title_3': 'لننقذ الأرواح معاً',
       'onboarding_subtitle_3': 'كن بطلاً اليوم',
-      'onboarding_description_3': 'انضم إلى مجتمع منقذي الأرواح. تبرع بدمك، اطلب عند الحاجة، واصنع الفرق.',
+      'onboarding_description_3':
+          'انضم إلى مجتمع منقذي الأرواح. تبرع بدمك، اطلب عند الحاجة، واصنع الفرق.',
 
       'onboarding_title_4': 'آمن ومحمي',
       'onboarding_subtitle_4': 'خصوصيتك مهمة',
-      'onboarding_description_4': 'جميع بياناتك مشفرة وآمنة. نحن نعطي الأولوية لسريتك بينما نربطك بالموارد الحيوية.',
+      'onboarding_description_4':
+          'جميع بياناتك مشفرة وآمنة. نحن نعطي الأولوية لسريتك بينما نربطك بالموارد الحيوية.',
 
       // Welcome Page
-      'welcome_message': 'سجل الدخول للوصول إلى\nحساب eBlood Bank Makila الخاص بك',
+      'welcome_message':
+          'سجل الدخول للوصول إلى\nحساب eBlood Bank Makila الخاص بك',
       'sign_in_with_google': 'تسجيل الدخول بـ Google',
       'sign_in_with_email': 'تسجيل الدخول بالبريد الإلكتروني',
       'sign_in_with_phone_number': 'تسجيل الدخول برقم الهاتف',
@@ -5396,14 +5808,16 @@ class AppTranslations extends Translations {
       'create_account_with_phone_number': 'إنشاء حساب برقم الهاتف',
       'continue_as_visitor': 'المتابعة كزائر',
       'create_account': 'إنشاء حساب',
-      'join_eblood_message': 'انضم إلى E-Blood Bank Makila و\nساعد في إنقاذ الأرواح',
+      'join_eblood_message':
+          'انضم إلى E-Blood Bank Makila و\nساعد في إنقاذ الأرواح',
       'or': 'أو',
       'already_have_account': 'هل لديك حساب بالفعل؟',
       'sign_in_link': 'تسجيل الدخول',
       'coming_soon': 'قريباً',
       'coming_soon_message': 'تسجيل الدخول بـ @platform سيكون متاحاً قريباً.',
       'connection_error': 'خطأ في الاتصال',
-      'connection_error_message': 'حدث خطأ أثناء تسجيل الدخول بـ Google. يرجى المحاولة مرة أخرى.',
+      'connection_error_message':
+          'حدث خطأ أثناء تسجيل الدخول بـ Google. يرجى المحاولة مرة أخرى.',
       'login_error': 'خطأ في تسجيل الدخول',
 
       // Authentication
@@ -5478,12 +5892,11 @@ class AppTranslations extends Translations {
       'contact_us': 'اتصل بنا',
       'rate_app': 'قيّم التطبيق',
 
-
       'share_app': 'شارك التطبيق',
       'logout_confirmation': 'هل أنت متأكد أنك تريد تسجيل الخروج؟',
       'logging_out': 'جارٍ تسجيل الخروج...',
       'system_account': 'حساب النظام',
-  'hospital_account': 'حساب مستشفى',
+      'hospital_account': 'حساب مستشفى',
       'blood_bank_account': 'حساب بنك الدم',
       'health_structure_account': 'حساب جهة صحية',
       'personal_account': 'حساب شخصي',
@@ -5497,8 +5910,10 @@ class AppTranslations extends Translations {
       'invalid_phone_prefix': 'بادئة الهاتف غير صحيحة',
       'invalid_phone_length': 'طول رقم الهاتف غير صحيح',
       'select_your_location': 'اختر موقعك',
-      'select_location_hint': 'ابحث واختر موقعك (الدولة > المنطقة/المحافظة > المدينة/البلدية)',
-      'select_location_to_enter_phone': 'يرجى اختيار موقعك لتفعيل إدخال رقم الهاتف',
+      'select_location_hint':
+          'ابحث واختر موقعك (الدولة > المنطقة/المحافظة > المدينة/البلدية)',
+      'select_location_to_enter_phone':
+          'يرجى اختيار موقعك لتفعيل إدخال رقم الهاتف',
 
       // طلبات الدم (القائمة والتفاصيل)
       'search_clinical_indication': 'ابحث حسب المؤشر السريري...',
@@ -5550,7 +5965,8 @@ class AppTranslations extends Translations {
       // Health Structure Detail Page
       'invalid_coordinates': 'إحداثيات غير صحيحة',
       'gps_coordinates': 'إحداثيات GPS',
-      'coordinates_out_of_region_warning': '⚠️ تبدو هذه الإحداثيات غير صحيحة (خارج إفريقيا)',
+      'coordinates_out_of_region_warning':
+          '⚠️ تبدو هذه الإحداثيات غير صحيحة (خارج إفريقيا)',
       'structure_type': 'نوع المنشأة',
       'altitude': 'الارتفاع',
       'structure_status': 'حالة المنشأة',
@@ -5602,7 +6018,8 @@ class AppTranslations extends Translations {
       'new_announcement': 'إعلان جديد',
       'edit_announcement': 'تعديل الإعلان',
       'delete_announcement': 'حذف الإعلان',
-      'delete_announcement_confirm': 'هل أنت متأكد من حذف "@title"؟ هذا الإجراء لا يمكن التراجع عنه.',
+      'delete_announcement_confirm':
+          'هل أنت متأكد من حذف "@title"؟ هذا الإجراء لا يمكن التراجع عنه.',
       'creating_in_progress': 'جاري الإنشاء...',
       'updating_in_progress': 'جاري التحديث...',
       'deleting_in_progress': 'جاري الحذف...',
@@ -5659,7 +6076,6 @@ class AppTranslations extends Translations {
       'request_reason': 'سبب الطلب',
       'please_select_patient': 'يرجى اختيار مريض',
 
-
       'transaction_history': 'سجل المعاملات',
       'payment_received': 'تم استلام دفعة',
       'withdrawal_made': 'تم إجراء سحب',
@@ -5668,7 +6084,8 @@ class AppTranslations extends Translations {
       'bank_account': 'حساب بنكي',
       'mobile_money': 'الأموال عبر الجوال',
       'email_notifications': 'إشعارات البريد الإلكتروني',
-      'email_for_transaction_notifications': 'البريد الإلكتروني لإشعارات المعاملات',
+      'email_for_transaction_notifications':
+          'البريد الإلكتروني لإشعارات المعاملات',
       'email_address': 'عنوان البريد الإلكتروني',
       'settings_saved': 'تم حفظ الإعدادات',
       'mobile_payment': 'الدفع عبر الجوال',
@@ -5677,14 +6094,17 @@ class AppTranslations extends Translations {
       'reception_mode': 'وضع الاستلام',
       'configure_payment_reception_mode': 'تهيئة وضع استلام المدفوعات',
       'automatic_reception': 'استلام تلقائي',
-      'accept_incoming_payments_automatically': 'قبول المدفوعات الواردة تلقائيًا',
+      'accept_incoming_payments_automatically':
+          'قبول المدفوعات الواردة تلقائيًا',
       'automatic_reception_enabled': 'تم تفعيل الاستلام التلقائي',
       'on_demand_reception_enabled': 'تم تفعيل الاستلام عند الطلب',
-      'manual_approval_notification_message': 'ستتلقى إشعارًا بكل دفعة واردة ويجب الموافقة يدويًا.',
+      'manual_approval_notification_message':
+          'ستتلقى إشعارًا بكل دفعة واردة ويجب الموافقة يدويًا.',
 
       'ann_status_archived': 'مؤرشف',
       'dashboard_title': 'لوحة التحكم',
-      'limited_permission_warning': 'صلاحية محدودة. قد تكون بعض البيانات غير مكتملة.',
+      'limited_permission_warning':
+          'صلاحية محدودة. قد تكون بعض البيانات غير مكتملة.',
       'loading_error_retry': 'خطأ في التحميل. اضغط للمحاولة مرة أخرى.',
       'manage_stock': 'إدارة المخزون',
       'database': 'قاعدة البيانات',
@@ -5693,7 +6113,7 @@ class AppTranslations extends Translations {
       'health_structures': 'المنشآت الصحية',
       'return_from_request_management': 'العودة من إدارة الطلبات',
       'new_request_received': 'تم استلام طلب جديد',
-            'expiring_soon': 'قريب الانتهاء',
+      'expiring_soon': 'قريب الانتهاء',
       'critical_stock': 'مخزون حرج',
       'quick_actions': 'إجراءات سريعة',
       'inventory': 'المخزون',
@@ -5709,10 +6129,7 @@ class AppTranslations extends Translations {
 
       'delivery_confirmed': 'تم تأكيد التسليم',
       'days_ago': 'قبل @days يوم',
-
-
     },
-
 
     // Russian translations
     'ru_RU': {
@@ -5763,30 +6180,39 @@ class AppTranslations extends Translations {
       // Health Structure Registration
       'health_structure_registration': 'Регистрация медицинского учреждения',
       'select_blood_bank': 'Выберите банк крови',
-      'select_blood_bank_description': 'Пожалуйста, выберите банк крови для продолжения регистрации. Это поможет нам связать вас с соответствующими услугами крови.',
+      'select_blood_bank_description':
+          'Пожалуйста, выберите банк крови для продолжения регистрации. Это поможет нам связать вас с соответствующими услугами крови.',
       'blood_bank_selection': 'Выбор банка крови',
       'blood_bank_required': 'Пожалуйста, выберите банк крови',
       'no_blood_banks_found': 'Поблизости не найдено банков крови',
-      'location_services_disabled': 'Службы определения местоположения отключены',
-      'location_services_disabled_message': 'Пожалуйста, включите службы определения местоположения для поиска ближайших банков крови.',
-      'location_permission_denied': 'Разрешение на доступ к местоположению отклонено',
-      'location_permission_denied_forever': 'Разрешение на доступ к местоположению отклонено навсегда',
-      'location_permission_required_message': 'Для поиска ближайших банков крови нам нужен доступ к вашему местоположению. Пожалуйста, разрешите доступ.',
-      'location_permission_permanently_denied_message': 'Доступ к местоположению был отклонен навсегда. Пожалуйста, включите разрешение вручную в настройках приложения.',
+      'location_services_disabled':
+          'Службы определения местоположения отключены',
+      'location_services_disabled_message':
+          'Пожалуйста, включите службы определения местоположения для поиска ближайших банков крови.',
+      'location_permission_denied':
+          'Разрешение на доступ к местоположению отклонено',
+      'location_permission_denied_forever':
+          'Разрешение на доступ к местоположению отклонено навсегда',
+      'location_permission_required_message':
+          'Для поиска ближайших банков крови нам нужен доступ к вашему местоположению. Пожалуйста, разрешите доступ.',
+      'location_permission_permanently_denied_message':
+          'Доступ к местоположению был отклонен навсегда. Пожалуйста, включите разрешение вручную в настройках приложения.',
       'open_settings': 'Открыть настройки',
       'allow_location': 'Разрешить доступ к местоположению',
       'accompanied_by': 'При поддержке:',
 
       // Benevol Donor Registration (new keys only)
-      'benevol_donor_info': 'Став донором-волонтером, вы обязуетесь регулярно сдавать кровь и помогать спасать жизни. Ваше обязательство ценно.',
-      'volunteer_password_required': 'Требуется пароль: Как донор-волонтер, вы должны создать безопасный пароль для своей учетной записи.',
-      'benevol_registration_success': 'Ваша регистрация в качестве донора-волонтера прошла успешно! Спасибо за ваше обязательство.',
-      'photo_validation_required': 'Требуется действительное фото профиля. Пожалуйста, сделайте или выберите четкую фотографию вашего лица.',
+      'benevol_donor_info':
+          'Став донором-волонтером, вы обязуетесь регулярно сдавать кровь и помогать спасать жизни. Ваше обязательство ценно.',
+      'volunteer_password_required':
+          'Требуется пароль: Как донор-волонтер, вы должны создать безопасный пароль для своей учетной записи.',
+      'benevol_registration_success':
+          'Ваша регистрация в качестве донора-волонтера прошла успешно! Спасибо за ваше обязательство.',
+      'photo_validation_required':
+          'Требуется действительное фото профиля. Пожалуйста, сделайте или выберите четкую фотографию вашего лица.',
       'terms_acceptance_required': 'Вы должны принять условия для продолжения',
 
       // General
-
-
       'app_name': 'eBlood Bank Makila',
       'app_tagline': 'Ваша Жизненная Связь с Кровью',
       'welcome': 'Добро пожаловать',
@@ -5815,7 +6241,8 @@ class AppTranslations extends Translations {
       'detailed_threshold_config_coming': 'Подробная настройка порогов скоро',
       'expiration_settings': 'Настройки срока годности',
       'expiration_alerts': 'Оповещения об истечении срока',
-      'expiration_alerts_description': 'Получать уведомления о товарах, срок годности которых скоро истечет',
+      'expiration_alerts_description':
+          'Получать уведомления о товарах, срок годности которых скоро истечет',
       'expiration_alerts_enabled': 'Оповещения об истечении срока: включены',
       'expiration_alerts_disabled': 'Оповещения об истечении срока: отключены',
       'early_alert': 'Раннее предупреждение',
@@ -5832,7 +6259,8 @@ class AppTranslations extends Translations {
       'add_donor': 'Добавить донора',
       'donor_list_updated': 'Список доноров обновлен',
       'no_donors_registered': 'Нет зарегистрированных доноров',
-      'add_first_donor_hint': 'Добавьте своего первого донора с помощью кнопки ниже',
+      'add_first_donor_hint':
+          'Добавьте своего первого донора с помощью кнопки ниже',
       'try_different_search_terms': 'Попробуйте другие поисковые запросы',
       'search_location': 'Поиск местоположения',
       'choose_your_region': 'Выберите свой регион',
@@ -5851,21 +6279,28 @@ class AppTranslations extends Translations {
       'not_available_short': 'Н/Д',
       'enter_donor_name_hint': 'Введите имя донора...',
       'enter_donor_phone_hint': 'Введите номер телефона...',
-      'donor_code_format_hint': 'Формат: XXX-XXXX-XXXXX-XX (напр.: 9EC-2510-Z41QT-1D)',
+      'donor_code_format_hint':
+          'Формат: XXX-XXXX-XXXXX-XX (напр.: 9EC-2510-Z41QT-1D)',
       'click_camera_icon_hint': 'Нажмите на значок камеры...',
       'search_donor_hint': 'Поиск донора...',
       'search_error_occurred': 'Во время поиска произошла ошибка',
       'no_matching_donor_found': 'Соответствующих доноров не найдено',
-      'photo_search_help_desc': 'Используйте значок камеры для поиска по распознаванию лиц (демо).',
-      'scan_donor_code_help_desc': 'Используйте значок сканера, чтобы считать QR‑код и быстро найти донора.',
+      'photo_search_help_desc':
+          'Используйте значок камеры для поиска по распознаванию лиц (демо).',
+      'scan_donor_code_help_desc':
+          'Используйте значок сканера, чтобы считать QR‑код и быстро найти донора.',
 
-      'days_before_expiration': 'Дней до истечения срока для срабатывания оповещения',
-      'early_alert_modification_coming': 'Изменение раннего предупреждения скоро',
+      'days_before_expiration':
+          'Дней до истечения срока для срабатывания оповещения',
+      'early_alert_modification_coming':
+          'Изменение раннего предупреждения скоро',
       'validity_period': 'Срок годности',
-      'configure_validity_by_product': 'Настроить срок годности по типу продукта',
+      'configure_validity_by_product':
+          'Настроить срок годности по типу продукта',
       'validity_config_coming': 'Настройка сроков годности скоро',
       'notification_channels': 'Каналы уведомлений',
-      'configure_notification_channels': 'Настроить, где получать оповещения (email, SMS и т.д.)',
+      'configure_notification_channels':
+          'Настроить, где получать оповещения (email, SMS и т.д.)',
 
       // Donor details page
       'donor_details': 'Детали донора',
@@ -5874,9 +6309,9 @@ class AppTranslations extends Translations {
       'delivered': 'Доставлено',
       'no_pending_requests': 'Нет ожидающих запросов',
       'no_in_progress_deliveries': 'Нет доставок в процессе',
-  'delivery_code': 'Код доставки',
-  'invalid_or_empty_code': 'Недействительный или пустой код',
-  'delivery_not_found': 'Доставка не найдена',
+      'delivery_code': 'Код доставки',
+      'invalid_or_empty_code': 'Недействительный или пустой код',
+      'delivery_not_found': 'Доставка не найдена',
 
       'no_delivered_requests': 'Нет доставленных запросов',
       'no_used_bags': 'Нет использованных пакетов',
@@ -5893,7 +6328,8 @@ class AppTranslations extends Translations {
       // Blood Bank Address Success Page
       'blood_bank_address': 'Адрес банка крови',
       'street_address': 'Адрес',
-      'contact_blood_bank_directly': 'Свяжитесь с банком крови напрямую для получения дополнительной информации о часах работы и доступных услугах.',
+      'contact_blood_bank_directly':
+          'Свяжитесь с банком крови напрямую для получения дополнительной информации о часах работы и доступных услугах.',
       'open_in_google_maps': 'Открыть в Google Картах',
       'could_not_open_maps': 'Не удалось открыть Google Карты',
 
@@ -5905,7 +6341,8 @@ class AppTranslations extends Translations {
       'donations_count': '@count пожертвование(я)',
       'no_donations_recorded': 'Пожертвования не записаны',
       'donations_will_appear_here': 'Пожертвования появятся здесь после записи',
-      'unable_to_check_donor_eligibility': 'Не удалось проверить пригодность донора',
+      'unable_to_check_donor_eligibility':
+          'Не удалось проверить пригодность донора',
       'error_checking_eligibility': 'Ошибка при проверке: @error',
       'donations': 'Пожертвования',
       'main_donation_center': 'Основной центр сдачи крови',
@@ -5928,7 +6365,8 @@ class AppTranslations extends Translations {
       'badges_rewards': 'Значки и награды',
       'obtained_on': 'Получено @date',
       'donor_id_card': 'Удостоверение донора',
-      'valid_in_all_centers': 'Действительно во всех партнерских центрах сети eBlood.',
+      'valid_in_all_centers':
+          'Действительно во всех партнерских центрах сети eBlood.',
       'download_card': 'Скачать карту',
       'share_card': 'Поделиться картой',
       'generating_card': 'Создание карты...',
@@ -5960,9 +6398,12 @@ class AppTranslations extends Translations {
       'verification_with_count': 'Проверка (@count)',
       'my_cart': 'Моя корзина',
       'scan_qr': 'Сканировать QR',
-      'scan_qr_to_request_password': 'Сканируйте QR‑код, чтобы запросить пароль',
-      'scan_qr_to_verify_stock': 'Сканируйте QR‑код, чтобы проверить информацию о запасах',
-      'scan_qr_to_validate_request': 'Сканируйте QR‑код, чтобы подтвердить заявку на кровь',
+      'scan_qr_to_request_password':
+          'Сканируйте QR‑код, чтобы запросить пароль',
+      'scan_qr_to_verify_stock':
+          'Сканируйте QR‑код, чтобы проверить информацию о запасах',
+      'scan_qr_to_validate_request':
+          'Сканируйте QR‑код, чтобы подтвердить заявку на кровь',
       'scan_qr_to_confirm': 'Сканируйте QR‑код, чтобы подтвердить получение',
       'user_management': 'Управление пользователями',
       'add_user': 'Добавить пользователя',
@@ -5974,11 +6415,11 @@ class AppTranslations extends Translations {
       'user_created_successfully': 'Пользователь успешно создан',
       'user_updated_successfully': 'Пользователь успешно обновлен',
       'user_deleted_successfully': 'Пользователь успешно удален',
-      'confirm_delete_user': 'Вы уверены, что хотите удалить этого пользователя?',
+      'confirm_delete_user':
+          'Вы уверены, что хотите удалить этого пользователя?',
       'search_users': 'Поиск пользователей',
       'no_users_found': 'Пользователи не найдены',
       'auto_generate_password': 'Автоматически сгенерировать пароль',
-
 
       'error_saving_card': 'Ошибка при сохранении: @error',
       'donation_recorded_success': 'Пожертвование успешно записано',
@@ -5996,7 +6437,8 @@ class AppTranslations extends Translations {
       'observations_details_hint': 'Наблюдения или дополнительные сведения',
       'digital_id_card': 'Цифровая ID-карта',
 
-      'notification_channels_config_coming': 'Настройка каналов уведомлений скоро',
+      'notification_channels_config_coming':
+          'Настройка каналов уведомлений скоро',
       'note': 'Примечание',
       'configuration': 'Настройка',
       'id': 'ID',
@@ -6012,10 +6454,6 @@ class AppTranslations extends Translations {
       'format': 'Формат',
       'expired': 'Истек',
       'description': 'Описание',
-
-
-
-
 
       'done': 'Готово',
       'loading': 'Загрузка...',
@@ -6038,7 +6476,8 @@ class AppTranslations extends Translations {
       // Donor Registration Page
       'donor_registration': 'Регистрация донора',
       'donor_photo': 'Фото донора',
-      'take_clear_photo_instruction': 'Сделайте четкое, хорошо освещенное и по центру фото лица донора.',
+      'take_clear_photo_instruction':
+          'Сделайте четкое, хорошо освещенное и по центру фото лица донора.',
       'analyzing_photo': 'Анализ фотографии...',
       'photo_validated_continue': 'Фото подтверждено, можно продолжать.',
       'donor_information': 'Информация о доноре',
@@ -6061,11 +6500,13 @@ class AppTranslations extends Translations {
       'return_to_home': 'Вернуться на главную',
       'view_donors': 'Просмотреть доноров',
       'step_x_of_y': 'Шаг @x из @y',
-      'take_donor_photo_required': 'Пожалуйста, сделайте фото донора (обязательно).',
+      'take_donor_photo_required':
+          'Пожалуйста, сделайте фото донора (обязательно).',
       'photo_analysis_wait': 'Идет анализ фото, пожалуйста, подождите...',
       'select_gender_required': 'Пожалуйста, выберите пол.',
       'error_occurred_try_again': 'Произошла ошибка. Повторите попытку.',
-      'invalid_date_format_yyyy_mm_dd': 'Недопустимый формат даты (гггг-мм-дд).',
+      'invalid_date_format_yyyy_mm_dd':
+          'Недопустимый формат даты (гггг-мм-дд).',
 
       // Add Blood Stock Page
       'add_blood_stock': 'Добавить запас крови',
@@ -6140,23 +6581,28 @@ class AppTranslations extends Translations {
       'redo': 'Повторить',
 
       // Welcome Page
-      'welcome_message': 'Войдите, чтобы получить доступ к\nвашему аккаунту eBlood Bank Makila',
+      'welcome_message':
+          'Войдите, чтобы получить доступ к\nвашему аккаунту eBlood Bank Makila',
       'sign_in_with_google': 'Войти через Google',
       'sign_in_with_email': 'Войти через Email',
       'sign_in_with_phone_number': 'Войти через номер телефона',
       'create_account_with_google': 'Создать аккаунт через Google',
       'create_account_with_email': 'Создать аккаунт через Email',
-      'create_account_with_phone_number': 'Создать аккаунт через номер телефона',
+      'create_account_with_phone_number':
+          'Создать аккаунт через номер телефона',
       'continue_as_visitor': 'Продолжить как гость',
       'create_account': 'Создать аккаунт',
-      'join_eblood_message': 'Присоединяйтесь к E-Blood Bank Makila и\nпомогите спасать жизни',
+      'join_eblood_message':
+          'Присоединяйтесь к E-Blood Bank Makila и\nпомогите спасать жизни',
       'or': 'или',
       'already_have_account': 'Уже есть аккаунт?',
       'sign_in_link': 'Войти',
       'coming_soon': 'Скоро',
-      'coming_soon_message': 'Вход через @platform будет доступен в ближайшее время.',
+      'coming_soon_message':
+          'Вход через @platform будет доступен в ближайшее время.',
       'connection_error': 'Ошибка подключения',
-      'connection_error_message': 'Произошла ошибка при входе через Google. Пожалуйста, попробуйте еще раз.',
+      'connection_error_message':
+          'Произошла ошибка при входе через Google. Пожалуйста, попробуйте еще раз.',
       'login_error': 'Ошибка входа',
 
       // Authentication
@@ -6216,17 +6662,21 @@ class AppTranslations extends Translations {
       'unable_to_launch_search': 'Не удалось запустить поиск: @error',
       'scan_donor_code_title': 'Сканировать код донора',
       'donor_code_scanned_success': 'Код донора успешно отсканирован',
-      'invalid_qr_code_format': 'Недействительный QR-код. Ожидаемый формат: XXX-XXXX-XXXXX-XX',
+      'invalid_qr_code_format':
+          'Недействительный QR-код. Ожидаемый формат: XXX-XXXX-XXXXX-XX',
       'how_to_search_donor': 'Как искать донора',
       'search_by_name': 'Поиск по имени',
       'search_by_name_desc': 'Введите полное или частичное имя донора.',
       'search_by_phone': 'Поиск по телефону',
       'search_by_phone_desc': 'Введите полный или частичный номер телефона.',
       'search_by_donor_code': 'Поиск по коду донора',
-      'search_by_donor_code_desc': 'Введите уникальный код донора для точного поиска.',
+      'search_by_donor_code_desc':
+          'Введите уникальный код донора для точного поиска.',
       'filter_by_gender': 'Фильтр по полу',
-      'filter_by_gender_desc': 'Используйте мужской или женский для фильтрации по полу.',
-      'filter_by_blood_type_desc': 'Выберите группу крови для уточнения результатов.',
+      'filter_by_gender_desc':
+          'Используйте мужской или женский для фильтрации по полу.',
+      'filter_by_blood_type_desc':
+          'Выберите группу крови для уточнения результатов.',
       'blood_type_distribution': 'Распределение по группам крови',
       'last_updated': 'Последнее обновление: @time',
       'unknown': 'Неизвестно',
@@ -6326,9 +6776,11 @@ class AppTranslations extends Translations {
       'loading_blood_banks': 'Загрузка банков крови...',
       'how_would_you_like_to_proceed': 'Как вы хотите продолжить?',
       'view_blood_bank_address': 'Посмотреть адрес банка крови',
-      'address_shown_after_payment': 'Адрес будет показан после оплаты, чтобы вы могли забрать его на месте',
+      'address_shown_after_payment':
+          'Адрес будет показан после оплаты, чтобы вы могли забрать его на месте',
       'order_online': 'Заказать онлайн',
-      'order_and_deliver_to_hospital': 'Вы можете заказать и оплатить онлайн и доставить в больницу',
+      'order_and_deliver_to_hospital':
+          'Вы можете заказать и оплатить онлайн и доставить в больницу',
 
       // BloodBagOrderStepperPage translations
       'blood_bank_addresses': 'Адреса банков крови',
@@ -6348,7 +6800,8 @@ class AppTranslations extends Translations {
       'confirm_order': 'Подтвердить заказ',
       'verify_and_pay': 'Проверить и оплатить',
       'error_creating_cart': 'Ошибка создания корзины',
-      'no_bank_has_blood_type': 'Ни один банк крови не имеет @bloodType в наличии',
+      'no_bank_has_blood_type':
+          'Ни один банк крови не имеет @bloodType в наличии',
       'no_bags_available': 'Нет доступных пакетов',
       'bank_no_bags_in_stock': 'В этом банке нет пакетов @bloodType в наличии',
       'total_price': 'Общая стоимость',
@@ -6365,7 +6818,8 @@ class AppTranslations extends Translations {
       'loading_prices': 'Загрузка цен...',
       'select_payment_option': 'Выберите способ оплаты',
       'choose_currency_to_pay': 'Выберите валюту для оплаты',
-      'address_info_after_payment': 'Информация о банке крови будет отображена после успешной оплаты',
+      'address_info_after_payment':
+          'Информация о банке крови будет отображена после успешной оплаты',
 
       // Success/Failure Screen Translations
       'payment_receipt': 'Квитанция об оплате',
@@ -6387,7 +6841,8 @@ class AppTranslations extends Translations {
       'application_section': 'ПРИЛОЖЕНИЕ',
       'free_storage_space': 'Освободить место для хранения',
       'soon': 'Скоро',
-      'clear_cache_message': 'Это действие удалит временные файлы для освобождения места для хранения.',
+      'clear_cache_message':
+          'Это действие удалит временные файлы для освобождения места для хранения.',
       'cache_cleared_successfully': 'Кэш успешно очищен',
 
       'theme': 'Тема',
@@ -6462,7 +6917,7 @@ class AppTranslations extends Translations {
       'logout_confirmation': 'Вы уверены, что хотите выйти?',
       'logging_out': 'Выход...',
       'system_account': 'Системный аккаунт',
-  'hospital_account': 'Аккаунт больницы',
+      'hospital_account': 'Аккаунт больницы',
       'blood_bank_account': 'Аккаунт банка крови',
       'health_structure_account': 'Аккаунт медицинской организации',
       'personal_account': 'Личный аккаунт',
@@ -6476,8 +6931,10 @@ class AppTranslations extends Translations {
       'invalid_phone_prefix': 'Неверный префикс телефона',
       'invalid_phone_length': 'Неверная длина номера телефона',
       'select_your_location': 'Выберите ваше местоположение',
-      'select_location_hint': 'Найдите и выберите место (страна > область/провинция > город/коммуна)',
-      'select_location_to_enter_phone': 'Пожалуйста, выберите ваше местоположение, чтобы включить ввод номера телефона',
+      'select_location_hint':
+          'Найдите и выберите место (страна > область/провинция > город/коммуна)',
+      'select_location_to_enter_phone':
+          'Пожалуйста, выберите ваше местоположение, чтобы включить ввод номера телефона',
 
       // Запросы крови (список и детали)
       'search_clinical_indication': 'Поиск по клиническому показанию...',
@@ -6527,7 +6984,8 @@ class AppTranslations extends Translations {
       // Health Structure Detail Page
       'invalid_coordinates': 'Неверные координаты',
       'gps_coordinates': 'GPS-координаты',
-      'coordinates_out_of_region_warning': '⚠️ Эти координаты, похоже, неверны (вне Африки)',
+      'coordinates_out_of_region_warning':
+          '⚠️ Эти координаты, похоже, неверны (вне Африки)',
       'structure_type': 'Тип учреждения',
       'altitude': 'Высота',
       'structure_status': 'Состояние учреждения',
@@ -6574,7 +7032,8 @@ class AppTranslations extends Translations {
       'new_announcement': 'Новое объявление',
       'edit_announcement': 'Редактировать объявление',
       'delete_announcement': 'Удалить объявление',
-      'delete_announcement_confirm': 'Вы уверены, что хотите удалить "@title"? Это действие необратимо.',
+      'delete_announcement_confirm':
+          'Вы уверены, что хотите удалить "@title"? Это действие необратимо.',
       'creating_in_progress': 'Создание...',
       'updating_in_progress': 'Обновление...',
       'deleting_in_progress': 'Удаление...',
@@ -6588,7 +7047,8 @@ class AppTranslations extends Translations {
       'title': 'Заголовок',
       'type': 'Тип',
       'status': 'Статус',
-      'please_fill_all_required_fields': 'Пожалуйста, заполните все обязательные поля',
+      'please_fill_all_required_fields':
+          'Пожалуйста, заполните все обязательные поля',
       'ann_status_upcoming': 'Скоро',
       'ann_status_active': 'Активно',
       'ann_status_past': 'Прошло',
@@ -6639,22 +7099,27 @@ class AppTranslations extends Translations {
       'to': 'К',
       'bank_account': 'Банковский счет',
       'mobile_money': 'Мобильные деньги',
-      'email_for_transaction_notifications': 'Email для уведомлений о транзакциях',
+      'email_for_transaction_notifications':
+          'Email для уведомлений о транзакциях',
       'email_address': 'Адрес электронной почты',
       'mobile_payment': 'Мобильный платеж',
-      'phone_number_for_mobile_payments': 'Номер телефона для мобильных платежей',
+      'phone_number_for_mobile_payments':
+          'Номер телефона для мобильных платежей',
       'phone_number_saved': 'Номер телефона сохранен',
       'reception_mode': 'Режим приема',
       'configure_payment_reception_mode': 'Настроить режим приема платежей',
       'automatic_reception': 'Автоматический прием',
-      'accept_incoming_payments_automatically': 'Автоматически принимать входящие платежи',
+      'accept_incoming_payments_automatically':
+          'Автоматически принимать входящие платежи',
       'automatic_reception_enabled': 'Автоматический прием включен',
       'on_demand_reception_enabled': 'Прием по запросу включен',
-      'manual_approval_notification_message': 'Вы будете получать уведомление о каждом входящем платеже и должны будете подтверждать вручную.',
+      'manual_approval_notification_message':
+          'Вы будете получать уведомление о каждом входящем платеже и должны будете подтверждать вручную.',
 
       'ann_status_archived': 'В архиве',
       'dashboard_title': 'Панель управления',
-      'limited_permission_warning': 'Ограниченные права. Некоторые данные могут быть неполными.',
+      'limited_permission_warning':
+          'Ограниченные права. Некоторые данные могут быть неполными.',
       'loading_error_retry': 'Ошибка загрузки. Нажмите, чтобы повторить.',
       'manage_stock': 'Управление запасами',
       'database': 'База данных',
@@ -6679,10 +7144,6 @@ class AppTranslations extends Translations {
       'blood_units_count': '@blood (@count ед.)',
 
       'days_ago': '@days дн. назад',
-
-
     },
-
-
   };
 }

@@ -12,6 +12,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../providers/search_flow_provider.dart';
 import '../../domain/entities/search_flow_state.dart';
+import '../../data/services/visitor_registration_service_impl.dart';
 import '../../../apps/config/theme/ColorPages.dart';
 import '../widgets/search_flow_app_bar.dart';
 
@@ -530,23 +531,78 @@ class _HospitalIdentifyPageState extends ConsumerState<HospitalIdentifyPage> {
     }
   }
 
-  void _proceedToNextStep() {
+  Future<void> _proceedToNextStep() async {
     // Check if user is authenticated
     final canAccess = ref.read(canAccessProtectedRoutesProvider);
     
-    canAccess.when(
-      data: (isAuthenticated) {
+    await canAccess.when(
+      data: (isAuthenticated) async {
         if (isAuthenticated) {
           // User is fully authenticated, go to payment
           context.push('/blood-search/payment', extra: {'option': widget.option});
         } else {
-          // User needs to register/verify phone
-          context.push('/blood-search/visitor-phone-otp');
+          // Check if phone is already verified before showing OTP page
+          print('🔍 Checking if visitor phone already verified...');
+          final visitorService = VisitorRegistrationServiceImpl();
+          final isPhoneVerified = await visitorService.hasVisitorPhoneNumber();
+          print('📱 Local phone verification status: $isPhoneVerified');
+          
+          if (isPhoneVerified) {
+            print('✅ Phone already verified locally, refreshing visitor data from backend...');
+            // Fetch fresh visitor data from backend
+            final result = await visitorService.checkVisitorLogin();
+            print('🔄 Backend result received: ${result != null}');
+            
+            if (result != null) {
+              print('📦 Result success: ${result['success']}, needs_verification: ${result['needs_phone_verification']}');
+              
+              // Check if verification is still valid
+              final needsVerification = result['needs_phone_verification'] == true;
+              
+              if (result['success'] == true && !needsVerification) {
+                print('✅ Visitor verified on backend, proceeding to payment');
+                // Skip OTP and go directly to payment
+                context.push('/blood-search/payment', extra: {'option': widget.option});
+              } else {
+                print('⚠️ Backend requires verification, showing OTP page');
+                context.push('/blood-search/visitor-phone-otp');
+              }
+            } else {
+              print('❌ No result from backend, showing OTP page');
+              context.push('/blood-search/visitor-phone-otp');
+            }
+          } else {
+            print('📝 Phone not verified locally, showing OTP page');
+            // User needs to verify phone
+            context.push('/blood-search/visitor-phone-otp');
+          }
         }
       },
-      loading: () {},
-      error: (_, __) {
+      loading: () async {},
+      error: (_, __) async {
+        // Check phone verification before defaulting to OTP
+        print('⚠️ Auth check error, checking phone verification status...');
+        final visitorService = VisitorRegistrationServiceImpl();
+        final isPhoneVerified = await visitorService.hasVisitorPhoneNumber();
+        print('📱 Local phone status on error: $isPhoneVerified');
+        
+        if (isPhoneVerified) {
+          print('✅ Phone verified locally despite auth error, checking backend...');
+          final result = await visitorService.checkVisitorLogin();
+          
+          if (result != null) {
+            final needsVerification = result['needs_phone_verification'] == true;
+            
+            if (result['success'] == true && !needsVerification) {
+              print('✅ Backend confirms verification, proceeding to payment');
+              context.push('/blood-search/payment', extra: {'option': widget.option});
+              return;
+            }
+          }
+        }
+        
         // Default to visitor phone verification
+        print('📝 Defaulting to OTP page');
         context.push('/blood-search/visitor-phone-otp');
       },
     );

@@ -71,7 +71,39 @@ class SearchFlowNotifier extends StateNotifier<SearchFlowState> {
     required this.visitorService,
     required this.paymentService,
     required this.authService,
-  }) : super(const SearchFlowState());
+  }) : super(const SearchFlowState()) {
+    // Load persisted city after a short delay to ensure GetStorage is ready
+    Future.delayed(const Duration(milliseconds: 50), () {
+      _loadPersistedCity();
+    });
+  }
+
+  /// Load previously selected city from storage
+  Future<void> _loadPersistedCity() async {
+    try {
+      print('🔍 Loading persisted city from storage...');
+      final storage = GetStorage();
+      
+      // Check if storage is initialized
+      print('📱 GetStorage initialized: ${storage.hasData('selected_city_id')}');
+      
+      final cityId = storage.read('selected_city_id');
+      final cityName = storage.read('selected_city_name');
+      
+      print('📦 Storage values - cityId: $cityId, cityName: $cityName');
+
+      if (cityId != null && cityName != null) {
+        state = state.copyWith(
+          selectedCity: SelectedCity(id: cityId, name: cityName),
+        );
+        print('✅ Loaded persisted city: $cityName ($cityId)');
+      } else {
+        print('ℹ️ No persisted city found in storage');
+      }
+    } catch (e) {
+      print('⚠️ Could not load persisted city: $e');
+    }
+  }
 
   /// Reset the entire flow
   void resetFlow() {
@@ -164,7 +196,19 @@ class SearchFlowNotifier extends StateNotifier<SearchFlowState> {
   }
 
   /// Set selected city
-  void setSelectedCity(SelectedCity city) {
+  Future<void> setSelectedCity(SelectedCity city) async {
+    print('💾 Attempting to save city: ${city.name} (${city.id})');
+    
+    // Persist the selected city
+    final storage = GetStorage();
+    await storage.write('selected_city_id', city.id);
+    await storage.write('selected_city_name', city.name);
+    
+    // Verify the write
+    final savedId = storage.read('selected_city_id');
+    final savedName = storage.read('selected_city_name');
+    print('✅ Persisted and verified: $savedName ($savedId)');
+
     state = state.copyWith(
       selectedCity: city,
       currentStep: SearchFlowStep.bloodTypeInput,
@@ -571,7 +615,7 @@ class SearchFlowNotifier extends StateNotifier<SearchFlowState> {
   // ============================================
 
   /// Select city (alias for setSelectedCity)
-  void selectCity(SelectedCity city) => setSelectedCity(city);
+  Future<void> selectCity(SelectedCity city) => setSelectedCity(city);
 
   /// Search blood products (alias for setBloodTypeAndSearch)
   Future<void> searchBloodProducts(String bloodType) =>

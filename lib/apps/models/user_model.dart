@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:eblood_bank_mak_app/apps/models/auth_model.dart';
 
-
 class UserModel {
   final String id;
   final String email;
@@ -12,6 +11,8 @@ class UserModel {
   final DateTime? createdAt;
   final DateTime? updatedAt;
   final bool isActive;
+  final bool? phoneNumberVerified;
+  final bool? canPayOnDelivery;
 
   UserModel({
     required this.id,
@@ -22,6 +23,8 @@ class UserModel {
     this.createdAt,
     this.updatedAt,
     this.isActive = true,
+    this.phoneNumberVerified,
+    this.canPayOnDelivery,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -32,8 +35,8 @@ class UserModel {
       profilePicture: json['profile_picture'],
       preferences: json['preferences'] != null
           ? (json['preferences'] is String
-              ? jsonDecode(json['preferences'])
-              : json['preferences'])
+                ? jsonDecode(json['preferences'])
+                : json['preferences'])
           : null,
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'])
@@ -42,6 +45,8 @@ class UserModel {
           ? DateTime.parse(json['updated_at'])
           : null,
       isActive: json['is_active'] ?? true,
+      phoneNumberVerified: json['is_phone_verified'] as bool?,
+      canPayOnDelivery: json['can_pay_on_delivery'] as bool?,
     );
   }
 
@@ -57,6 +62,8 @@ class UserModel {
       'created_at': createdAt?.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
       'is_active': isActive,
+      'phone_number_verified': phoneNumberVerified,
+      'can_pay_on_delivery': canPayOnDelivery,
     };
   }
 
@@ -69,6 +76,8 @@ class UserModel {
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? isActive,
+    bool? phoneNumberVerified,
+    bool? canPayOnDelivery,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -79,6 +88,8 @@ class UserModel {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       isActive: isActive ?? this.isActive,
+      phoneNumberVerified: phoneNumberVerified ?? this.phoneNumberVerified,
+      canPayOnDelivery: canPayOnDelivery ?? this.canPayOnDelivery,
     );
   }
 }
@@ -111,58 +122,59 @@ class TUserModel {
   });
 
   factory TUserModel.fromJson(Map<String, dynamic> json) => TUserModel(
-        id: json.containsKey('id') && json["id"] != null ? json["id"] : '-',
-        username: json.containsKey('username') && json["username"] != null
-            ? json["username"]
-            : '-',
-        firstName: json.containsKey('first_name') && json["first_name"] != null
-            ? json["first_name"]
-            : '-',
-        userAccountSocketHash: json.containsKey('user_account_socket_hash') &&
-                json["user_account_socket_hash"] != null
-            ? json["user_account_socket_hash"]
-            : '-',
-        lastName: json.containsKey('last_name') && json["last_name"] != null
-            ? json["last_name"]
-            : '-',
-        gender: json.containsKey('gender') && json["gender"] != null
-            ? json["gender"]
-            : '-',
-        phoneNumber:
-            json.containsKey('phone_number') && json["phone_number"] != null
-                ? json["phone_number"]
-                : '-',
-        emailAddress:
-            json.containsKey('email_address') && json["email_address"] != null
-                ? json["email_address"]
-                : '-',
-        mfas: json.containsKey('mfas') && json["mfas"] != null
-            ? List<TMfaModel>.from(
-                json["mfas"].map((x) => TMfaModel.fromJson(x)))
-            : [],
-      );
+    id: json.containsKey('id') && json["id"] != null ? json["id"] : '-',
+    username: json.containsKey('username') && json["username"] != null
+        ? json["username"]
+        : '-',
+    firstName: json.containsKey('first_name') && json["first_name"] != null
+        ? json["first_name"]
+        : '-',
+    userAccountSocketHash:
+        json.containsKey('user_account_socket_hash') &&
+            json["user_account_socket_hash"] != null
+        ? json["user_account_socket_hash"]
+        : '-',
+    lastName: json.containsKey('last_name') && json["last_name"] != null
+        ? json["last_name"]
+        : '-',
+    gender: json.containsKey('gender') && json["gender"] != null
+        ? json["gender"]
+        : '-',
+    phoneNumber:
+        json.containsKey('phone_number') && json["phone_number"] != null
+        ? json["phone_number"]
+        : '-',
+    emailAddress:
+        json.containsKey('email_address') && json["email_address"] != null
+        ? json["email_address"]
+        : '-',
+    mfas: json.containsKey('mfas') && json["mfas"] != null
+        ? List<TMfaModel>.from(json["mfas"].map((x) => TMfaModel.fromJson(x)))
+        : [],
+  );
   factory TUserModel.empty() => TUserModel(
-      id: '-',
-      username: '-',
-      firstName: '-',
-      lastName: '-',
-      gender: '-',
-      phoneNumber: '-',
-      emailAddress: '-',
-      userAccountSocketHash: '-',
-      mfas: []);
+    id: '-',
+    username: '-',
+    firstName: '-',
+    lastName: '-',
+    gender: '-',
+    phoneNumber: '-',
+    emailAddress: '-',
+    userAccountSocketHash: '-',
+    mfas: [],
+  );
 
   Map<String, dynamic> toJson() => {
-        "id": id,
-        "username": username,
-        "first_name": firstName,
-        "last_name": lastName,
-        "gender": gender,
-        "user_account_socket_hash": userAccountSocketHash,
-        "phone_number": phoneNumber,
-        "email_address": emailAddress,
-        "mfas": List<dynamic>.from(mfas.map((x) => x)),
-      };
+    "id": id,
+    "username": username,
+    "first_name": firstName,
+    "last_name": lastName,
+    "gender": gender,
+    "user_account_socket_hash": userAccountSocketHash,
+    "phone_number": phoneNumber,
+    "email_address": emailAddress,
+    "mfas": List<dynamic>.from(mfas.map((x) => x)),
+  };
 
   @override
   String toString() {

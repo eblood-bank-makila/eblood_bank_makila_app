@@ -40,6 +40,10 @@ class _CitySelectionPageState extends ConsumerState<CitySelectionPage> {
   SystemCountry? _selectedCountry;
   SystemCountry? _selectedProvince;
   
+  // Previous city state
+  bool _showPreviousCity = false;
+  SelectedCity? _previousCity;
+  
   // UI state
   bool _isLoading = true;
   String? _errorMessage;
@@ -47,7 +51,18 @@ class _CitySelectionPageState extends ConsumerState<CitySelectionPage> {
   @override
   void initState() {
     super.initState();
+    _checkForPreviousCity();
     _loadLocationData();
+  }
+
+  /// Check if there's a previously selected city
+  void _checkForPreviousCity() {
+    final state = ref.read(searchFlowProvider);
+    if (state.selectedCity != null) {
+      _previousCity = state.selectedCity;
+      _showPreviousCity = true;
+      print('🏙️ Found previous city: ${_previousCity?.name}');
+    }
   }
 
   @override
@@ -128,7 +143,7 @@ class _CitySelectionPageState extends ConsumerState<CitySelectionPage> {
     }
   }
 
-  void _selectAsCity(SystemCountry item) {
+  void _selectAsCity(SystemCountry item) async {
     final city = SelectedCity(
       id: item.id,
       name: item.name,
@@ -139,7 +154,7 @@ class _CitySelectionPageState extends ConsumerState<CitySelectionPage> {
       path: _buildPath(item.name),
     );
     
-    ref.read(searchFlowProvider.notifier).selectCity(city);
+    await ref.read(searchFlowProvider.notifier).selectCity(city);
     context.push('/blood-search/blood-type');
   }
 
@@ -219,121 +234,360 @@ class _CitySelectionPageState extends ConsumerState<CitySelectionPage> {
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: SearchFlowAppBar(
-        title: _currentTitle,
-        onBack: _goBack,
+        title: _showPreviousCity 
+            ? ('your_previous_city'.tr.isEmpty ? 'Your Previous City' : 'your_previous_city'.tr)
+            : _currentTitle,
+        onBack: () {
+          if (_showPreviousCity) {
+            context.pop();
+          } else {
+            _goBack();
+          }
+        },
       ),
-      body: Column(
-        children: [
-          // Progress indicator
-          SearchFlowProgressIndicator(
-            currentStep: 1,
-            totalSteps: 4,
-            stepLabels: [
-              'step_city'.tr,
-              'step_blood_type'.tr,
-              'step_results'.tr,
-              'step_confirm'.tr,
-            ],
-          ),
+      body: _showPreviousCity ? _buildPreviousCityView() : _buildLocationSelectionView(state),
+    );
+  }
 
-          // Breadcrumb navigation
-          if (_selectedCountry != null || _selectedProvince != null)
-            _buildBreadcrumb(),
+  Widget _buildPreviousCityView() {
+    return Column(
+      children: [
+        // Progress indicator
+        SearchFlowProgressIndicator(
+          currentStep: 1,
+          totalSteps: 4,
+          stepLabels: [
+            'step_city'.tr,
+            'step_blood_type'.tr,
+            'step_results'.tr,
+            'step_confirm'.tr,
+          ],
+        ),
 
-          // Search bar
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 2),
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Icon
+                Center(
+                  child: Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      color: ColorPages.COLOR_PRINCIPAL.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Iconsax.location,
+                      size: 48,
+                      color: ColorPages.COLOR_PRINCIPAL,
+                    ),
                   ),
-                ],
-              ),
-              child: TextField(
-                controller: _searchController,
-                onChanged: _filterItems,
-                decoration: InputDecoration(
-                  hintText: _searchHint,
-                  hintStyle: GoogleFonts.ubuntu(color: Colors.grey.shade500),
-                  prefixIcon: Icon(Iconsax.search_normal, color: Colors.grey.shade500),
-                  suffixIcon: _searchController.text.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Iconsax.close_circle, size: 20),
-                          onPressed: () {
-                            _searchController.clear();
-                            _filterItems('');
-                          },
-                        )
-                      : null,
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 ),
-                style: GoogleFonts.ubuntu(fontSize: 16),
-              ),
-            ),
-          ),
 
-          // Items list
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _errorMessage != null
-                    ? _buildErrorState()
-                    : _filteredItems.isEmpty
-                        ? _buildEmptyState()
-                        : ListView.builder(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            itemCount: _filteredItems.length,
-                            itemBuilder: (context, index) {
-                              final item = _filteredItems[index];
-                              final isSelected = state.selectedCity?.id == item.id;
-                              return _LocationListItem(
-                                item: item,
-                                icon: _currentIcon,
-                                isSelected: isSelected,
-                                hasChildren: item.children.isNotEmpty,
-                                onTap: () => _selectItem(item),
-                              );
-                            },
-                          ),
-          ),
+                const SizedBox(height: 32),
 
-          // Quick access - Use Current Location
-          if (_currentLevel == LocationLevel.country)
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: SafeArea(
-                child: SizedBox(
+                // Title
+                Center(
+                  child: Text(
+                    'your_previous_city'.tr.isEmpty 
+                        ? 'Your Previous City' 
+                        : 'your_previous_city'.tr,
+                    style: GoogleFonts.ubuntu(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey.shade800,
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 8),
+
+                Center(
+                  child: Text(
+                    'continue_with_previous'.tr.isEmpty
+                        ? 'Continue with your previously selected city'
+                        : 'continue_with_previous'.tr,
+                    style: GoogleFonts.ubuntu(
+                      fontSize: 14,
+                      color: Colors.grey.shade600,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+
+                const SizedBox(height: 32),
+
+                // Previous city card
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: ColorPages.COLOR_PRINCIPAL.withOpacity(0.3),
+                      width: 2,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: ColorPages.COLOR_PRINCIPAL.withOpacity(0.1),
+                        blurRadius: 20,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          color: ColorPages.COLOR_PRINCIPAL.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          Iconsax.building,
+                          color: ColorPages.COLOR_PRINCIPAL,
+                          size: 28,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _previousCity?.name ?? '',
+                              style: GoogleFonts.ubuntu(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey.shade800,
+                              ),
+                            ),
+                            if (_previousCity?.path != null) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                _previousCity!.path!,
+                                style: GoogleFonts.ubuntu(
+                                  fontSize: 13,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      Icon(
+                        Iconsax.tick_circle5,
+                        color: Colors.green.shade600,
+                        size: 32,
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // Select other cities button
+                SizedBox(
                   width: double.infinity,
-                  height: 50,
+                  height: 54,
                   child: OutlinedButton.icon(
-                    onPressed: _useCurrentLocation,
-                    icon: const Icon(Iconsax.location, size: 20),
+                    onPressed: () {
+                      setState(() {
+                        _showPreviousCity = false;
+                      });
+                    },
+                    icon: Icon(Iconsax.location, size: 20),
                     label: Text(
-                      'use_current_location'.tr.isEmpty 
-                          ? 'Use Current Location' 
-                          : 'use_current_location'.tr,
-                      style: GoogleFonts.ubuntu(fontWeight: FontWeight.w600),
+                      'select_other_cities'.tr.isEmpty
+                          ? 'Select Other Cities'
+                          : 'select_other_cities'.tr,
+                      style: GoogleFonts.ubuntu(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: ColorPages.COLOR_PRINCIPAL,
-                      side: BorderSide(color: ColorPages.COLOR_PRINCIPAL),
+                      side: BorderSide(
+                        color: ColorPages.COLOR_PRINCIPAL,
+                        width: 2,
+                      ),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(16),
                       ),
                     ),
                   ),
                 ),
+              ],
+            ),
+          ),
+        ),
+
+        // Bottom navigation
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, -2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 54,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      // Use the previous city and navigate to blood type
+                      context.push('/blood-search/blood-type');
+                    },
+                    icon: Icon(Iconsax.arrow_right_3, size: 20),
+                    label: Text(
+                      'next'.tr.isEmpty ? 'Next' : 'next'.tr,
+                      style: GoogleFonts.ubuntu(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: ColorPages.COLOR_PRINCIPAL,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      elevation: 2,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLocationSelectionView(SearchFlowState state) {
+    return Column(
+      children: [
+        // Progress indicator
+        SearchFlowProgressIndicator(
+          currentStep: 1,
+          totalSteps: 4,
+          stepLabels: [
+            'step_city'.tr,
+            'step_blood_type'.tr,
+            'step_results'.tr,
+            'step_confirm'.tr,
+          ],
+        ),
+
+        // Breadcrumb navigation
+        if (_selectedCountry != null || _selectedProvince != null)
+          _buildBreadcrumb(),
+
+        // Search bar
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: TextField(
+              controller: _searchController,
+              onChanged: _filterItems,
+              decoration: InputDecoration(
+                hintText: _searchHint,
+                hintStyle: GoogleFonts.ubuntu(color: Colors.grey.shade500),
+                prefixIcon: Icon(Iconsax.search_normal, color: Colors.grey.shade500),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Iconsax.close_circle, size: 20),
+                        onPressed: () {
+                          _searchController.clear();
+                          _filterItems('');
+                        },
+                      )
+                    : null,
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              ),
+              style: GoogleFonts.ubuntu(fontSize: 16),
+            ),
+          ),
+        ),
+
+        // Items list
+        Expanded(
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _errorMessage != null
+                  ? _buildErrorState()
+                  : _filteredItems.isEmpty
+                      ? _buildEmptyState()
+                      : ListView.builder(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          itemCount: _filteredItems.length,
+                          itemBuilder: (context, index) {
+                            final item = _filteredItems[index];
+                            final isSelected = state.selectedCity?.id == item.id;
+                            return _LocationListItem(
+                              item: item,
+                              icon: _currentIcon,
+                              isSelected: isSelected,
+                              hasChildren: item.children.isNotEmpty,
+                              onTap: () => _selectItem(item),
+                            );
+                          },
+                        ),
+        ),
+
+        // Quick access - Use Current Location
+        if (_currentLevel == LocationLevel.country)
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: SafeArea(
+              child: SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: OutlinedButton.icon(
+                  onPressed: _useCurrentLocation,
+                  icon: const Icon(Iconsax.location, size: 20),
+                  label: Text(
+                    'use_current_location'.tr.isEmpty 
+                        ? 'Use Current Location' 
+                        : 'use_current_location'.tr,
+                    style: GoogleFonts.ubuntu(fontWeight: FontWeight.w600),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: ColorPages.COLOR_PRINCIPAL,
+                    side: BorderSide(color: ColorPages.COLOR_PRINCIPAL),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
               ),
             ),
-        ],
-      ),
+          ),
+      ],
     );
   }
 

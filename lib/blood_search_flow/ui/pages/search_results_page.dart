@@ -327,68 +327,7 @@ class _ResultCardState extends State<_ResultCard>
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    // Blood type badge
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: ColorPages.COLOR_PRINCIPAL,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        widget.result.fullBloodType.isNotEmpty
-                            ? widget.result.fullBloodType
-                            : widget.result.bloodType,
-                        style: GoogleFonts.ubuntu(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    // Hospital name
-                    Expanded(
-                      child: Text(
-                        widget.result.hospitalName ??
-                            widget.result.bloodBankName,
-                        style: GoogleFonts.ubuntu(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.grey.shade800,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    // Price badge
-                    if (widget.result.price > 0)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.green.shade50,
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: Colors.green.shade200),
-                        ),
-                        child: Text(
-                          widget.result.formattedPrice,
-                          style: GoogleFonts.ubuntu(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.green.shade700,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
+              children: [ 
                 const SizedBox(height: 12),
                 // Distance (prominent display)
                 Row(
@@ -413,30 +352,6 @@ class _ResultCardState extends State<_ResultCard>
                       style: GoogleFonts.ubuntu(
                         fontSize: 13,
                         color: Colors.grey.shade600,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                // Masked location (city/region only)
-                Row(
-                  children: [
-                    Icon(
-                      Iconsax.location,
-                      size: 14,
-                      color: Colors.grey.shade400,
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        widget.result.maskedAddress,
-                        style: GoogleFonts.ubuntu(
-                          fontSize: 12,
-                          color: Colors.grey.shade500,
-                          fontStyle: FontStyle.italic,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],

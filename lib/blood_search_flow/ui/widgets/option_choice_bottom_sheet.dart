@@ -75,17 +75,7 @@ class OptionChoiceBottomSheet extends StatelessWidget {
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            result.hospitalName ?? result.bloodBankName,
-                            style: GoogleFonts.ubuntu(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.grey.shade800,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                        children: [ 
                           const SizedBox(height: 4),
                           Row(
                             children: [

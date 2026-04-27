@@ -6,7 +6,7 @@ import 'package:eblood_bank_mak_app/apps/config/api/ApiConfig.dart';
 import 'package:eblood_bank_mak_app/apps/models/api_response.dart';
 import 'package:eblood_bank_mak_app/commande/business/model/blood_request/BloodRequestModel.dart';
 import 'package:eblood_bank_mak_app/commande/ui/framework/blood_request/BloodRequestNetworkServiceImpl.dart';
-import 'package:eblood_bank_mak_app/qrcode/qrcode_page.dart';
+import 'package:eblood_bank_mak_app/qr_code/qrcode_page.dart';
 
 class DeliveryConfirmationDialog extends StatefulWidget {
   final BloodRequestModel request;

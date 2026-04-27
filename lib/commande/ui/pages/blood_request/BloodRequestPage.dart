@@ -16,7 +16,7 @@ import 'widgets/BloodRequestCard.dart';
 import 'widgets/BloodRequestEmptyState.dart';
 import 'widgets/BloodRequestErrorState.dart';
 import '../../../../apps/services/BloodDeliveryService.dart';
-import '../../../../qrcode/qrcode_page.dart';
+import '../../../../qr_code/qrcode_page.dart';
 
 class BloodRequestPage extends ConsumerStatefulWidget {
   const BloodRequestPage({super.key});

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get/get.dart';
 import '../../../../apps/config/theme/ColorPages.dart';
-import '../../../../qrcode/qrcode_page.dart';
+import '../../../../qr_code/qrcode_page.dart';
 import 'QrCodeActionCtrl.dart';
 
 enum QrCodeActionType {

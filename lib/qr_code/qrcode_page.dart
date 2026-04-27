@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:eblood_bank_mak_app/qrcode/scanned_barcode_label.dart';
-import 'package:eblood_bank_mak_app/qrcode/scanner_button_widgets.dart';
-import 'package:eblood_bank_mak_app/qrcode/scanner_error_widget.dart';
+import 'package:eblood_bank_mak_app/qr_code/scanned_barcode_label.dart';
+import 'package:eblood_bank_mak_app/qr_code/scanner_button_widgets.dart';
+import 'package:eblood_bank_mak_app/qr_code/scanner_error_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 

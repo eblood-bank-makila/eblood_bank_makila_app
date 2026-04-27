@@ -35,6 +35,7 @@ import 'stock_management/ui/framework/recherche/RechercheListeServiceNetworkImpl
 import 'core/network/network_manager.dart';
 import 'core/services/app_initialization_service.dart';
 import 'core/rbac/data/rbac_local_storage.dart';
+import 'orders/dead_hand/dead_hand_service.dart';
 
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -72,6 +73,27 @@ void main() async {
       // Re-throw other errors
       rethrow;
     }
+  }
+
+  // Sprint M — dead-hand auto-broadcast handler. Only delivery-person
+  // accounts subscribe to the broadcast topic + render the ringing
+  // alert; other profiles get a silent no-op. The user_id is read at
+  // message-receipt time (not now) so a session profile-switch keeps
+  // working without a re-attach.
+  if (DeadHandService.isDeliveryPersonProfile()) {
+    await DeadHandService.attach(
+      navigatorKey: navigatorKey,
+      getCurrentUserId: () async {
+        try {
+          final userData = GetStorage().read('user_data');
+          if (userData is Map) {
+            final id = userData['id']?.toString();
+            return (id == null || id.isEmpty) ? null : id;
+          }
+        } catch (_) {/* fall through */}
+        return null;
+      },
+    );
   }
 
   await SystemChrome.setPreferredOrientations([

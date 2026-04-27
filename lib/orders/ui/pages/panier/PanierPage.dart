@@ -2,7 +2,7 @@ import 'package:eblood_bank_mak_app/apps/config/theme/ColorPages.dart';
 import 'package:eblood_bank_mak_app/apps/widgets/AppSpinner.dart';
 import 'package:eblood_bank_mak_app/apps/widgets/ModernSpinnerWidget.dart';
 import 'package:eblood_bank_mak_app/apps/widgets/PanierWidget.dart';
-import 'package:eblood_bank_mak_app/orders/ui/pages/orders/pages/DetailCommandePage.dart';
+import 'package:eblood_bank_mak_app/orders/ui/pages/checkout/pages/DetailCommandePage.dart';
 import 'package:eblood_bank_mak_app/orders/ui/pages/panier/PanierCtrl.dart';
 import 'package:eblood_bank_mak_app/orders/ui/pages/panier/PanierPageState.dart';
 import 'package:eblood_bank_mak_app/core/rbac/providers/rbac_provider.dart';

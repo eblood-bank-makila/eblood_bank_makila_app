@@ -350,7 +350,7 @@ import 'package:eblood_bank_mak_app/apps/widgets/AppSpinner.dart';
 import 'package:eblood_bank_mak_app/stock_management/business/model/poche/PocheModel.dart';
 import 'package:eblood_bank_mak_app/orders/ui/pages/panier/PanierPage.dart';
 import '../../orders/business/interactor/CommandeInteractor.dart';
-import '../../orders/ui/pages/orders/pages/DetailCommandePage.dart';
+import '../../orders/ui/pages/checkout/pages/DetailCommandePage.dart';
 
 class DetailPocheBanqueWidget extends ConsumerStatefulWidget {
   final PocheModel poche; // Modèle de poche à afficher

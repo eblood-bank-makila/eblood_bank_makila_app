@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
-import 'package:eblood_bank_mak_app/gestionStocks/business/model/favoris/DactumFavorisModel.dart';
-import 'package:eblood_bank_mak_app/gestionStocks/ui/pages/poche/ListePocheBanquePage.dart';
-import 'package:eblood_bank_mak_app/gestionStocks/business/model/banque/BanqueModele.dart';
+import 'package:eblood_bank_mak_app/stock_management/business/model/favoris/DactumFavorisModel.dart';
+import 'package:eblood_bank_mak_app/stock_management/ui/pages/poche/ListePocheBanquePage.dart';
+import 'package:eblood_bank_mak_app/stock_management/business/model/banque/BanqueModele.dart';
 
 import '../config/theme/ColorPages.dart';
 

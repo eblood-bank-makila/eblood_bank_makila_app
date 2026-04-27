@@ -19,11 +19,11 @@ import 'package:eblood_bank_mak_app/blood_bank/ui/widgets/BloodBankBottomNavWidg
 import 'package:eblood_bank_mak_app/apps/widgets/DetailsPocheBanqueWidget.dart';
 import 'package:eblood_bank_mak_app/commande/ui/pages/MessageCommadePage.dart';
 import 'package:eblood_bank_mak_app/commande/ui/pages/panier/PanierPage.dart';
-import 'package:eblood_bank_mak_app/gestionStocks/business/model/poche/PocheModel.dart';
-import 'package:eblood_bank_mak_app/gestionStocks/ui/pages/banque/BanquePage.dart';
-import 'package:eblood_bank_mak_app/gestionStocks/ui/pages/favoris/FavorisPage.dart';
-import 'package:eblood_bank_mak_app/gestionStocks/ui/pages/poche/ListePocheBanquePage.dart';
-import 'package:eblood_bank_mak_app/gestionStocks/ui/pages/recherchePoche/RecherchePochePage.dart';
+import 'package:eblood_bank_mak_app/stock_management/business/model/poche/PocheModel.dart';
+import 'package:eblood_bank_mak_app/stock_management/ui/pages/banque/BanquePage.dart';
+import 'package:eblood_bank_mak_app/stock_management/ui/pages/favoris/FavorisPage.dart';
+import 'package:eblood_bank_mak_app/stock_management/ui/pages/poche/ListePocheBanquePage.dart';
+import 'package:eblood_bank_mak_app/stock_management/ui/pages/recherchePoche/RecherchePochePage.dart';
 import 'package:eblood_bank_mak_app/utilisateurs/business/interactors/UtilisateurInteractor.dart';
 import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/authentification/AuthentificationPage.dart';
 import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/changerPassword/ChangerPasswordPage.dart';
@@ -39,7 +39,7 @@ import 'package:eblood_bank_mak_app/apps/services/FirebaseAuthService.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../gestionStocks/business/model/banque/BanqueModele.dart';
+import '../../../stock_management/business/model/banque/BanqueModele.dart';
 
 final goRouterProvider = Provider<GoRouter>((ref) {
   // Use ref.read instead of ref.watch to prevent continuous rebuilds

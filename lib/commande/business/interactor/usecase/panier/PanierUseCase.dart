@@ -3,8 +3,8 @@ import 'dart:convert';
 import 'package:eblood_bank_mak_app/commande/business/model/PanierModel.dart';
 import 'package:eblood_bank_mak_app/commande/business/model/PanierReponseModel.dart';
 import 'package:eblood_bank_mak_app/commande/business/service/panier/PanierNetworkService.dart';
-import 'package:eblood_bank_mak_app/gestionStocks/business/model/banque/BanqueModele.dart';
-import 'package:eblood_bank_mak_app/gestionStocks/business/model/poche/PocheModel.dart';
+import 'package:eblood_bank_mak_app/stock_management/business/model/banque/BanqueModele.dart';
+import 'package:eblood_bank_mak_app/stock_management/business/model/poche/PocheModel.dart';
 
 import '../../../../../utilisateurs/business/service/utilisateurLocalService.dart';
 

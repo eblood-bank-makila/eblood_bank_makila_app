@@ -1,9 +1,9 @@
 import 'package:eblood_bank_mak_app/commande/business/interactor/CommandeInteractor.dart';
 import 'package:eblood_bank_mak_app/commande/business/model/PanierModel.dart';
 import 'package:eblood_bank_mak_app/commande/ui/pages/panier/PanierPageState.dart';
-import 'package:eblood_bank_mak_app/gestionStocks/business/interactor/GestionStockInteractor.dart';
-import 'package:eblood_bank_mak_app/gestionStocks/business/model/banque/BanqueModele.dart';
-import 'package:eblood_bank_mak_app/gestionStocks/business/model/poche/PocheModel.dart';
+import 'package:eblood_bank_mak_app/stock_management/business/interactor/GestionStockInteractor.dart';
+import 'package:eblood_bank_mak_app/stock_management/business/model/banque/BanqueModele.dart';
+import 'package:eblood_bank_mak_app/stock_management/business/model/poche/PocheModel.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../business/model/CartItemPanierModel.dart';

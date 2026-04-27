@@ -12,7 +12,7 @@ import 'package:eblood_bank_mak_app/apps/config/theme/ColorPages.dart';
 import 'package:eblood_bank_mak_app/apps/config/enums/CommonConfigType.dart';
 import 'package:eblood_bank_mak_app/apps/services/LanguageService.dart';
 import 'package:eblood_bank_mak_app/commande/business/model/DatumPanierModel.dart';
-import 'package:eblood_bank_mak_app/gestionStocks/ui/pages/favoris/FavorisPage.dart';
+import 'package:eblood_bank_mak_app/stock_management/ui/pages/favoris/FavorisPage.dart';
 import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/notification/NotificationPage.dart';
 import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/profil/InformationPage.dart';
 import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/profil/ProfileCtrl.dart';

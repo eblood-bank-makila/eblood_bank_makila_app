@@ -3,8 +3,8 @@ import 'package:iconsax/iconsax.dart';
 
 // Hospital screens
 import 'package:eblood_bank_mak_app/apps/home/hospital_home_page.dart';
-import 'package:eblood_bank_mak_app/gestionStocks/ui/pages/banque/BanquePage.dart';
-import 'package:eblood_bank_mak_app/gestionStocks/ui/pages/recherchePoche/RecherchePochePage.dart';
+import 'package:eblood_bank_mak_app/stock_management/ui/pages/banque/BanquePage.dart';
+import 'package:eblood_bank_mak_app/stock_management/ui/pages/recherchePoche/RecherchePochePage.dart';
 
 // Blood bank screens
 import 'package:eblood_bank_mak_app/blood_bank/ui/pages/BloodBankHomePage.dart';

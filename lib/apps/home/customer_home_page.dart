@@ -10,7 +10,7 @@ import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/notification/Notificat
 
 import 'package:get_storage/get_storage.dart';
 import '../../core/rbac/providers/rbac_provider.dart';
-import '../../gestionStocks/ui/pages/recherchePoche/RecherchePochePage.dart';
+import '../../stock_management/ui/pages/recherchePoche/RecherchePochePage.dart';
 // Removed from quick actions per requirement
 // import '../../commande/ui/pages/blood_request/BloodRequestPage.dart';
 import '../../delivery/ui/pages/DeliveryPersonHomePage.dart';

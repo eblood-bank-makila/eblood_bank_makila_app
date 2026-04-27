@@ -3,7 +3,7 @@ import 'package:eblood_bank_mak_app/commande/ui/pages/panier/PanierCtrl.dart';
 import 'package:eblood_bank_mak_app/commande/ui/pages/qr_action/QrCodeActionPage.dart';
 import 'package:eblood_bank_mak_app/apps/widgets/HospitalQRCodeWidget.dart';
 import 'package:eblood_bank_mak_app/services/HealthStructureService.dart';
-import 'package:eblood_bank_mak_app/gestionStocks/ui/pages/banque/BanquePage.dart';
+import 'package:eblood_bank_mak_app/stock_management/ui/pages/banque/BanquePage.dart';
 import 'package:eblood_bank_mak_app/utilisateurs/business/service/NotificationPush.dart';
 import 'package:eblood_bank_mak_app/utilisateurs/ui/framework/UtilisateurLocalServiceImpl.dart';
 import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/profil/ProfilePage.dart';
@@ -19,7 +19,7 @@ import 'package:iconsax/iconsax.dart';
 import 'package:sembast/sembast_io.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart';
-import '../../gestionStocks/ui/pages/recherchePoche/RecherchePochePage.dart';
+import '../../stock_management/ui/pages/recherchePoche/RecherchePochePage.dart';
 import '../../commande/ui/pages/panier/PanierPage.dart';
 import 'package:get/get.dart';
 

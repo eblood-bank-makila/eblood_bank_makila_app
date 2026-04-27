@@ -29,7 +29,8 @@ class ApiConfig {
   static const String expiringStock = '/eblood/stock/expiring';
   static const String lowStock = '/eblood/stock/low';
   static const String recentActivity = '/blood-bank/activity';
-  static const String donorEligibility = '/eblood-connect/blood-donors/eligibility';
+  // Sprint 12 — migrated to the donor self-service module.
+  static const String donorEligibility = '/blood-donors/eligibility';
   static const String inventorySettings = '/eblood/inventory/settings';
 
   // Blood requests endpoints

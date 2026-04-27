@@ -38,7 +38,8 @@ class _DonationHistoryPageState extends ConsumerState<DonationHistoryPage> {
     });
 
     try {
-      final response = await getWithDio('/eblood-connect/blood-donors/history');
+      // Sprint 12 — migrated to the donor self-service module.
+      final response = await getWithDio('/blood-donors/history');
       
       if (response.success) {
         final historyData = response.data;

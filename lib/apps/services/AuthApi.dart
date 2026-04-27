@@ -39,17 +39,22 @@ class AuthApi {
   static const String _resendOtpEndpoint = '/eblood/auth/resend-otp';
   static const String _validateOtpEndpoint = '/eblood/auth/mobile-validate-otp';
   static const String _userProfileEndpoint = '/auth/user-profile';
-  static const String _visitorLoginCheckEndpoint = '/eblood-connect/users/login-visitor';
+  // Sprint 16 — split the old single /eblood-connect/users/login-visitor
+  // endpoint (which was overloaded as GET=check and POST=create) into the
+  // new clean POST-only surface:
+  //   /api/v1/auth/visitor/check-existing  -> already-linked device check
+  //   /api/v1/auth/visitor/create-visitor  -> first-time enrolment
+  static const String _visitorCheckExistingEndpoint = '/auth/visitor/check-existing';
+  static const String _visitorCreateEndpoint = '/auth/visitor/create-visitor';
 
   // Visitor endpoints
   Future<Map<String, dynamic>> visitorLoginCheck() async {
     try {
-      final response = await getWithDio(
-        _visitorLoginCheckEndpoint,
-        // headers: {
-        //   // Ensure no stale Authorization interferes; visitor check is anonymous
-        //   'Authorization': '',
-        // },
+      // Sprint 16: was GET, now POST (no body) on the new clean surface.
+      final response = await postWithDio(
+        _visitorCheckExistingEndpoint,
+        // No body — identification is by device fingerprint headers handled
+        // server-side. Anonymous: no stale Authorization should interfere.
       );
 
       final bool success = response.success;
@@ -138,11 +143,13 @@ class AuthApi {
     required String locationId,
   }) async {
     try {
+      // Sprint 16: was POST /eblood-connect/users/login-visitor, now
+      // POST /api/v1/auth/visitor/create-visitor.
       final response = await postWithDio(
-        _visitorLoginCheckEndpoint,
+        _visitorCreateEndpoint,
         body: {
           'location_id': locationId,
-        }, 
+        },
       );
 
       final bool success = response.success;

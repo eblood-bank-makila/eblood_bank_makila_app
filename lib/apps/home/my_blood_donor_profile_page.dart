@@ -48,7 +48,8 @@ class _MyBloodDonorProfilePageState extends ConsumerState<MyBloodDonorProfilePag
     });
 
     try {
-      final response = await getWithDio('/eblood-connect/blood-donors/me');
+      // Sprint 12 — migrated to the donor self-service module.
+      final response = await getWithDio('/blood-donors/me');
       
       if (response.success && response.data != null) {
         setState(() {

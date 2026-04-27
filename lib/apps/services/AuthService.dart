@@ -410,8 +410,9 @@ class AuthService {
     try {
       print('🔄 Fetching INS request initialization data');
 
+      // Sprint 14 — migrated to the institution-requests module.
       final response = await getWithDio(
-        '/eblood-connect/init-ins-request-infos',
+        '/institution-requests/get-form-init-data',
         timeoutDuration: const Duration(seconds: 30),
       );
 
@@ -430,8 +431,9 @@ class AuthService {
   Future<IApiResponse> submitInsRequest(Map<String, dynamic> requestData) async {
     try {
       print('🔄 Submitting INS request with payload: ${jsonEncode(requestData)}');
+      // Sprint 14 — migrated to the institution-requests module.
       final response = await postWithDio(
-        '/eblood-connect/ins-request/submit',
+        '/institution-requests/submit-request',
         body: requestData,
         timeoutDuration: const Duration(seconds: 60),
       );
@@ -454,7 +456,8 @@ class AuthService {
       final response = await uploadFile(
         path: idPhoto.path,
         filename: path.basename(idPhoto.path),
-        endpoint: '/eblood-connect/ins-request/upload-id-photo',
+        // Sprint 14 — migrated to the institution-requests module.
+        endpoint: '/institution-requests/upload-id-photo',
         extraData: {'id': sysInsRequestId},
         fileFieldName: 'upload_file',
         timeoutDuration: const Duration(seconds: 60),
@@ -479,7 +482,8 @@ class AuthService {
       final response = await uploadFile(
         path: facePhoto.path,
         filename: path.basename(facePhoto.path),
-        endpoint: '/eblood-connect/ins-request/upload-face-photo',
+        // Sprint 14 — migrated to the institution-requests module.
+        endpoint: '/institution-requests/upload-face-photo',
         extraData: {'id': sysInsRequestId},
         fileFieldName: 'upload_file',
         timeoutDuration: const Duration(seconds: 60),
@@ -508,7 +512,8 @@ class AuthService {
       final response = await uploadFile(
         path: profilePhoto.path,
         filename: path.basename(profilePhoto.path),
-        endpoint: '/eblood-connect/ins-request/upload-profile-photo',
+        // Sprint 14 — migrated to the institution-requests module.
+        endpoint: '/institution-requests/upload-profile-photo',
         extraData: {
           'id': sysInsRequestId,
           'side': side,
@@ -532,8 +537,10 @@ class AuthService {
   Future<IApiResponse> getMyInsRequest() async {
     try {
       print('🔄 Fetching my INS request');
+      // Sprint 14 — migrated to the institution-requests module
+      // (note: also renamed get-my-ins-request → get-my-request).
       final response = await getWithDio(
-        '/eblood-connect/ins-request/get-my-ins-request',
+        '/institution-requests/get-my-request',
         timeoutDuration: const Duration(seconds: 30),
       );
       print('📊 My INS request response: $response');

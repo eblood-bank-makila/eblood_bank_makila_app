@@ -52,8 +52,10 @@ class VisitorRegistrationServiceImpl implements IVisitorRegistrationService {
 
     // Also update backend to mark phone as verified
     try {
-      await putWithDio(
-        '/eblood-connect/users/update-visitor-phone',
+      // Sprint 16 — migrated from PUT /eblood-connect/users/update-visitor-phone
+      // to POST /api/v1/auth/visitor/update-phone (clean public surface).
+      await postWithDio(
+        '/auth/visitor/update-phone',
         body: {'phone_number': phone, 'is_phone_verified': true},
       );
       print('✅ Updated visitor phone verification status on backend');
@@ -114,7 +116,10 @@ class VisitorRegistrationServiceImpl implements IVisitorRegistrationService {
   /// Returns: {success, needs_entity, needs_phone_verification, data}
   Future<Map<String, dynamic>?> checkVisitorLogin() async {
     try {
-      final response = await getWithDio('/eblood-connect/users/login-visitor');
+      // Sprint 16 — migrated from GET /eblood-connect/users/login-visitor to
+      // POST /api/v1/auth/visitor/check-existing. The new surface is POST-only
+      // for consistency with the rest of the kebab-case verb-noun convention.
+      final response = await postWithDio('/auth/visitor/check-existing');
 
       // Accept successful response
       if (response.success || response.statusCode == 200 || response.statusCode == 201) {
@@ -215,8 +220,10 @@ class VisitorRegistrationServiceImpl implements IVisitorRegistrationService {
     required String locationId,
   }) async {
     try {
+      // Sprint 16 — migrated from POST /eblood-connect/users/login-visitor to
+      // POST /api/v1/auth/visitor/create-visitor.
       final response = await postWithDio(
-        '/eblood-connect/users/login-visitor',
+        '/auth/visitor/create-visitor',
         body: {'location_id': locationId},
       );
 
@@ -292,7 +299,7 @@ class VisitorRegistrationServiceImpl implements IVisitorRegistrationService {
     // Note: sessionId is actually the phone number for visitor OTP
     try {
       final response = await postWithDio(
-        '/eblood-connect/users/visitor-send-phone-otp',
+        '/auth/visitor/send-phone-otp',
         body: {
           'phone_number': sessionId,
           if (appSignature != null) 'app_signature': appSignature,
@@ -310,7 +317,7 @@ class VisitorRegistrationServiceImpl implements IVisitorRegistrationService {
   Future<bool> sendPhoneOtp(String phoneNumber, {String? appSignature}) async {
     try {
       final response = await postWithDio(
-        '/eblood-connect/users/visitor-send-phone-otp',
+        '/auth/visitor/send-phone-otp',
         body: {
           'phone_number': phoneNumber,
           if (appSignature != null) 'app_signature': appSignature,
@@ -334,7 +341,7 @@ class VisitorRegistrationServiceImpl implements IVisitorRegistrationService {
       print('🔐 Sending OTP verification: phone=$sessionId, otp=$otpCode');
 
       final response = await postWithDio(
-        '/eblood-connect/users/visitor-verify-phone-otp',
+        '/auth/visitor/verify-phone-otp',
         body: {'phone_number': sessionId, 'otp_code': otpCode},
       );
 
@@ -361,7 +368,7 @@ class VisitorRegistrationServiceImpl implements IVisitorRegistrationService {
   }) async {
     try {
       final response = await postWithDio(
-        '/eblood-connect/users/visitor-verify-phone-otp',
+        '/auth/visitor/verify-phone-otp',
         body: {'phone_number': phoneNumber, 'otp_code': otpCode},
       );
 
@@ -377,7 +384,7 @@ class VisitorRegistrationServiceImpl implements IVisitorRegistrationService {
     // Note: sessionId is actually the phone number for visitor OTP
     try {
       final response = await postWithDio(
-        '/eblood-connect/users/visitor-send-phone-otp',
+        '/auth/visitor/send-phone-otp',
         body: {
           'phone_number': sessionId,
           if (appSignature != null) 'app_signature': appSignature,

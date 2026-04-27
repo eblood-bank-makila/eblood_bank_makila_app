@@ -78,8 +78,10 @@ class _TopDonorListState extends State<_TopDonorList> {
     });
 
     try {
+      // Sprint 12 — migrated from /eblood-connect/blood-donors/top-donors
+      // to the dedicated donor self-service module.
       final response = await getWithDio(
-        '/eblood-connect/blood-donors/top-donors',
+        '/blood-donors/top-donors',
         queryParams: {
           'scope': widget.scope,
           'limit': '20',

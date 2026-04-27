@@ -581,8 +581,9 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
       debugPrint('📍 Fetching address access price for bank: ${bank.id}');
 
       // Call API to get address access price
+      // Sprint 15 — migrated to the dedicated pricing module.
       final response = await getWithDio(
-        '/eblood-connect/address-access-price',
+        '/pricing/get-address-access-price',
       );
 
       debugPrint('📍 Address access price response: ${response.data}');

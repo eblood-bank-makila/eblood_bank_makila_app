@@ -130,7 +130,9 @@ class RecentActivityNotifier extends StateNotifier<RecentActivityState> {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      final response = await getWithDio('/eblood-connect/my-recent-activity');
+      // Sprint 13b — migrated from /eblood-connect/my-recent-activity to the
+      // dedicated activity-log module (kebab-case verb-noun convention).
+      final response = await getWithDio('/activity-log/list-recent');
 
       if (response.success && response.data != null) {
         final data = response.data as Map<String, dynamic>;

@@ -10,7 +10,8 @@ class PaymentServiceImpl implements IPaymentService {
   @override
   Future<double> getAddressViewPrice() async {
     try {
-      final response = await getWithDio('/eblood-connect/address-access-price');
+      // Sprint 15 — migrated to the dedicated pricing module.
+      final response = await getWithDio('/pricing/get-address-access-price');
       if (response.success && response.data != null) {
         final price = response.data['price'];
         return price is num ? price.toDouble() : 0.0;
@@ -25,7 +26,8 @@ class PaymentServiceImpl implements IPaymentService {
   @override
   Future<double> getDeliveryPrice() async {
     try {
-      final response = await getWithDio('/eblood-connect/delivery-price');
+      // Sprint 15 — migrated to the dedicated pricing module.
+      final response = await getWithDio('/pricing/get-delivery-price');
       if (response.success && response.data != null) {
         final price = response.data['price'];
         return price is num ? price.toDouble() : 0.0;

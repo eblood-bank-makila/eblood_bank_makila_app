@@ -6,25 +6,47 @@ import 'package:eblood_bank_mak_app/stock_management/business/service/favoris/Fa
 import 'package:eblood_bank_mak_app/apps/config/api/dio_client.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:get_storage/get_storage.dart';
 
 import '../../../business/model/favoris/SupprimerFavorisModel.dart';
 
 class FavorisNetworkServiceImpl implements FavorisBanqueNetworkService {
   String baseURL;
+  final GetStorage _storage = GetStorage();
 
   FavorisNetworkServiceImpl(this.baseURL);
 
+  /// Sprint 13a — read the current user's id from the auth-cached
+  /// `user_data` GetStorage entry, written by AuthApi/AuthService at
+  /// login time. Throws if missing — Sprint 13a's three favorites
+  /// endpoints all require user_id explicitly (no JWT-derived shortcut).
+  String _currentUserId() {
+    final userData = _storage.read('user_data');
+    if (userData is Map) {
+      final raw = userData['id'];
+      if (raw != null && raw.toString().isNotEmpty) {
+        return raw.toString();
+      }
+    }
+    throw StateError(
+      'Cannot toggle favorite: user_data not in GetStorage. '
+      'Sprint 13a requires user_id in the request — log in first.',
+    );
+  }
+
   @override
-  
-  
   Future<Map<String, dynamic>> ajouterFavoris(String authBearer, FavorisModele favorite) async {
     try {
       debugPrint("📤 Toggling favorite: ${favorite.blood_bank_id}");
 
+      // Sprint 13a — migrated to /api/v1/favorites/add-blood-bank-favorite.
+      // The endpoint is idempotent (re-adding the same pair returns the
+      // existing row, never 409) so the caller doesn't need to pre-check.
       final response = await postWithDio(
-        '/eblood-connect/blood-bank-favory',
+        '/favorites/add-blood-bank-favorite',
         body: {
-          'blood_bank_id': favorite.blood_bank_id,
+          'user_id': _currentUserId(),
+          'blood_bank_org_id': favorite.blood_bank_id,
         },
       );
 
@@ -77,9 +99,17 @@ class FavorisNetworkServiceImpl implements FavorisBanqueNetworkService {
     try {
       debugPrint("📥 Fetching favorites list");
 
+      // Sprint 13a — migrated to GET /api/v1/favorites/list-blood-bank-favorites.
+      // The endpoint enriches each row with blood_bank_name / latitude /
+      // longitude / identifier joined from sys_health_structure, so
+      // DactumFavorisModel can render directly.
       final response = await getWithDio(
-        '/eblood-connect/blood-bank-favory',
-        queryParams: {'page': '0'},
+        '/favorites/list-blood-bank-favorites',
+        queryParams: {
+          'user_id': _currentUserId(),
+          'skip': '0',
+          'limit': '50',
+        },
       );
 
       debugPrint("✅ Favorites response: ${response.message}");
@@ -95,19 +125,30 @@ class FavorisNetworkServiceImpl implements FavorisBanqueNetworkService {
     }
   }
 
+  /// Sprint 13a — `id` is now the **blood-bank organisation id** (not the
+  /// favorite row id). The new POST /api/v1/favorites/remove-blood-bank-
+  /// favorite endpoint identifies the row by (user_id, blood_bank_org_id),
+  /// so a caller that has the favorite row in hand should pass
+  /// `dactumFavoris.blood_bank_org_id`. Idempotent: removing a non-
+  /// existent favorite returns 200 with `removed=False`.
   @override
   Future<SupprimerFavorisModel> removeFavorite(String id, String authBearer) async {
     try {
-      debugPrint("🗑️ Removing favorite: $id");
+      debugPrint("🗑️ Removing favorite (blood_bank_org_id=$id)");
 
-      final response = await deleteWithDio(
-        '/eblood-connect/blood-bank-favory',
-        queryParams: {'favorite_id': id},
+      final response = await postWithDio(
+        '/favorites/remove-blood-bank-favorite',
+        body: {
+          'user_id': _currentUserId(),
+          'blood_bank_org_id': id,
+        },
       );
 
-      debugPrint("✅ Favorite removed successfully: ${response.message}");
+      debugPrint("✅ Favorite remove response: ${response.message}");
 
-      // Return a success model
+      // Return a success model — Sprint 13a backend always 200s on
+      // remove (the response.data carries `removed: bool` if the caller
+      // wants to distinguish actual-delete from no-op).
       return SupprimerFavorisModel(
         statusCode: response.statusCode ?? 200,
         success: response.success,

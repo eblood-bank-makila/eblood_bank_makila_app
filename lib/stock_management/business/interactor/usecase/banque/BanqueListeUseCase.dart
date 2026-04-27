@@ -2,7 +2,7 @@
 
 import 'package:eblood_bank_mak_app/stock_management/business/model/banque/BanqueModele.dart';
 import 'package:eblood_bank_mak_app/stock_management/business/service/banque/BanqueListeNetworkService.dart';
-import 'package:eblood_bank_mak_app/utilisateurs/business/service/utilisateurLocalService.dart';
+import 'package:eblood_bank_mak_app/users/business/service/utilisateurLocalService.dart';
 
 class BanqueListeUseCase{
   BanqueListeNetworkService network;

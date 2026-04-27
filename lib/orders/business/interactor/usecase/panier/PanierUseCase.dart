@@ -6,7 +6,7 @@ import 'package:eblood_bank_mak_app/orders/business/service/panier/PanierNetwork
 import 'package:eblood_bank_mak_app/stock_management/business/model/banque/BanqueModele.dart';
 import 'package:eblood_bank_mak_app/stock_management/business/model/poche/PocheModel.dart';
 
-import '../../../../../utilisateurs/business/service/utilisateurLocalService.dart';
+import '../../../../../users/business/service/utilisateurLocalService.dart';
 
 class PanierUseCase{
   PanierNetworkService network;

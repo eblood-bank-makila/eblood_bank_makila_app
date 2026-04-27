@@ -1,6 +1,6 @@
 
-import 'package:eblood_bank_mak_app/utilisateurs/business/interactors/UtilisateurInteractor.dart';
-import 'package:eblood_bank_mak_app/utilisateurs/ui/framework/AuthApiAdapter.dart';
+import 'package:eblood_bank_mak_app/users/business/interactors/UtilisateurInteractor.dart';
+import 'package:eblood_bank_mak_app/users/ui/framework/AuthApiAdapter.dart';
 import 'package:eblood_bank_mak_app/apps/config/theme/ColorPages.dart';
 import 'package:eblood_bank_mak_app/apps/config/AppConfig.dart';
 import 'package:eblood_bank_mak_app/apps/services/ApiTestService.dart';
@@ -13,7 +13,7 @@ import 'package:eblood_bank_mak_app/stock_management/ui/framework/favoris/Favori
 import 'package:eblood_bank_mak_app/stock_management/ui/framework/poche/PocheListeServiceNetworkImpl.dart';
 import 'package:eblood_bank_mak_app/payments/business/interactors/PaiementInteractor.dart';
 import 'package:eblood_bank_mak_app/payments/ui/framework/PaiementNetworkServiceImpl.dart';
-import 'package:eblood_bank_mak_app/utilisateurs/ui/framework/UtilisateurLocalServiceImpl.dart';
+import 'package:eblood_bank_mak_app/users/ui/framework/UtilisateurLocalServiceImpl.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:flutter/material.dart';

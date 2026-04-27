@@ -1,5 +1,5 @@
 import 'package:eblood_bank_mak_app/apps/config/theme/ColorPages.dart';
-import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/changerPassword/ChangerPasswordPage.dart';
+import 'package:eblood_bank_mak_app/users/ui/pages/changerPassword/ChangerPasswordPage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';

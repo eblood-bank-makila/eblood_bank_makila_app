@@ -9,7 +9,7 @@ import '../../../business/interactor/usecase/delivery_position/DeliveryPositionU
 import '../../../business/model/delivery/DeliveryPositionModel.dart';
 import '../../../business/model/blood_request/BloodRequestModel.dart';
 import '../../framework/delivery/DeliveryValidationNetworkServiceImpl.dart';
-import '../../../../utilisateurs/ui/framework/UtilisateurLocalServiceImpl.dart';
+import '../../../../users/ui/framework/UtilisateurLocalServiceImpl.dart';
 import '../../../../apps/config/AppConfig.dart';
 
 final deliveryPositionCtrlProvider = StateNotifierProvider<DeliveryPositionCtrl, DeliveryPositionState>((ref) {

@@ -4,7 +4,7 @@
 
 import 'package:eblood_bank_mak_app/stock_management/business/model/recherche/DatumRecherchePocheModel.dart';
 
-import '../../../../../utilisateurs/business/service/utilisateurLocalService.dart';
+import '../../../../../users/business/service/utilisateurLocalService.dart';
 import '../../../service/recherche/RechercheListeNetworkService.dart';
 
 class RechercheListeUseCase{

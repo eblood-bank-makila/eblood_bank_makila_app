@@ -8,10 +8,10 @@ import 'package:get_storage/get_storage.dart';
 import '../config/theme/ColorPages.dart';
 import '../widgets/ModernInputWidget.dart';
 import '../widgets/ModernSpinnerWidget.dart';
-import '../../utilisateurs/ui/pages/authentification/AuthentificationCtrl.dart';
+import '../../users/ui/pages/authentification/AuthentificationCtrl.dart';
 
-import '../../utilisateurs/ui/pages/motdepasse/ReinitialiserMotDePassePage.dart';
-import '../../utilisateurs/business/interactors/UtilisateurInteractor.dart';
+import '../../users/ui/pages/motdepasse/ReinitialiserMotDePassePage.dart';
+import '../../users/business/interactors/UtilisateurInteractor.dart';
 
 class ModernLoginPage extends ConsumerStatefulWidget {
   const ModernLoginPage({super.key});

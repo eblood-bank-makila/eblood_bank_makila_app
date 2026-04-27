@@ -4,7 +4,7 @@ import 'package:eblood_bank_mak_app/orders/business/interactor/usecase/panier/Su
 import 'package:eblood_bank_mak_app/orders/business/service/panier/PanierNetworkService.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import '../../../utilisateurs/business/service/utilisateurLocalService.dart';
+import '../../../users/business/service/utilisateurLocalService.dart';
 
 part 'CommandeInteractor.g.dart';
 

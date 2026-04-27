@@ -2,7 +2,7 @@ import 'dart:math';
 import '../../../model/delivery/DeliveryPositionModel.dart';
 import '../../../model/blood_request/BloodRequestModel.dart';
 import '../../../service/DeliveryValidationNetworkService.dart';
-import '../../../../../utilisateurs/business/service/utilisateurLocalService.dart';
+import '../../../../../users/business/service/utilisateurLocalService.dart';
 
 class DeliveryPositionUseCase {
   final QrCodeActionNetworkService network;

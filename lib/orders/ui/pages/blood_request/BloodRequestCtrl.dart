@@ -5,7 +5,7 @@ import 'package:path/path.dart';
 import '../../../business/interactor/usecase/blood_request/BloodRequestUseCase.dart';
 import '../../../business/model/blood_request/BloodRequestModel.dart';
 import '../../framework/blood_request/BloodRequestNetworkServiceImpl.dart';
-import '../../../../utilisateurs/ui/framework/UtilisateurLocalServiceImpl.dart';
+import '../../../../users/ui/framework/UtilisateurLocalServiceImpl.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 part 'BloodRequestCtrl.g.dart';

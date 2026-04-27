@@ -6,7 +6,7 @@ import 'package:get/get.dart';
 import '../config/theme/ColorPages.dart';
 import '../connect/announcements/announcements_service.dart';
 import 'package:iconsax/iconsax.dart';
-import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/notification/NotificationPage.dart';
+import 'package:eblood_bank_mak_app/users/ui/pages/notification/NotificationPage.dart';
 
 import 'package:get_storage/get_storage.dart';
 import '../../core/rbac/providers/rbac_provider.dart';

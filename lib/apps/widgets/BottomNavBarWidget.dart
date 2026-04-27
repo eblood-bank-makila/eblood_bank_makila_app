@@ -4,9 +4,9 @@ import 'package:eblood_bank_mak_app/orders/ui/pages/qr_action/QrCodeActionPage.d
 import 'package:eblood_bank_mak_app/apps/widgets/HospitalQRCodeWidget.dart';
 import 'package:eblood_bank_mak_app/services/HealthStructureService.dart';
 import 'package:eblood_bank_mak_app/stock_management/ui/pages/banque/BanquePage.dart';
-import 'package:eblood_bank_mak_app/utilisateurs/business/service/NotificationPush.dart';
-import 'package:eblood_bank_mak_app/utilisateurs/ui/framework/UtilisateurLocalServiceImpl.dart';
-import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/profil/ProfilePage.dart';
+import 'package:eblood_bank_mak_app/users/business/service/NotificationPush.dart';
+import 'package:eblood_bank_mak_app/users/ui/framework/UtilisateurLocalServiceImpl.dart';
+import 'package:eblood_bank_mak_app/users/ui/pages/profil/ProfilePage.dart';
 import 'package:eblood_bank_mak_app/apps/home/hospital_home_page.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';

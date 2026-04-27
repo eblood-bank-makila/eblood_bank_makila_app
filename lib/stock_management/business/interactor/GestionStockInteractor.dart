@@ -9,7 +9,7 @@ import 'package:eblood_bank_mak_app/stock_management/business/service/banque/Ban
 import 'package:eblood_bank_mak_app/stock_management/business/service/favoris/FavorisBanqueNetworkService.dart';
 import 'package:eblood_bank_mak_app/stock_management/business/service/poche/PocheListeNetworkService.dart';
 import 'package:eblood_bank_mak_app/stock_management/business/service/recherche/RechercheListeNetworkService.dart';
-import 'package:eblood_bank_mak_app/utilisateurs/business/service/utilisateurLocalService.dart';
+import 'package:eblood_bank_mak_app/users/business/service/utilisateurLocalService.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 

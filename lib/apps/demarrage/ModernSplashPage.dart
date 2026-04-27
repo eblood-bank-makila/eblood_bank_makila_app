@@ -10,7 +10,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../config/theme/ColorPages.dart';
 import '../services/FirstLaunchService.dart';
 import '../services/FirebaseAuthService.dart';
-import '../../utilisateurs/business/interactors/UtilisateurInteractor.dart';
+import '../../users/business/interactors/UtilisateurInteractor.dart';
 import '../services/AuthApi.dart';
 import '../../core/rbac/providers/rbac_provider.dart';
 

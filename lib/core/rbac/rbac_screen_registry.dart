@@ -21,7 +21,7 @@ import 'package:eblood_bank_mak_app/blood_bank/ui/pages/HealthStructureNetworkPa
 import 'package:eblood_bank_mak_app/blood_bank/ui/pages/BloodDonorsManagementPage.dart';
 
 // Common screens
-import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/profil/ProfilePage.dart';
+import 'package:eblood_bank_mak_app/users/ui/pages/profil/ProfilePage.dart';
 
 /// Maps backend app flags to Flutter screens and icons.
 /// When a new bottom-nav feature is added, register it here.

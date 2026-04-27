@@ -5,7 +5,7 @@ import 'package:path/path.dart';
 import '../../../business/interactor/usecase/delivery/DeliveryValidationUseCase.dart';
 import '../../../business/model/delivery/DeliveryValidationModel.dart';
 import '../../framework/delivery/DeliveryValidationNetworkServiceImpl.dart';
-import '../../../../utilisateurs/ui/framework/UtilisateurLocalServiceImpl.dart';
+import '../../../../users/ui/framework/UtilisateurLocalServiceImpl.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 part 'DeliveryValidationCtrl.g.dart';

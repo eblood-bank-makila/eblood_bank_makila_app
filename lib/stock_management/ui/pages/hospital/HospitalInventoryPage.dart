@@ -8,7 +8,7 @@ import '../../../../core/rbac/providers/rbac_provider.dart';
 import '../../../../core/rbac/services/rbac_url_helper.dart';
 import '../../../../core/rbac/enums/collection_crud_info_flag.dart';
 import '../../../../core/rbac/models/rbac_models.dart';
-import '../../../../utilisateurs/ui/widgets/PatientSelectorDialog.dart';
+import '../../../../users/ui/widgets/PatientSelectorDialog.dart';
 
 class HospitalInventoryPage extends ConsumerStatefulWidget {
   const HospitalInventoryPage({super.key});

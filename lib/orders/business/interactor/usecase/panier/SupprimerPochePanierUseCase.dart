@@ -1,4 +1,4 @@
-import '../../../../../utilisateurs/business/service/utilisateurLocalService.dart';
+import '../../../../../users/business/service/utilisateurLocalService.dart';
 import '../../../model/panier/SuppressionPanierResponseModel.dart';
 import '../../../service/panier/PanierNetworkService.dart';
 

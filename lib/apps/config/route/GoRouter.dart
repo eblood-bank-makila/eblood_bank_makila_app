@@ -24,12 +24,12 @@ import 'package:eblood_bank_mak_app/stock_management/ui/pages/banque/BanquePage.
 import 'package:eblood_bank_mak_app/stock_management/ui/pages/favoris/FavorisPage.dart';
 import 'package:eblood_bank_mak_app/stock_management/ui/pages/poche/ListePocheBanquePage.dart';
 import 'package:eblood_bank_mak_app/stock_management/ui/pages/recherchePoche/RecherchePochePage.dart';
-import 'package:eblood_bank_mak_app/utilisateurs/business/interactors/UtilisateurInteractor.dart';
-import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/authentification/AuthentificationPage.dart';
-import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/changerPassword/ChangerPasswordPage.dart';
-import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/motdepasse/ReinitialiserMotDePassePage.dart';
-import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/profil/ProfilePage.dart';
-import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/otp_code/OtpCodePage.dart';
+import 'package:eblood_bank_mak_app/users/business/interactors/UtilisateurInteractor.dart';
+import 'package:eblood_bank_mak_app/users/ui/pages/authentification/AuthentificationPage.dart';
+import 'package:eblood_bank_mak_app/users/ui/pages/changerPassword/ChangerPasswordPage.dart';
+import 'package:eblood_bank_mak_app/users/ui/pages/motdepasse/ReinitialiserMotDePassePage.dart';
+import 'package:eblood_bank_mak_app/users/ui/pages/profil/ProfilePage.dart';
+import 'package:eblood_bank_mak_app/users/ui/pages/otp_code/OtpCodePage.dart';
 
 // Blood Search Flow imports
 import 'package:eblood_bank_mak_app/blood_search_flow/blood_search_routes.dart';

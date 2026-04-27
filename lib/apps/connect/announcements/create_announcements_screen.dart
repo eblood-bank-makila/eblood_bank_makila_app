@@ -6,7 +6,7 @@ import '../../../core/rbac/services/rbac_guard.dart';
 import '../../config/theme/ColorPages.dart';
 import 'announcements_service.dart';
 import 'package:iconsax/iconsax.dart';
-import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/notification/NotificationPage.dart';
+import 'package:eblood_bank_mak_app/users/ui/pages/notification/NotificationPage.dart';
 
 class CreateAnnouncementsScreen extends ConsumerStatefulWidget {
   final String? initialType;

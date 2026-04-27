@@ -8,7 +8,7 @@ import '../../config/theme/ColorPages.dart';
 import 'announcements_controller.dart';
 import 'create_announcements_screen.dart';
 import 'package:iconsax/iconsax.dart';
-import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/notification/NotificationPage.dart';
+import 'package:eblood_bank_mak_app/users/ui/pages/notification/NotificationPage.dart';
 
 class AnnouncementsScreen extends ConsumerWidget {
   final bool showBackButton;

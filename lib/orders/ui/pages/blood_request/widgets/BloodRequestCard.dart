@@ -19,7 +19,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sembast/sembast_io.dart';
 import '../../../../../apps/config/AppConfig.dart';
 import '../../../framework/delivery/DeliveryValidationNetworkServiceImpl.dart';
-import '../../../../../utilisateurs/ui/framework/UtilisateurLocalServiceImpl.dart';
+import '../../../../../users/ui/framework/UtilisateurLocalServiceImpl.dart';
 
 class BloodRequestCard extends StatelessWidget {
   final BloodRequestModel request;

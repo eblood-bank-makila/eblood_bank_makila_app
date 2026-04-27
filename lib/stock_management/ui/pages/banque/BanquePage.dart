@@ -7,7 +7,7 @@ import 'package:eblood_bank_mak_app/core/rbac/services/rbac_guard.dart';
 import 'package:eblood_bank_mak_app/stock_management/ui/pages/banque/BanqueCtrl.dart';
 import 'package:eblood_bank_mak_app/stock_management/ui/pages/banque/BloodBagOrderStepperPage.dart';
 import 'package:eblood_bank_mak_app/stock_management/ui/pages/recherchePoche/RecherchePochePage.dart';
-import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/notification/NotificationPage.dart';
+import 'package:eblood_bank_mak_app/users/ui/pages/notification/NotificationPage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

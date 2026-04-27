@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:eblood_bank_mak_app/orders/ui/pages/panier/PanierCtrl.dart';
 import '../../../apps/config/theme/ColorPages.dart';
 import '../../../apps/config/AppConfig.dart';
-import '../../../utilisateurs/business/interactors/UtilisateurInteractor.dart';
+import '../../../users/business/interactors/UtilisateurInteractor.dart';
 import '../../business/service/CurrencyExchangeService.dart';
 
 class CurrencyExchangeDebugPage extends ConsumerStatefulWidget {

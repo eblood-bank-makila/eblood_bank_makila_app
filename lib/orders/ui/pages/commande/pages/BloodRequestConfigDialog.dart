@@ -1,5 +1,5 @@
 import 'package:eblood_bank_mak_app/apps/config/theme/ColorPages.dart';
-import 'package:eblood_bank_mak_app/utilisateurs/ui/widgets/PatientSelectorDialog.dart';
+import 'package:eblood_bank_mak_app/users/ui/widgets/PatientSelectorDialog.dart';
 import 'package:eblood_bank_mak_app/core/rbac/models/rbac_models.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';

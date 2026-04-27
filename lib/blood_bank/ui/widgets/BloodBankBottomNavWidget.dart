@@ -13,10 +13,10 @@ import '../../../apps/config/theme/ColorPages.dart';
 import '../pages/BloodBankHomePage.dart';
 import '../pages/BloodBankInventoryPage.dart';
 import '../pages/BloodBankRequestsPage.dart';
-import '../../../utilisateurs/ui/pages/profil/ProfilePage.dart';
+import '../../../users/ui/pages/profil/ProfilePage.dart';
 import '../../../apps/connect/announcements/announcements_screen.dart';
-import '../../../utilisateurs/business/service/NotificationPush.dart';
-import '../../../utilisateurs/ui/framework/UtilisateurLocalServiceImpl.dart';
+import '../../../users/business/service/NotificationPush.dart';
+import '../../../users/ui/framework/UtilisateurLocalServiceImpl.dart';
 import '../../services/blood_request_notification_service.dart';
 
 class BloodBankBottomNavWidget extends ConsumerStatefulWidget {

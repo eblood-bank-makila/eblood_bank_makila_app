@@ -6,7 +6,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
-import '../../utilisateurs/business/models/code_otp/DatumCodeOtpModele.dart';
+import '../../users/business/models/code_otp/DatumCodeOtpModele.dart';
 import '../config/api/dio_client.dart';
 
 class AuthApi {

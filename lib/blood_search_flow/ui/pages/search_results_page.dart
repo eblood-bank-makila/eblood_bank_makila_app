@@ -239,10 +239,11 @@ class SearchResultsPage extends ConsumerWidget {
           ref
               .read(searchFlowProvider.notifier)
               .selectPaymentOption(PaymentOption.viewAddress);
-          context.push(
-            '/blood-search/hospital-identify',
-            extra: {'option': 'view_address'},
-          );
+          // Hospital is already identified (before blood type in new flow).
+          // Navigate based on provider state (payment or visitor OTP).
+          final step = ref.read(searchFlowProvider).currentStep;
+          final route = _routeForStep(step, 'view_address');
+          context.push(route);
         },
         onOrderDelivery: () {
           Navigator.pop(context);
@@ -250,13 +251,29 @@ class SearchResultsPage extends ConsumerWidget {
           ref
               .read(searchFlowProvider.notifier)
               .selectPaymentOption(PaymentOption.delivery);
-          context.push(
-            '/blood-search/hospital-identify',
-            extra: {'option': 'delivery'},
-          );
+          // Hospital is already identified (before blood type in new flow).
+          final step = ref.read(searchFlowProvider).currentStep;
+          final route = _routeForStep(step, 'delivery');
+          context.push(route);
         },
       ),
     );
+  }
+
+  /// Maps the provider's currentStep to the correct route after result selection.
+  /// Hospital is already identified earlier in the flow, so we skip hospital-identify.
+  String _routeForStep(SearchFlowStep step, String option) {
+    switch (step) {
+      case SearchFlowStep.payment:
+        return '/blood-search/payment';
+      case SearchFlowStep.visitorRegistration:
+        return '/blood-search/visitor-phone-otp';
+      case SearchFlowStep.hospitalIdentification:
+        // Fallback: hospital should already be identified, but just in case
+        return '/blood-search/hospital-identify';
+      default:
+        return '/blood-search/payment';
+    }
   }
 }
 
@@ -339,7 +356,9 @@ class _ResultCardState extends State<_ResultCard>
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      widget.result.formattedDistance,
+                      widget.result.distanceFromUserKm != null
+                          ? widget.result.formattedDistanceFromUser
+                          : widget.result.formattedDistance,
                       style: GoogleFonts.ubuntu(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -356,6 +375,37 @@ class _ResultCardState extends State<_ResultCard>
                     ),
                   ],
                 ),
+
+                // Distance from hospital (if available)
+                if (widget.result.distanceFromHospitalKm != null) ...[
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(
+                        Iconsax.hospital,
+                        size: 16,
+                        color: Colors.orange.shade600,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        widget.result.formattedDistanceFromHospital,
+                        style: GoogleFonts.ubuntu(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.orange.shade700,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'from_hospital'.tr.isEmpty ? 'from hospital' : 'from_hospital'.tr,
+                        style: GoogleFonts.ubuntu(
+                          fontSize: 13,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
 
                 // Product type and expiry info row
                 if (widget.result.bloodProductType != null ||
@@ -434,7 +484,9 @@ class _ResultCardState extends State<_ResultCard>
                   title: 'view_full_address'.tr.isEmpty
                       ? 'View Full Address'
                       : 'view_full_address'.tr,
-                  price: '500 CDF',
+                  price: widget.result.price > 0
+                      ? '${widget.result.currencySymbol ?? r'$'}${(widget.result.price * 0.10).toStringAsFixed(2)}'
+                      : '500 CDF',
                 ),
                 const SizedBox(height: 8),
                 // Delivery Option
@@ -444,7 +496,9 @@ class _ResultCardState extends State<_ResultCard>
                   title: 'order_delivery'.tr.isEmpty
                       ? 'Order Delivery'
                       : 'order_delivery'.tr,
-                  price: widget.result.formattedPrice,
+                  price: widget.result.price > 0
+                      ? widget.result.formattedPrice
+                      : '5,000 CDF',
                 ),
                 const SizedBox(height: 12),
                 // Tap to choose - with pulsing animation

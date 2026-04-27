@@ -1102,9 +1102,6 @@ class _PersonalRegistrationStepperPageState extends State<PersonalRegistrationSt
         } else if (locale.startsWith('es')) {
           // Spanish format: DD/MM/YYYY
           _dateOfBirthController.text = "${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}";
-        } else if (locale.startsWith('ar')) {
-          // Arabic format: DD/MM/YYYY (right-to-left)
-          _dateOfBirthController.text = "${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}";
         } else {
           // Default format (English, etc.): YYYY-MM-DD
           _dateOfBirthController.text = "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
@@ -1119,7 +1116,7 @@ class _PersonalRegistrationStepperPageState extends State<PersonalRegistrationSt
     String locale = Get.locale?.toString() ?? 'en_US';
 
     // Only normalize if not already in YYYY-MM-DD format
-    if (locale.startsWith('fr') || locale.startsWith('es') || locale.startsWith('ar')) {
+    if (locale.startsWith('fr') || locale.startsWith('es')) {
       try {
         // Convert from DD/MM/YYYY to YYYY-MM-DD for API
         final parts = _dateOfBirthController.text.split('/');
@@ -1223,8 +1220,8 @@ class _PersonalRegistrationStepperPageState extends State<PersonalRegistrationSt
           await authService.handleAutoLoginAfterRegistration(result);
 
           if (mounted) {
-            // Auto-login: go straight to the main app
-            context.go('/app/MainApp');
+            // Auto-login: go through RBAC loading
+            context.go('/rbac-loading');
           }
         } else {
           final msg = (result['message'] as String?) ?? 'Registration failed';

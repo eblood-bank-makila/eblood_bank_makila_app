@@ -1,9 +1,27 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:eblood_bank_mak_app/core/rbac/models/rbac_models.dart';
+import 'package:eblood_bank_mak_app/core/rbac/providers/rbac_provider.dart';
 import '../service/BloodReportsApiService.dart';
 
 // API Service Provider
 final bloodReportsApiServiceProvider = Provider<BloodReportsApiService>((ref) {
-  return BloodReportsApiService();
+  List<RbacCollectionCrudItem> _resolve(String bbFlag, String cntsFlag) {
+    final rbac = ref.read(rbacProvider.notifier);
+    var info = rbac.getCrudInfoByPath(bbFlag);
+    if (info.isEmpty) info = rbac.getCrudInfoByPath(cntsFlag);
+    return info;
+  }
+
+  return BloodReportsApiService(
+    reportsCrudInfo: _resolve(
+      'flutter_apps_eblood_bank_bb_inventory_reports',
+      'flutter_apps_eblood_bank_cnts_inventory_reports',
+    ),
+    exportCrudInfo: _resolve(
+      'flutter_apps_eblood_bank_bb_inventory_reports',
+      'flutter_apps_eblood_bank_cnts_inventory_reports',
+    ),
+  );
 });
 
 // Reports Key Metrics State

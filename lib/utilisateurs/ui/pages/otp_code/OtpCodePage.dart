@@ -74,8 +74,8 @@ class _OtpCodePageState extends ConsumerState<OtpCodePage> {
           // OTP verification successful — navigate to the main container.
           // AccountTypeBasedNavigation will immediately pick the correct UI
           // (customer/bloodBank/hospital) using the stored user_profiles flags.
-          debugPrint('🧭 OTP success — navigating to /app/MainApp (container)');
-          context.go('/app/MainApp');
+          debugPrint('🧭 OTP success — navigating to /rbac-loading');
+          context.go('/rbac-loading');
         } else {
           // Show server error message
           ScaffoldMessenger.of(context).showSnackBar(

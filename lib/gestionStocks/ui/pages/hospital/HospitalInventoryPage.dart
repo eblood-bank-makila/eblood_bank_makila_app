@@ -1,26 +1,44 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get/get.dart';
 import '../../../../apps/config/theme/ColorPages.dart';
 import '../../../../apps/services/HospitalInventoryService.dart';
+import '../../../../core/rbac/services/rbac_guard.dart';
+import '../../../../core/rbac/providers/rbac_provider.dart';
+import '../../../../core/rbac/services/rbac_url_helper.dart';
+import '../../../../core/rbac/enums/collection_crud_info_flag.dart';
+import '../../../../core/rbac/models/rbac_models.dart';
 import '../../../../utilisateurs/ui/widgets/PatientSelectorDialog.dart';
 
-class HospitalInventoryPage extends StatefulWidget {
+class HospitalInventoryPage extends ConsumerStatefulWidget {
   const HospitalInventoryPage({super.key});
 
   @override
-  State<HospitalInventoryPage> createState() => _HospitalInventoryPageState();
+  ConsumerState<HospitalInventoryPage> createState() => _HospitalInventoryPageState();
 }
 
-class _HospitalInventoryPageState extends State<HospitalInventoryPage> {
+class _HospitalInventoryPageState extends ConsumerState<HospitalInventoryPage> {
   final _service = HospitalInventoryService();
+  final RbacUrlHelper _urlHelper = RbacUrlHelper();
+  late final List<RbacCollectionCrudItem> _crudInfo;
   bool _loading = true;
   String _statusFilter = 'available';
   List<dynamic> _items = [];
   String? _error;
 
+  bool get _canPatch => _urlHelper.hasRbacUrl(CollectionCrudInfoFlag.patchProcessingUrl, 'main', _crudInfo);
+
   @override
   void initState() {
     super.initState();
+    guardPageEntry(
+      ref,
+      context,
+      'flutter_apps_eblood_bank_hosp_home_inventory',
+    );
+    _crudInfo = ref.read(rbacProvider.notifier).getCrudInfoByPath(
+      'flutter_apps_eblood_bank_hosp_home_inventory',
+    );
     _load();
   }
 
@@ -82,7 +100,11 @@ class _HospitalInventoryPageState extends State<HospitalInventoryPage> {
   Future<void> _markUsed(String itemId) async {
     final selectedId = await showDialog<String>(
       context: context,
-      builder: (ctx) => const PatientSelectorDialog(),
+      builder: (ctx) => PatientSelectorDialog(
+        crudInfo: ref.read(rbacProvider.notifier).getCrudInfoByPath(
+          'flutter_apps_eblood_bank_hosp_home_patients',
+        ),
+      ),
     );
     if (selectedId == null || selectedId.isEmpty) return;
 
@@ -161,6 +183,7 @@ class _HospitalInventoryPageState extends State<HospitalInventoryPage> {
                                   if (component.isNotEmpty)
                                     Text(component, style: TextStyle(color: Colors.grey.shade700, fontSize: 12)),
                                   const SizedBox(height: 12),
+                                  if (_canPatch)
                                   Row(
                                     children: [
                                       Expanded(

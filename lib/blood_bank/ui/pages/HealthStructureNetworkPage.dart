@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get/get.dart';
 
 import '../../../apps/config/theme/ColorPages.dart';
+import '../../../core/rbac/providers/rbac_provider.dart';
 import '../../business/providers/HealthStructureProvider.dart';
 import '../../data/models/HealthStructureModel.dart';
 import 'HealthStructureDetailPage.dart';
@@ -25,6 +26,8 @@ class _HealthStructureNetworkPageState extends ConsumerState<HealthStructureNetw
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
   bool _isSearching = false;
+
+  late final bool _canDetail;
 
   // Define tab structure based on health structure types
   final List<Map<String, dynamic>> _tabs = [
@@ -63,6 +66,32 @@ class _HealthStructureNetworkPageState extends ConsumerState<HealthStructureNetw
   @override
   void initState() {
     super.initState();
+    // Multi-flag entry guard — this page is reachable from blood_bank,
+    // hospital, customer, AND cnts profiles (each has its own network
+    // entry), so any one of those flags grants access.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!context.mounted) return;
+      final hasAccess = ref.read(rbacProvider.notifier).hasAnyMenuFlag([
+        'flutter_apps_eblood_bank_bb_home_network',
+        'flutter_apps_eblood_bank_hosp_home_network',
+        'flutter_apps_eblood_bank_customer_network_app',
+        'flutter_apps_eblood_bank_cnts_home_network',
+      ]);
+      if (!hasAccess) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('access_denied'.tr)),
+        );
+        Navigator.of(context).maybePop();
+      }
+    });
+    // Detail tap gating — pool the detail flags across profiles.
+    _canDetail = ref.read(rbacProvider.notifier).hasAnyMenuFlag([
+      'flutter_apps_eblood_bank_bb_network_detail',
+      'flutter_apps_eblood_bank_hosp_network_detail',
+      'flutter_apps_eblood_bank_cust_network_detail',
+      'flutter_apps_eblood_bank_cnts_network_detail',
+    ]);
+
     _tabController = TabController(length: _tabs.length, vsync: this);
     _filteredStructures = List.from(_healthStructures);
 
@@ -625,6 +654,12 @@ class _HealthStructureNetworkPageState extends ConsumerState<HealthStructureNetw
         color: Colors.white.withValues(alpha: 0.3),
         child: InkWell(
           onTap: () {
+            if (!_canDetail) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('access_denied'.tr)),
+              );
+              return;
+            }
             Navigator.push(
               context,
               MaterialPageRoute(

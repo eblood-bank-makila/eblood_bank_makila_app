@@ -5,6 +5,8 @@ import 'package:eblood_bank_mak_app/apps/widgets/PanierWidget.dart';
 import 'package:eblood_bank_mak_app/commande/ui/pages/commande/pages/DetailCommandePage.dart';
 import 'package:eblood_bank_mak_app/commande/ui/pages/panier/PanierCtrl.dart';
 import 'package:eblood_bank_mak_app/commande/ui/pages/panier/PanierPageState.dart';
+import 'package:eblood_bank_mak_app/core/rbac/providers/rbac_provider.dart';
+import 'package:eblood_bank_mak_app/core/rbac/services/rbac_guard.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -22,9 +24,18 @@ class PanierPage extends ConsumerStatefulWidget {
 }
 
 class _PanierPageState extends ConsumerState<PanierPage> {
+  bool _hasFlag(String flag) =>
+      ref.read(rbacProvider.notifier).hasMenuFlag(flag);
+
   @override
   void initState() {
     super.initState();
+    // RBAC entry guard on the cart sub_menu.
+    guardPageEntry(
+      ref,
+      context,
+      'flutter_apps_eblood_bank_hosp_blood_bag_cart',
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadCart();
     });
@@ -198,47 +209,48 @@ class _PanierPageState extends ConsumerState<PanierPage> {
 
                     const SizedBox(width: 16),
 
-                    // Checkout Button
-                    Expanded(
-                      child: SizedBox(
-                        height: 50,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => DetailCommandePage(
-                                  paiement: state.paniers!.data[0],
+                    // Checkout Button — gated on the cart-checkout flag.
+                    if (_hasFlag('flutter_apps_eblood_bank_hosp_cart_checkout'))
+                      Expanded(
+                        child: SizedBox(
+                          height: 50,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => DetailCommandePage(
+                                    paiement: state.paniers!.data[0],
+                                  ),
                                 ),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: ColorPages.COLOR_PRINCIPAL,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
                               ),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: ColorPages.COLOR_PRINCIPAL,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              elevation: 2,
                             ),
-                            elevation: 2,
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Iconsax.verify, size: 18),
-                              const SizedBox(width: 8),
-                              Text(
-                                'verification_with_count'.trParams({'count': itemCount.toString()}),
-                                style: GoogleFonts.ubuntu(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Iconsax.verify, size: 18),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'verification_with_count'.trParams({'count': itemCount.toString()}),
+                                  style: GoogleFonts.ubuntu(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       ),
-                    ),
                   ],
                 ),
 
@@ -572,8 +584,9 @@ class _PanierPageState extends ConsumerState<PanierPage> {
 
             const SizedBox(height: 16),
 
-            // Checkout Button
-            SizedBox(
+            // Checkout Button — gated on the cart-checkout flag.
+            if (_hasFlag('flutter_apps_eblood_bank_hosp_cart_checkout'))
+              SizedBox(
               width: double.infinity,
               height: 56,
               child: ElevatedButton(

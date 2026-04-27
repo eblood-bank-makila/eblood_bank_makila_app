@@ -1434,7 +1434,7 @@ class _HealthStructureRegistrationPageState extends State<HealthStructureRegistr
             await auth.handleAutoLoginAfterRegistration(result);
             if (!mounted) return;
             _showSnackBar('registration_success'.tr, isError: false);
-            context.go('/app/MainApp');
+            context.go('/rbac-loading');
           } else {
             _showSnackBar(result['message']?.toString() ?? 'registration_failed'.tr, isError: true);
           }

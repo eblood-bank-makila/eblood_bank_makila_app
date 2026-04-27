@@ -1,30 +1,32 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as path;
-import 'package:dio/dio.dart';
-import 'package:http_parser/http_parser.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:eblood_bank_mak_app/core/rbac/models/rbac_models.dart';
+import 'package:eblood_bank_mak_app/core/rbac/services/rbac_url_helper.dart';
+import 'package:eblood_bank_mak_app/core/rbac/providers/rbac_provider.dart';
 import '../../../apps/config/api/dio_client.dart';
 import '../../../apps/models/api_response.dart';
 
-// Define endpoints for donor operations
-class BloodDonorEndpoints {
-  static const String register = '/eblood-connect/blood-donors/register';
-  static const String photoUpload = '/eblood-connect/blood-donors/profil-photo-upload';
-  static const String list = '/eblood-connect/blood-donors/list';
-  static const String faceSearch = '/eblood-connect/blood-donors/face-search';
-  static const String statistics = '/eblood-connect/blood-donors/statistics';
-}
-
 class BloodDonorApiService {
-  BloodDonorApiService();
-  
-  // Secure storage for retrieving auth token
-  final _secureStorage = const FlutterSecureStorage();
+  /// Donors list menu — fetch_url/main, create_processing_url/face_search_url
+  final List<RbacCollectionCrudItem> _donorsCrudInfo;
+  /// Donor register menu — create_processing_url/main, create_processing_url/upload_donor_photo_url
+  final List<RbacCollectionCrudItem> _registerCrudInfo;
+  /// Donor statistics menu — fetch_url/main
+  final List<RbacCollectionCrudItem> _statsCrudInfo;
+  final RbacUrlHelper _urlHelper = RbacUrlHelper();
+
+  BloodDonorApiService({
+    required List<RbacCollectionCrudItem> donorsCrudInfo,
+    required List<RbacCollectionCrudItem> registerCrudInfo,
+    required List<RbacCollectionCrudItem> statsCrudInfo,
+  })  : _donorsCrudInfo = donorsCrudInfo,
+        _registerCrudInfo = registerCrudInfo,
+        _statsCrudInfo = statsCrudInfo;
   
   // Helper method to standardize gender format for API
   // Converts 'M' to 'm' and 'F' to 'f' as required by the API
@@ -39,45 +41,20 @@ class BloodDonorApiService {
   }) async {
     try {
       final fileName = path.basename(photo.path);
-
       debugPrint('Starting face search upload for file: $fileName');
 
-      final dio = Dio();
-
-      final fileExtension = path.extension(fileName).toLowerCase();
-      String contentType = 'application/octet-stream';
-      if (fileExtension == '.jpg' || fileExtension == '.jpeg') {
-        contentType = 'image/jpeg';
-      } else if (fileExtension == '.png') {
-        contentType = 'image/png';
-      }
-
-      final formData = FormData.fromMap({
-        'metadata': jsonEncode(metadata ?? const {}),
-        'upload_file': await MultipartFile.fromFile(
-          photo.path,
-          filename: fileName,
-          contentType: MediaType.parse(contentType),
-        ),
-      });
-
-      final baseUrl = dotenv.env['BASE_API_URL'] ?? 'http://localhost';
-
-      final dioResponse = await dio.post(
-        '$baseUrl${BloodDonorEndpoints.faceSearch}',
-        data: formData,
-        options: Options(
-          headers: {
-            'Authorization': await _getAuthToken(),
-            'api-consumer': dotenv.env['API_CONSUMER'] ?? '',
-          },
-          contentType: 'multipart/form-data',
-        ),
+      // Use uploadFile helper (includes device info, auth, location headers)
+      final response = await uploadFile(
+        path: photo.path,
+        filename: fileName,
+        endpoint: _urlHelper.getCreateProcessingUrl(_donorsCrudInfo, 'face_search_url'),
+        fileFieldName: 'upload_file',
+        extraData: {'metadata': jsonEncode(metadata ?? const {})},
+        timeoutDuration: const Duration(seconds: 120),
       );
 
-      debugPrint('Face search response status: ${dioResponse.statusCode}');
-
-      return IApiResponse.fromData(dioResponse.data);
+      debugPrint('Face search response - Success: ${response.success}, Status: ${response.statusCode}');
+      return response;
     } catch (e) {
       debugPrint('Error performing face search: $e');
       String errorMessage = 'Erreur lors de la recherche par photo';
@@ -101,24 +78,6 @@ class BloodDonorApiService {
       );
     }
   }
-
-  // Helper method to get the authentication token
-  Future<String> _getAuthToken() async {
-    try {
-      debugPrint('🔍 BloodDonorApiService: Reading auth token from secure storage...');
-      final token = await _secureStorage.read(key: 'auth_token');
-      if (token != null && token.isNotEmpty) {
-        debugPrint('✅ BloodDonorApiService: Token found: ${token.substring(0, 20)}...');
-        return 'Bearer $token';
-      } else {
-        debugPrint('⚠️ BloodDonorApiService: No token found in secure storage');
-        return '';
-      }
-    } catch (e) {
-      debugPrint('❌ BloodDonorApiService: Error retrieving auth token: $e');
-      return '';
-    }
-  }
   
   // Method to register a new blood donor
   Future<IApiResponse> registerDonor(Map<String, dynamic> donorData) async {
@@ -130,7 +89,7 @@ class BloodDonorApiService {
       }
       
       final response = await postWithDio(
-        BloodDonorEndpoints.register,
+        _urlHelper.getCreateProcessingUrl(_registerCrudInfo),
         body: donorData,
       );
       
@@ -159,63 +118,18 @@ class BloodDonorApiService {
   Future<IApiResponse> uploadDonorPhoto(String donorId, File photo) async {
     try {
       final fileName = path.basename(photo.path);
-      
-      // Log photo information
       debugPrint('Uploading photo: $fileName for donor: $donorId');
       
-      // Create a Dio instance for multipart upload
-      final dio = Dio();
-      
-      // Determine content type based on file extension
-      final fileExtension = path.extension(fileName).toLowerCase();
-      String contentType = 'application/octet-stream';
-      if (fileExtension == '.jpg' || fileExtension == '.jpeg') {
-        contentType = 'image/jpeg';
-      } else if (fileExtension == '.png') {
-        contentType = 'image/png';
-      }
-      
-      // Create FormData with the field names expected by the backend
-      final formData = FormData();
-      
-      // Backend expects 'id' not 'donorId'
-      formData.fields.add(MapEntry('id', donorId));
-      
-      // Add the file with field name 'upload_file' as required by the backend
-      formData.files.add(
-        MapEntry(
-          'upload_file',
-          await MultipartFile.fromFile(
-            photo.path,
-            filename: fileName,
-            contentType: MediaType.parse(contentType),
-          ),
-        ),
+      // Use uploadFile helper (includes device info, auth, location headers)
+      final response = await uploadFile(
+        path: photo.path,
+        filename: fileName,
+        endpoint: _urlHelper.getCreateProcessingUrl(_registerCrudInfo, 'upload_donor_photo_url'),
+        fileFieldName: 'upload_file',
+        extraData: {'id': donorId},
+        timeoutDuration: const Duration(seconds: 120),
       );
       
-      // Get the base URL from the same place your other API calls use
-      final baseUrl = dotenv.env['BASE_API_URL'] ?? 'http://localhost';
-      
-      // Send the request
-      final dioResponse = await dio.post(
-        '$baseUrl${BloodDonorEndpoints.photoUpload}',
-        data: formData,
-        options: Options(
-          headers: {
-            'Authorization': await _getAuthToken(),
-            'api-consumer': dotenv.env['API_CONSUMER'] ?? '',
-          },
-          contentType: 'multipart/form-data',
-        ),
-      );
-      
-      debugPrint('Upload photo response: ${dioResponse.statusCode}');
-      debugPrint('Upload photo response data: ${dioResponse.data}');
-      
-      // Convert response to IApiResponse format
-      final response = IApiResponse.fromData(dioResponse.data);
-      
-      // Enhanced logging for debugging
       debugPrint('Photo upload response - Success: ${response.success}, Status: ${response.statusCode}');
       debugPrint('Photo upload message: ${response.message}');
       
@@ -227,7 +141,6 @@ class BloodDonorApiService {
     } catch (e) {
       debugPrint('Error uploading donor photo: $e');
       
-      // Provide a more detailed error message for debugging
       String errorMessage = 'Erreur lors du téléversement de la photo';
       if (e is DioException) {
         if (e.response != null) {
@@ -245,7 +158,7 @@ class BloodDonorApiService {
       return IApiResponse(
         success: false,
         message: errorMessage,
-        statusCode: 503, // Service unavailable
+        statusCode: 503,
       );
     }
   }
@@ -290,7 +203,7 @@ class BloodDonorApiService {
       
       // Make API request
       final response = await getWithDio(
-        BloodDonorEndpoints.list,
+        _urlHelper.getFetchUrl(_donorsCrudInfo),
         queryParams: queryParams.isNotEmpty ? queryParams : null,
       );
       
@@ -342,7 +255,7 @@ class BloodDonorApiService {
 
   Future<IApiResponse> getDonorStatistics() async {
     try {
-      final response = await getWithDio(BloodDonorEndpoints.statistics);
+      final response = await getWithDio(_urlHelper.getFetchUrl(_statsCrudInfo));
       return response;
     } catch (e) {
       debugPrint('Error fetching donor statistics: $e');
@@ -357,5 +270,25 @@ class BloodDonorApiService {
 
 // Provider for the donor API service
 final bloodDonorApiServiceProvider = Provider<BloodDonorApiService>((ref) {
-  return BloodDonorApiService();
+  List<RbacCollectionCrudItem> _resolve(String bbFlag, String cntsFlag) {
+    final rbac = ref.read(rbacProvider.notifier);
+    var info = rbac.getCrudInfoByPath(bbFlag);
+    if (info.isEmpty) info = rbac.getCrudInfoByPath(cntsFlag);
+    return info;
+  }
+
+  return BloodDonorApiService(
+    donorsCrudInfo: _resolve(
+      'flutter_apps_eblood_bank_bb_home_donors',
+      'flutter_apps_eblood_bank_cnts_home_donors',
+    ),
+    registerCrudInfo: _resolve(
+      'flutter_apps_eblood_bank_bb_donors_register',
+      'flutter_apps_eblood_bank_cnts_donors_register',
+    ),
+    statsCrudInfo: _resolve(
+      'flutter_apps_eblood_bank_bb_donors_statistics',
+      'flutter_apps_eblood_bank_cnts_donors_statistics',
+    ),
+  );
 });

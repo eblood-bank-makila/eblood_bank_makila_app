@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:iconsax/iconsax.dart';
 
+import '../../core/rbac/services/rbac_guard.dart';
 import '../config/theme/ColorPages.dart';
 import '../services/AuthService.dart';
 import '../utils/error_utils.dart';
@@ -13,14 +15,14 @@ import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 
 
-class CustomerNearbyBloodBanksPage extends StatefulWidget {
+class CustomerNearbyBloodBanksPage extends ConsumerStatefulWidget {
   const CustomerNearbyBloodBanksPage({super.key});
 
   @override
-  State<CustomerNearbyBloodBanksPage> createState() => _CustomerNearbyBloodBanksPageState();
+  ConsumerState<CustomerNearbyBloodBanksPage> createState() => _CustomerNearbyBloodBanksPageState();
 }
 
-class _CustomerNearbyBloodBanksPageState extends State<CustomerNearbyBloodBanksPage> {
+class _CustomerNearbyBloodBanksPageState extends ConsumerState<CustomerNearbyBloodBanksPage> {
   final AuthService _authService = AuthService();
   bool _isLoading = true;
   String? _errorMessage;
@@ -29,6 +31,12 @@ class _CustomerNearbyBloodBanksPageState extends State<CustomerNearbyBloodBanksP
   @override
   void initState() {
     super.initState();
+    // RBAC entry guard.
+    guardPageEntry(
+      ref,
+      context,
+      'flutter_apps_eblood_bank_cust_home_nearby_banks',
+    );
     _loadNearbyBanks();
   }
 

@@ -7,6 +7,7 @@ import 'package:iconsax/iconsax.dart';
 import 'package:get/get.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../../apps/config/theme/ColorPages.dart';
+import '../../../core/rbac/services/rbac_guard.dart';
 import '../../business/interactors/DeliveryController.dart';
 import '../../business/model/DeliveryModels.dart';
 
@@ -32,6 +33,12 @@ class _ActiveDeliveryTrackingPageState
   @override
   void initState() {
     super.initState();
+    // RBAC entry guard.
+    guardPageEntry(
+      ref,
+      context,
+      'flutter_apps_eblood_bank_cust_delivery_active_tracking',
+    );
     _startLocationTracking();
   }
 

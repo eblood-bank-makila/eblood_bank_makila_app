@@ -75,8 +75,7 @@ class OptionChoiceBottomSheet extends StatelessWidget {
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [ 
-                          const SizedBox(height: 4),
+                        children: [
                           Row(
                             children: [
                               Icon(Iconsax.routing_2, 
@@ -100,31 +99,9 @@ class OptionChoiceBottomSheet extends StatelessWidget {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Icon(Iconsax.location, 
-                                  size: 14, color: Colors.grey.shade400),
-                              const SizedBox(width: 4),
-                              Expanded(
-                                child: Text(
-                                  result.maskedAddress,
-                                  style: GoogleFonts.ubuntu(
-                                    fontSize: 11,
-                                    color: Colors.grey.shade500,
-                                    fontStyle: FontStyle.italic,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              Icon(Iconsax.lock_1, 
-                                  size: 12, color: Colors.grey.shade400),
-                            ],
-                          ),
                           // Price info
                           if (result.price > 0) ...[
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 8),
                             Text(
                               result.formattedPrice,
                               style: GoogleFonts.ubuntu(
@@ -164,7 +141,9 @@ class OptionChoiceBottomSheet extends StatelessWidget {
                   subtitle: 'get_directions'.tr.isEmpty
                       ? 'Get directions to visit yourself'
                       : 'get_directions'.tr,
-                  price: '500 CDF',
+                  price: result.price > 0
+                      ? '${result.currencySymbol ?? r'$'}${(result.price * 0.10).toStringAsFixed(2)}'
+                      : '500 CDF',
                   onTap: onViewAddress,
                 ),
 
@@ -178,7 +157,9 @@ class OptionChoiceBottomSheet extends StatelessWidget {
                   subtitle: 'have_it_delivered'.tr.isEmpty
                       ? 'Have it delivered to you'
                       : 'have_it_delivered'.tr,
-                  price: '5,000 CDF',
+                  price: result.price > 0
+                      ? result.formattedPrice
+                      : '5,000 CDF',
                   onTap: onOrderDelivery,
                   isPremium: true,
                 ),

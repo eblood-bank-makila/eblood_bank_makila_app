@@ -5,6 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get/get.dart';
 import '../../../../apps/config/theme/ColorPages.dart';
 import '../../../../apps/widgets/AppSpinner.dart';
+import '../../../../core/rbac/services/rbac_guard.dart';
+import '../../../../core/rbac/providers/rbac_provider.dart';
+import '../../../../core/rbac/services/rbac_url_helper.dart';
+import '../../../../core/rbac/enums/collection_crud_info_flag.dart';
 import '../../../business/model/blood_request/BloodRequestModel.dart';
 import '../../../business/interactor/usecase/blood_request/BloodRequestUseCase.dart';
 import 'BloodRequestCtrl.dart';
@@ -28,10 +32,23 @@ class _BloodRequestPageState extends ConsumerState<BloodRequestPage>
   final ScrollController _inProgressScrollController = ScrollController();
   final ScrollController _deliveredScrollController = ScrollController();
   final ScrollController _completedScrollController = ScrollController();
+  late final bool _canCreate;
 
   @override
   void initState() {
     super.initState();
+    // RBAC entry guard.
+    guardPageEntry(
+      ref,
+      context,
+      'flutter_apps_eblood_bank_hosp_home_blood_requests',
+    );
+    final crudInfo = ref.read(rbacProvider.notifier).getCrudInfoByPath(
+      'flutter_apps_eblood_bank_hosp_home_blood_requests',
+    );
+    _canCreate = RbacUrlHelper().hasRbacUrl(
+      CollectionCrudInfoFlag.createProcessingUrl, 'main', crudInfo,
+    );
     _tabController = TabController(length: 4, vsync: this);
 
     // Setup scroll listeners for pagination
@@ -264,20 +281,22 @@ class _BloodRequestPageState extends ConsumerState<BloodRequestPage>
           _buildCompletedTab(state),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          _showCreateRequestDialog(context);
-        },
-        backgroundColor: ColorPages.COLOR_PRINCIPAL,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: Text(
-          'blood_request'.tr,
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
+      floatingActionButton: _canCreate
+          ? FloatingActionButton.extended(
+              onPressed: () {
+                _showCreateRequestDialog(context);
+              },
+              backgroundColor: ColorPages.COLOR_PRINCIPAL,
+              icon: const Icon(Icons.add, color: Colors.white),
+              label: Text(
+                'blood_request'.tr,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            )
+          : null,
     );
   }
 

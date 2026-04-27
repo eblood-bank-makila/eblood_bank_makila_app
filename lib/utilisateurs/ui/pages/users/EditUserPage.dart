@@ -1,21 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get/get.dart';
 
 import '../../../../apps/config/theme/ColorPages.dart';
 import '../../../../apps/models/user_model.dart';
+import '../../../../core/rbac/services/rbac_guard.dart';
+import '../../../../core/rbac/providers/rbac_provider.dart';
 import '../../../business/service/UserNetworkServiceImpl.dart';
 
-class EditUserPage extends StatefulWidget {
+class EditUserPage extends ConsumerStatefulWidget {
   final TUserModel user;
   const EditUserPage({super.key, required this.user});
 
   @override
-  State<EditUserPage> createState() => _EditUserPageState();
+  ConsumerState<EditUserPage> createState() => _EditUserPageState();
 }
 
-class _EditUserPageState extends State<EditUserPage> {
+class _EditUserPageState extends ConsumerState<EditUserPage> {
   final _formKey = GlobalKey<FormState>();
-  final _service = UserNetworkServiceImpl();
+  late final UserNetworkServiceImpl _service;
 
   late final TextEditingController _usernameCtrl;
   late final TextEditingController _firstNameCtrl;
@@ -31,6 +34,15 @@ class _EditUserPageState extends State<EditUserPage> {
   @override
   void initState() {
     super.initState();
+    guardPageEntry(
+      ref,
+      context,
+      'flutter_apps_eblood_bank_hosp_home_users',
+    );
+    final crudInfo = ref.read(rbacProvider.notifier).getCrudInfoByPath(
+      'flutter_apps_eblood_bank_hosp_home_users',
+    );
+    _service = UserNetworkServiceImpl(crudInfo);
     _usernameCtrl = TextEditingController(text: widget.user.username);
     _firstNameCtrl = TextEditingController(text: widget.user.firstName);
     _lastNameCtrl = TextEditingController(text: widget.user.lastName);

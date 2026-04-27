@@ -7,11 +7,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:iconsax/iconsax.dart';
 
 import '../../providers/search_flow_provider.dart';
+import '../../providers/recent_activity_provider.dart';
 import '../../data/services/visitor_registration_service_impl.dart';
 import '../../../apps/config/theme/ColorPages.dart';
+import '../widgets/recent_activity_bottom_sheet.dart';
 
 class BloodSearchWelcomePage extends ConsumerStatefulWidget {
   const BloodSearchWelcomePage({super.key});
@@ -29,6 +33,12 @@ class _BloodSearchWelcomePageState extends ConsumerState<BloodSearchWelcomePage>
   bool _isStartSearchLoading = false;
   bool _isScanQrLoading = false;
   final VisitorRegistrationServiceImpl _visitorService = VisitorRegistrationServiceImpl();
+
+  // Logged-in user info
+  bool _isLoggedIn = false;
+  String _userDisplayName = '';
+  String _userSubtitle = '';
+  String _accountType = '';
 
   @override
   void initState() {
@@ -49,10 +59,123 @@ class _BloodSearchWelcomePageState extends ConsumerState<BloodSearchWelcomePage>
 
     _animationController.forward();
 
+    // Load logged-in user info from storage
+    _loadUserInfo();
+
     // Reset search flow when arriving at welcome page
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(searchFlowProvider.notifier).resetFlow();
+      // Fetch recent activity to determine if FAB should show
+      ref.read(recentActivityProvider.notifier).fetchRecentActivity();
     });
+  }
+
+  /// Load user info from local storage to determine logged-in state
+  Future<void> _loadUserInfo() async {
+    try {
+      final storage = GetStorage();
+      // Check for a valid auth token (GetStorage fast path, then FlutterSecureStorage)
+      String? token = storage.read('auth_token');
+      if (token == null || token.toString().isEmpty) {
+        token = storage.read('visitor_token');
+      }
+      if (token == null || token.toString().isEmpty) {
+        const secure = FlutterSecureStorage();
+        token = await secure.read(key: 'auth_token');
+      }
+
+      if (token != null && token.isNotEmpty) {
+        final accountType = (storage.read('account_type') ?? '').toString().toLowerCase();
+        final userData = storage.read('user_data');
+
+        String displayName = '';
+        String subtitle = '';
+
+        if (userData is Map) {
+          final firstName = (userData['first_name'] ?? '').toString().trim();
+          final lastName = (userData['last_name'] ?? '').toString().trim();
+          final username = (userData['username'] ?? '').toString().trim();
+          final phone = (userData['phone_number'] ?? '').toString().trim();
+          final email = (userData['email_address'] ?? '').toString().trim();
+
+          // For hospital / blood bank, try entity name
+          final entity = userData['user_entity'];
+          if (entity is Map && (accountType == 'hospital' || accountType == 'blood_bank')) {
+            final entityName = (entity['entity_name'] ?? entity['name'] ?? '').toString().trim();
+            if (entityName.isNotEmpty) {
+              displayName = entityName;
+              subtitle = _accountTypeLabel(accountType);
+            }
+          }
+
+          // Fallback to personal name
+          if (displayName.isEmpty) {
+            if (firstName.isNotEmpty || lastName.isNotEmpty) {
+              displayName = '$firstName $lastName'.trim();
+            } else if (username.isNotEmpty) {
+              displayName = username;
+            } else if (phone.isNotEmpty) {
+              displayName = phone;
+            } else if (email.isNotEmpty) {
+              displayName = email;
+            }
+            subtitle = _accountTypeLabel(accountType);
+          }
+        }
+
+        // Visitor with no user_data
+        if (displayName.isEmpty) {
+          final visitorPhone = (storage.read('visitor_phone') ?? '').toString();
+          if (visitorPhone.isNotEmpty) {
+            displayName = visitorPhone;
+          } else {
+            displayName = 'visitor'.tr.isEmpty ? 'Visitor' : 'visitor'.tr;
+          }
+          subtitle = _accountTypeLabel(accountType.isEmpty ? 'visitor' : accountType);
+        }
+
+        if (mounted) {
+          setState(() {
+            _isLoggedIn = true;
+            _userDisplayName = displayName;
+            _userSubtitle = subtitle;
+            _accountType = accountType;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('⚠️ BloodSearchWelcome: _loadUserInfo error: $e');
+    }
+  }
+
+  String _accountTypeLabel(String type) {
+    switch (type) {
+      case 'hospital':
+        return 'hospital'.tr.isEmpty ? 'Hospital' : 'hospital'.tr;
+      case 'blood_bank':
+        return 'blood_bank'.tr.isEmpty ? 'Blood Bank' : 'blood_bank'.tr;
+      case 'customer':
+        return 'customer'.tr.isEmpty ? 'Customer' : 'customer'.tr;
+      case 'visitor':
+        return 'visitor'.tr.isEmpty ? 'Visitor' : 'visitor'.tr;
+      case 'blood_donor':
+        return 'blood_donor'.tr.isEmpty ? 'Blood Donor' : 'blood_donor'.tr;
+      case 'delivery':
+      case 'delivery_person':
+        return 'delivery'.tr.isEmpty ? 'Delivery' : 'delivery'.tr;
+      default:
+        return type.isNotEmpty ? type : 'User';
+    }
+  }
+
+  /// Check autoOpenTab and show bottom sheet automatically
+  void _checkAutoOpenTab() {
+    final state = ref.read(recentActivityProvider);
+    if (state.autoOpenTab != null) {
+      final tab = state.autoOpenTab!;
+      ref.read(recentActivityProvider.notifier).clearAutoOpenTab();
+      showRecentActivityBottomSheet(context, initialTab: tab);
+    }
   }
 
   @override
@@ -99,6 +222,15 @@ class _BloodSearchWelcomePageState extends ConsumerState<BloodSearchWelcomePage>
     try {
       // Ensure visitor is registered before proceeding
       await _ensureVisitorRegistered();
+
+      // Hospital accounts: skip city selection, go directly to blood type
+      if (_accountType == 'hospital') {
+        await ref.read(searchFlowProvider.notifier).startHospitalSearch();
+        if (mounted) {
+          context.push('/blood-search/blood-type');
+        }
+        return;
+      }
       
       ref.read(searchFlowProvider.notifier).startManualSearch();
       if (mounted) {
@@ -131,7 +263,11 @@ class _BloodSearchWelcomePageState extends ConsumerState<BloodSearchWelcomePage>
       if (result != null && result.isNotEmpty) {
         await ref.read(searchFlowProvider.notifier).startWithQrScan(result);
         if (mounted) {
-          context.push('/blood-search/city-selection');
+          // Hospital accounts skip city selection after QR scan
+          final nextRoute = _accountType == 'hospital'
+              ? '/blood-search/blood-type'
+              : '/blood-search/city-selection';
+          context.push(nextRoute);
         }
       }
     } catch (e) {
@@ -141,7 +277,10 @@ class _BloodSearchWelcomePageState extends ConsumerState<BloodSearchWelcomePage>
       if (result != null && result.isNotEmpty) {
         await ref.read(searchFlowProvider.notifier).startWithQrScan(result);
         if (mounted) {
-          context.push('/blood-search/city-selection');
+          final nextRoute = _accountType == 'hospital'
+              ? '/blood-search/blood-type'
+              : '/blood-search/city-selection';
+          context.push(nextRoute);
         }
       }
     } finally {
@@ -162,6 +301,14 @@ class _BloodSearchWelcomePageState extends ConsumerState<BloodSearchWelcomePage>
   @override
   Widget build(BuildContext context) {
     final isAuthenticated = ref.watch(canAccessProtectedRoutesProvider);
+    final activityState = ref.watch(recentActivityProvider);
+
+    // Listen for autoOpenTab changes to auto-show bottom sheet
+    ref.listen<RecentActivityState>(recentActivityProvider, (previous, next) {
+      if (next.autoOpenTab != null && !next.isLoading) {
+        _checkAutoOpenTab();
+      }
+    });
 
     // Set status bar style
     SystemChrome.setSystemUIOverlayStyle(
@@ -172,6 +319,22 @@ class _BloodSearchWelcomePageState extends ConsumerState<BloodSearchWelcomePage>
     );
 
     return Scaffold(
+      floatingActionButton: activityState.hasActivity
+          ? FloatingActionButton.extended(
+              onPressed: () => showRecentActivityBottomSheet(context),
+              backgroundColor: Colors.white,
+              foregroundColor: ColorPages.COLOR_PRINCIPAL,
+              elevation: 6,
+              icon: const Icon(Iconsax.activity, size: 22),
+              label: Text(
+                'my_activity'.tr.isEmpty ? 'My Activity' : 'my_activity'.tr,
+                style: GoogleFonts.ubuntu(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            )
+          : null,
       body: Container(
         width: double.infinity,
         height: double.infinity,
@@ -393,65 +556,67 @@ class _BloodSearchWelcomePageState extends ConsumerState<BloodSearchWelcomePage>
                             ),
                           ),
 
-                          const SizedBox(height: 16),
+                          // Scan QR Button — hidden for hospital accounts (they ARE the hospital)
+                          if (_accountType != 'hospital') ...[
+                            const SizedBox(height: 16),
 
-                          // Scan QR Button
-                          SizedBox(
-                            width: double.infinity,
-                            height: 56,
-                            child: OutlinedButton(
-                              onPressed: _isScanQrLoading ? null : _scanHospitalQr,
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: Colors.white,
-                                disabledForegroundColor: Colors.white.withOpacity(0.5),
-                                side: BorderSide(
-                                  color: _isScanQrLoading ? Colors.white.withOpacity(0.5) : Colors.white, 
-                                  width: 2,
+                            SizedBox(
+                              width: double.infinity,
+                              height: 56,
+                              child: OutlinedButton(
+                                onPressed: _isScanQrLoading ? null : _scanHospitalQr,
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: Colors.white,
+                                  disabledForegroundColor: Colors.white.withOpacity(0.5),
+                                  side: BorderSide(
+                                    color: _isScanQrLoading ? Colors.white.withOpacity(0.5) : Colors.white, 
+                                    width: 2,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
                                 ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
+                                child: _isScanQrLoading
+                                    ? Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          const SizedBox(
+                                            width: 20,
+                                            height: 20,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Text(
+                                            'loading'.tr.isEmpty ? 'Loading...' : 'loading'.tr,
+                                            style: GoogleFonts.ubuntu(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      )
+                                    : Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          const Icon(Iconsax.scan_barcode, size: 22),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            'scan_hospital_qr'.tr.isEmpty 
+                                                ? 'Scan Hospital QR Code' 
+                                                : 'scan_hospital_qr'.tr,
+                                            style: GoogleFonts.ubuntu(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                               ),
-                              child: _isScanQrLoading
-                                  ? Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        const SizedBox(
-                                          width: 20,
-                                          height: 20,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Text(
-                                          'loading'.tr.isEmpty ? 'Loading...' : 'loading'.tr,
-                                          style: GoogleFonts.ubuntu(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ],
-                                    )
-                                  : Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        const Icon(Iconsax.scan_barcode, size: 22),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          'scan_hospital_qr'.tr.isEmpty 
-                                              ? 'Scan Hospital QR Code' 
-                                              : 'scan_hospital_qr'.tr,
-                                          style: GoogleFonts.ubuntu(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                            ),
                           ),
+                          ],
 
                           const Spacer(),
                         ],
@@ -461,50 +626,127 @@ class _BloodSearchWelcomePageState extends ConsumerState<BloodSearchWelcomePage>
                 ),
               ),
 
-              // Bottom buttons - Login / Register
+              // Bottom bar - User info + Home button (logged in) OR Login/Register (guest)
               Padding(
-                padding: const EdgeInsets.all(24),
-                child: isAuthenticated.when(
-                  data: (canAccess) => canAccess
-                      ? const SizedBox.shrink()
-                      : Row(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                child: _isLoggedIn
+                    ? Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.25),
+                          ),
+                        ),
+                        child: Row(
                           children: [
-                            Expanded(
-                              child: TextButton(
-                                onPressed: _navigateToLogin,
-                                child: Text(
-                                  'login'.tr.isEmpty ? 'Login' : 'login'.tr,
-                                  style: GoogleFonts.ubuntu(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
+                            // User avatar
+                            Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.25),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Icon(
+                                _accountType == 'hospital' || _accountType == 'blood_bank'
+                                    ? Iconsax.hospital
+                                    : Iconsax.user,
+                                color: Colors.white,
+                                size: 20,
                               ),
                             ),
-                            Container(
-                              width: 1,
-                              height: 24,
-                              color: Colors.white.withOpacity(0.3),
-                            ),
+                            const SizedBox(width: 12),
+                            // User info
                             Expanded(
-                              child: TextButton(
-                                onPressed: _navigateToRegister,
-                                child: Text(
-                                  'register'.tr.isEmpty ? 'Register' : 'register'.tr,
-                                  style: GoogleFonts.ubuntu(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    _userDisplayName,
+                                    style: GoogleFonts.ubuntu(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
+                                  if (_userSubtitle.isNotEmpty)
+                                    Text(
+                                      _userSubtitle,
+                                      style: GoogleFonts.ubuntu(
+                                        color: Colors.white.withOpacity(0.7),
+                                        fontSize: 12,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            // Go to Home button
+                            ElevatedButton.icon(
+                              onPressed: () => context.go('/app/MainApp'),
+                              icon: const Icon(Iconsax.home_2, size: 18),
+                              label: Text(
+                                'home'.tr.isEmpty ? 'Home' : 'home'.tr,
+                                style: GoogleFonts.ubuntu(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
                                 ),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                foregroundColor: ColorPages.COLOR_PRINCIPAL,
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                elevation: 0,
                               ),
                             ),
                           ],
                         ),
-                  loading: () => const SizedBox.shrink(),
-                  error: (_, __) => const SizedBox.shrink(),
-                ),
+                      )
+                    : Row(
+                        children: [
+                          Expanded(
+                            child: TextButton(
+                              onPressed: _navigateToLogin,
+                              child: Text(
+                                'login'.tr.isEmpty ? 'Login' : 'login'.tr,
+                                style: GoogleFonts.ubuntu(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                          Container(
+                            width: 1,
+                            height: 24,
+                            color: Colors.white.withOpacity(0.3),
+                          ),
+                          Expanded(
+                            child: TextButton(
+                              onPressed: _navigateToRegister,
+                              child: Text(
+                                'register'.tr.isEmpty ? 'Register' : 'register'.tr,
+                                style: GoogleFonts.ubuntu(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
               ),
             ],
           ),

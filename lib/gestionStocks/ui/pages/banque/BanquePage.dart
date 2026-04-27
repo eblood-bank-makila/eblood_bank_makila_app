@@ -2,6 +2,8 @@
 import 'package:animate_do/animate_do.dart';
 import 'package:eblood_bank_mak_app/apps/widgets/AppSpinner.dart';
 import 'package:eblood_bank_mak_app/apps/widgets/advertisement/AdvertisementCarousel.dart';
+import 'package:eblood_bank_mak_app/core/rbac/providers/rbac_provider.dart';
+import 'package:eblood_bank_mak_app/core/rbac/services/rbac_guard.dart';
 import 'package:eblood_bank_mak_app/gestionStocks/ui/pages/banque/BanqueCtrl.dart';
 import 'package:eblood_bank_mak_app/gestionStocks/ui/pages/banque/BloodBagOrderStepperPage.dart';
 import 'package:eblood_bank_mak_app/gestionStocks/ui/pages/recherchePoche/RecherchePochePage.dart';
@@ -24,10 +26,20 @@ class Banquepage extends ConsumerStatefulWidget {
 
 class _BanquepageState extends ConsumerState<Banquepage> {
   final TextEditingController searchController = TextEditingController();
- 
+
+  bool _hasFlag(String flag) =>
+      ref.read(rbacProvider.notifier).hasMenuFlag(flag);
+
   @override
   void initState() {
     super.initState();
+    // Entry guard: accessible to hospital users with the top-level
+    // blood_bags app flag.
+    guardPageEntry(
+      ref,
+      context,
+      'flutter_apps_eblood_bank_hospital_blood_bags_app',
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _fetchBanqueList();
     });
@@ -858,6 +870,12 @@ class _BanquepageState extends ConsumerState<Banquepage> {
 
   /// Show blood bank addresses for the selected blood type
   void _showBloodBankAddresses(BuildContext context, String bloodType) {
+    if (!_hasFlag('flutter_apps_eblood_bank_hosp_blood_bag_order')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('access_denied'.tr)),
+      );
+      return;
+    }
     final state = ref.read(banqueCtrlProvider);
 
     Navigator.push(
@@ -874,6 +892,12 @@ class _BanquepageState extends ConsumerState<Banquepage> {
 
   /// Order blood online
   void _orderOnline(BuildContext context, String bloodType) {
+    if (!_hasFlag('flutter_apps_eblood_bank_hosp_blood_bag_order')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('access_denied'.tr)),
+      );
+      return;
+    }
     final state = ref.read(banqueCtrlProvider);
 
     Navigator.push(

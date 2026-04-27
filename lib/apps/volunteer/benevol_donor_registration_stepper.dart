@@ -1,12 +1,14 @@
 import 'dart:io';
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:go_router/go_router.dart';
+import '../../core/rbac/services/rbac_guard.dart';
 import '../config/theme/ColorPages.dart';
 import '../widgets/GradientScaffold.dart';
 import '../../core/widgets/location_tree_select.dart';
@@ -23,15 +25,15 @@ import '../services/AuthApi.dart';
 /// Stepper for users to become benevol donors (volunteer donors)
 /// Step 1: Photo selection/capture with face validation
 /// Steps 2-5: Personal information (same as PersonalRegistrationStepperPage)
-class BenevolDonorRegistrationStepper extends StatefulWidget {
+class BenevolDonorRegistrationStepper extends ConsumerStatefulWidget {
   final bool isDonor;
   const BenevolDonorRegistrationStepper({super.key, this.isDonor = false});
 
   @override
-  State<BenevolDonorRegistrationStepper> createState() => _BenevolDonorRegistrationStepperState();
+  ConsumerState<BenevolDonorRegistrationStepper> createState() => _BenevolDonorRegistrationStepperState();
 }
 
-class _BenevolDonorRegistrationStepperState extends State<BenevolDonorRegistrationStepper> {
+class _BenevolDonorRegistrationStepperState extends ConsumerState<BenevolDonorRegistrationStepper> {
   int _currentStep = 0;
   bool _loading = false;
 
@@ -92,6 +94,12 @@ class _BenevolDonorRegistrationStepperState extends State<BenevolDonorRegistrati
   @override
   void initState() {
     super.initState();
+    // RBAC entry guard — volunteer sub_menu flag.
+    guardPageEntry(
+      ref,
+      context,
+      'flutter_apps_eblood_bank_cust_home_volunteer',
+    );
     _prefillFromUser();
     _fetchLocationData();
 
@@ -1330,7 +1338,7 @@ class _BenevolDonorRegistrationStepperState extends State<BenevolDonorRegistrati
     setState(() => _loading = false);
 
     _showRegistrationSuccessDialog(onConfirm: () {
-      context.go('/app/MainApp');
+      context.go('/rbac-loading');
     });
   }
 

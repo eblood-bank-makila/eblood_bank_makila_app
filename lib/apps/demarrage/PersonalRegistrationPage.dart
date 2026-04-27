@@ -996,9 +996,6 @@ class _PersonalRegistrationPageState extends State<PersonalRegistrationPage> {
         } else if (locale.startsWith('es')) {
           // Spanish format: DD/MM/YYYY
           _dateOfBirthController.text = "${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}";
-        } else if (locale.startsWith('ar')) {
-          // Arabic format: DD/MM/YYYY (right-to-left)
-          _dateOfBirthController.text = "${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}";
         } else {
           // Default format (English, etc.): YYYY-MM-DD
           _dateOfBirthController.text = "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
@@ -1079,7 +1076,7 @@ class _PersonalRegistrationPageState extends State<PersonalRegistrationPage> {
     String locale = Get.locale?.toString() ?? 'en_US';
     
     try {
-      if (locale.startsWith('fr') || locale.startsWith('es') || locale.startsWith('ar')) {
+      if (locale.startsWith('fr') || locale.startsWith('es')) {
         // Parse DD/MM/YYYY format
         final parts = value.split('/');
         if (parts.length != 3) {
@@ -1135,7 +1132,7 @@ class _PersonalRegistrationPageState extends State<PersonalRegistrationPage> {
     String locale = Get.locale?.toString() ?? 'en_US';
     
     // Only normalize if not already in YYYY-MM-DD format
-    if (locale.startsWith('fr') || locale.startsWith('es') || locale.startsWith('ar')) {
+    if (locale.startsWith('fr') || locale.startsWith('es')) {
       try {
         // Convert from DD/MM/YYYY to YYYY-MM-DD for API
         final parts = _dateOfBirthController.text.split('/');
@@ -1177,7 +1174,7 @@ class _PersonalRegistrationPageState extends State<PersonalRegistrationPage> {
         final result = await authService.googleRegister(payload);
         if (result['success'] == true && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('registration_success'.tr), backgroundColor: Colors.green));
-          context.go('/app/MainApp');
+          context.go('/rbac-loading');
         } else {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result['message'] ?? 'registration_failed'.tr), backgroundColor: Colors.red));
         }

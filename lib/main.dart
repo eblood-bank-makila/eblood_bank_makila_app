@@ -34,6 +34,7 @@ import 'commande/ui/framework/panier/PanierServiceNetworkImpl.dart';
 import 'gestionStocks/ui/framework/recherche/RechercheListeServiceNetworkImpl.dart';
 import 'core/network/network_manager.dart';
 import 'core/services/app_initialization_service.dart';
+import 'core/rbac/data/rbac_local_storage.dart';
 
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -48,6 +49,9 @@ void main() async {
   // Initialize GetX services
   final languageService = Get.put(LanguageService());
   await languageService.onInit();
+
+  // Initialize Isar for RBAC cache
+  await RbacLocalStorage.instance.init();
 
   // Debug: Check first launch status
   final storage = GetStorage();

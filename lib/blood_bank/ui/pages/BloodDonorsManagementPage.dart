@@ -11,6 +11,9 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/rbac/providers/rbac_provider.dart';
+import '../../../core/rbac/services/rbac_url_helper.dart';
+import '../../../core/rbac/enums/collection_crud_info_flag.dart';
 import '../../controllers/donors_provider.dart';
 import '../../models/donor.dart';
 import '../widgets/PaginationWidget.dart';
@@ -24,6 +27,11 @@ class BloodDonorsManagementPage extends ConsumerStatefulWidget {
   ConsumerState<BloodDonorsManagementPage> createState() =>
       _BloodDonorsManagementPageState();
 }
+
+/// Identifies the visible tabs in BloodDonorsManagementPage. Used by the
+/// RBAC-driven tab filter to build `_allowedTabs` in the same order as the
+/// TabBar / TabBarView children.
+enum _DonorsTab { donors, statistics }
 
 class _ChartBarData {
   final String label;
@@ -47,6 +55,18 @@ class _BloodDonorsManagementPageState
   String? _selectedBloodType; // null means "All" blood types
   bool _isSearchActive = false;
 
+  // ── RBAC-driven visible tabs ──
+  late final List<_DonorsTab> _allowedTabs;
+  late final bool _canRegister;
+  late final bool _canDetail;
+  final RbacUrlHelper _urlHelper = RbacUrlHelper();
+
+  /// Pool of flags helper — true when ANY flag is granted. Used because
+  /// CNTS reuses this same page (per RbacScreenRegistry) and brings its
+  /// own cnts_donors_* flag set.
+  bool _hasAnyFlag(List<String> flags) =>
+      ref.read(rbacProvider.notifier).hasAnyMenuFlag(flags);
+
   static const List<Color> _chartPalette = [
     Color(0xFFE57373),
     Color(0xFF64B5F6),
@@ -63,10 +83,58 @@ class _BloodDonorsManagementPageState
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
 
-    // Fetch donors when the page loads
-    Future.microtask(() => ref.read(donorsProvider.notifier).fetchDonors());
+    // Build the visible tab list from RBAC flags. Each flag is pooled with
+    // its CNTS equivalent because CNTS reuses this same screen.
+    final canDonorsList = _hasAnyFlag([
+      'flutter_apps_eblood_bank_bb_home_donors',
+      'flutter_apps_eblood_bank_cnts_donors_app',
+    ]);
+    final canStatistics = _hasAnyFlag([
+      'flutter_apps_eblood_bank_bb_donors_statistics',
+      'flutter_apps_eblood_bank_cnts_donors_statistics',
+    ]);
+    _canRegister = _hasAnyFlag([
+      'flutter_apps_eblood_bank_bb_donors_register',
+      'flutter_apps_eblood_bank_cnts_donors_register',
+    ]) && (() {
+      final rbac = ref.read(rbacProvider.notifier);
+      var crudInfo = rbac.getCrudInfoByPath('flutter_apps_eblood_bank_bb_donors_register');
+      if (crudInfo.isEmpty) {
+        crudInfo = rbac.getCrudInfoByPath('flutter_apps_eblood_bank_cnts_donors_register');
+      }
+      return _urlHelper.hasRbacUrl(CollectionCrudInfoFlag.createProcessingUrl, 'main', crudInfo);
+    })();
+    _canDetail = _hasAnyFlag([
+      'flutter_apps_eblood_bank_bb_donors_detail',
+      'flutter_apps_eblood_bank_cnts_donors_detail',
+    ]);
+
+    _allowedTabs = [
+      if (canDonorsList) _DonorsTab.donors,
+      if (canStatistics) _DonorsTab.statistics,
+    ];
+
+    // Entry safety net: if the user has access to neither tab, pop out.
+    if (_allowedTabs.isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('access_denied'.tr)),
+        );
+        Navigator.of(context).maybePop();
+      });
+      // Minimal controller so the build tree doesn't crash before pop lands.
+      _tabController = TabController(length: 1, vsync: this);
+      return;
+    }
+
+    _tabController = TabController(length: _allowedTabs.length, vsync: this);
+
+    // Fetch donors when the page loads (only if the donors list is visible).
+    if (canDonorsList) {
+      Future.microtask(() => ref.read(donorsProvider.notifier).fetchDonors());
+    }
   }
 
   @override
@@ -78,6 +146,12 @@ class _BloodDonorsManagementPageState
 
   @override
   Widget build(BuildContext context) {
+    // Entry safety net: render a minimal scaffold so the post-frame pop
+    // can land without layout errors when the user has zero visible tabs.
+    if (_allowedTabs.isEmpty) {
+      return const Scaffold(body: SizedBox.shrink());
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -112,46 +186,59 @@ class _BloodDonorsManagementPageState
         ],
         bottom: TabBar(
           controller: _tabController,
-          tabs: [
-            Tab(text: 'donors'.tr),
-            Tab(text: 'statistics'.tr),
-          ],
+          tabs: _allowedTabs.map((tab) {
+            switch (tab) {
+              case _DonorsTab.donors:
+                return Tab(text: 'donors'.tr);
+              case _DonorsTab.statistics:
+                return Tab(text: 'statistics'.tr);
+            }
+          }).toList(),
           labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w600),
         ),
       ),
       body: TabBarView(
         controller: _tabController,
-        children: [_buildDonorsTab(), _buildStatisticsTab()],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () async {
-          // Navigate directly to donor registration page
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const DonorRegistrationPage(),
-            ),
-          );
-
-          // If we get a result back (true), refresh the donor list
-          if (result == true) {
-            ref.read(donorsProvider.notifier).refreshDonors();
-
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('donor_list_updated'.tr),
-                backgroundColor: Colors.green,
-              ),
-            );
+        children: _allowedTabs.map((tab) {
+          switch (tab) {
+            case _DonorsTab.donors:
+              return _buildDonorsTab();
+            case _DonorsTab.statistics:
+              return _buildStatisticsTab();
           }
-        },
-        backgroundColor: Colors.red,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: Text(
-          'add_donor'.tr,
-          style: GoogleFonts.poppins(color: Colors.white),
-        ),
+        }).toList(),
       ),
+      floatingActionButton: _canRegister
+          ? FloatingActionButton.extended(
+              onPressed: () async {
+                // Navigate directly to donor registration page
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const DonorRegistrationPage(),
+                  ),
+                );
+
+                // If we get a result back (true), refresh the donor list
+                if (result == true) {
+                  ref.read(donorsProvider.notifier).refreshDonors();
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('donor_list_updated'.tr),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              },
+              backgroundColor: Colors.red,
+              icon: const Icon(Icons.add, color: Colors.white),
+              label: Text(
+                'add_donor'.tr,
+                style: GoogleFonts.poppins(color: Colors.white),
+              ),
+            )
+          : null,
     );
   }
 
@@ -790,6 +877,12 @@ class _BloodDonorsManagementPageState
           ],
         ),
         onTap: () {
+          if (!_canDetail) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('access_denied'.tr)),
+            );
+            return;
+          }
           // Navigate to donor details page
           Navigator.push(
             context,

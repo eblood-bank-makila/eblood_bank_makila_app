@@ -338,8 +338,8 @@ class RegisterWelcomePage extends ConsumerWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: () {
-            // Navigate to main app as visitor
-            context.go('/app/MainApp');
+            // Navigate to RBAC loading as visitor
+            context.go('/rbac-loading');
           },
           borderRadius: BorderRadius.circular(16),
           child: Row(

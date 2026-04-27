@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:get/get.dart';
 import '../../../../apps/config/theme/ColorPages.dart';
 import '../../../../apps/widgets/ModernSpinnerWidget.dart';
+import '../../../../core/rbac/services/rbac_guard.dart';
 import '../../../business/model/blood_request/BloodRequestModel.dart';
 import '../../../business/interactor/usecase/blood_request/BloodRequestUseCase.dart';
 import '../../../business/interactor/usecase/blood_request/BloodRequestTrackingUseCase.dart';
 
-class BloodRequestTrackingPage extends StatefulWidget {
+class BloodRequestTrackingPage extends ConsumerStatefulWidget {
   final BloodRequestModel request;
 
   const BloodRequestTrackingPage({
@@ -18,10 +20,10 @@ class BloodRequestTrackingPage extends StatefulWidget {
   });
 
   @override
-  State<BloodRequestTrackingPage> createState() => _BloodRequestTrackingPageState();
+  ConsumerState<BloodRequestTrackingPage> createState() => _BloodRequestTrackingPageState();
 }
 
-class _BloodRequestTrackingPageState extends State<BloodRequestTrackingPage> {
+class _BloodRequestTrackingPageState extends ConsumerState<BloodRequestTrackingPage> {
   DeliveryTrackingStatus? _trackingStatus;
   bool _isLoading = true;
   String? _error;
@@ -29,6 +31,11 @@ class _BloodRequestTrackingPageState extends State<BloodRequestTrackingPage> {
   @override
   void initState() {
     super.initState();
+    guardPageEntry(
+      ref,
+      context,
+      'flutter_apps_eblood_bank_hosp_home_blood_requests',
+    );
     _loadTrackingData();
   }
 

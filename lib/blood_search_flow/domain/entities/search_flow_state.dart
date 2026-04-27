@@ -26,6 +26,7 @@ enum HospitalIdentificationMethod {
   galleryImport,
   manualCode,
   deepLink,
+  loggedInAccount,
 }
 
 /// Represents a city/location selection
@@ -141,6 +142,8 @@ class BloodSearchResult {
   final String? hospitalName;
   final String? address;
   final double? distanceKm;
+  final double? distanceFromUserKm;
+  final double? distanceFromHospitalKm;
   final bool isAvailable;
 
   // Pricing info
@@ -170,6 +173,8 @@ class BloodSearchResult {
     this.hospitalName,
     this.address,
     this.distanceKm,
+    this.distanceFromUserKm,
+    this.distanceFromHospitalKm,
     this.isAvailable = true,
     this.price = 0.0,
     this.currency = 'USD',
@@ -196,6 +201,8 @@ class BloodSearchResult {
     String? hospitalName,
     String? address,
     double? distanceKm,
+    double? distanceFromUserKm,
+    double? distanceFromHospitalKm,
     bool? isAvailable,
     double? price,
     String? currency,
@@ -221,6 +228,8 @@ class BloodSearchResult {
       hospitalName: hospitalName ?? this.hospitalName,
       address: address ?? this.address,
       distanceKm: distanceKm ?? this.distanceKm,
+      distanceFromUserKm: distanceFromUserKm ?? this.distanceFromUserKm,
+      distanceFromHospitalKm: distanceFromHospitalKm ?? this.distanceFromHospitalKm,
       isAvailable: isAvailable ?? this.isAvailable,
       price: price ?? this.price,
       currency: currency ?? this.currency,
@@ -272,6 +281,16 @@ class BloodSearchResult {
       parsedDistanceKm = double.tryParse(
         distanceStr.replaceAll(RegExp(r'[^0-9.]'), ''),
       );
+    }
+
+    // Parse backend-computed distances
+    double? parsedDistanceFromUserKm;
+    if (json['distance_from_user_km'] != null) {
+      parsedDistanceFromUserKm = double.tryParse(json['distance_from_user_km'].toString());
+    }
+    double? parsedDistanceFromHospitalKm;
+    if (json['distance_from_hospital_km'] != null) {
+      parsedDistanceFromHospitalKm = double.tryParse(json['distance_from_hospital_km'].toString());
     }
 
     // Parse coordinates
@@ -328,6 +347,8 @@ class BloodSearchResult {
           bloodBank['address']?.toString() ??
           json['address']?.toString(),
       distanceKm: parsedDistanceKm,
+      distanceFromUserKm: parsedDistanceFromUserKm,
+      distanceFromHospitalKm: parsedDistanceFromHospitalKm,
       isAvailable:
           (json['status'] ?? 'available') == 'available' &&
           (json['blood_stock_count'] ?? json['bloodStockCount'] ?? 1) > 0,
@@ -378,6 +399,30 @@ class BloodSearchResult {
     }
   }
 
+  /// Returns formatted distance from user (backend-calculated)
+  String get formattedDistanceFromUser {
+    if (distanceFromUserKm == null) return '--';
+    if (distanceFromUserKm! < 1) {
+      return '${(distanceFromUserKm! * 1000).toStringAsFixed(0)}m';
+    } else if (distanceFromUserKm! < 10) {
+      return '${distanceFromUserKm!.toStringAsFixed(1)}km';
+    } else {
+      return '${distanceFromUserKm!.toStringAsFixed(0)}km';
+    }
+  }
+
+  /// Returns formatted distance from hospital (backend-calculated)
+  String get formattedDistanceFromHospital {
+    if (distanceFromHospitalKm == null) return '--';
+    if (distanceFromHospitalKm! < 1) {
+      return '${(distanceFromHospitalKm! * 1000).toStringAsFixed(0)}m';
+    } else if (distanceFromHospitalKm! < 10) {
+      return '${distanceFromHospitalKm!.toStringAsFixed(1)}km';
+    } else {
+      return '${distanceFromHospitalKm!.toStringAsFixed(0)}km';
+    }
+  }
+
   /// Returns masked blood bank name (for privacy until payment)
   String get maskedBloodBankName {
     if (bloodBankName.length <= 4) return bloodBankName;
@@ -399,13 +444,17 @@ class BloodSearchResult {
 class PaymentResult {
   final bool success;
   final String? transactionId;
+  final String? requestIdentifier;
   final String? message;
+  final String? paymentStatus;
   final PaymentOption option;
 
   const PaymentResult({
     required this.success,
     this.transactionId,
+    this.requestIdentifier,
     this.message,
+    this.paymentStatus,
     required this.option,
   });
 }

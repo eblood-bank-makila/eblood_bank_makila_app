@@ -99,6 +99,9 @@ class HealthStructureService {
             'address': data['address'],
             'phone_number': data['phone_number'],
             'email': data['email'],
+            // Preserve entity/named_entity for town lookup
+            if (data['entity'] != null) 'entity': data['entity'],
+            if (data['named_entity'] != null) 'named_entity': data['named_entity'],
           };
           
           // Cache the result
@@ -135,18 +138,46 @@ class HealthStructureService {
   /// Get health structure by identifier
   Future<Map<String, dynamic>?> getHealthStructureByIdentifier(String identifier) async {
     try {
-      print('Fetching health structure by identifier: $identifier');
+      print('========================================');
+      print('🔍 [HealthStructureService] Fetching by identifier: $identifier');
+      print('========================================');
 
       final response = await getWithDio('/eblood/hospital-structure/by-identifier?identifier=$identifier');
 
-      print('Response success: ${response.success}');
-      print('Response data: ${response.data}');
+      print('📡 [HealthStructureService] Response success: ${response.success}');
+      print('📡 [HealthStructureService] Response data type: ${response.data?.runtimeType}');
+      print('📡 [HealthStructureService] FULL Response data: ${response.data}');
 
       if (response.success && response.data != null) {
         final data = response.data is Map ? response.data as Map<String, dynamic> : null;
         if (data != null) {
-          return {
-            'id': data['id'],
+          print('========================================');
+          print('🔍 [HealthStructureService] Raw data keys: ${data.keys.toList()}');
+          print('🔍 [HealthStructureService] data["id"]: ${data['id']} (type: ${data['id']?.runtimeType})');
+          print('🔍 [HealthStructureService] data["_id"]: ${data['_id']} (type: ${data['_id']?.runtimeType})');
+          print('========================================');
+          
+          // Extract ID - check both 'id' and '_id' (MongoDB format)
+          // Also handle case where value is string "None" or similar
+          String? hospitalId;
+          final idValue = data['id'];
+          final underscoreIdValue = data['_id'];
+          
+          if (idValue != null && idValue.toString().isNotEmpty && idValue.toString().toLowerCase() != 'none' && idValue.toString().toLowerCase() != 'null') {
+            hospitalId = idValue.toString();
+          } else if (underscoreIdValue != null && underscoreIdValue.toString().isNotEmpty && underscoreIdValue.toString().toLowerCase() != 'none' && underscoreIdValue.toString().toLowerCase() != 'null') {
+            hospitalId = underscoreIdValue.toString();
+          }
+          
+          print('🏥 [HealthStructureService] EXTRACTED hospital ID: $hospitalId');
+          
+          if (hospitalId == null || hospitalId.isEmpty) {
+            print('❌ [HealthStructureService] FAILED: Could not extract valid hospital ID from response');
+            return null;
+          }
+          
+          final result = {
+            'id': hospitalId,
             'name': data['name'],
             'identifier': data['identifier'],
             'latitude': data['latitude'],
@@ -155,6 +186,8 @@ class HealthStructureService {
             'phone_number': data['phone_number'],
             'email': data['email'],
           };
+          print('✅ [HealthStructureService] RETURNING result with id: ${result['id']}');
+          return result;
         }
       }
       

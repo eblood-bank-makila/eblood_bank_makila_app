@@ -1109,9 +1109,9 @@ class _HealthStructureRegistrationStepperPageState
           await auth.handleAutoLoginAfterRegistration(result);
 
           if (mounted) {
-            // Navigate directly to the main app
+            // Navigate through RBAC loading
             // ignore: use_build_context_synchronously
-            context.go('/app/MainApp');
+            context.go('/rbac-loading');
           }
         } else {
           if (mounted) {

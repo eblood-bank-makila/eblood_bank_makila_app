@@ -6,6 +6,7 @@ import 'package:animate_do/animate_do.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import '../../../apps/config/utils/LocaleHelper.dart';
+import '../../../core/rbac/services/rbac_guard.dart';
 
 
 class WalletManagementPage extends ConsumerStatefulWidget {
@@ -56,6 +57,12 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
   @override
   void initState() {
     super.initState();
+    // RBAC entry guard on the wallet sub_menu flag.
+    guardPageEntry(
+      ref,
+      context,
+      'flutter_apps_eblood_bank_bb_home_wallet',
+    );
     _tabController = TabController(
       length: 2,
       vsync: this,

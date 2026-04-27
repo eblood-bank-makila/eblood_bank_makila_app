@@ -130,17 +130,30 @@ class SearchFlowNotifier extends StateNotifier<SearchFlowState> {
   // QR-First Flow
   // ============================================
 
-  /// Start flow with QR scan first
+  /// Start flow with QR scan first.
+  /// For hospital accounts the city step is auto-skipped.
   Future<void> startWithQrScan(String qrContent) async {
     state = state.copyWith(isLoading: true, qrScannedFirst: true);
 
     try {
       final hospital = await hospitalService.identifyFromQrContent(qrContent);
       if (hospital != null) {
+        // Determine next step: hospital accounts skip city selection
+        final storage = GetStorage();
+        final accountType = (storage.read('account_type') ?? '').toString().toLowerCase();
+        final nextStep = accountType == 'hospital'
+            ? SearchFlowStep.bloodTypeInput
+            : SearchFlowStep.citySelection;
+
+        // For hospitals, auto-populate city so the flow doesn't require it
+        if (accountType == 'hospital') {
+          await _autoPopulateHospitalCity();
+        }
+
         state = state.copyWith(
           identifiedHospital: hospital,
           isLoading: false,
-          currentStep: SearchFlowStep.citySelection,
+          currentStep: nextStep,
         );
       } else {
         state = state.copyWith(
@@ -163,11 +176,21 @@ class SearchFlowNotifier extends StateNotifier<SearchFlowState> {
     try {
       final hospital = await hospitalService.identifyFromDeepLink(deepLinkUri);
       if (hospital != null) {
+        // Hospital accounts skip city selection
+        final storage = GetStorage();
+        final accountType = (storage.read('account_type') ?? '').toString().toLowerCase();
+        final nextStep = accountType == 'hospital'
+            ? SearchFlowStep.bloodTypeInput
+            : SearchFlowStep.citySelection;
+
+        if (accountType == 'hospital') {
+          await _autoPopulateHospitalCity();
+        }
+
         state = state.copyWith(
           identifiedHospital: hospital,
           isLoading: false,
-          // Resume at city selection if we have hospital
-          currentStep: SearchFlowStep.citySelection,
+          currentStep: nextStep,
         );
       } else {
         state = state.copyWith(
@@ -183,6 +206,55 @@ class SearchFlowNotifier extends StateNotifier<SearchFlowState> {
     }
   }
 
+  /// Auto-populate city for hospital accounts from stored entity data.
+  /// Used by QR/deep-link flows to skip city selection.
+  Future<void> _autoPopulateHospitalCity() async {
+    final storage = GetStorage();
+    String cityId = '';
+    String cityName = '';
+
+    // Try cached health structure entity
+    try {
+      final cachedHS = storage.read('cached_health_structure');
+      if (cachedHS is Map) {
+        final namedEntity = cachedHS['named_entity'];
+        if (namedEntity is Map) {
+          cityId = (namedEntity['id'] ?? namedEntity['_id'] ?? '').toString();
+          cityName = (namedEntity['name'] ?? namedEntity['entity_name'] ?? '').toString();
+        }
+        if (cityId.isEmpty) {
+          final entity = cachedHS['entity'];
+          if (entity is Map) {
+            cityId = (entity['id'] ?? entity['_id'] ?? '').toString();
+            cityName = (entity['name'] ?? entity['entity_name'] ?? '').toString();
+          }
+        }
+        if (cityId.isEmpty) {
+          cityId = (cachedHS['id'] ?? '').toString();
+          cityName = (cachedHS['name'] ?? '').toString();
+        }
+      }
+    } catch (_) {}
+
+    if (cityId.isEmpty) {
+      cityId = (storage.read('user_entity_id') ?? '').toString();
+      cityName = (storage.read('user_entity_name') ?? '').toString();
+    }
+    if (cityId.isEmpty) {
+      cityId = (storage.read('user_identifier') ?? 'hospital').toString();
+      cityName = 'My Hospital';
+    }
+
+    final city = SelectedCity(
+      id: cityId,
+      name: cityName.isNotEmpty ? cityName : 'My Hospital Location',
+    );
+    await storage.write('selected_city_id', city.id);
+    await storage.write('selected_city_name', city.name);
+    state = state.copyWith(selectedCity: city);
+    print('🏥 Hospital: auto-populated city "${city.name}" ($cityId)');
+  }
+
   // ============================================
   // Manual Flow - Step by Step
   // ============================================
@@ -193,6 +265,100 @@ class SearchFlowNotifier extends StateNotifier<SearchFlowState> {
       currentStep: SearchFlowStep.citySelection,
       qrScannedFirst: false,
     );
+  }
+
+  /// Start search for hospital accounts — skip city selection.
+  /// Auto-populates SelectedCity from the hospital's health structure
+  /// entity data, then jumps directly to blood type input.
+  /// Always succeeds for hospital accounts (uses fallback if no entity data).
+  Future<void> startHospitalSearch() async {
+    final storage = GetStorage();
+
+    // 1. Try to get entity info from cached health structure
+    String entityId = '';
+    String entityName = '';
+
+    try {
+      final cachedHS = storage.read('cached_health_structure');
+      if (cachedHS is Map) {
+        // named_entity holds the town-level location
+        final namedEntity = cachedHS['named_entity'];
+        if (namedEntity is Map) {
+          entityId = (namedEntity['id'] ?? namedEntity['_id'] ?? '').toString();
+          entityName = (namedEntity['name'] ?? namedEntity['entity_name'] ?? '').toString();
+        }
+        // Fallback to the entity field
+        if (entityId.isEmpty) {
+          final entity = cachedHS['entity'];
+          if (entity is Map) {
+            entityId = (entity['id'] ?? entity['_id'] ?? '').toString();
+            entityName = (entity['name'] ?? entity['entity_name'] ?? '').toString();
+          }
+        }
+        // Use health structure name/id if entity lookup failed
+        if (entityId.isEmpty) {
+          entityId = (cachedHS['id'] ?? '').toString();
+          entityName = (cachedHS['name'] ?? '').toString();
+        }
+      }
+    } catch (e) {
+      print('⚠️ Error reading cached health structure for entity: $e');
+    }
+
+    // 2. Fallback: use user_entity stored during login
+    if (entityId.isEmpty) {
+      entityId = (storage.read('user_entity_id') ?? '').toString();
+      entityName = (storage.read('user_entity_name') ?? '').toString();
+    }
+
+    // 3. Final fallback: use hospital identifier as ID
+    if (entityId.isEmpty) {
+      entityId = (storage.read('user_identifier') ?? 'hospital').toString();
+      entityName = 'My Hospital';
+    }
+
+    final city = SelectedCity(
+      id: entityId,
+      name: entityName.isNotEmpty ? entityName : 'My Hospital Location',
+    );
+
+    // Persist the auto-selected city
+    await storage.write('selected_city_id', city.id);
+    await storage.write('selected_city_name', city.name);
+
+    // Auto-identify the hospital (they ARE the hospital)
+    double? hsLatitude;
+    double? hsLongitude;
+    String hsIdentifier = '';
+    String hsName = entityName;
+    String hsId = entityId;
+    try {
+      final cachedHS = storage.read('cached_health_structure');
+      if (cachedHS is Map) {
+        hsLatitude = double.tryParse((cachedHS['latitude'] ?? '').toString());
+        hsLongitude = double.tryParse((cachedHS['longitude'] ?? '').toString());
+        hsIdentifier = (cachedHS['identifier'] ?? '').toString();
+        if (hsName.isEmpty) hsName = (cachedHS['name'] ?? '').toString();
+        if (hsId.isEmpty) hsId = (cachedHS['id'] ?? cachedHS['_id'] ?? '').toString();
+      }
+    } catch (_) {}
+
+    final autoHospital = IdentifiedHospital(
+      id: hsId,
+      code: hsIdentifier.isNotEmpty ? hsIdentifier : (storage.read('user_identifier') ?? '').toString(),
+      name: hsName.isNotEmpty ? hsName : 'My Hospital',
+      latitude: hsLatitude,
+      longitude: hsLongitude,
+      method: HospitalIdentificationMethod.loggedInAccount,
+    );
+
+    state = state.copyWith(
+      selectedCity: city,
+      identifiedHospital: autoHospital,
+      currentStep: SearchFlowStep.bloodTypeInput,
+      qrScannedFirst: false,
+    );
+    print('🏥 Hospital: auto-selected city "${city.name}" & auto-identified hospital "${autoHospital.name}" (lat:$hsLatitude, lng:$hsLongitude) — skipping to blood type');
   }
 
   /// Set selected city
@@ -211,7 +377,7 @@ class SearchFlowNotifier extends StateNotifier<SearchFlowState> {
 
     state = state.copyWith(
       selectedCity: city,
-      currentStep: SearchFlowStep.bloodTypeInput,
+      currentStep: SearchFlowStep.hospitalIdentification,
     );
   }
 
@@ -230,10 +396,38 @@ class SearchFlowNotifier extends StateNotifier<SearchFlowState> {
 
     try {
       final token = await authService.getAuthToken();
+
+      // Collect coordinates for backend distance calculation
+      double? userLat;
+      double? userLng;
+      double? hospitalLat;
+      double? hospitalLng;
+
+      // Hospital coordinates from identified hospital
+      if (state.identifiedHospital != null) {
+        hospitalLat = state.identifiedHospital!.latitude;
+        hospitalLng = state.identifiedHospital!.longitude;
+      }
+
+      // User coordinates from device location
+      try {
+        final locationService = LocationTrackingService();
+        await locationService.requestPermission();
+        final position = await locationService.updateLocation();
+        if (position != null) {
+          userLat = position.latitude;
+          userLng = position.longitude;
+        }
+      } catch (_) {}
+
       final results = await bloodSearchService.searchBlood(
         cityId: state.selectedCity!.id,
         bloodType: bloodType,
         authToken: token,
+        userLatitude: userLat,
+        userLongitude: userLng,
+        hospitalLatitude: hospitalLat,
+        hospitalLongitude: hospitalLng,
       );
 
       // Calculate distances if location is available
@@ -291,8 +485,56 @@ class SearchFlowNotifier extends StateNotifier<SearchFlowState> {
   // Payment Option Selection
   // ============================================
 
-  /// Select payment option and proceed to hospital identification
+  /// Select payment option and proceed to next step.
+  /// - For hospital accounts: auto-identify (they ARE the hospital) and skip visitor reg.
+  /// - For other logged-in users: skip visitor registration (already authenticated).
+  /// - For guests: go through hospital identification → visitor registration → OTP.
   void selectPaymentOption(PaymentOption option) {
+    final storage = GetStorage();
+    final accountType = (storage.read('account_type') ?? '').toString().toLowerCase();
+    final isLoggedIn = (storage.read('auth_token') ?? '').toString().isNotEmpty;
+
+    // --- Hospital account: auto-identify as themselves and skip to payment ---
+    if (accountType == 'hospital') {
+      if (!state.hasHospitalIdentified) {
+        final entityId = (storage.read('user_entity_id') ?? '').toString();
+        final entityName = (storage.read('user_entity_name') ?? '').toString();
+        final identifier = (storage.read('user_identifier') ?? '').toString();
+
+        if (entityId.isNotEmpty) {
+          state = state.copyWith(
+            identifiedHospital: IdentifiedHospital(
+              id: entityId,
+              code: identifier,
+              name: entityName.isNotEmpty ? entityName : 'My Hospital',
+              method: HospitalIdentificationMethod.loggedInAccount,
+            ),
+          );
+          print('🏥 Auto-identified hospital from logged-in account: $entityName ($entityId)');
+        }
+      }
+      // Hospital is already authenticated — go straight to payment
+      state = state.copyWith(
+        selectedPaymentOption: option,
+        otpVerified: true,
+        currentStep: SearchFlowStep.payment,
+      );
+      return;
+    }
+
+    // --- Other logged-in users (customer, blood_bank, donor, etc.) ---
+    if (isLoggedIn && accountType.isNotEmpty && accountType != 'visitor') {
+      state = state.copyWith(
+        selectedPaymentOption: option,
+        otpVerified: true,
+        currentStep: state.hasHospitalIdentified
+            ? SearchFlowStep.payment
+            : SearchFlowStep.hospitalIdentification,
+      );
+      return;
+    }
+
+    // --- Guest / Visitor: original flow ---
     state = state.copyWith(
       selectedPaymentOption: option,
       currentStep: state.hasHospitalIdentified
@@ -315,20 +557,37 @@ class SearchFlowNotifier extends StateNotifier<SearchFlowState> {
     state = state.copyWith(isLoading: true);
 
     try {
+      print('========================================');
+      print('🔍 [SearchFlowProvider] identifyHospitalByCode called with: $code');
+      print('========================================');
+      
       final hospital = await hospitalService.identifyByCode(code);
+      
+      print('🏥 [SearchFlowProvider] Hospital result: $hospital');
+      print('🏥 [SearchFlowProvider] Hospital ID: ${hospital?.id}');
+      
       if (hospital != null) {
+        print('✅ [SearchFlowProvider] SAVING hospital to state with ID: ${hospital.id}');
+
+        // Logged-in users skip visitor registration → go to payment
+        final nextStep = await _nextStepAfterHospitalIdentification();
+
         state = state.copyWith(
           identifiedHospital: hospital,
           isLoading: false,
-          currentStep: SearchFlowStep.visitorRegistration,
+          otpVerified: nextStep == SearchFlowStep.payment ? true : null,
+          currentStep: nextStep,
         );
+        print('✅ [SearchFlowProvider] State updated. identifiedHospital.id = ${state.identifiedHospital?.id}');
       } else {
+        print('❌ [SearchFlowProvider] Hospital is null, not saving');
         state = state.copyWith(
           isLoading: false,
           errorMessage: 'Hospital not found. Please check the code.',
         );
       }
     } catch (e) {
+      print('❌ [SearchFlowProvider] Error: $e');
       state = state.copyWith(
         isLoading: false,
         errorMessage: 'Failed to identify hospital: $e',
@@ -341,20 +600,37 @@ class SearchFlowNotifier extends StateNotifier<SearchFlowState> {
     state = state.copyWith(isLoading: true);
 
     try {
+      print('========================================');
+      print('🔍 [SearchFlowProvider] identifyHospitalFromQr called');
+      print('========================================');
+      
       final hospital = await hospitalService.identifyFromQrContent(qrContent);
+      
+      print('🏥 [SearchFlowProvider] QR Hospital result: $hospital');
+      print('🏥 [SearchFlowProvider] QR Hospital ID: ${hospital?.id}');
+      
       if (hospital != null) {
+        print('✅ [SearchFlowProvider] SAVING QR hospital to state with ID: ${hospital.id}');
+
+        // Logged-in users skip visitor registration → go to payment
+        final nextStep = await _nextStepAfterHospitalIdentification();
+
         state = state.copyWith(
           identifiedHospital: hospital,
           isLoading: false,
-          currentStep: SearchFlowStep.visitorRegistration,
+          otpVerified: nextStep == SearchFlowStep.payment ? true : null,
+          currentStep: nextStep,
         );
+        print('✅ [SearchFlowProvider] State updated. identifiedHospital.id = ${state.identifiedHospital?.id}');
       } else {
+        print('❌ [SearchFlowProvider] QR Hospital is null');
         state = state.copyWith(
           isLoading: false,
           errorMessage: 'Invalid hospital QR code',
         );
       }
     } catch (e) {
+      print('❌ [SearchFlowProvider] QR Error: $e');
       state = state.copyWith(
         isLoading: false,
         errorMessage: 'Failed to process QR code: $e',
@@ -365,6 +641,14 @@ class SearchFlowNotifier extends StateNotifier<SearchFlowState> {
   // ============================================
   // Visitor Registration & OTP
   // ============================================
+
+  /// Determine the next step after hospital identification.
+  /// In the new flow (City → Hospital Identify → Blood Type → Results → Payment),
+  /// hospital identification comes before blood type, so next step is always bloodTypeInput.
+  Future<SearchFlowStep> _nextStepAfterHospitalIdentification() async {
+    print('🔀 Hospital identified — next step: blood type input');
+    return SearchFlowStep.bloodTypeInput;
+  }
 
   /// Check if user is already authenticated
   Future<bool> checkAuthentication() async {
@@ -455,8 +739,13 @@ class SearchFlowNotifier extends StateNotifier<SearchFlowState> {
         await visitorService.saveVisitorPhone(_visitorSessionId!);
         print('✅ OTP verified successfully');
 
+        // Load auth token from storage so it's available for payment
+        final token = await authService.getAuthToken();
+        print('🔑 Auth token loaded after OTP: ${token != null ? 'yes' : 'no'}');
+
         state = state.copyWith(
           otpVerified: true,
+          visitorToken: token,
           isLoading: false,
           currentStep: SearchFlowStep.payment,
         );
@@ -504,15 +793,47 @@ class SearchFlowNotifier extends StateNotifier<SearchFlowState> {
 
   /// Process payment
   Future<void> processPayment(Map<String, dynamic> paymentDetails) async {
+    // Try to load token from storage if not in state
     if (state.visitorToken == null) {
-      state = state.copyWith(errorMessage: 'Authentication required');
+      final token = await authService.getAuthToken();
+      if (token != null) {
+        state = state.copyWith(visitorToken: token);
+        print('🔑 Loaded auth token from storage for payment');
+      } else {
+        state = state.copyWith(
+          errorMessage: 'Authentication required',
+          paymentResult: PaymentResult(
+            success: false,
+            message: 'Authentication required. Please verify your phone first.',
+            option: state.selectedPaymentOption ?? PaymentOption.viewAddress,
+          ),
+        );
+        return;
+      }
+    }
+
+    if (state.identifiedHospital == null || state.identifiedHospital!.id.isEmpty) {
+      print('========================================');
+      print('❌ [processPayment] Hospital not identified or ID is empty');
+      print('❌ [processPayment] state.identifiedHospital: ${state.identifiedHospital}');
+      print('❌ [processPayment] state.identifiedHospital?.id: "${state.identifiedHospital?.id}"');
+      print('❌ [processPayment] state.identifiedHospital?.name: ${state.identifiedHospital?.name}');
+      print('========================================');
+      state = state.copyWith(
+        errorMessage: 'Hospital not identified',
+        paymentResult: PaymentResult(
+          success: false,
+          message: 'Hospital not identified. Please go back and scan a QR code.',
+          option: state.selectedPaymentOption ?? PaymentOption.viewAddress,
+        ),
+      );
       return;
     }
 
-    if (state.identifiedHospital == null) {
-      state = state.copyWith(errorMessage: 'Hospital not identified');
-      return;
-    }
+    final hospitalId = state.identifiedHospital!.id;
+    print('========================================');
+    print('✅ [processPayment] Using hospital ID: "$hospitalId"');
+    print('========================================');
 
     state = state.copyWith(isLoading: true);
 
@@ -521,13 +842,13 @@ class SearchFlowNotifier extends StateNotifier<SearchFlowState> {
 
       if (state.selectedPaymentOption == PaymentOption.viewAddress) {
         result = await paymentService.payForAddressView(
-          hospitalId: state.identifiedHospital!.id,
+          hospitalId: hospitalId,
           authToken: state.visitorToken!,
           paymentDetails: paymentDetails,
         );
       } else {
         result = await paymentService.payForDelivery(
-          hospitalId: state.identifiedHospital!.id,
+          hospitalId: hospitalId,
           bloodBagIds: state.searchResults.map((r) => r.id).toList(),
           authToken: state.visitorToken!,
           paymentDetails: paymentDetails,
@@ -562,46 +883,120 @@ class SearchFlowNotifier extends StateNotifier<SearchFlowState> {
   // ============================================
 
   /// Load unlocked address after successful payment
+  /// Polls the backend for payment confirmation before showing address.
   Future<void> loadUnlockedAddress() async {
-    if (state.paymentResult?.transactionId == null) return;
+    if (state.paymentResult?.requestIdentifier == null &&
+        state.paymentResult?.transactionId == null) return;
     if (state.identifiedHospital == null) return;
     if (state.visitorToken == null) return;
 
     state = state.copyWith(isLoading: true);
 
     try {
-      // The address would be fetched from a service
-      // For now, use the hospital address
-      final address =
-          state.identifiedHospital?.address ??
-          'Address available after payment confirmation';
+      final identifier = state.paymentResult!.requestIdentifier ??
+          state.paymentResult!.transactionId!;
+      
+      // Poll payment status up to 10 times (every 5 seconds = ~50s total)
+      PaymentResult? statusResult;
+      for (int i = 0; i < 10; i++) {
+        statusResult = await paymentService.checkPaymentStatus(
+          requestIdentifier: identifier,
+          authToken: state.visitorToken!,
+          progressPercent: i / 10.0,
+        );
 
-      state = state.copyWith(unlockedAddress: address, isLoading: false);
+        if (statusResult.paymentStatus == 'success' ||
+            statusResult.paymentStatus == 'successful') {
+          // Payment confirmed — use the hospital address
+          final address = state.identifiedHospital?.address ??
+              'Address available after confirmation';
+          state = state.copyWith(
+            unlockedAddress: address,
+            isLoading: false,
+            paymentResult: statusResult,
+          );
+          return;
+        }
+
+        if (statusResult.paymentStatus == 'failed') {
+          state = state.copyWith(
+            isLoading: false,
+            errorMessage: statusResult.message ?? 'Payment failed',
+          );
+          return;
+        }
+
+        // Still processing — wait before next poll
+        await Future.delayed(const Duration(seconds: 5));
+      }
+
+      // Timed out waiting for payment confirmation
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Payment verification timed out. Please check your payment status.',
+      );
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
-        errorMessage: 'Failed to load address: $e',
+        errorMessage: 'Failed to verify payment: $e',
       );
     }
   }
 
   /// Load delivery tracking info
+  /// Polls backend for payment confirmation then sets up tracking.
   Future<void> loadDeliveryTracking() async {
-    if (state.paymentResult?.transactionId == null) return;
+    if (state.paymentResult?.requestIdentifier == null &&
+        state.paymentResult?.transactionId == null) return;
     if (state.visitorToken == null) return;
 
     state = state.copyWith(isLoading: true);
 
     try {
-      // This would fetch from a tracking service
-      final trackingInfo = DeliveryTrackingInfo(
-        trackingId: state.paymentResult!.transactionId!,
-        status: 'processing',
-        estimatedArrival: '30-45 minutes',
-        orderTime: DateTime.now(),
-      );
+      final identifier = state.paymentResult!.requestIdentifier ??
+          state.paymentResult!.transactionId!;
 
-      state = state.copyWith(deliveryTracking: trackingInfo, isLoading: false);
+      // Poll payment status up to 10 times (every 5 seconds)
+      PaymentResult? statusResult;
+      for (int i = 0; i < 10; i++) {
+        statusResult = await paymentService.checkPaymentStatus(
+          requestIdentifier: identifier,
+          authToken: state.visitorToken!,
+          progressPercent: i / 10.0,
+        );
+
+        if (statusResult.paymentStatus == 'success' ||
+            statusResult.paymentStatus == 'successful') {
+          // Payment confirmed — create tracking info from the confirmed result
+          final trackingInfo = DeliveryTrackingInfo(
+            trackingId: statusResult.transactionId ?? identifier,
+            status: 'processing',
+            estimatedArrival: '30-45 minutes',
+            orderTime: DateTime.now(),
+          );
+          state = state.copyWith(
+            deliveryTracking: trackingInfo,
+            isLoading: false,
+            paymentResult: statusResult,
+          );
+          return;
+        }
+
+        if (statusResult.paymentStatus == 'failed') {
+          state = state.copyWith(
+            isLoading: false,
+            errorMessage: statusResult.message ?? 'Payment failed',
+          );
+          return;
+        }
+
+        await Future.delayed(const Duration(seconds: 5));
+      }
+
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Payment verification timed out. Please check your payment status.',
+      );
     } catch (e) {
       state = state.copyWith(
         isLoading: false,

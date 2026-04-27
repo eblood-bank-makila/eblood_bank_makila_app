@@ -1,108 +1,118 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get/get.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:iconsax/iconsax.dart';
+import 'package:shimmer/shimmer.dart';
 
 import '../../../../apps/config/theme/ColorPages.dart';
+import '../../../../core/rbac/services/rbac_guard.dart';
+import '../../../../core/rbac/providers/rbac_provider.dart';
+import '../../../../core/dynamic_form/models/dynamic_form_field.dart';
+import '../../../../core/dynamic_form/services/dynamic_form_parser.dart';
+import '../../../../core/dynamic_form/widgets/dynamic_form_widget.dart';
 import '../../../business/service/UserNetworkServiceImpl.dart';
 
-class AddUserPage extends StatefulWidget {
-  const AddUserPage({super.key});
+class AddUserPage extends ConsumerStatefulWidget {
+  final String rbacFlag;
+  const AddUserPage({
+    super.key,
+    this.rbacFlag = 'flutter_apps_eblood_bank_hosp_home_users',
+  });
 
   @override
-  State<AddUserPage> createState() => _AddUserPageState();
+  ConsumerState<AddUserPage> createState() => _AddUserPageState();
 }
 
-class _AddUserPageState extends State<AddUserPage> {
-  final _formKey = GlobalKey<FormState>();
-  final _service = UserNetworkServiceImpl();
+class _AddUserPageState extends ConsumerState<AddUserPage> {
+  late final UserNetworkServiceImpl _service;
+  final _parser = DynamicFormParser();
+  final _formWidgetKey = GlobalKey<DynamicFormWidgetState>();
 
-  final _usernameCtrl = TextEditingController();
-  final _firstNameCtrl = TextEditingController();
-  final _lastNameCtrl = TextEditingController();
-  final _emailCtrl = TextEditingController();
-  final _phoneCtrl = TextEditingController();
-  final _passwordCtrl = TextEditingController();
-  final _password2Ctrl = TextEditingController();
-
-  String _gender = 'm';
-  String? _selectedRoleId;
-  bool _autoPassword = true;
+  List<DynamicFormField> _fields = [];
+  bool _isLoading = true;
+  bool _hasError = false;
+  String _errorMessage = '';
   bool _submitting = false;
-  List<Map<String, String>> _roles = const [];
 
   @override
   void initState() {
     super.initState();
-    _loadRoles();
+    guardPageEntry(ref, context, widget.rbacFlag);
+    final crudInfo = ref.read(rbacProvider.notifier).getCrudInfoByPath(
+      widget.rbacFlag,
+    );
+    _service = UserNetworkServiceImpl(crudInfo);
+    _loadHead();
   }
 
-  Future<void> _loadRoles() async {
-    final resp = await _service.getRoles();
+  Future<void> _loadHead() async {
+    setState(() {
+      _isLoading = true;
+      _hasError = false;
+    });
+
+    final resp = await _service.fetchCreateHead();
     if (!mounted) return;
-    if (resp.success) {
-      final data = resp.data;
-      List<dynamic> items;
-      if (data is Map && data['data'] is List) {
-        items = data['data'] as List;
-      } else if (data is List) {
-        items = data;
-      } else {
-        items = const [];
+
+    if (kDebugMode) print('[AddUserPage] HEAD response: ${resp.data}');
+
+    if (resp.success && resp.data != null) {
+      try {
+        Map<String, dynamic> headData;
+        if (resp.data is Map<String, dynamic>) {
+          headData = resp.data as Map<String, dynamic>;
+        } else {
+          throw Exception('Unexpected HEAD response format');
+        }
+
+        final fields = _parser.parse(headData);
+        setState(() {
+          _fields = fields;
+          _isLoading = false;
+        });
+      } catch (e) {
+        setState(() {
+          _isLoading = false;
+          _hasError = true;
+          _errorMessage = e.toString();
+        });
       }
+    } else {
       setState(() {
-        _roles = items.whereType<Map<String, dynamic>>()
-            .map((e) => {
-                  'id': (e['id'] ?? e['_id'] ?? '').toString(),
-                  'name': (e['name'] ?? e['label'] ?? e['role_name'] ?? '').toString(),
-                })
-            .where((e) => e['id']!.isNotEmpty)
-            .map((e) => {'id': e['id']!, 'name': e['name']!.isEmpty ? e['id']! : e['name']!})
-            .toList();
+        _isLoading = false;
+        _hasError = true;
+        _errorMessage = resp.message ?? 'error_loading_data'.tr;
       });
     }
   }
 
-  String? _required(String? v) => (v == null || v.trim().isEmpty) ? 'required_field'.tr : null;
-
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
-    if (!_autoPassword && _passwordCtrl.text != _password2Ctrl.text) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('passwords_dont_match'.tr)));
-      return;
-    }
-    if (_selectedRoleId == null || _selectedRoleId!.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('select_role'.tr)));
-      return;
-    }
-
     setState(() => _submitting = true);
 
-    final payload = {
-      'username': _usernameCtrl.text.trim(),
-      'password': _autoPassword ? 'Auto1234!' : _passwordCtrl.text,
-      'password2': _autoPassword ? 'Auto1234!' : _password2Ctrl.text,
-      'telephones': [_phoneCtrl.text.trim()],
-      'emails': [_emailCtrl.text.trim()],
-      'others': <String>[],
-      'first_name': _firstNameCtrl.text.trim(),
-      'last_name': _lastNameCtrl.text.trim(),
-      'sur_name': null,
-      'gender': _gender,
-      'birth_city': null,
-      'birth_day': null,
-      'address': null,
-      'is_auto_password_selected': _autoPassword,
-      'rbac_role_id': _selectedRoleId,
-    };
+    final payload = _parser.collectValues(_fields);
+    if (kDebugMode) print('[AddUserPage] Submitting payload: $payload');
 
     final resp = await _service.createUser(payload);
     if (!mounted) return;
     setState(() => _submitting = false);
 
     if (resp.success) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('user_created_successfully'.tr)));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('user_created_successfully'.tr),
+          backgroundColor: Colors.green,
+        ),
+      );
       Navigator.of(context).pop(true);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(resp.message ?? 'operation_failed'.tr)));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(resp.message ?? 'operation_failed'.tr),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -110,103 +120,113 @@ class _AddUserPageState extends State<AddUserPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('add_user'.tr),
+        title: Text(
+          'add_user'.tr,
+          style: GoogleFonts.ubuntu(fontWeight: FontWeight.w600),
+        ),
         backgroundColor: ColorPages.COLOR_PRINCIPAL,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Iconsax.arrow_left),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
       ),
-      body: SingleChildScrollView(
+      body: _buildBody(),
+    );
+  }
+
+  Widget _buildBody() {
+    if (_isLoading) return _buildShimmer();
+    if (_hasError) return _buildError();
+    if (_fields.isEmpty) return _buildEmpty();
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: DynamicFormWidget(
+        key: _formWidgetKey,
+        fields: _fields,
+        isSubmitting: _submitting,
+        onSubmit: _submit,
+        submitLabel: 'save'.tr,
+      ),
+    );
+  }
+
+  Widget _buildShimmer() {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey.shade300,
+      highlightColor: Colors.grey.shade100,
+      child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              TextFormField(
-                controller: _usernameCtrl,
-                decoration: InputDecoration(labelText: 'username'.tr),
-                validator: _required,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _firstNameCtrl,
-                decoration: InputDecoration(labelText: 'first_name'.tr),
-                validator: _required,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _lastNameCtrl,
-                decoration: InputDecoration(labelText: 'last_name'.tr),
-                validator: _required,
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                value: _gender,
-                decoration: InputDecoration(labelText: 'gender'.tr),
-                items: [
-                  DropdownMenuItem(value: 'm', child: Text('male'.tr)),
-                  DropdownMenuItem(value: 'f', child: Text('female'.tr)),
-                ],
-                onChanged: (v) => setState(() => _gender = v ?? 'm'),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _emailCtrl,
-                decoration: InputDecoration(labelText: 'email'.tr),
-                keyboardType: TextInputType.emailAddress,
-                validator: _required,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _phoneCtrl,
-                decoration: InputDecoration(labelText: 'phone_number'.tr),
-                keyboardType: TextInputType.phone,
-                validator: _required,
-              ),
-              const SizedBox(height: 12),
-              SwitchListTile(
-                value: _autoPassword,
-                title: Text('auto_generate_password'.tr),
-                onChanged: (v) => setState(() => _autoPassword = v),
-              ),
-              if (!_autoPassword) ...[
-                TextFormField(
-                  controller: _passwordCtrl,
-                  decoration: InputDecoration(labelText: 'password'.tr),
-                  obscureText: true,
-                  validator: _required,
+        child: Column(
+          children: List.generate(
+            6,
+            (_) => Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: Container(
+                height: 56,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _password2Ctrl,
-                  decoration: InputDecoration(labelText: 'confirm_password'.tr),
-                  obscureText: true,
-                  validator: _required,
-                ),
-              ],
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                value: _selectedRoleId,
-                decoration: InputDecoration(labelText: 'role'.tr),
-                items: _roles
-                    .map((e) => DropdownMenuItem<String>(
-                          value: e['id'],
-                          child: Text(e['name'] ?? e['id']!),
-                        ))
-                    .toList(),
-                onChanged: (v) => setState(() => _selectedRoleId = v),
-                validator: (v) => v == null || v.isEmpty ? 'select_role'.tr : null,
               ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _submitting ? null : _submit,
-                  child: _submitting
-                      ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                      : Text('save'.tr),
-                ),
-              )
-            ],
+            ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildError() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Iconsax.warning_2, size: 56, color: Colors.red.shade300),
+            const SizedBox(height: 16),
+            Text(
+              'error_occurred'.tr,
+              style: GoogleFonts.ubuntu(fontSize: 18, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _errorMessage,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.ubuntu(color: Colors.grey.shade600, fontSize: 14),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: _loadHead,
+              icon: const Icon(Iconsax.refresh),
+              label: Text('retry'.tr, style: GoogleFonts.ubuntu()),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: ColorPages.COLOR_PRINCIPAL,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmpty() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Iconsax.document, size: 56, color: Colors.grey.shade400),
+          const SizedBox(height: 16),
+          Text(
+            'no_form_fields'.tr,
+            style: GoogleFonts.ubuntu(fontSize: 16, color: Colors.grey.shade600),
+          ),
+        ],
       ),
     );
   }

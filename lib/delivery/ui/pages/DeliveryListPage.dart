@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
-import 'package:animate_do/animate_do.dart';
 import '../../../apps/config/theme/ColorPages.dart';
+import '../../../core/rbac/services/rbac_guard.dart';
 
 class DeliveryListPage extends ConsumerStatefulWidget {
   const DeliveryListPage({super.key});
@@ -19,6 +19,12 @@ class _DeliveryListPageState extends ConsumerState<DeliveryListPage> with Single
   @override
   void initState() {
     super.initState();
+    // RBAC entry guard.
+    guardPageEntry(
+      ref,
+      context,
+      'flutter_apps_eblood_bank_cust_delivery_list',
+    );
     _tabController = TabController(length: 2, vsync: this);
   }
 

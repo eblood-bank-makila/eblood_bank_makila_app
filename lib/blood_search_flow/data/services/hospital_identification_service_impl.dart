@@ -16,15 +16,29 @@ class HospitalIdentificationServiceImpl implements IHospitalIdentificationServic
       final data = await _healthStructureService.getHealthStructureByIdentifier(code);
       
       if (data != null) {
-        return IdentifiedHospital(
-          id: data['id'],
-          code: data['identifier'],
-          name: data['name'],
-          address: data['address'],
-          latitude: data['latitude'],
-          longitude: data['longitude'],
+        final hospitalId = data['id']?.toString();
+        print('🏥 [identifyByCode] Hospital ID from service: $hospitalId');
+        
+        // Validate hospital ID is not null, empty, or invalid string
+        if (hospitalId == null || 
+            hospitalId.isEmpty || 
+            hospitalId.toLowerCase() == 'none' || 
+            hospitalId.toLowerCase() == 'null') {
+          print('❌ [identifyByCode] Invalid hospital ID: $hospitalId');
+          return null;
+        }
+        
+        final hospital = IdentifiedHospital(
+          id: hospitalId,
+          code: data['identifier']?.toString() ?? code,
+          name: data['name']?.toString() ?? 'Unknown',
+          address: data['address']?.toString(),
+          latitude: data['latitude'] is num ? (data['latitude'] as num).toDouble() : null,
+          longitude: data['longitude'] is num ? (data['longitude'] as num).toDouble() : null,
           method: HospitalIdentificationMethod.manualCode,
         );
+        print('✅ [identifyByCode] Created IdentifiedHospital with ID: ${hospital.id}');
+        return hospital;
       }
       
       return null;

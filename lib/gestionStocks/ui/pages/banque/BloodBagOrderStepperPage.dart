@@ -1,7 +1,11 @@
 import 'package:animate_do/animate_do.dart';
 import 'package:eblood_bank_mak_app/apps/config/api/dio_client.dart';
+import 'package:eblood_bank_mak_app/apps/config/api/ApiConfig.dart';
 import 'package:eblood_bank_mak_app/apps/config/theme/ColorPages.dart';
 import 'package:eblood_bank_mak_app/apps/widgets/AppSpinner.dart';
+import 'package:eblood_bank_mak_app/blood_search_flow/providers/search_flow_provider.dart';
+import 'package:eblood_bank_mak_app/core/rbac/providers/rbac_provider.dart';
+import 'package:eblood_bank_mak_app/core/rbac/services/rbac_guard.dart';
 import 'package:eblood_bank_mak_app/commande/business/model/CurrencyExchangeModel.dart';
 import 'package:eblood_bank_mak_app/commande/business/service/CurrencyExchangeService.dart';
 import 'package:eblood_bank_mak_app/commande/ui/pages/commande/pages/BloodRequestConfigDialog.dart';
@@ -14,6 +18,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 
@@ -66,9 +71,91 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
   String? _phoneNumber;
   String? _selectedCurrencyId;
 
+  bool _hasFlag(String flag) =>
+      ref.read(rbacProvider.notifier).hasMenuFlag(flag);
+
   @override
   void initState() {
     super.initState();
+    // RBAC entry guard.
+    guardPageEntry(
+      ref,
+      context,
+      'flutter_apps_eblood_bank_hosp_blood_bag_order',
+    );
+  }
+
+  /// Get hospital ID - first check searchFlowProvider (for visitors), then fallback to profile lookup (for hospital staff)
+  Future<String?> _getHospitalId() async {
+    // 1. First try to get from blood_search_flow's identified hospital (for visitors)
+    try {
+      final searchFlowState = ref.read(searchFlowProvider);
+      if (searchFlowState.identifiedHospital != null) {
+        final hospitalId = searchFlowState.identifiedHospital!.id;
+        debugPrint("🏥 Got hospital ID from searchFlowProvider: $hospitalId");
+        return hospitalId;
+      }
+    } catch (e) {
+      debugPrint("Could not read searchFlowProvider: $e");
+    }
+
+    // 2. Fallback: get from user profile (for hospital staff)
+    return _getHospitalIdFromProfiles();
+  }
+
+  /// Get hospital ID from user profiles (for hospital staff)
+  Future<String?> _getHospitalIdFromProfiles() async {
+    try {
+      final storage = GetStorage();
+      final dynamic storedProfiles = storage.read('user_profiles') ?? storage.read('user_profils');
+
+      String? sysOrgId;
+      if (storedProfiles is List) {
+        for (final p in storedProfiles) {
+          if (p is Map) {
+            final candidate = (p['sys_organization_id'] ?? p['organization_id'] ?? p['org_id'])?.toString();
+            if (candidate != null && candidate.isNotEmpty) {
+              sysOrgId = candidate;
+              break;
+            }
+          }
+        }
+      } else if (storedProfiles is Map) {
+        sysOrgId = (storedProfiles['sys_organization_id'] ?? storedProfiles['organization_id'])?.toString();
+      }
+
+      if (sysOrgId == null || sysOrgId.isEmpty) {
+        final userData = storage.read('user_data');
+        if (userData is Map) {
+          sysOrgId = (userData['sys_organization_id'] ?? userData['organization_id'])?.toString();
+        }
+      }
+
+      if (sysOrgId == null || sysOrgId.isEmpty) return null;
+
+      // Fetch hospital by organization ID
+      final res = await getWithDio(
+        ApiConfig.hospitalsList,
+        queryParams: {
+          'filter__sys_organization_id': sysOrgId,
+          'limit': 1,
+          'page': 0,
+        },
+      );
+
+      if (res.success) {
+        final data = res.data;
+        if (data is Map && data['data'] is List && (data['data'] as List).isNotEmpty) {
+          final hospital = (data['data'] as List).first;
+          debugPrint("🏥 Got hospital ID from user profile: ${hospital['_id']}");
+          return hospital['_id']?.toString();
+        }
+      }
+      return null;
+    } catch (e) {
+      debugPrint("Error getting hospital ID from profiles: $e");
+      return null;
+    }
   }
 
   /// Get filtered blood banks that have the selected blood type
@@ -983,6 +1070,18 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
   /// Create cart with selected blood bags
   Future<void> _createCart() async {
     if (_isCreatingCart || _cartId != null) return;
+
+    // Checkout-level RBAC gate. The page's entry guard checks the
+    // broader "order" flag; the final checkout requires a stricter
+    // checkout sub_menu flag.
+    if (!_hasFlag('flutter_apps_eblood_bank_hosp_blood_bag_checkout')) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('access_denied'.tr)),
+        );
+      }
+      return;
+    }
 
     setState(() {
       _isCreatingCart = true;
@@ -2013,7 +2112,11 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       isDismissible: true,
-      builder: (context) => const BloodRequestConfigDialog(),
+      builder: (context) => BloodRequestConfigDialog(
+        patientCrudInfo: ref.read(rbacProvider.notifier).getCrudInfoByPath(
+          'flutter_apps_eblood_bank_hosp_home_patients',
+        ),
+      ),
     );
 
     if (config == null) {
@@ -2172,14 +2275,26 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
       debugPrint("🏦 Blood bank ID: $bloodBankId");
       debugPrint("🩸 Blood bag ID: $bloodBagId");
 
+      // Create array explicitly
+      final List<String> bloodBagsIdArray = [bloodBagId];
+      debugPrint("📦 Blood bags ID array: $bloodBagsIdArray (type: ${bloodBagsIdArray.runtimeType})");
+
+      // Get hospital ID (from searchFlowProvider for visitors, or from profile for hospital staff)
+      final hospitalId = await _getHospitalId();
+      debugPrint("🏥 Hospital ID: $hospitalId");
+
+      final requestBody = {
+        'blood_bank_id': bloodBankId,
+        'blood_bags_id': bloodBagsIdArray,
+        'phone_number': phoneNumber,
+        if (hospitalId != null) 'hospital_id': hospitalId,
+        if (currencyId != null) 'transactional_currency_id': currencyId,
+      };
+      debugPrint("📤 Request body: $requestBody");
+
       final response = await postWithDio(
         '/eblood-connect/blood-bank-address-request/submit-payment',
-        body: {
-          'blood_bank_id': bloodBankId,
-          'blood_bags_id': bloodBagId,
-          'phone_number': phoneNumber,
-          if (currencyId != null) 'transactional_currency_id': currencyId,
-        },
+        body: requestBody,
       );
 
       debugPrint("🎯 Payment result: ${response.success}");

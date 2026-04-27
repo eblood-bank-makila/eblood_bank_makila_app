@@ -11,6 +11,7 @@ import 'package:iconsax/iconsax.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../providers/search_flow_provider.dart';
+import '../../providers/recent_activity_provider.dart';
 import '../../domain/entities/search_flow_state.dart';
 import '../../../apps/config/theme/ColorPages.dart';
 import '../widgets/search_flow_app_bar.dart';
@@ -383,12 +384,13 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
 
     try {
       final isDelivery = _selectedOption == PaymentOption.delivery;
+      final selectedResult = ref.read(searchFlowProvider).selectedResult;
 
-      // Prepare payment data
-      final paymentData = {
-        'amount': _selectedPrice,
-        'method': _selectedPaymentMethod!,
-        'option': isDelivery ? 'delivery' : 'view_address',
+      // Prepare payment data with correct keys matching backend schema
+      final paymentData = <String, dynamic>{
+        'payment_method': _selectedPaymentMethod!,
+        if (selectedResult != null) 'blood_bank_id': selectedResult.bloodBankId,
+        if (selectedResult != null) 'blood_bags_id': [selectedResult.id], // Backend expects an array
       };
 
       // Add phone number for mobile money
@@ -398,23 +400,40 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
 
       if (isDelivery) {
         await ref.read(searchFlowProvider.notifier).processDeliveryPayment(paymentData);
-
-        if (mounted) {
-          context.push('/blood-search/live-tracking');
-        }
       } else {
         await ref.read(searchFlowProvider.notifier).unlockAddress(paymentData);
+      }
 
-        if (mounted) {
-          context.push('/blood-search/address-view');
-        }
+      // Only navigate if payment was actually successful
+      final updatedState = ref.read(searchFlowProvider);
+      final paymentResult = updatedState.paymentResult;
+      if (paymentResult == null || !paymentResult.success) {
+        setState(() {
+          // Prefer specific error from provider state or payment result
+          _errorMessage = paymentResult?.message ?? 
+              updatedState.errorMessage ??
+              ('payment_failed'.tr.isEmpty ? 'Payment failed. Please try again.' : 'payment_failed'.tr);
+        });
+        return;
+      }
+
+      if (mounted) {
+        // Fetch recent activity and trigger auto-open on the correct tab
+        // Tab 0 = pending deliveries, Tab 1 = address requests
+        ref.read(recentActivityProvider.notifier).fetchRecentActivity(
+          autoOpenTab: isDelivery ? 0 : 1,
+        );
+        // Pop back to welcome page
+        context.go('/blood-search');
       }
     } catch (e) {
       setState(() {
         _errorMessage = e.toString();
       });
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -997,7 +1016,7 @@ class _MobileMoneyPhoneBottomSheetState
                         letterSpacing: 1,
                       ),
                       decoration: InputDecoration(
-                        hintText: '0812345678',
+                        hintText: '812345678',
                         hintStyle: GoogleFonts.ubuntu(
                           fontSize: 20,
                           color: Colors.grey.shade400,
@@ -1086,7 +1105,7 @@ class _MobileMoneyPhoneBottomSheetState
                     width: double.infinity,
                     height: 56,
                     child: ElevatedButton.icon(
-                      onPressed: _phoneNumber.length >= 10
+                      onPressed: _phoneNumber.length == 9
                           ? () => Navigator.pop(context, _phoneNumber)
                           : null,
                       icon: Icon(

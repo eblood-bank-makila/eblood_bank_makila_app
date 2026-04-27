@@ -155,7 +155,7 @@ class _CitySelectionPageState extends ConsumerState<CitySelectionPage> {
     );
     
     await ref.read(searchFlowProvider.notifier).selectCity(city);
-    context.push('/blood-search/blood-type');
+    context.push('/blood-search/hospital-identify');
   }
 
   String _buildPath(String cityName) {
@@ -447,8 +447,8 @@ class _CitySelectionPageState extends ConsumerState<CitySelectionPage> {
                   height: 54,
                   child: ElevatedButton.icon(
                     onPressed: () {
-                      // Use the previous city and navigate to blood type
-                      context.push('/blood-search/blood-type');
+                      // Use the previous city and navigate to hospital identification
+                      context.push('/blood-search/hospital-identify');
                     },
                     icon: Icon(Iconsax.arrow_right_3, size: 20),
                     label: Text(

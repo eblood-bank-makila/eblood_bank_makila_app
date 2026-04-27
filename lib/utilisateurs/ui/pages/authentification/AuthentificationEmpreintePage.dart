@@ -3,7 +3,8 @@ import 'package:eblood_bank_mak_app/apps/config/theme/ColorPages.dart';
 import 'package:eblood_bank_mak_app/apps/widgets/BottomNavBarWidget.dart';
 import 'package:eblood_bank_mak_app/gestionStocks/ui/pages/banque/BanquePage.dart';
 import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/authentification/AuthentificationPage.dart';
-import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/profil/ProfileCtrl.dart';
+import 'package:eblood_bank_mak_app/apps/services/AuthService.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -579,17 +580,13 @@ class _AuthentificationEmpreintePageState
 
     if (confirmation == true) {
       setState(() {
-        _isLoading = true; // Démarre le chargement
+        _isLoading = true;
       });
 
-      var dis = ref.read(profileCtrlProvider.notifier);
-      var rep = await dis.disconnect();
-      setState(() {
-        _isLoading = false; // Arrête le chargement
-      });
-      if (rep) {
-        Navigator.push(context,
-            MaterialPageRoute(builder: (context) => AuthentificationPage()));
+      await AuthService().logout();
+
+      if (mounted) {
+        context.go('/welcome');
       }
     }
   }

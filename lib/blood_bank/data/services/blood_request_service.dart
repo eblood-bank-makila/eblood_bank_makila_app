@@ -1,9 +1,20 @@
 import 'package:dio/dio.dart';
+import 'package:eblood_bank_mak_app/core/rbac/models/rbac_models.dart';
+import 'package:eblood_bank_mak_app/core/rbac/services/rbac_url_helper.dart';
 import '../../../apps/config/api/dio_client.dart';
 import '../models/blood_request_model.dart';
 
 /// Service for fetching blood requests from the backend
 class BloodRequestService {
+  /// App-level crudInfo for list endpoint (flutter_apps_eblood_bank_blood_bank_requests_app)
+  final List<RbacCollectionCrudItem> _appCrudInfo;
+
+  /// Menu-level crudInfo for detail/confirm endpoints (flutter_apps_eblood_bank_bb_requests_detail)
+  final List<RbacCollectionCrudItem> _detailCrudInfo;
+
+  final RbacUrlHelper _urlHelper = RbacUrlHelper();
+
+  BloodRequestService(this._appCrudInfo, this._detailCrudInfo);
   /// Fetch blood requests with optional filters
   Future<BloodRequestsResponse> getBloodRequests({
     String? statusFilter,
@@ -37,7 +48,7 @@ class BloodRequestService {
 
       // Use dio_client for automatic auth header injection
       final response = await getWithDio(
-        '/eblood-connect/blood-requests/list',
+        _urlHelper.getFetchUrl(_appCrudInfo),
         queryParams: queryParams,
       );
 
@@ -84,7 +95,8 @@ class BloodRequestService {
       print('🔍 Fetching blood request by ID: $requestId');
 
       final response = await getWithDio(
-        '/eblood-connect/blood-requests/$requestId',
+        _urlHelper.getFetchOneInfoUrl(_detailCrudInfo),
+        queryParams: {'item_id': requestId},
       );
 
       print('📡 Blood request response: ${response.statusCode}');
@@ -116,7 +128,8 @@ class BloodRequestService {
       print('📦 Confirming pickup for request: $requestId');
 
       final response = await putWithDio(
-        '/eblood-connect/blood-requests/$requestId',
+        _urlHelper.getUpdateProcessingUrl(_detailCrudInfo, 'confirm_pickup_url'),
+        queryParams: {'item_id': requestId},
         body: {
           'status': 'picked_up_from_blood_bank',
         },

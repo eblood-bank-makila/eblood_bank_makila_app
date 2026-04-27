@@ -7,10 +7,12 @@ import 'package:iconsax/iconsax.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:intl/intl.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../../../apps/config/api/dio_client.dart' show getAuthToken;
 import 'package:share_plus/share_plus.dart';
 import 'package:open_file/open_file.dart';
 import '../../../apps/config/theme/ColorPages.dart';
+import '../../../core/rbac/providers/rbac_provider.dart';
+import '../../../core/rbac/services/rbac_guard.dart';
 import '../../data/models/blood_request_model.dart';
 import '../../providers/blood_request_provider.dart';
 import '../../providers/websocket_provider.dart';
@@ -51,9 +53,19 @@ class _BloodBankRequestsPageState extends ConsumerState<BloodBankRequestsPage> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
+  bool _hasFlag(String flag) =>
+      ref.read(rbacProvider.notifier).hasMenuFlag(flag);
+
   @override
   void initState() {
     super.initState();
+    // RBAC entry guard on the top-level application flag.
+    guardPageEntry(
+      ref,
+      context,
+      'flutter_apps_eblood_bank_blood_bank_requests_app',
+    );
+
     // Fetch blood requests on init
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(bloodRequestProvider.notifier).fetchBloodRequests(refresh: true);
@@ -79,14 +91,8 @@ class _BloodBankRequestsPageState extends ConsumerState<BloodBankRequestsPage> {
         return;
       }
 
-      // Get auth token from secure storage
-      const secureStorage = FlutterSecureStorage();
-      String? authToken = await secureStorage.read(key: 'auth_token');
-
-      // Fallback to GetStorage if not in secure storage
-      if (authToken == null || authToken.isEmpty) {
-        authToken = storage.read('auth_token') as String?;
-      }
+      // Use the same token retrieval as the Dio interceptor (single source of truth)
+      final authToken = await getAuthToken();
 
       if (authToken == null || authToken.isEmpty) {
         debugPrint('⚠️ No auth token found, WebSocket may fail to authenticate');
@@ -259,51 +265,52 @@ class _BloodBankRequestsPageState extends ConsumerState<BloodBankRequestsPage> {
                 ],
               ),
             ),
-            // Export button
-            PopupMenuButton<String>(
-              icon: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
+            // Export button — only shown when the user has the export sub_menu.
+            if (_hasFlag('flutter_apps_eblood_bank_bb_requests_export'))
+              PopupMenuButton<String>(
+                icon: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Iconsax.document_download,
+                    color: ColorPages.COLOR_PRINCIPAL,
+                    size: 24,
+                  ),
                 ),
-                child: Icon(
-                  Iconsax.document_download,
-                  color: ColorPages.COLOR_PRINCIPAL,
-                  size: 24,
-                ),
+                tooltip: 'export'.tr,
+                onSelected: (value) => _handleExport(value, state),
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: 'pdf',
+                    child: Row(
+                      children: [
+                        const Icon(Iconsax.document, size: 20, color: Colors.red),
+                        const SizedBox(width: 12),
+                        Text(
+                          'export_pdf'.tr,
+                          style: GoogleFonts.ubuntu(fontSize: 14),
+                        ),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'csv',
+                    child: Row(
+                      children: [
+                        const Icon(Iconsax.document_text, size: 20, color: Colors.green),
+                        const SizedBox(width: 12),
+                        Text(
+                          'export_csv'.tr,
+                          style: GoogleFonts.ubuntu(fontSize: 14),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              tooltip: 'export'.tr,
-              onSelected: (value) => _handleExport(value, state),
-              itemBuilder: (context) => [
-                PopupMenuItem(
-                  value: 'pdf',
-                  child: Row(
-                    children: [
-                      const Icon(Iconsax.document, size: 20, color: Colors.red),
-                      const SizedBox(width: 12),
-                      Text(
-                        'export_pdf'.tr,
-                        style: GoogleFonts.ubuntu(fontSize: 14),
-                      ),
-                    ],
-                  ),
-                ),
-                PopupMenuItem(
-                  value: 'csv',
-                  child: Row(
-                    children: [
-                      const Icon(Iconsax.document_text, size: 20, color: Colors.green),
-                      const SizedBox(width: 12),
-                      Text(
-                        'export_csv'.tr,
-                        style: GoogleFonts.ubuntu(fontSize: 14),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
           ],
         ),
       ),
@@ -565,8 +572,16 @@ class _BloodBankRequestsPageState extends ConsumerState<BloodBankRequestsPage> {
         ? DateFormat('dd MMM yyyy', Localizations.localeOf(context).toLanguageTag()).format(createdDate)
         : 'unknown_date'.tr;
 
+    final canDetail = _hasFlag('flutter_apps_eblood_bank_bb_requests_detail');
+
     return InkWell(
       onTap: () {
+        if (!canDetail) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('access_denied'.tr)),
+          );
+          return;
+        }
         Navigator.push(
           context,
           MaterialPageRoute(

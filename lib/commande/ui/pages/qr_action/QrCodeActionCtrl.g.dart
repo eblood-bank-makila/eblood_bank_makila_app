@@ -6,7 +6,7 @@ part of 'QrCodeActionCtrl.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$qrCodeActionCtrlHash() => r'a60696ff583e04592412da16e64174c9a3c3a395';
+String _$qrCodeActionCtrlHash() => r'058897cdc683b3655bd208e9672bc5da9a25abe8';
 
 /// See also [QrCodeActionCtrl].
 @ProviderFor(QrCodeActionCtrl)

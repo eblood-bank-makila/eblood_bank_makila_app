@@ -1,8 +1,13 @@
+import 'package:eblood_bank_mak_app/core/rbac/models/rbac_models.dart';
+import 'package:eblood_bank_mak_app/core/rbac/services/rbac_url_helper.dart';
 import '../../apps/config/api/dio_client.dart';
 import '../models/announcement_model.dart';
 
 class AnnouncementService {
-  AnnouncementService();
+  final List<RbacCollectionCrudItem> _crudInfo;
+  final RbacUrlHelper _urlHelper = RbacUrlHelper();
+
+  AnnouncementService(this._crudInfo);
 
   Future<Map<String, dynamic>> createAnnouncement({
     required String title,
@@ -20,7 +25,7 @@ class AnnouncementService {
   }) async {
     try {
       final response = await postWithDio(
-        '/eblood/announcements',
+        _urlHelper.getCreateProcessingUrl(_crudInfo),
         body: {
           'title': title,
           'description': description,
@@ -85,7 +90,7 @@ class AnnouncementService {
       }
 
       final response = await getWithDio(
-        '/eblood/announcements',
+        _urlHelper.getFetchUrl(_crudInfo),
         queryParams: queryParams,
       );
 
@@ -115,6 +120,7 @@ class AnnouncementService {
 
   Future<Map<String, dynamic>> getAnnouncementById(String announcementId) async {
     try {
+      // NO SEED — keep hardcoded
       final response = await getWithDio(
         '/eblood/announcements/$announcementId',
       );
@@ -177,6 +183,7 @@ class AnnouncementService {
       if (targetAudience != null) updateData['target_audience'] = targetAudience;
       if (imageUrl != null) updateData['image_url'] = imageUrl;
 
+      // NO SEED — keep hardcoded
       final response = await putWithDio(
         '/eblood/announcements?announcementId=$announcementId',
         body: updateData,
@@ -205,6 +212,7 @@ class AnnouncementService {
 
   Future<Map<String, dynamic>> deleteAnnouncement(String announcementId) async {
     try {
+      // NO SEED — keep hardcoded
       final response = await deleteWithDio(
         '/eblood/announcements?announcementId=$announcementId',
       );
@@ -233,7 +241,7 @@ class AnnouncementService {
   Future<Map<String, dynamic>> getActiveEmergencies() async {
     try {
       final response = await getWithDio(
-        '/eblood/announcements/emergencies/active',
+        _urlHelper.getFetchUrl(_crudInfo, 'fetch_active_emergencies_url'),
       );
 
       final List<AnnouncementModel> announcements = [];

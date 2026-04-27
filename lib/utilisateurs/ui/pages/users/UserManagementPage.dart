@@ -1,30 +1,51 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get/get.dart';
 
 import '../../../../apps/config/theme/ColorPages.dart';
 import '../../../../apps/models/user_model.dart';
+import '../../../../core/rbac/services/rbac_guard.dart';
+import '../../../../core/rbac/providers/rbac_provider.dart';
+import '../../../../core/rbac/services/rbac_url_helper.dart';
+import '../../../../core/rbac/enums/collection_crud_info_flag.dart';
+import '../../../../core/rbac/models/rbac_models.dart';
 import '../../../business/service/UserNetworkServiceImpl.dart';
 import 'AddUserPage.dart';
 import 'EditUserPage.dart';
 
-class UserManagementPage extends StatefulWidget {
+class UserManagementPage extends ConsumerStatefulWidget {
   const UserManagementPage({super.key});
 
   @override
-  State<UserManagementPage> createState() => _UserManagementPageState();
+  ConsumerState<UserManagementPage> createState() => _UserManagementPageState();
 }
 
-class _UserManagementPageState extends State<UserManagementPage> {
-  final _service = UserNetworkServiceImpl();
+class _UserManagementPageState extends ConsumerState<UserManagementPage> {
+  late final UserNetworkServiceImpl _service;
+  late final List<RbacCollectionCrudItem> _crudInfo;
+  final RbacUrlHelper _urlHelper = RbacUrlHelper();
   final _searchCtrl = TextEditingController();
   bool _loading = true;
   List<TUserModel> _users = const [];
   int _page = 0;
   final int _limit = 20;
 
+  bool get _canCreate => _urlHelper.hasRbacUrl(CollectionCrudInfoFlag.createProcessingUrl, 'main', _crudInfo);
+  bool get _canEdit => _urlHelper.hasRbacUrl(CollectionCrudInfoFlag.updateProcessingUrl, 'main', _crudInfo);
+  bool get _canDelete => _urlHelper.hasRbacUrl(CollectionCrudInfoFlag.deleteProcessingUrl, 'main', _crudInfo);
+
   @override
   void initState() {
     super.initState();
+    guardPageEntry(
+      ref,
+      context,
+      'flutter_apps_eblood_bank_hosp_home_users',
+    );
+    _crudInfo = ref.read(rbacProvider.notifier).getCrudInfoByPath(
+      'flutter_apps_eblood_bank_hosp_home_users',
+    );
+    _service = UserNetworkServiceImpl(_crudInfo);
     _fetchUsers();
   }
 
@@ -161,14 +182,16 @@ class _UserManagementPageState extends State<UserManagementPage> {
           leading: const CircleAvatar(child: Icon(Icons.person)),
           title: Text(title),
           subtitle: Text(subtitleParts.join(' • ')),
-          onTap: () => _onEditUser(u),
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(icon: const Icon(Icons.edit), onPressed: () => _onEditUser(u)),
-              IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _onDeleteUser(u)),
-            ],
-          ),
+          onTap: _canEdit ? () => _onEditUser(u) : null,
+          trailing: (_canEdit || _canDelete)
+              ? Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_canEdit) IconButton(icon: const Icon(Icons.edit), onPressed: () => _onEditUser(u)),
+                    if (_canDelete) IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _onDeleteUser(u)),
+                  ],
+                )
+              : null,
         );
       },
     );
@@ -213,11 +236,13 @@ class _UserManagementPageState extends State<UserManagementPage> {
           Expanded(child: _buildList()),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: ColorPages.COLOR_PRINCIPAL,
-        onPressed: _onAddUser,
-        child: const Icon(Icons.person_add),
-      ),
+      floatingActionButton: _canCreate
+          ? FloatingActionButton(
+              backgroundColor: ColorPages.COLOR_PRINCIPAL,
+              onPressed: _onAddUser,
+              child: const Icon(Icons.person_add),
+            )
+          : null,
     );
   }
 }

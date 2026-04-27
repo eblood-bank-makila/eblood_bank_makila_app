@@ -85,8 +85,8 @@ class _ModernLoginPageState extends ConsumerState<ModernLoginPage> {
             debugPrint('✅ Login successful, MFA required → navigating to OTP page');
             context.go('/auth/OtpCodePage');
           } else {
-            debugPrint('✅ Login successful without MFA → navigating to main app');
-            context.go('/app/MainApp');
+            debugPrint('✅ Login successful without MFA → navigating to RBAC loading');
+            context.go('/rbac-loading');
           }
         } else if (result == null && mounted) {
           debugPrint('❌ Login failed, showing error message');

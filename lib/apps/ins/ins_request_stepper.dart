@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -9,6 +10,7 @@ import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart
 import 'package:google_mlkit_commons/google_mlkit_commons.dart';
 import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
+import '../../core/rbac/services/rbac_guard.dart';
 import '../config/theme/ColorPages.dart';
 import '../widgets/GradientScaffold.dart';
 import '../services/AuthService.dart';
@@ -16,14 +18,14 @@ import '../models/SystemCountry.dart';
 import './id_extraction.dart';
 import 'ins_request_details_page.dart';
 
-class InsRequestStepper extends StatefulWidget {
+class InsRequestStepper extends ConsumerStatefulWidget {
   const InsRequestStepper({super.key});
 
   @override
-  State<InsRequestStepper> createState() => _InsRequestStepperState();
+  ConsumerState<InsRequestStepper> createState() => _InsRequestStepperState();
 }
 
-class _InsRequestStepperState extends State<InsRequestStepper> {
+class _InsRequestStepperState extends ConsumerState<InsRequestStepper> {
   int _step = 0;
   bool _loading = false;
 
@@ -76,6 +78,12 @@ class _InsRequestStepperState extends State<InsRequestStepper> {
   @override
   void initState() {
     super.initState();
+    // RBAC entry guard.
+    guardPageEntry(
+      ref,
+      context,
+      'flutter_apps_eblood_bank_cust_home_ins_request',
+    );
     _fetchInitData();
     _prefillFromUser();
   }

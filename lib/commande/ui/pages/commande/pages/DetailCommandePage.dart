@@ -5,6 +5,7 @@ import 'package:eblood_bank_mak_app/apps/config/theme/ColorPages.dart';
 import 'package:eblood_bank_mak_app/apps/widgets/AppSpinner.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:eblood_bank_mak_app/core/rbac/providers/rbac_provider.dart';
 import 'package:eblood_bank_mak_app/commande/business/model/DatumPanierModel.dart';
 import 'package:eblood_bank_mak_app/commande/ui/pages/panier/PanierPageState.dart';
 import 'package:eblood_bank_mak_app/paiement/ui/pages/PaiementCtrl.dart';
@@ -1121,7 +1122,11 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
     final config = await showDialog<Map<String, String?>>(
       context: context,
       barrierDismissible: false,
-      builder: (_) => const BloodRequestConfigDialog(),
+      builder: (_) => BloodRequestConfigDialog(
+        patientCrudInfo: ref.read(rbacProvider.notifier).getCrudInfoByPath(
+          'flutter_apps_eblood_bank_hosp_home_patients',
+        ),
+      ),
     );
 
     if (config == null) {

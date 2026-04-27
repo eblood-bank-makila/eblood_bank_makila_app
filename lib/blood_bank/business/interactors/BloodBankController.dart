@@ -1,12 +1,45 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:eblood_bank_mak_app/core/rbac/models/rbac_models.dart';
+import 'package:eblood_bank_mak_app/core/rbac/providers/rbac_provider.dart';
 import '../service/BloodBankApiService.dart';
 import '../model/BloodStock.dart';
 import '../model/BloodEnums.dart';
 
+/// Helper to resolve crudInfo trying BB flag first, then CNTS fallback.
+List<RbacCollectionCrudItem> _resolveCrudInfo(Ref ref, String bbFlag, String cntsFlag) {
+  final rbac = ref.read(rbacProvider.notifier);
+  var info = rbac.getCrudInfoByPath(bbFlag);
+  if (info.isEmpty) {
+    info = rbac.getCrudInfoByPath(cntsFlag);
+  }
+  return info;
+}
+
 // API Service Provider
 final bloodBankApiServiceProvider = Provider<BloodBankApiService>((ref) {
-  // No longer need to inject UtilisateurLocalService as token management is handled by dio_client
-  return BloodBankApiService();
+  return BloodBankApiService(
+    stockCrudInfo: _resolveCrudInfo(
+      ref,
+      'flutter_apps_eblood_bank_bb_inventory_stock',
+      'flutter_apps_eblood_bank_cnts_inventory_stock',
+    ),
+    stockAddCrudInfo: _resolveCrudInfo(
+      ref,
+      'flutter_apps_eblood_bank_bb_inventory_stock_add',
+      'flutter_apps_eblood_bank_cnts_inventory_stock_add',
+    ),
+    overviewCrudInfo: _resolveCrudInfo(
+      ref,
+      'flutter_apps_eblood_bank_bb_inventory_overview',
+      'flutter_apps_eblood_bank_cnts_inventory_overview',
+    ),
+    requestsCrudInfo: ref.read(rbacProvider.notifier)
+        .getCrudInfoByPath('flutter_apps_eblood_bank_blood_bank_requests_app'),
+    homeCrudInfo: ref.read(rbacProvider.notifier)
+        .getCrudInfoByPath('flutter_apps_eblood_bank_home_app'),
+    custDonorProfileCrudInfo: ref.read(rbacProvider.notifier)
+        .getCrudInfoByPath('flutter_apps_eblood_bank_cust_home_donor_profile'),
+  );
 });
 
 // Blood Stock State

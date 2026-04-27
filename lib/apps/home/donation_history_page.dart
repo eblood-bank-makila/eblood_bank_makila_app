@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
+import '../../core/rbac/services/rbac_guard.dart';
 import '../config/api/dio_client.dart';
 
-class DonationHistoryPage extends StatefulWidget {
+class DonationHistoryPage extends ConsumerStatefulWidget {
   const DonationHistoryPage({Key? key}) : super(key: key);
 
   @override
-  State<DonationHistoryPage> createState() => _DonationHistoryPageState();
+  ConsumerState<DonationHistoryPage> createState() => _DonationHistoryPageState();
 }
 
-class _DonationHistoryPageState extends State<DonationHistoryPage> {
+class _DonationHistoryPageState extends ConsumerState<DonationHistoryPage> {
   bool _isLoading = true;
   bool _hasError = false;
   String _errorMessage = '';
@@ -20,6 +22,12 @@ class _DonationHistoryPageState extends State<DonationHistoryPage> {
   @override
   void initState() {
     super.initState();
+    // RBAC entry guard.
+    guardPageEntry(
+      ref,
+      context,
+      'flutter_apps_eblood_bank_cust_home_donation_history',
+    );
     _fetchDonationHistory();
   }
 

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:get/get.dart';
 import 'package:iconsax/iconsax.dart';
+import '../../core/rbac/providers/rbac_provider.dart';
 import '../../utilisateurs/ui/pages/patient/PatientManagementPage.dart';
 import '../services/HospitalDashboardService.dart';
 import '../../gestionStocks/ui/pages/hospital/HospitalInventoryPage.dart';
@@ -37,6 +38,11 @@ class _HospitalHomePageState extends ConsumerState<HospitalHomePage> {
   int _totalBloodBags = 0;
   int _totalUsers = 0;
   int _totalPatients = 0;
+
+  /// RBAC helper — checks whether a given sub_menu flag is present in the
+  /// loaded applications tree. Mirrors the pattern from BloodBankHomePage.
+  bool _hasFlag(String flag) =>
+      ref.read(rbacProvider.notifier).hasMenuFlag(flag);
 
   @override
   void initState() {
@@ -417,6 +423,16 @@ class _HospitalHomePageState extends ConsumerState<HospitalHomePage> {
   }
 
   Widget _buildQuickActionsSection() {
+    // RBAC gates — mirror the BloodBankHomePage pattern. Each card is locked
+    // when its corresponding sub_menu flag is missing from the loaded apps.
+    final canRequests = _hasFlag('flutter_apps_eblood_bank_hosp_home_blood_requests');
+    final canUsers    = _hasFlag('flutter_apps_eblood_bank_hosp_home_users');
+    final canSearch   = _hasFlag('flutter_apps_eblood_bank_hospital_search_app');
+    final canNetwork  = _hasFlag('flutter_apps_eblood_bank_hosp_home_network');
+    final canCart     = _hasFlag('flutter_apps_eblood_bank_hosp_blood_bag_cart');
+    final canPatients = _hasFlag('flutter_apps_eblood_bank_hosp_home_patients');
+    final canStorage  = _hasFlag('flutter_apps_eblood_bank_hosp_home_inventory');
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -442,6 +458,7 @@ class _HospitalHomePageState extends ConsumerState<HospitalHomePage> {
               subtitle: 'manage_requests'.tr,
               icon: Iconsax.document_text,
               color: ColorPages.COLOR_PRINCIPAL,
+              locked: !canRequests,
               onTap: () {
                 Navigator.push(
                   context,
@@ -454,6 +471,7 @@ class _HospitalHomePageState extends ConsumerState<HospitalHomePage> {
               subtitle: 'manage_users'.tr,
               icon: Iconsax.profile_2user,
               color: Colors.blue,
+              locked: !canUsers,
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const UserManagementPage()),
@@ -465,6 +483,7 @@ class _HospitalHomePageState extends ConsumerState<HospitalHomePage> {
               subtitle: 'search_blood_bags'.tr,
               icon: Iconsax.search_normal,
               color: Colors.purple,
+              locked: !canSearch,
               onTap: () {
                 Navigator.push(
                   context,
@@ -479,6 +498,7 @@ class _HospitalHomePageState extends ConsumerState<HospitalHomePage> {
               subtitle: 'medical_network'.tr,
               icon: Iconsax.people,
               color: Colors.green,
+              locked: !canNetwork,
               onTap: () {
                 Navigator.push(
                   context,
@@ -491,6 +511,7 @@ class _HospitalHomePageState extends ConsumerState<HospitalHomePage> {
               subtitle: 'view_cart'.tr,
               icon: Iconsax.shopping_cart,
               color: Colors.orange,
+              locked: !canCart,
               onTap: () {
                 Navigator.push(
                   context,
@@ -503,6 +524,7 @@ class _HospitalHomePageState extends ConsumerState<HospitalHomePage> {
               subtitle: 'manage_patients'.tr,
               icon: Iconsax.user,
               color: Colors.teal,
+              locked: !canPatients,
               onTap: () {
                 Navigator.push(
                   context,
@@ -517,6 +539,7 @@ class _HospitalHomePageState extends ConsumerState<HospitalHomePage> {
               subtitle: 'manage_storage'.tr,
               icon: Iconsax.security_safe,
               color: Colors.red,
+              locked: !canStorage,
               onTap: () {
                 Navigator.push(
                   context,
@@ -538,9 +561,15 @@ class _HospitalHomePageState extends ConsumerState<HospitalHomePage> {
     required IconData icon,
     required Color color,
     required VoidCallback onTap,
+    bool locked = false,
   }) {
-    return InkWell(
-      onTap: onTap,
+    // Mirror BloodBankHomePage's locked-card pattern: disable tap, dim
+    // the icon colour, and wrap the whole card in Opacity.
+    final effectiveColor = locked ? Colors.grey.shade400 : color;
+    return Opacity(
+      opacity: locked ? 0.5 : 1.0,
+      child: InkWell(
+      onTap: locked ? null : onTap,
       borderRadius: BorderRadius.circular(16),
       child: Container(
         padding: const EdgeInsets.all(16),
@@ -566,10 +595,10 @@ class _HospitalHomePageState extends ConsumerState<HospitalHomePage> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
+                color: effectiveColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, color: color, size: 24),
+              child: Icon(icon, color: effectiveColor, size: 24),
             ),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -597,10 +626,15 @@ class _HospitalHomePageState extends ConsumerState<HospitalHomePage> {
           ],
         ),
       ),
+      ),
     );
   }
 
   Widget _buildRecentActivitySection() {
+    // "View all" navigates to BloodRequestPage, so it's gated on the same
+    // sub_menu flag as the "requests" quick-action card.
+    final canRequests = _hasFlag('flutter_apps_eblood_bank_hosp_home_blood_requests');
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -615,22 +649,23 @@ class _HospitalHomePageState extends ConsumerState<HospitalHomePage> {
                 color: Colors.black87,
               ),
             ),
-            TextButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const BloodRequestPage()),
-                );
-              },
-              child: Text(
-                'view_all'.tr,
-                style: GoogleFonts.ubuntu(
-                  fontSize: 14,
-                  color: ColorPages.COLOR_PRINCIPAL,
-                  fontWeight: FontWeight.w600,
+            if (canRequests)
+              TextButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const BloodRequestPage()),
+                  );
+                },
+                child: Text(
+                  'view_all'.tr,
+                  style: GoogleFonts.ubuntu(
+                    fontSize: 14,
+                    color: ColorPages.COLOR_PRINCIPAL,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
-            ),
           ],
         ),
         const SizedBox(height: 16),

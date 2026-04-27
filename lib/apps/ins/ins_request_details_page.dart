@@ -1,16 +1,35 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../core/rbac/services/rbac_guard.dart';
 import '../config/theme/ColorPages.dart';
 
-class InsRequestDetailsPage extends StatelessWidget {
+class InsRequestDetailsPage extends ConsumerStatefulWidget {
   final Map<String, dynamic> data;
   const InsRequestDetailsPage({super.key, required this.data});
 
+  @override
+  ConsumerState<InsRequestDetailsPage> createState() => _InsRequestDetailsPageState();
+}
+
+class _InsRequestDetailsPageState extends ConsumerState<InsRequestDetailsPage> {
   String _stringOf(dynamic v) => v?.toString() ?? '';
 
   @override
+  void initState() {
+    super.initState();
+    // RBAC entry guard.
+    guardPageEntry(
+      ref,
+      context,
+      'flutter_apps_eblood_bank_cust_home_ins_request',
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final data = widget.data;
     final status = _stringOf(data['status']);
     final statusLbl = _stringOf(data['status_lbl']).isNotEmpty ? _stringOf(data['status_lbl']) : status;
     final insNumber = _stringOf(data['ins_number']);

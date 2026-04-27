@@ -14,6 +14,10 @@ import '../widgets/ReportPreviewDialog.dart';
 import '../../utils/blood_translations.dart';
 
 import '../../../apps/config/theme/ColorPages.dart';
+import '../../../core/rbac/providers/rbac_provider.dart';
+import '../../../core/rbac/services/rbac_url_helper.dart';
+import '../../../core/rbac/enums/collection_crud_info_flag.dart';
+import '../../../core/rbac/models/rbac_models.dart';
 import '../../business/interactors/BloodBankController.dart';
 import '../../business/interactors/BloodReportsController.dart';
 import '../../business/interactors/BloodReportExportController.dart';
@@ -30,10 +34,12 @@ enum InventoryTab {
 
 class BloodBankInventoryPage extends ConsumerStatefulWidget {
   final int initialTabIndex;
-  
+  final bool showBackButton;
+
   const BloodBankInventoryPage({
-    super.key, 
+    super.key,
     this.initialTabIndex = 0,
+    this.showBackButton = false,
   });
 
   @override
@@ -46,28 +52,108 @@ class _BloodBankInventoryPageState extends ConsumerState<BloodBankInventoryPage>
   InventoryTab _currentTab = InventoryTab.overview;
   // Track expanded blood types
   final Set<String> _expandedBloodTypes = {};
-  
+
+  // ── RBAC-driven visible tabs ──
+  // Built once in initState from the RBAC state. Tabs the user does not
+  // have access to are completely omitted from the TabBar / TabBarView,
+  // and the TabController length matches the visible count.
+  late final List<InventoryTab> _allowedTabs;
+  late final bool _canAddStock;
+  final RbacUrlHelper _urlHelper = RbacUrlHelper();
+
   // Settings state variables
   // Variables for settings
   // bool _darkModeEnabled = false; // Uncomment if needed later
   bool _criticalStockAlertsEnabled = true;
   bool _expirationAlertsEnabled = true;
   bool _dailySummaryEnabled = false;
-  
+
   // Export reports state
   String _selectedReportFormat = 'pdf';
+
+  /// Pool of flags helper — true when ANY flag is granted. Used because
+  /// CNTS reuses this same page (per RbacScreenRegistry) and brings its
+  /// own cnts_inventory_* flag set.
+  bool _hasAnyFlag(List<String> flags) =>
+      ref.read(rbacProvider.notifier).hasAnyMenuFlag(flags);
 
   @override
   void initState() {
     super.initState();
+
+    // Build the visible tab list from RBAC flags. Each tab is unlocked when
+    // EITHER the blood_bank flag OR the cnts equivalent is granted, so the
+    // same page works for both profiles.
+    final canOverview = _hasAnyFlag([
+      'flutter_apps_eblood_bank_bb_inventory_overview',
+      'flutter_apps_eblood_bank_cnts_inventory_overview',
+    ]);
+    final canStock = _hasAnyFlag([
+      'flutter_apps_eblood_bank_bb_inventory_stock',
+      'flutter_apps_eblood_bank_cnts_inventory_stock',
+    ]);
+    final canReports = _hasAnyFlag([
+      'flutter_apps_eblood_bank_bb_inventory_reports',
+      'flutter_apps_eblood_bank_cnts_inventory_reports',
+    ]);
+    final canSettings = _hasAnyFlag([
+      'flutter_apps_eblood_bank_bb_inventory_settings',
+      'flutter_apps_eblood_bank_cnts_inventory_settings',
+    ]);
+    _canAddStock = _hasAnyFlag([
+      'flutter_apps_eblood_bank_bb_inventory_stock_add',
+      'flutter_apps_eblood_bank_cnts_inventory_stock_add',
+    ]) && (() {
+      final rbac = ref.read(rbacProvider.notifier);
+      var crudInfo = rbac.getCrudInfoByPath('flutter_apps_eblood_bank_bb_inventory_stock_add');
+      if (crudInfo.isEmpty) {
+        crudInfo = rbac.getCrudInfoByPath('flutter_apps_eblood_bank_cnts_inventory_stock_add');
+      }
+      return _urlHelper.hasRbacUrl(CollectionCrudInfoFlag.createProcessingUrl, 'main', crudInfo);
+    })();
+
+    _allowedTabs = [
+      if (canOverview) InventoryTab.overview,
+      if (canStock)    InventoryTab.bloodStock,
+      if (canReports)  InventoryTab.reports,
+      if (canSettings) InventoryTab.settings,
+    ];
+
+    // Entry safety net: if the user has access to zero tabs, pop out.
+    if (_allowedTabs.isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('access_denied'.tr)),
+        );
+        Navigator.of(context).maybePop();
+      });
+      // Create a minimal 1-tab controller so the rest of the widget tree
+      // doesn't crash before the pop lands.
+      _tabController = TabController(length: 1, vsync: this);
+      _currentTab = InventoryTab.overview;
+      return;
+    }
+
+    // Clamp the caller's requested initial tab to what's actually visible.
+    // If the requested tab is not in _allowedTabs, fall back to index 0.
+    final requestedTab = (widget.initialTabIndex >= 0 &&
+            widget.initialTabIndex < InventoryTab.values.length)
+        ? InventoryTab.values[widget.initialTabIndex]
+        : InventoryTab.overview;
+    final initialIndex = _allowedTabs.contains(requestedTab)
+        ? _allowedTabs.indexOf(requestedTab)
+        : 0;
+
     _tabController = TabController(
-      length: 4, 
+      length: _allowedTabs.length,
       vsync: this,
-      initialIndex: widget.initialTabIndex,
+      initialIndex: initialIndex,
     );
+    _currentTab = _allowedTabs[initialIndex];
     _tabController.addListener(() {
       setState(() {
-        _currentTab = InventoryTab.values[_tabController.index];
+        _currentTab = _allowedTabs[_tabController.index];
       });
     });
 
@@ -75,7 +161,7 @@ class _BloodBankInventoryPageState extends ConsumerState<BloodBankInventoryPage>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(bloodStockControllerProvider.notifier).loadBloodStock();
       ref.read(bloodBankStatsControllerProvider.notifier).loadStats();
-      
+
       // Load saved settings
       _loadSettings();
     });
@@ -376,6 +462,15 @@ class _BloodBankInventoryPageState extends ConsumerState<BloodBankInventoryPage>
 
   @override
   Widget build(BuildContext context) {
+    // If entry safety net triggered (empty _allowedTabs), render a minimal
+    // scaffold so the post-frame pop can land without layout errors.
+    if (_allowedTabs.isEmpty) {
+      return Scaffold(
+        backgroundColor: Colors.grey.shade50,
+        body: const SizedBox.shrink(),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       body: SafeArea(
@@ -383,20 +478,26 @@ class _BloodBankInventoryPageState extends ConsumerState<BloodBankInventoryPage>
           children: [
             // Header
             _buildHeader(),
-            
+
             // Tab Navigation
             _buildTabNavigation(),
-            
-            // Tab Content
+
+            // Tab Content — only render the tabs the user is allowed to see.
             Expanded(
               child: TabBarView(
                 controller: _tabController,
-                children: [
-                  _buildOverviewTab(),
-                  _buildBloodStockTab(),
-                  _buildReportsTab(),
-                  _buildSettingsTab(),
-                ],
+                children: _allowedTabs.map((tab) {
+                  switch (tab) {
+                    case InventoryTab.overview:
+                      return _buildOverviewTab();
+                    case InventoryTab.bloodStock:
+                      return _buildBloodStockTab();
+                    case InventoryTab.reports:
+                      return _buildReportsTab();
+                    case InventoryTab.settings:
+                      return _buildSettingsTab();
+                  }
+                }).toList(),
               ),
             ),
           ],
@@ -423,6 +524,24 @@ class _BloodBankInventoryPageState extends ConsumerState<BloodBankInventoryPage>
         ),
         child: Row(
           children: [
+            if (widget.showBackButton) ...[
+              GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    Iconsax.arrow_left,
+                    color: Colors.grey.shade700,
+                    size: 20,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+            ],
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -465,6 +584,33 @@ class _BloodBankInventoryPageState extends ConsumerState<BloodBankInventoryPage>
   }
 
   Widget _buildTabNavigation() {
+    // Build only the tabs the user is allowed to see, in the same order
+    // as _allowedTabs so they align with the TabBarView children.
+    Tab tabFor(InventoryTab tab) {
+      switch (tab) {
+        case InventoryTab.overview:
+          return Tab(
+            icon: const Icon(Iconsax.chart, size: 20),
+            text: 'overview'.tr,
+          );
+        case InventoryTab.bloodStock:
+          return Tab(
+            icon: const Icon(Iconsax.box, size: 20),
+            text: 'blood_stock'.tr,
+          );
+        case InventoryTab.reports:
+          return Tab(
+            icon: const Icon(Iconsax.chart_square, size: 20),
+            text: 'reports'.tr,
+          );
+        case InventoryTab.settings:
+          return Tab(
+            icon: const Icon(Iconsax.setting_2, size: 20),
+            text: 'parameters'.tr,
+          );
+      }
+    }
+
     return FadeInUp(
       delay: const Duration(milliseconds: 300),
       child: Container(
@@ -483,24 +629,7 @@ class _BloodBankInventoryPageState extends ConsumerState<BloodBankInventoryPage>
             fontSize: 14,
             fontWeight: FontWeight.w500,
           ),
-          tabs: [
-            Tab(
-              icon: const Icon(Iconsax.chart, size: 20),
-              text: 'overview'.tr,
-            ),
-            Tab(
-              icon: const Icon(Iconsax.box, size: 20),
-              text: 'blood_stock'.tr,
-            ),
-            Tab(
-              icon: const Icon(Iconsax.chart_square, size: 20),
-              text: 'reports'.tr,
-            ),
-            Tab(
-              icon: const Icon(Iconsax.setting_2, size: 20),
-              text: 'parameters'.tr,
-            ),
-          ],
+          tabs: _allowedTabs.map(tabFor).toList(),
         ),
       ),
     );
@@ -963,27 +1092,30 @@ class _BloodBankInventoryPageState extends ConsumerState<BloodBankInventoryPage>
               ),
             ),
             const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const AddBloodStockPage(),
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: ColorPages.COLOR_PRINCIPAL,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            // Only show the "Add stock" CTA when the user has the sub_menu
+            // permission for it.
+            if (_canAddStock)
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AddBloodStockPage(),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: ColorPages.COLOR_PRINCIPAL,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                ),
+                child: Text('add_stock'.tr),
               ),
-              child: Text('add_stock'.tr),
-            ),
           ],
         ),
       );
     }
-    
+
     // Group blood stocks by blood type and product type for better display
     final Map<String, List<BloodStock>> groupedStocks = {};
     for (final stock in stockState.stocks) {
@@ -2052,6 +2184,9 @@ class _BloodBankInventoryPageState extends ConsumerState<BloodBankInventoryPage>
   Widget? _buildFloatingActionButton() {
     switch (_currentTab) {
       case InventoryTab.bloodStock:
+        // Hide the FAB entirely when the user does not have access
+        // to the Add Stock sub_menu.
+        if (!_canAddStock) return null;
         return FloatingActionButton.extended(
           heroTag: 'inventory_add_stock_fab',
           onPressed: () {
@@ -2301,20 +2436,20 @@ class _BloodBankInventoryPageState extends ConsumerState<BloodBankInventoryPage>
     
     // Extract values or use defaults, handling the nested structure
     final totalCollected = metricsState.metrics['total_collected'] is Map 
-        ? (metricsState.metrics['total_collected'] as Map)['value'] as int? ?? 0 
-        : metricsState.metrics['total_collected'] as int? ?? 0;
+        ? ((metricsState.metrics['total_collected'] as Map)['value'] as num?)?.toInt() ?? 0 
+        : (metricsState.metrics['total_collected'] as num?)?.toInt() ?? 0;
     
     final totalDistributed = metricsState.metrics['total_distributed'] is Map 
-        ? (metricsState.metrics['total_distributed'] as Map)['value'] as int? ?? 0 
-        : metricsState.metrics['total_distributed'] as int? ?? 0;
+        ? ((metricsState.metrics['total_distributed'] as Map)['value'] as num?)?.toInt() ?? 0 
+        : (metricsState.metrics['total_distributed'] as num?)?.toInt() ?? 0;
     
     final averageDailyCollection = metricsState.metrics['avg_daily_collection'] is Map 
         ? (metricsState.metrics['avg_daily_collection'] as Map)['value'] as num? ?? 0 
         : metricsState.metrics['avg_daily_collection'] as num? ?? 0;
     
     final donationsIncreasePercent = metricsState.metrics['donations_increase'] is Map 
-        ? (metricsState.metrics['donations_increase'] as Map)['value'] as int? ?? 0 
-        : metricsState.metrics['donation_trend'] as int? ?? 0;
+        ? ((metricsState.metrics['donations_increase'] as Map)['value'] as num?)?.toInt() ?? 0 
+        : (metricsState.metrics['donation_trend'] as num?)?.toInt() ?? 0;
     
     return FadeInUp(
       delay: const Duration(milliseconds: 300),

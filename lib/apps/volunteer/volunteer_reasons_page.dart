@@ -1,24 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:get/get.dart';
+import '../../core/rbac/services/rbac_guard.dart';
 import '../config/theme/ColorPages.dart';
 import 'volunteer_service.dart';
 
 import '../widgets/GradientScaffold.dart';
-class VolunteerReasonsPage extends StatefulWidget {
+class VolunteerReasonsPage extends ConsumerStatefulWidget {
   const VolunteerReasonsPage({super.key});
 
   @override
-  State<VolunteerReasonsPage> createState() => _VolunteerReasonsPageState();
+  ConsumerState<VolunteerReasonsPage> createState() => _VolunteerReasonsPageState();
 }
 
-class _VolunteerReasonsPageState extends State<VolunteerReasonsPage> {
+class _VolunteerReasonsPageState extends ConsumerState<VolunteerReasonsPage> {
   final _service = VolunteerService();
   late Future<List<Map<String, dynamic>>> _future;
 
   @override
   void initState() {
     super.initState();
+    // RBAC entry guard — volunteer sub_menu flag.
+    guardPageEntry(
+      ref,
+      context,
+      'flutter_apps_eblood_bank_cust_home_volunteer',
+    );
     _future = _service.fetchReasons();
   }
 

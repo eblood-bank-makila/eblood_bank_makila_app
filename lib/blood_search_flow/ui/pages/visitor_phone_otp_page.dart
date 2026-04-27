@@ -26,9 +26,9 @@ class VisitorPhoneOtpPage extends ConsumerStatefulWidget {
 
 class _VisitorPhoneOtpPageState extends ConsumerState<VisitorPhoneOtpPage>
     with CodeAutoFill {
-  final TextEditingController _phoneController = TextEditingController();
-  final TextEditingController _otpController = TextEditingController();
-  final PageController _pageController = PageController();
+  late TextEditingController _phoneController;
+  late TextEditingController _otpController;
+  late PageController _pageController;
   final VisitorRegistrationServiceImpl _visitorService =
       VisitorRegistrationServiceImpl();
 
@@ -45,6 +45,11 @@ class _VisitorPhoneOtpPageState extends ConsumerState<VisitorPhoneOtpPage>
   @override
   void initState() {
     super.initState();
+    // Create fresh controllers on every mount to avoid reusing disposed ones
+    _phoneController = TextEditingController();
+    _otpController = TextEditingController();
+    _pageController = PageController();
+    _disposed = false;
     _getAppSignature();
     // Safety check in case user navigates directly to OTP page
     // Primary check happens before navigation in hospital_identify_page
@@ -73,13 +78,15 @@ class _VisitorPhoneOtpPageState extends ConsumerState<VisitorPhoneOtpPage>
           if (result['success'] == true && !needsVerification) {
             print('✅ [OTP Page] Backend confirms verification, navigating to payment');
             
-            // Wait for build to complete before navigating
-            await Future.delayed(const Duration(milliseconds: 100));
-            
-            if (mounted) {
-              // Skip OTP verification and go directly to payment
-              print('⏭️ [OTP Page] Navigating to payment page...');
-              context.pushReplacement('/blood-search/payment');
+            // Navigate AFTER the current frame finishes layout to avoid
+            // disposing controllers while PageView is still inflating children.
+            if (mounted && !_disposed) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted && !_disposed) {
+                  print('⏭️ [OTP Page] Navigating to payment page...');
+                  context.pushReplacement('/blood-search/payment');
+                }
+              });
             }
           } else {
             print('⚠️ [OTP Page] Backend requires verification, showing OTP input');
@@ -118,9 +125,13 @@ class _VisitorPhoneOtpPageState extends ConsumerState<VisitorPhoneOtpPage>
 
     if (code != null && code!.length == 6) {
       print('📨 Auto-received OTP: $code');
-      if (mounted) {
+      if (mounted && !_disposed) {
         setState(() {
-          _otpController.text = code!;
+          try {
+            _otpController.text = code!;
+          } catch (_) {
+            // Controller may have been disposed in a race
+          }
         });
         // Auto-verify after a short delay
         Future.delayed(const Duration(milliseconds: 500), () {
@@ -529,44 +540,49 @@ class _VisitorPhoneOtpPageState extends ConsumerState<VisitorPhoneOtpPage>
 
           const SizedBox(height: 28),
 
-          // OTP input
-          PinCodeTextField(
-            appContext: context,
-            controller: _otpController,
-            length: 6,
-            keyboardType: TextInputType.number,
-            animationType: AnimationType.fade,
-            pinTheme: PinTheme(
-              shape: PinCodeFieldShape.box,
-              borderRadius: BorderRadius.circular(12),
-              fieldHeight: 56,
-              fieldWidth: 48,
-              activeFillColor: Colors.white,
-              inactiveFillColor: Colors.grey.shade50,
-              selectedFillColor: Colors.white,
-              activeColor: ColorPages.COLOR_PRINCIPAL,
-              inactiveColor: Colors.grey.shade300,
-              selectedColor: ColorPages.COLOR_PRINCIPAL,
+          // OTP input — only build PinCodeTextField when the OTP page is
+          // actually active. PageView eagerly inflates both children, so
+          // building PinCodeTextField before _isOtpSent causes a race if the
+          // widget gets disposed during layout (e.g. pushReplacement in
+          // _checkIfAlreadyVerified).
+          if (_isOtpSent && !_disposed)
+            PinCodeTextField(
+              appContext: context,
+              controller: _otpController,
+              length: 6,
+              keyboardType: TextInputType.number,
+              animationType: AnimationType.fade,
+              pinTheme: PinTheme(
+                shape: PinCodeFieldShape.box,
+                borderRadius: BorderRadius.circular(12),
+                fieldHeight: 56,
+                fieldWidth: 48,
+                activeFillColor: Colors.white,
+                inactiveFillColor: Colors.grey.shade50,
+                selectedFillColor: Colors.white,
+                activeColor: ColorPages.COLOR_PRINCIPAL,
+                inactiveColor: Colors.grey.shade300,
+                selectedColor: ColorPages.COLOR_PRINCIPAL,
+              ),
+              textStyle: GoogleFonts.ubuntu(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+              enableActiveFill: true,
+              onCompleted: (value) {
+                // Only verify if not already verifying or complete
+                if (!_disposed && !_isVerifying && !_verificationComplete) {
+                  _verifyOtp();
+                }
+              },
+              onChanged: (value) {
+                if (!_disposed && mounted) {
+                  setState(() {
+                    _errorMessage = null;
+                  });
+                }
+              },
             ),
-            textStyle: GoogleFonts.ubuntu(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
-            enableActiveFill: true,
-            onCompleted: (value) {
-              // Only verify if not already verifying or complete
-              if (!_disposed && !_isVerifying && !_verificationComplete) {
-                _verifyOtp();
-              }
-            },
-            onChanged: (value) {
-              if (!_disposed && mounted) {
-                setState(() {
-                  _errorMessage = null;
-                });
-              }
-            },
-          ),
 
           // Error message
           if (_errorMessage != null) ...[

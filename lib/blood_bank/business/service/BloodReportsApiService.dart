@@ -1,22 +1,23 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:eblood_bank_mak_app/core/rbac/models/rbac_models.dart';
+import 'package:eblood_bank_mak_app/core/rbac/services/rbac_url_helper.dart';
 import '../../../apps/config/api/dio_client.dart';
-import '../../../apps/config/api/ApiConfig.dart';
 import '../../../apps/models/api_response.dart';
 
-// Define endpoints for reports
-class BloodReportsEndpoints {
-  static const String metricKeys = '/eblood/reports/blood-inventory/metric-keys';
-  static const String trends = '/eblood/reports/blood-inventory/trends';
-  static const String monthlyComparison = '/eblood/reports/blood-inventory/monthly-comparison';
-  static const String generateReport = '/eblood/reports/blood-inventory/generate';
-}
-
 class BloodReportsApiService {
-  BloodReportsApiService();
+  /// Reports menu — fetch_url/fetch_report_metrics_url, fetch_report_trends_url, etc.
+  final List<RbacCollectionCrudItem> _reportsCrudInfo;
+  /// Export menu — download_process_url/main
+  final List<RbacCollectionCrudItem> _exportCrudInfo;
+  final RbacUrlHelper _urlHelper = RbacUrlHelper();
+
+  BloodReportsApiService({
+    required List<RbacCollectionCrudItem> reportsCrudInfo,
+    required List<RbacCollectionCrudItem> exportCrudInfo,
+  })  : _reportsCrudInfo = reportsCrudInfo,
+        _exportCrudInfo = exportCrudInfo;
   
   Future<IApiResponse> getBloodReportMetricKeys({
     String? startDate,
@@ -35,7 +36,7 @@ class BloodReportsApiService {
       if (bloodBankId != null) queryParams['blood_bank_id'] = bloodBankId;
       
       final response = await getWithDio(
-        BloodReportsEndpoints.metricKeys,
+        _urlHelper.getFetchUrl(_reportsCrudInfo, 'fetch_report_metrics_url'),
         queryParams: queryParams,
       );
 
@@ -64,7 +65,7 @@ class BloodReportsApiService {
       if (bloodBankId != null) queryParams['blood_bank_id'] = bloodBankId;
       
       final response = await getWithDio(
-        BloodReportsEndpoints.trends,
+        _urlHelper.getFetchUrl(_reportsCrudInfo, 'fetch_report_trends_url'),
         queryParams: queryParams,
       );
 
@@ -90,7 +91,7 @@ class BloodReportsApiService {
       if (bloodBankId != null) queryParams['blood_bank_id'] = bloodBankId;
       
       final response = await getWithDio(
-        BloodReportsEndpoints.monthlyComparison,
+        _urlHelper.getFetchUrl(_reportsCrudInfo, 'fetch_report_monthly_comparison_url'),
         queryParams: queryParams,
       );
 
@@ -121,7 +122,7 @@ class BloodReportsApiService {
       if (bloodBankId != null) queryParams['blood_bank_id'] = bloodBankId;
       
       final response = await getWithDio(
-        BloodReportsEndpoints.generateReport,
+        _urlHelper.getDownloadProcessUrl(_exportCrudInfo),
         queryParams: queryParams,
       );
 
@@ -141,23 +142,13 @@ class BloodReportsApiService {
       final String fileName = downloadUrl.split('/').last;
       final String filePath = '${appDocDir.path}/$fileName';
       
-      // Create a Dio instance for download
-      final dio = Dio();
-      dio.options.connectTimeout = const Duration(minutes: 5);
-      dio.options.receiveTimeout = const Duration(minutes: 5);
-      
-      // Build full URL if downloadUrl is relative
-      final fullUrl = downloadUrl.startsWith('http') 
-          ? downloadUrl 
-          : '${dotenv.env['BASE_API_URL']}$downloadUrl';
-      
-      print('📥 Downloading from: $fullUrl');
+      print('📥 Downloading from: $downloadUrl');
       print('💾 Saving to: $filePath');
       
-      // Download the file from the server
-      final response = await dio.download(
-        fullUrl,
-        filePath,
+      // Use downloadWithDio helper (includes device info, auth, location headers)
+      final response = await downloadWithDio(
+        url: downloadUrl,
+        savePath: filePath,
         onReceiveProgress: (received, total) {
           if (total != -1) {
             print('📥 Download progress: ${(received / total * 100).toStringAsFixed(0)}%');
@@ -165,7 +156,7 @@ class BloodReportsApiService {
         },
       );
       
-      if (response.statusCode == 200) {
+      if (response.success) {
         // File downloaded successfully
         print('✅ File downloaded to: $filePath');
         
@@ -186,7 +177,7 @@ class BloodReportsApiService {
       } else {
         return IApiResponse(
           success: false,
-          message: 'Échec du téléchargement: Code ${response.statusCode}',
+          message: 'Échec du téléchargement: ${response.message}',
         );
       }
     } catch (e) {

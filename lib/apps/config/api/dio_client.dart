@@ -8,27 +8,76 @@ import 'package:eblood_bank_mak_app/apps/services/AuthService.dart';
 import 'package:eblood_bank_mak_app/apps/services/error_navigation_service.dart';
 import 'package:eblood_bank_mak_app/core/services/location_tracking_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 // import 'package:ebloodbankauth/model/api_response.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:get_storage/get_storage.dart';
 // import 'package:ebloodbankauth/services/auth_service.dart';
 // import 'package:ebloodbankauth/services/error_navigation_service.dart';
 
 final _baseUrl = dotenv.env['BASE_API_URL'] ?? 'http://localhost';
 final _apiConsumer = dotenv.env['API_CONSUMER'] ?? '';
+
+/// Builds the full URL, stripping any duplicate `/api/v1` prefix from [endpoint]
+/// when [_baseUrl] already ends with `/api/v1`.
+String _buildUrl(String endpoint) {
+  if (endpoint.isEmpty) {
+    debugPrint('⚠️ _buildUrl called with EMPTY endpoint — this will produce a bad request');
+  }
+  const prefix = '/api/v1';
+  if (_baseUrl.endsWith(prefix) && endpoint.startsWith(prefix)) {
+    return _baseUrl + endpoint.substring(prefix.length);
+  }
+  return _baseUrl + endpoint;
+}
 final _secureStorage = const FlutterSecureStorage();
 
-// Get token from secure storage
-Future<String?> _getToken() async {
+// Safely read from secure storage, clearing corrupted entries on BadPaddingException.
+Future<String?> _safeSecureRead(String key) async {
+  try {
+    return await _secureStorage.read(key: key);
+  } on PlatformException catch (e) {
+    debugPrint('⚠️ SecureStorage corrupted for key "$key": ${e.message} — clearing entry');
+    try { await _secureStorage.delete(key: key); } catch (_) {}
+    return null;
+  }
+}
+
+/// Get auth token from secure storage, with GetStorage and OTP_TOKENKey fallbacks.
+/// Public so other services (e.g. WebSocket) can reuse the same token retrieval logic.
+Future<String?> getAuthToken() async {
   try {
     debugPrint('🔍 AuthInterceptor: Reading token from secure storage (key: auth_token)...');
-    final token = await _secureStorage.read(key: 'auth_token');
+    final token = await _safeSecureRead('auth_token');
     if (token != null && token.isNotEmpty) {
-      debugPrint('✅ AuthInterceptor: Token found: ${token.substring(0, 20)}...');
-    } else {
-      debugPrint('⚠️ AuthInterceptor: No token found in secure storage');
+      debugPrint('✅ AuthInterceptor: Token found in FlutterSecureStorage');
+      return token;
     }
-    return token;
+
+    // Fallback: check OTP_TOKENKey in SecureStorage (set by OTP flow)
+    final otpToken = await _safeSecureRead('OTP_TOKENKey');
+    if (otpToken != null && otpToken.isNotEmpty) {
+      debugPrint('✅ AuthInterceptor: Token found in FlutterSecureStorage (OTP_TOKENKey)');
+      await _secureStorage.write(key: 'auth_token', value: otpToken);
+      return otpToken;
+    }
+
+    // Fallback: check GetStorage (visitor_token, auth_token, token_otp, access_token)
+    final getStorage = GetStorage();
+    final fallbackToken = getStorage.read('auth_token') ??
+        getStorage.read('visitor_token') ??
+        getStorage.read('token_otp') ??
+        getStorage.read('access_token');
+    if (fallbackToken != null && fallbackToken.toString().isNotEmpty) {
+      debugPrint('✅ AuthInterceptor: Token found in GetStorage fallback');
+      // Sync it to FlutterSecureStorage for consistency
+      await _secureStorage.write(key: 'auth_token', value: fallbackToken.toString());
+      return fallbackToken.toString();
+    }
+
+    debugPrint('⚠️ AuthInterceptor: No token found in any storage');
+    return null;
   } catch (e) {
     debugPrint('❌ AuthInterceptor: Error retrieving token: $e');
     return null;
@@ -131,7 +180,7 @@ class AuthInterceptor extends Interceptor {
     if (!options.headers.containsKey('Authorization') ||
         options.headers['Authorization'] == null ||
         options.headers['Authorization'] == '') {
-      final String? token = await _getToken();
+      final String? token = await getAuthToken();
       if (token != null && token.isNotEmpty) {
         options.headers['Authorization'] = 'Bearer $token';
         debugPrint('✅ AuthInterceptor: Added Authorization header to request');
@@ -170,7 +219,7 @@ class AuthInterceptor extends Interceptor {
       await _handleSpecialErrors(err);
 
       // LOGOUT ON 401 ERROR
-      final String? token = await _getToken();
+      final String? token = await getAuthToken();
       if (err.response?.statusCode == 401 && token != null) {
         debugPrint('AuthInterceptor - 401 Error: ${err.message}',
             wrapWidth: 1024);
@@ -362,11 +411,13 @@ Dio _configureDio({Duration timeoutDuration = const Duration(seconds: 120)}) {
 /// Handle special error cases like device/account related issues for successful responses
 Future<void> _directHandleSpecialErrors(dynamic response) async {
   debugPrint('DirectHandleSpecialErrors - Response > : $response', wrapWidth: 1024);
+  debugPrint("\n\n\nDirectHandleSpecialErrors - responseData > : $response['data']", wrapWidth: 5024);
 
   // Extract data from response object if it's a Response, otherwise use as-is
   dynamic responseData;
   if (response != null && response.runtimeType.toString().contains('Response')) {
     responseData = response.data;
+    
   } else {
     responseData = response;
   }
@@ -489,7 +540,7 @@ FutureOr<IApiResponse> postWithDio(
   Duration timeoutDuration = const Duration(seconds: 60),
 }) async {
   final dio = _configureDio(timeoutDuration: timeoutDuration);
-  final url = _baseUrl + endpoint;
+  final url = _buildUrl(endpoint);
   debugPrint('POST Request to: $url with body: $body', wrapWidth: 1024);
 
   try {
@@ -569,7 +620,7 @@ FutureOr<IApiResponse> getWithDio(
   Duration timeoutDuration = const Duration(seconds: 120),
 }) async {
   final dio = _configureDio(timeoutDuration: timeoutDuration);
-  final url = _baseUrl + endpoint;
+  final url = _buildUrl(endpoint);
   debugPrint('GET Request to: $url');
 
   try {
@@ -781,7 +832,7 @@ FutureOr<IApiResponse> putWithDio(
   Duration timeoutDuration = const Duration(seconds: 60),
 }) async {
   final dio = _configureDio(timeoutDuration: timeoutDuration);
-  final url = _baseUrl + endpoint;
+  final url = _buildUrl(endpoint);
   debugPrint('PUT Request to: $url with body: $body');
 
   try {
@@ -860,7 +911,7 @@ FutureOr<IApiResponse> deleteWithDio(
   Duration timeoutDuration = const Duration(seconds: 60),
 }) async {
   final dio = _configureDio(timeoutDuration: timeoutDuration);
-  final url = _baseUrl + endpoint;
+  final url = _buildUrl(endpoint);
   debugPrint('DELETE Request to: $url');
 
   try {
@@ -984,7 +1035,7 @@ FutureOr<IApiResponse> uploadFile({
   Duration timeoutDuration = const Duration(seconds: 120),
 }) async {
   final dio = _configureDio(timeoutDuration: timeoutDuration);
-  final url = _baseUrl + endpoint;
+  final url = _buildUrl(endpoint);
   debugPrint('UPLOAD Request to: $url');
   debugPrint('File Path: $path');
   debugPrint('File Field Name: $fileFieldName');
@@ -1155,6 +1206,73 @@ FutureOr<IApiResponse> uploadFile({
 //   }
 // }
 
+/// Download a file using the configured Dio (with device info, auth, location headers)
+FutureOr<IApiResponse> downloadWithDio({
+  required String url,
+  required String savePath,
+  Map<String, String>? headers,
+  Duration timeoutDuration = const Duration(minutes: 5),
+  void Function(int received, int total)? onReceiveProgress,
+}) async {
+  final dio = _configureDio(timeoutDuration: timeoutDuration);
+  // Build full URL if relative
+  final fullUrl = url.startsWith('http') ? url : _buildUrl(url);
+  debugPrint('DOWNLOAD Request to: $fullUrl');
+  debugPrint('Save Path: $savePath');
+
+  try {
+    final response = await dio.download(
+      fullUrl,
+      savePath,
+      onReceiveProgress: onReceiveProgress,
+      options: Options(headers: headers != null ? Map<String, dynamic>.from(headers) : <String, dynamic>{}),
+    );
+
+    if (response.statusCode == 200) {
+      return IApiResponse(
+        success: true,
+        message: 'Download successful',
+        data: {'local_path': savePath},
+        statusCode: 200,
+      );
+    } else {
+      return IApiResponse(
+        success: false,
+        message: 'Download failed with status: ${response.statusCode}',
+        statusCode: response.statusCode,
+      );
+    }
+  } on DioException catch (e) {
+    debugPrint('DOWNLOAD Error: ${e.message}');
+    if (e.type == DioExceptionType.connectionTimeout ||
+        e.type == DioExceptionType.receiveTimeout) {
+      return IApiResponse(
+        success: false,
+        message: 'Download timed out',
+        statusCode: 408,
+      );
+    } else if (e.type == DioExceptionType.connectionError) {
+      return IApiResponse(
+        success: false,
+        message: 'Connection error - please check your internet connection',
+        statusCode: 503,
+      );
+    }
+    return IApiResponse(
+      success: false,
+      message: e.message ?? 'Download failed',
+      statusCode: 500,
+    );
+  } catch (e) {
+    debugPrint('DOWNLOAD Unknown Error: $e');
+    return IApiResponse(
+      success: false,
+      message: 'Unknown error occurred during download',
+      statusCode: 500,
+    );
+  }
+}
+
 // Helper function to extract error message from response
 String _extractErrorMessage(dynamic responseData, String defaultMessage) {
   if (responseData != null && responseData is Map<String, dynamic>) {
@@ -1168,7 +1286,7 @@ String _extractErrorMessage(dynamic responseData, String defaultMessage) {
 // Add this function to get the current language
 Future<String> _getCurrentLanguage() async {
   try {
-    final String? language = await _secureStorage.read(key: 'app_language');
+    final String? language = await _safeSecureRead('app_language');
     return language ?? 'fr'; // Default to English if no language is set
   } catch (e) {
     debugPrint('Error retrieving language: $e');

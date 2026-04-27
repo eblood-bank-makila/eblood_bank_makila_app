@@ -1,31 +1,51 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get/get.dart';
 
 import '../../../../apps/config/theme/ColorPages.dart';
 import '../../../../apps/widgets/GradientScaffold.dart';
+import '../../../../core/rbac/services/rbac_guard.dart';
+import '../../../../core/rbac/providers/rbac_provider.dart';
+import '../../../../core/rbac/services/rbac_url_helper.dart';
+import '../../../../core/rbac/enums/collection_crud_info_flag.dart';
+import '../../../../core/rbac/models/rbac_models.dart';
 import '../../../business/service/PatientNetworkServiceImpl.dart';
 import '../../../business/models/patient/PatientModel.dart';
 import 'AddPatientPage.dart';
 import 'PatientDetailsPage.dart';
 
-class PatientManagementPage extends StatefulWidget {
+class PatientManagementPage extends ConsumerStatefulWidget {
   const PatientManagementPage({super.key});
 
   @override
-  State<PatientManagementPage> createState() => _PatientManagementPageState();
+  ConsumerState<PatientManagementPage> createState() => _PatientManagementPageState();
 }
 
-class _PatientManagementPageState extends State<PatientManagementPage> {
-  final _service = PatientNetworkServiceImpl();
+class _PatientManagementPageState extends ConsumerState<PatientManagementPage> {
+  late final PatientNetworkServiceImpl _service;
   final _searchCtrl = TextEditingController();
+  final RbacUrlHelper _urlHelper = RbacUrlHelper();
+  late final List<RbacCollectionCrudItem> _crudInfo;
   bool _loading = true;
   List<PatientModel> _patients = const [];
   int _page = 0;
   final int _limit = 20;
 
+  bool get _canCreate => _urlHelper.hasRbacUrl(CollectionCrudInfoFlag.createProcessingUrl, 'main', _crudInfo);
+
   @override
   void initState() {
     super.initState();
+    // RBAC entry guard.
+    guardPageEntry(
+      ref,
+      context,
+      'flutter_apps_eblood_bank_hosp_home_patients',
+    );
+    _crudInfo = ref.read(rbacProvider.notifier).getCrudInfoByPath(
+      'flutter_apps_eblood_bank_hosp_home_patients',
+    );
+    _service = PatientNetworkServiceImpl(_crudInfo);
     _fetchPatients();
   }
 
@@ -147,11 +167,13 @@ class _PatientManagementPageState extends State<PatientManagementPage> {
         ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: ColorPages.COLOR_PRINCIPAL,
-        onPressed: _onAddPatient,
-        child: const Icon(Icons.person_add),
-      ),
+      floatingActionButton: _canCreate
+          ? FloatingActionButton(
+              backgroundColor: ColorPages.COLOR_PRINCIPAL,
+              onPressed: _onAddPatient,
+              child: const Icon(Icons.person_add),
+            )
+          : null,
     );
   }
 }

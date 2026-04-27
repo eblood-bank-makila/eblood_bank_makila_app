@@ -1,14 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:get/get.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import '../../core/rbac/services/rbac_guard.dart';
 import '../config/theme/ColorPages.dart';
 import 'volunteer_reasons_page.dart';
 import 'benevol_donor_registration_stepper.dart';
 import '../widgets/GradientScaffold.dart';
 
-class BenevolDonorLandingPage extends StatelessWidget {
+class BenevolDonorLandingPage extends ConsumerStatefulWidget {
   const BenevolDonorLandingPage({super.key});
+
+  @override
+  ConsumerState<BenevolDonorLandingPage> createState() => _BenevolDonorLandingPageState();
+}
+
+class _BenevolDonorLandingPageState extends ConsumerState<BenevolDonorLandingPage> {
+  @override
+  void initState() {
+    super.initState();
+    // RBAC entry guard — volunteer sub_menu flag.
+    guardPageEntry(
+      ref,
+      context,
+      'flutter_apps_eblood_bank_cust_home_volunteer',
+    );
+  }
 
   @override
   Widget build(BuildContext context) {

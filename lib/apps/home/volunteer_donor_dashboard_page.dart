@@ -1,12 +1,34 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:get/get.dart';
 import 'package:iconsax/iconsax.dart';
+import '../../core/rbac/services/rbac_guard.dart';
 import '../config/theme/ColorPages.dart';
 
 /// Dashboard page for volunteer blood donors showing their status, benefits, and advantages
-class VolunteerDonorDashboardPage extends StatelessWidget {
+class VolunteerDonorDashboardPage extends ConsumerStatefulWidget {
   const VolunteerDonorDashboardPage({super.key});
+
+  @override
+  ConsumerState<VolunteerDonorDashboardPage> createState() =>
+      _VolunteerDonorDashboardPageState();
+}
+
+class _VolunteerDonorDashboardPageState
+    extends ConsumerState<VolunteerDonorDashboardPage> {
+  @override
+  void initState() {
+    super.initState();
+    // RBAC entry guard — the volunteer dashboard is only reachable by users
+    // who carry the MOBILE_APP_VOLONTEER_BLOOD_DONOR_PROFILE extra profile,
+    // so the cust_home_volunteer sub_menu flag is the right gate.
+    guardPageEntry(
+      ref,
+      context,
+      'flutter_apps_eblood_bank_cust_home_volunteer',
+    );
+  }
 
   @override
   Widget build(BuildContext context) {

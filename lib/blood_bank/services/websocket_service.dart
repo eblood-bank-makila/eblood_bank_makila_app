@@ -93,7 +93,10 @@ class BloodRequestWebSocketService {
       }
 
       // Build WebSocket path - baseUrl already contains /api/v1
-      final uri = Uri.parse('$wsUrl/websocket/ws?user_account_socket_hash=$socketHash');
+      // Pass token as query param (server supports both query param and Authorization header)
+      final queryParams = 'user_account_socket_hash=$socketHash'
+          '${authToken != null && authToken.isNotEmpty ? '&token=$authToken' : ''}';
+      final uri = Uri.parse('$wsUrl/websocket/ws?$queryParams');
 
       if (kDebugMode) {
         print('🔌 Connecting to WebSocket: $uri');
@@ -278,7 +281,7 @@ class BloodRequestWebSocketService {
     
     _stopReconnectTimer();
     _reconnectTimer = Timer(reconnectInterval, () {
-      connect(_userAccountSocketHash!);
+      connect(_userAccountSocketHash!, authToken: _authToken);
     });
   }
   

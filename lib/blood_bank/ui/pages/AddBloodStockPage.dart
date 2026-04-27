@@ -7,6 +7,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import '../../../apps/config/theme/ColorPages.dart';
 import '../../../apps/widgets/ModernSpinnerWidget.dart';
+import '../../../core/rbac/services/rbac_guard.dart';
 import '../../business/model/BloodStock.dart';
 import '../../business/model/BloodEnums.dart';
 import '../../business/interactors/BloodBankController.dart';
@@ -383,6 +384,22 @@ class _AddBloodStockPageState extends ConsumerState<AddBloodStockPage> {
   final List<String> _bloodTypes = [
     'O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-'
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    // RBAC entry guard: auto-pop + snackbar if user lacks permission.
+    // Pool with the CNTS equivalent so CNTS users — who reuse this same
+    // page — can add stock too.
+    guardPageEntryAny(
+      ref,
+      context,
+      const [
+        'flutter_apps_eblood_bank_bb_inventory_stock_add',
+        'flutter_apps_eblood_bank_cnts_inventory_stock_add',
+      ],
+    );
+  }
 
   @override
   void dispose() {

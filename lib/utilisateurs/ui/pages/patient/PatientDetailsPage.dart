@@ -1,22 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get/get.dart';
 
 import '../../../../apps/config/theme/ColorPages.dart';
 import '../../../../apps/widgets/GradientScaffold.dart';
+import '../../../../core/rbac/services/rbac_guard.dart';
+import '../../../../core/rbac/providers/rbac_provider.dart';
+import '../../../../core/rbac/models/rbac_models.dart';
 import '../../../business/models/patient/PatientModel.dart';
 import '../../../business/service/PatientNetworkServiceImpl.dart';
 import 'EditPatientPage.dart';
 
-class PatientDetailsPage extends StatefulWidget {
+class PatientDetailsPage extends ConsumerStatefulWidget {
   final String patientId;
   const PatientDetailsPage({super.key, required this.patientId});
 
   @override
-  State<PatientDetailsPage> createState() => _PatientDetailsPageState();
+  ConsumerState<PatientDetailsPage> createState() => _PatientDetailsPageState();
 }
 
-class _PatientDetailsPageState extends State<PatientDetailsPage> {
-  final _service = PatientNetworkServiceImpl();
+class _PatientDetailsPageState extends ConsumerState<PatientDetailsPage> {
+  late final PatientNetworkServiceImpl _service;
   bool _loading = true;
   PatientModel? _patient;
   String? _error;
@@ -24,6 +28,15 @@ class _PatientDetailsPageState extends State<PatientDetailsPage> {
   @override
   void initState() {
     super.initState();
+    guardPageEntry(
+      ref,
+      context,
+      'flutter_apps_eblood_bank_hosp_home_patients',
+    );
+    final crudInfo = ref.read(rbacProvider.notifier).getCrudInfoByPath(
+      'flutter_apps_eblood_bank_hosp_home_patients',
+    );
+    _service = PatientNetworkServiceImpl(crudInfo);
     _load();
   }
 

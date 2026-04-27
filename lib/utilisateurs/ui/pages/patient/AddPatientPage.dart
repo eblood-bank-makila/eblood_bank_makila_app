@@ -1,18 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get/get.dart';
 
 import '../../../../apps/config/theme/ColorPages.dart';
 import '../../../../apps/widgets/GradientScaffold.dart';
+import '../../../../core/rbac/services/rbac_guard.dart';
+import '../../../../core/rbac/providers/rbac_provider.dart';
+import '../../../../core/rbac/models/rbac_models.dart';
 import '../../../business/service/PatientNetworkServiceImpl.dart';
 
-class AddPatientPage extends StatefulWidget {
+class AddPatientPage extends ConsumerStatefulWidget {
   const AddPatientPage({super.key});
 
   @override
-  State<AddPatientPage> createState() => _AddPatientPageState();
+  ConsumerState<AddPatientPage> createState() => _AddPatientPageState();
 }
 
-class _AddPatientPageState extends State<AddPatientPage> {
+class _AddPatientPageState extends ConsumerState<AddPatientPage> {
   final _formKey = GlobalKey<FormState>();
   final _firstNameCtrl = TextEditingController();
   final _lastNameCtrl = TextEditingController();
@@ -22,8 +26,22 @@ class _AddPatientPageState extends State<AddPatientPage> {
   String? _gender;
   String? _bloodType;
 
-  final _service = PatientNetworkServiceImpl();
+  late final PatientNetworkServiceImpl _service;
   bool _submitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    guardPageEntry(
+      ref,
+      context,
+      'flutter_apps_eblood_bank_hosp_home_patients',
+    );
+    final crudInfo = ref.read(rbacProvider.notifier).getCrudInfoByPath(
+      'flutter_apps_eblood_bank_hosp_home_patients',
+    );
+    _service = PatientNetworkServiceImpl(crudInfo);
+  }
 
   /// Convert dropdown format to backend format
   String _toBackendGender(String? gender) {

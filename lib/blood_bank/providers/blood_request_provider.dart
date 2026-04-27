@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/rbac/providers/rbac_provider.dart';
 import '../data/models/blood_request_model.dart';
 import '../data/services/blood_request_service.dart';
 
@@ -210,7 +211,13 @@ class BloodRequestController extends StateNotifier<BloodRequestState> {
 
 /// Provider for blood request service
 final bloodRequestServiceProvider = Provider<BloodRequestService>((ref) {
-  return BloodRequestService();
+  final appCrudInfo = ref.read(rbacProvider.notifier).getCrudInfoByPath(
+    'flutter_apps_eblood_bank_blood_bank_requests_app',
+  );
+  final detailCrudInfo = ref.read(rbacProvider.notifier).getCrudInfoByPath(
+    'flutter_apps_eblood_bank_bb_requests_detail',
+  );
+  return BloodRequestService(appCrudInfo, detailCrudInfo);
 });
 
 /// Provider for blood request controller

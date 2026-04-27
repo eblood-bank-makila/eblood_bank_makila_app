@@ -5,6 +5,7 @@ import 'package:iconsax/iconsax.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:get/get.dart';
 import '../../../apps/config/theme/ColorPages.dart';
+import '../../../core/rbac/providers/rbac_provider.dart';
 import '../../business/interactors/BloodBankController.dart';
 import 'AnnouncementsManagementPage.dart';
 import 'BloodBankInventoryPage.dart';
@@ -58,6 +59,18 @@ class _BloodBankHomePageState extends ConsumerState<BloodBankHomePage> {
     return _loadData();
   }
 
+  /// Check if a sub_menu flag exists in the loaded RBAC applications.
+  /// Delegates to the shared helper on `RbacNotifier` so every blood bank
+  /// page uses the same search logic.
+  bool _hasSubMenu(String flag) =>
+      ref.read(rbacProvider.notifier).hasMenuFlag(flag);
+
+  /// Same as `_hasSubMenu` but accepts a pool of flags — used for shared
+  /// pages reachable from multiple profiles (blood_bank + cnts). Returns
+  /// true when ANY of the supplied flags is granted.
+  bool _hasAnySubMenu(List<String> flags) =>
+      ref.read(rbacProvider.notifier).hasAnyMenuFlag(flags);
+
   String _relativeTimeFrom(DateTime timestamp) {
     final now = DateTime.now();
     final diff = now.difference(timestamp);
@@ -97,9 +110,16 @@ class _BloodBankHomePageState extends ConsumerState<BloodBankHomePage> {
                 _buildHeader(),
                 const SizedBox(height: 24),
 
-                // Stats Cards
-                _buildStatsSection(),
-                const SizedBox(height: 24),
+                // Stats Cards (visible only if user has inventory access).
+                // Pool with the CNTS inventory app flag so CNTS users — who
+                // reuse this same screen — also see the dashboard stats.
+                if (_hasAnySubMenu([
+                  'flutter_apps_eblood_bank_bb_home_inventory',
+                  'flutter_apps_eblood_bank_cnts_inventory_app',
+                ])) ...[
+                  _buildStatsSection(),
+                  const SizedBox(height: 24),
+                ],
 
                 // Quick Actions
                 _buildQuickActionsSection(),
@@ -351,6 +371,30 @@ class _BloodBankHomePageState extends ConsumerState<BloodBankHomePage> {
   }
 
   Widget _buildQuickActionsSection() {
+    // Check RBAC sub_menu access for each quick action. CNTS reuses this
+    // page (RbacScreenRegistry maps cnts.bloodBankHome → BloodBankHomePage),
+    // so each card pools the bb_* flag with its CNTS equivalent. Cards
+    // without a CNTS counterpart (requests, wallet) stay locked for CNTS
+    // users — that matches the backend seed (CNTS has no requests/wallet).
+    final inventoryUnlocked = _hasAnySubMenu([
+      'flutter_apps_eblood_bank_bb_home_inventory',
+      'flutter_apps_eblood_bank_cnts_inventory_app',
+    ]);
+    final requestsUnlocked = _hasSubMenu('flutter_apps_eblood_bank_bb_home_requests');
+    final walletUnlocked = _hasSubMenu('flutter_apps_eblood_bank_bb_home_wallet');
+    final donorsUnlocked = _hasAnySubMenu([
+      'flutter_apps_eblood_bank_bb_home_donors',
+      'flutter_apps_eblood_bank_cnts_donors_app',
+    ]);
+    final announcementsUnlocked = _hasAnySubMenu([
+      'flutter_apps_eblood_bank_bb_home_announcements',
+      'flutter_apps_eblood_bank_cnts_home_announcements',
+    ]);
+    final networkUnlocked = _hasAnySubMenu([
+      'flutter_apps_eblood_bank_bb_home_network',
+      'flutter_apps_eblood_bank_cnts_home_network',
+    ]);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -376,12 +420,12 @@ class _BloodBankHomePageState extends ConsumerState<BloodBankHomePage> {
                   subtitle: 'inventory'.tr,
                   icon: Iconsax.box,
                   color: ColorPages.COLOR_PRINCIPAL,
+                  locked: !inventoryUnlocked,
                   onTap: () {
-                    // Navigate to inventory page - stock tab (index 1)
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const BloodBankInventoryPage(initialTabIndex: 1),
+                        builder: (context) => const BloodBankInventoryPage(initialTabIndex: 1, showBackButton: true),
                       ),
                     );
                   },
@@ -397,22 +441,14 @@ class _BloodBankHomePageState extends ConsumerState<BloodBankHomePage> {
                   subtitle: 'view_all'.tr,
                   icon: Iconsax.document_text,
                   color: Colors.blue,
+                  locked: !requestsUnlocked,
                   onTap: () {
-                    // Navigate to the inventory page and select the reports tab (index 2)
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const BloodBankInventoryPage(initialTabIndex: 2),
+                        builder: (context) => const BloodBankInventoryPage(initialTabIndex: 2, showBackButton: true),
                       ),
-                    ).then((_) {
-                      if (!mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('return_from_request_management'.tr),
-                          duration: const Duration(seconds: 2),
-                        ),
-                      );
-                    });
+                    );
                   },
                 ),
               ),
@@ -430,8 +466,8 @@ class _BloodBankHomePageState extends ConsumerState<BloodBankHomePage> {
                   subtitle: 'financial_management'.tr,
                   icon: Iconsax.wallet,
                   color: Colors.green,
+                  locked: !walletUnlocked,
                   onTap: () {
-                    // Navigate to wallet/financial management
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -451,8 +487,8 @@ class _BloodBankHomePageState extends ConsumerState<BloodBankHomePage> {
                   subtitle: 'database'.tr,
                   icon: Iconsax.people,
                   color: Colors.purple,
+                  locked: !donorsUnlocked,
                   onTap: () {
-                    // Navigate to donor management
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -476,8 +512,8 @@ class _BloodBankHomePageState extends ConsumerState<BloodBankHomePage> {
                   subtitle: 'announcements_events'.tr,
                   icon: Iconsax.notification,
                   color: Colors.amber.shade700,
+                  locked: !announcementsUnlocked,
                   onTap: () {
-                    // Navigate to announcements management
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -497,8 +533,8 @@ class _BloodBankHomePageState extends ConsumerState<BloodBankHomePage> {
                   subtitle: 'health_structures'.tr,
                   icon: Iconsax.hospital,
                   color: Colors.teal,
+                  locked: !networkUnlocked,
                   onTap: () {
-                    // Navigate to health structure network
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -521,55 +557,79 @@ class _BloodBankHomePageState extends ConsumerState<BloodBankHomePage> {
     required IconData icon,
     required Color color,
     required VoidCallback onTap,
+    bool locked = false,
   }) {
+    final cardColor = locked ? Colors.grey.shade400 : color;
+
     return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
+      onTap: locked ? null : onTap,
+      child: Opacity(
+        opacity: locked ? 0.5 : 1.0,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
               ),
-              child: Icon(
-                icon,
-                color: color,
-                size: 24,
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: cardColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      icon,
+                      color: cardColor,
+                      size: 24,
+                    ),
+                  ),
+                  if (locked)
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade200,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Iconsax.lock,
+                        size: 16,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                ],
               ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              title,
-              style: GoogleFonts.ubuntu(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey.shade800,
+              const SizedBox(height: 12),
+              Text(
+                title,
+                style: GoogleFonts.ubuntu(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: locked ? Colors.grey.shade500 : Colors.grey.shade800,
+                ),
               ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: GoogleFonts.ubuntu(
-                fontSize: 14,
-                color: Colors.grey.shade600,
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                style: GoogleFonts.ubuntu(
+                  fontSize: 14,
+                  color: Colors.grey.shade600,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

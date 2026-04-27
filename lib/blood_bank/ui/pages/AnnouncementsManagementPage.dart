@@ -7,6 +7,11 @@ import 'package:intl/intl.dart';
 
 import '../../../apps/config/theme/ColorPages.dart';
 import '../../../apps/config/utils/LocaleHelper.dart';
+import '../../../core/rbac/services/rbac_guard.dart';
+import '../../../core/rbac/providers/rbac_provider.dart';
+import '../../../core/rbac/services/rbac_url_helper.dart';
+import '../../../core/rbac/enums/collection_crud_info_flag.dart';
+import '../../../core/rbac/models/rbac_models.dart';
 import '../../models/announcement_model.dart';
 import '../../providers/announcement_provider.dart';
 
@@ -19,10 +24,34 @@ class AnnouncementsManagementPage extends ConsumerStatefulWidget {
 
 class _AnnouncementsManagementPageState extends ConsumerState<AnnouncementsManagementPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  late final List<RbacCollectionCrudItem> _crudInfo;
+  final RbacUrlHelper _urlHelper = RbacUrlHelper();
+
+  bool get _canCreate => _urlHelper.hasRbacUrl(CollectionCrudInfoFlag.createProcessingUrl, 'main', _crudInfo);
 
   @override
   void initState() {
     super.initState();
+    // RBAC entry guard — pool the bb and cnts announcement flags so the
+    // page is reachable for both profiles (CNTS reuses this screen).
+    // Note: per-tab gating is not applied here because the backend seed
+    // file does not declare distinct sub_menus for events / campaigns /
+    // news / emergencies — they all share the same parent menu.
+    guardPageEntryAny(
+      ref,
+      context,
+      const [
+        'flutter_apps_eblood_bank_bb_home_announcements',
+        'flutter_apps_eblood_bank_cnts_home_announcements',
+      ],
+    );
+    // Get CRUD info from whichever flag matches
+    final rbac = ref.read(rbacProvider.notifier);
+    var crudInfo = rbac.getCrudInfoByPath('flutter_apps_eblood_bank_bb_home_announcements');
+    if (crudInfo.isEmpty) {
+      crudInfo = rbac.getCrudInfoByPath('flutter_apps_eblood_bank_cnts_home_announcements');
+    }
+    _crudInfo = crudInfo;
     _tabController = TabController(length: 4, vsync: this);
 
     // Load initial data
@@ -129,13 +158,15 @@ class _AnnouncementsManagementPageState extends ConsumerState<AnnouncementsManag
           _buildEmergenciesTab(),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: ColorPages.COLOR_PRINCIPAL,
-        onPressed: () {
-          _showCreateAnnouncementDialog();
-        },
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
+      floatingActionButton: _canCreate
+          ? FloatingActionButton(
+              backgroundColor: ColorPages.COLOR_PRINCIPAL,
+              onPressed: () {
+                _showCreateAnnouncementDialog();
+              },
+              child: const Icon(Icons.add, color: Colors.white),
+            )
+          : null,
     );
   }
 

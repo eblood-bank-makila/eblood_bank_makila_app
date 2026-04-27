@@ -20,12 +20,14 @@ BloodRequestModel _$BloodRequestModelFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$BloodRequestModel {
-  @JsonKey(name: '_id')
+  @JsonKey(name: '_id', readValue: _readId)
   String get id => throw _privateConstructorUsedError;
   String get identifier => throw _privateConstructorUsedError;
-  @JsonKey(name: 'health_structure_requesting_id')
+  @JsonKey(
+      name: 'health_structure_requesting_id',
+      readValue: _readHealthStructureRequestingId)
   String? get healthStructureRequestingId => throw _privateConstructorUsedError;
-  @JsonKey(name: 'sys_organization_id')
+  @JsonKey(name: 'sys_organization_id', fromJson: _stringFromJson)
   String? get sysOrganizationId => throw _privateConstructorUsedError;
   @JsonKey(name: 'request_type')
   String get requestType => throw _privateConstructorUsedError;
@@ -64,11 +66,13 @@ mixin _$BloodRequestModel {
   String? get phoneNumber => throw _privateConstructorUsedError;
   @JsonKey(name: 'eblood_fee')
   double? get ebloodFee => throw _privateConstructorUsedError;
-  @JsonKey(name: 'ref_currency_id')
+  @JsonKey(name: 'ref_currency_id', readValue: _readRefCurrencyId)
   String? get refCurrencyId => throw _privateConstructorUsedError;
   @JsonKey(name: 'transactional_eblood_fee')
   double? get transactionalEbloodFee => throw _privateConstructorUsedError;
-  @JsonKey(name: 'transactional_currency_id')
+  @JsonKey(
+      name: 'transactional_currency_id',
+      readValue: _readTransactionalCurrencyId)
   String? get transactionalCurrencyId => throw _privateConstructorUsedError;
 
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -84,11 +88,14 @@ abstract class $BloodRequestModelCopyWith<$Res> {
       _$BloodRequestModelCopyWithImpl<$Res, BloodRequestModel>;
   @useResult
   $Res call(
-      {@JsonKey(name: '_id') String id,
+      {@JsonKey(name: '_id', readValue: _readId) String id,
       String identifier,
-      @JsonKey(name: 'health_structure_requesting_id')
+      @JsonKey(
+          name: 'health_structure_requesting_id',
+          readValue: _readHealthStructureRequestingId)
       String? healthStructureRequestingId,
-      @JsonKey(name: 'sys_organization_id') String? sysOrganizationId,
+      @JsonKey(name: 'sys_organization_id', fromJson: _stringFromJson)
+      String? sysOrganizationId,
       @JsonKey(name: 'request_type') String requestType,
       @JsonKey(name: 'urgency_level') String urgencyLevel,
       @JsonKey(name: 'patient_blood_group') String patientBloodGroup,
@@ -109,9 +116,12 @@ abstract class $BloodRequestModelCopyWith<$Res> {
       @JsonKey(name: 'failure_reason') String? failureReason,
       @JsonKey(name: 'phone_number') String? phoneNumber,
       @JsonKey(name: 'eblood_fee') double? ebloodFee,
-      @JsonKey(name: 'ref_currency_id') String? refCurrencyId,
+      @JsonKey(name: 'ref_currency_id', readValue: _readRefCurrencyId)
+      String? refCurrencyId,
       @JsonKey(name: 'transactional_eblood_fee') double? transactionalEbloodFee,
-      @JsonKey(name: 'transactional_currency_id')
+      @JsonKey(
+          name: 'transactional_currency_id',
+          readValue: _readTransactionalCurrencyId)
       String? transactionalCurrencyId});
 
   $DeliveryContactCopyWith<$Res>? get deliveryContact;
@@ -287,11 +297,14 @@ abstract class _$$BloodRequestModelImplCopyWith<$Res>
   @override
   @useResult
   $Res call(
-      {@JsonKey(name: '_id') String id,
+      {@JsonKey(name: '_id', readValue: _readId) String id,
       String identifier,
-      @JsonKey(name: 'health_structure_requesting_id')
+      @JsonKey(
+          name: 'health_structure_requesting_id',
+          readValue: _readHealthStructureRequestingId)
       String? healthStructureRequestingId,
-      @JsonKey(name: 'sys_organization_id') String? sysOrganizationId,
+      @JsonKey(name: 'sys_organization_id', fromJson: _stringFromJson)
+      String? sysOrganizationId,
       @JsonKey(name: 'request_type') String requestType,
       @JsonKey(name: 'urgency_level') String urgencyLevel,
       @JsonKey(name: 'patient_blood_group') String patientBloodGroup,
@@ -312,9 +325,12 @@ abstract class _$$BloodRequestModelImplCopyWith<$Res>
       @JsonKey(name: 'failure_reason') String? failureReason,
       @JsonKey(name: 'phone_number') String? phoneNumber,
       @JsonKey(name: 'eblood_fee') double? ebloodFee,
-      @JsonKey(name: 'ref_currency_id') String? refCurrencyId,
+      @JsonKey(name: 'ref_currency_id', readValue: _readRefCurrencyId)
+      String? refCurrencyId,
       @JsonKey(name: 'transactional_eblood_fee') double? transactionalEbloodFee,
-      @JsonKey(name: 'transactional_currency_id')
+      @JsonKey(
+          name: 'transactional_currency_id',
+          readValue: _readTransactionalCurrencyId)
       String? transactionalCurrencyId});
 
   @override
@@ -472,11 +488,14 @@ class __$$BloodRequestModelImplCopyWithImpl<$Res>
 @JsonSerializable()
 class _$BloodRequestModelImpl implements _BloodRequestModel {
   const _$BloodRequestModelImpl(
-      {@JsonKey(name: '_id') required this.id,
+      {@JsonKey(name: '_id', readValue: _readId) required this.id,
       required this.identifier,
-      @JsonKey(name: 'health_structure_requesting_id')
+      @JsonKey(
+          name: 'health_structure_requesting_id',
+          readValue: _readHealthStructureRequestingId)
       this.healthStructureRequestingId,
-      @JsonKey(name: 'sys_organization_id') this.sysOrganizationId,
+      @JsonKey(name: 'sys_organization_id', fromJson: _stringFromJson)
+      this.sysOrganizationId,
       @JsonKey(name: 'request_type') required this.requestType,
       @JsonKey(name: 'urgency_level') required this.urgencyLevel,
       @JsonKey(name: 'patient_blood_group') required this.patientBloodGroup,
@@ -497,9 +516,13 @@ class _$BloodRequestModelImpl implements _BloodRequestModel {
       @JsonKey(name: 'failure_reason') this.failureReason,
       @JsonKey(name: 'phone_number') this.phoneNumber,
       @JsonKey(name: 'eblood_fee') this.ebloodFee,
-      @JsonKey(name: 'ref_currency_id') this.refCurrencyId,
+      @JsonKey(name: 'ref_currency_id', readValue: _readRefCurrencyId)
+      this.refCurrencyId,
       @JsonKey(name: 'transactional_eblood_fee') this.transactionalEbloodFee,
-      @JsonKey(name: 'transactional_currency_id') this.transactionalCurrencyId})
+      @JsonKey(
+          name: 'transactional_currency_id',
+          readValue: _readTransactionalCurrencyId)
+      this.transactionalCurrencyId})
       : _requestedComponents = requestedComponents,
         _statusHistory = statusHistory;
 
@@ -507,15 +530,17 @@ class _$BloodRequestModelImpl implements _BloodRequestModel {
       _$$BloodRequestModelImplFromJson(json);
 
   @override
-  @JsonKey(name: '_id')
+  @JsonKey(name: '_id', readValue: _readId)
   final String id;
   @override
   final String identifier;
   @override
-  @JsonKey(name: 'health_structure_requesting_id')
+  @JsonKey(
+      name: 'health_structure_requesting_id',
+      readValue: _readHealthStructureRequestingId)
   final String? healthStructureRequestingId;
   @override
-  @JsonKey(name: 'sys_organization_id')
+  @JsonKey(name: 'sys_organization_id', fromJson: _stringFromJson)
   final String? sysOrganizationId;
   @override
   @JsonKey(name: 'request_type')
@@ -588,13 +613,15 @@ class _$BloodRequestModelImpl implements _BloodRequestModel {
   @JsonKey(name: 'eblood_fee')
   final double? ebloodFee;
   @override
-  @JsonKey(name: 'ref_currency_id')
+  @JsonKey(name: 'ref_currency_id', readValue: _readRefCurrencyId)
   final String? refCurrencyId;
   @override
   @JsonKey(name: 'transactional_eblood_fee')
   final double? transactionalEbloodFee;
   @override
-  @JsonKey(name: 'transactional_currency_id')
+  @JsonKey(
+      name: 'transactional_currency_id',
+      readValue: _readTransactionalCurrencyId)
   final String? transactionalCurrencyId;
 
   @override
@@ -710,11 +737,14 @@ class _$BloodRequestModelImpl implements _BloodRequestModel {
 
 abstract class _BloodRequestModel implements BloodRequestModel {
   const factory _BloodRequestModel(
-      {@JsonKey(name: '_id') required final String id,
+      {@JsonKey(name: '_id', readValue: _readId) required final String id,
       required final String identifier,
-      @JsonKey(name: 'health_structure_requesting_id')
+      @JsonKey(
+          name: 'health_structure_requesting_id',
+          readValue: _readHealthStructureRequestingId)
       final String? healthStructureRequestingId,
-      @JsonKey(name: 'sys_organization_id') final String? sysOrganizationId,
+      @JsonKey(name: 'sys_organization_id', fromJson: _stringFromJson)
+      final String? sysOrganizationId,
       @JsonKey(name: 'request_type') required final String requestType,
       @JsonKey(name: 'urgency_level') required final String urgencyLevel,
       @JsonKey(name: 'patient_blood_group')
@@ -738,25 +768,30 @@ abstract class _BloodRequestModel implements BloodRequestModel {
       @JsonKey(name: 'failure_reason') final String? failureReason,
       @JsonKey(name: 'phone_number') final String? phoneNumber,
       @JsonKey(name: 'eblood_fee') final double? ebloodFee,
-      @JsonKey(name: 'ref_currency_id') final String? refCurrencyId,
+      @JsonKey(name: 'ref_currency_id', readValue: _readRefCurrencyId)
+      final String? refCurrencyId,
       @JsonKey(name: 'transactional_eblood_fee')
       final double? transactionalEbloodFee,
-      @JsonKey(name: 'transactional_currency_id')
+      @JsonKey(
+          name: 'transactional_currency_id',
+          readValue: _readTransactionalCurrencyId)
       final String? transactionalCurrencyId}) = _$BloodRequestModelImpl;
 
   factory _BloodRequestModel.fromJson(Map<String, dynamic> json) =
       _$BloodRequestModelImpl.fromJson;
 
   @override
-  @JsonKey(name: '_id')
+  @JsonKey(name: '_id', readValue: _readId)
   String get id;
   @override
   String get identifier;
   @override
-  @JsonKey(name: 'health_structure_requesting_id')
+  @JsonKey(
+      name: 'health_structure_requesting_id',
+      readValue: _readHealthStructureRequestingId)
   String? get healthStructureRequestingId;
   @override
-  @JsonKey(name: 'sys_organization_id')
+  @JsonKey(name: 'sys_organization_id', fromJson: _stringFromJson)
   String? get sysOrganizationId;
   @override
   @JsonKey(name: 'request_type')
@@ -814,13 +849,15 @@ abstract class _BloodRequestModel implements BloodRequestModel {
   @JsonKey(name: 'eblood_fee')
   double? get ebloodFee;
   @override
-  @JsonKey(name: 'ref_currency_id')
+  @JsonKey(name: 'ref_currency_id', readValue: _readRefCurrencyId)
   String? get refCurrencyId;
   @override
   @JsonKey(name: 'transactional_eblood_fee')
   double? get transactionalEbloodFee;
   @override
-  @JsonKey(name: 'transactional_currency_id')
+  @JsonKey(
+      name: 'transactional_currency_id',
+      readValue: _readTransactionalCurrencyId)
   String? get transactionalCurrencyId;
   @override
   @JsonKey(ignore: true)

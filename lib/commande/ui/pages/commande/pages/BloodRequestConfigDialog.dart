@@ -1,12 +1,14 @@
 import 'package:eblood_bank_mak_app/apps/config/theme/ColorPages.dart';
 import 'package:eblood_bank_mak_app/utilisateurs/ui/widgets/PatientSelectorDialog.dart';
+import 'package:eblood_bank_mak_app/core/rbac/models/rbac_models.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 
 class BloodRequestConfigDialog extends StatefulWidget {
-  const BloodRequestConfigDialog({super.key});
+  final List<RbacCollectionCrudItem> patientCrudInfo;
+  const BloodRequestConfigDialog({super.key, required this.patientCrudInfo});
 
   @override
   State<BloodRequestConfigDialog> createState() => _BloodRequestConfigDialogState();
@@ -131,7 +133,7 @@ class _BloodRequestConfigDialogState extends State<BloodRequestConfigDialog> {
               context: context,
               isScrollControlled: true,
               backgroundColor: Colors.transparent,
-              builder: (_) => const PatientSelectorDialog(),
+              builder: (_) => PatientSelectorDialog(crudInfo: widget.patientCrudInfo),
             );
             if (selectedId != null && selectedId.isNotEmpty) {
               setState(() => _patientId = selectedId);

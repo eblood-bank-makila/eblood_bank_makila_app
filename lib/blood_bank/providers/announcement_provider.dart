@@ -1,8 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:dio/dio.dart';
+import 'package:eblood_bank_mak_app/core/rbac/providers/rbac_provider.dart';
 import '../models/announcement_model.dart';
 import '../services/announcement_service.dart';
-import '../../../core/network/dio_client_improved.dart';
 
 /// State class for announcements
 class AnnouncementState {
@@ -201,16 +200,14 @@ class AnnouncementNotifier extends StateNotifier<AnnouncementState> {
   }
 }
 
-/// Provider for Dio instance - Uses existing DioClient singleton
-final dioProvider = Provider<Dio>((ref) {
-  // Import the existing DioClient from your app
-  // Assuming DioClient is already initialized in main.dart
-  return DioClient().dio;
-});
-
 /// Provider for AnnouncementService
 final announcementServiceProvider = Provider<AnnouncementService>((ref) {
-  return AnnouncementService();
+  final rbac = ref.read(rbacProvider.notifier);
+  var crudInfo = rbac.getCrudInfoByPath('flutter_apps_eblood_bank_bb_home_announcements');
+  if (crudInfo.isEmpty) {
+    crudInfo = rbac.getCrudInfoByPath('flutter_apps_eblood_bank_cnts_home_announcements');
+  }
+  return AnnouncementService(crudInfo);
 });
 
 /// Provider for AnnouncementNotifier

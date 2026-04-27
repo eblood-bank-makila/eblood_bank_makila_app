@@ -1,20 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:get/get.dart';
+import '../../../core/rbac/services/rbac_guard.dart';
 import '../../config/theme/ColorPages.dart';
 import 'announcements_service.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/notification/NotificationPage.dart';
 
-class CreateAnnouncementsScreen extends StatefulWidget {
+class CreateAnnouncementsScreen extends ConsumerStatefulWidget {
   final String? initialType;
   const CreateAnnouncementsScreen({super.key, this.initialType});
 
   @override
-  State<CreateAnnouncementsScreen> createState() => _CreateAnnouncementsScreenState();
+  ConsumerState<CreateAnnouncementsScreen> createState() => _CreateAnnouncementsScreenState();
 }
 
-class _CreateAnnouncementsScreenState extends State<CreateAnnouncementsScreen> {
+class _CreateAnnouncementsScreenState extends ConsumerState<CreateAnnouncementsScreen> {
   final _formKey = GlobalKey<FormState>();
   final _titleCtrl = TextEditingController();
   final _locationCtrl = TextEditingController();
@@ -34,6 +36,12 @@ class _CreateAnnouncementsScreenState extends State<CreateAnnouncementsScreen> {
   @override
   void initState() {
     super.initState();
+    // RBAC entry guard.
+    guardPageEntry(
+      ref,
+      context,
+      'flutter_apps_eblood_bank_cust_announcement_create',
+    );
     if (widget.initialType != null && widget.initialType!.isNotEmpty) {
       _type = widget.initialType!;
     }

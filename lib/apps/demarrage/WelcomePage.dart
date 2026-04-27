@@ -423,7 +423,7 @@ class WelcomePage extends ConsumerWidget {
 
               final next = (result['nextAction'] ?? '').toString();
               if (next == 'login') {
-                if (context.mounted) context.go('/app/MainApp');
+                if (context.mounted) context.go('/rbac-loading');
               } else if (next == 'select_entity') {
                 if (context.mounted) context.push('/visitor/select-entity');
               } else {
@@ -557,7 +557,7 @@ class WelcomePage extends ConsumerWidget {
         await authApi.handleAutoLoginAfterRegistration(result);
 
         // Navigate to main app
-        if (context.mounted) context.go('/app/MainApp');
+        if (context.mounted) context.go('/rbac-loading');
       } else {
         // Handle login failure
         final message = result['message'] ?? 'Login failed';

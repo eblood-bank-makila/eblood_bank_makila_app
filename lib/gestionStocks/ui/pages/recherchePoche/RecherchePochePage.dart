@@ -1,12 +1,14 @@
 import 'package:animate_do/animate_do.dart';
 import 'package:eblood_bank_mak_app/apps/config/theme/ColorPages.dart';
 import 'package:eblood_bank_mak_app/apps/widgets/PocheBanqueWidget.dart';
+import 'package:eblood_bank_mak_app/core/rbac/providers/rbac_provider.dart';
 import 'package:eblood_bank_mak_app/gestionStocks/business/model/banque/BanqueModele.dart';
 import 'package:eblood_bank_mak_app/gestionStocks/business/model/poche/PocheModel.dart';
 import 'package:eblood_bank_mak_app/gestionStocks/ui/pages/recherchePoche/RechercheCtrl.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../business/model/recherche/DatumRecherchePocheModel.dart';
@@ -28,6 +30,27 @@ class _RecherchepageState extends ConsumerState<Recherchepage> {
       true; // Initialiser à true pour afficher le champ de saisie par défaut
   List<DatumRecherchePocheModel> _results = [];
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // RBAC entry guard — this page is shared by hospital users (search
+    // tab) and customer users (home search). Allow access if EITHER
+    // profile's search flag is present.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!context.mounted) return;
+      final hasAccess = ref.read(rbacProvider.notifier).hasAnyMenuFlag([
+        'flutter_apps_eblood_bank_hospital_search_app',
+        'flutter_apps_eblood_bank_cust_home_find_blood',
+      ]);
+      if (!hasAccess) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('access_denied'.tr)),
+        );
+        Navigator.of(context).maybePop();
+      }
+    });
+  }
 
   void _performSearch(String query) async {
     print('🔍 Starting search for query: "$query"');

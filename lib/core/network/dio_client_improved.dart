@@ -2,13 +2,13 @@ import 'dart:io';
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
-import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart' as getx;
 
 import '../config/app_config.dart';
-import '../services/location_tracking_service.dart';
+// Use shared interceptors from dio_client helpers (device info, location, app type)
+import '../../../apps/config/api/dio_client.dart' show DeviceInfoInterceptor, LocationInterceptor, AppTypeInterceptor;
 
 /// Improved DioClient that consolidates functionality from multiple implementations
 class DioClient {
@@ -28,9 +28,6 @@ class DioClient {
   // Storage keys
   final String _tokenKey = 'auth_token';
   final String _refreshTokenKey = 'refresh_token';
-  
-  // Device info plugin
-  final DeviceInfoPlugin _deviceInfoPlugin = DeviceInfoPlugin();
   
   // Getters
   Dio get dio => _dio;
@@ -60,9 +57,12 @@ class DioClient {
         },
       ));
       
-      // Add interceptors
-      _dio.interceptors.add(_createRequestInterceptor());
-      _dio.interceptors.add(_createResponseInterceptor());
+      // Shared interceptors aligned with dio_client helpers (getWithDio, postWithDio, etc.)
+      // These add device_id, mobile_device_infos, location, App-Type headers
+      _dio.interceptors.add(DeviceInfoInterceptor());
+      _dio.interceptors.add(LocationInterceptor());
+      _dio.interceptors.add(_createAuthInterceptor());
+      _dio.interceptors.add(AppTypeInterceptor());
       _dio.interceptors.add(_createErrorInterceptor());
       
       // Add logging in debug mode
@@ -84,8 +84,9 @@ class DioClient {
     }
   }
 
-  /// Create request interceptor
-  Interceptor _createRequestInterceptor() {
+  /// Auth interceptor — handles api-consumer, auth token, and language.
+  /// Device info, location, and app-type are handled by shared interceptors.
+  Interceptor _createAuthInterceptor() {
     return InterceptorsWrapper(
       onRequest: (RequestOptions options, RequestInterceptorHandler handler) async {
         try {
@@ -116,44 +117,23 @@ class DioClient {
           // Add language header
           options.headers['accept-language'] = getx.Get.locale?.languageCode ?? 'fr';
           
-          // Add device info
-          await _addDeviceInfo(options.headers);
-
-          // Add user location headers (latitude & longitude)
-          await _addLocationHeaders(options.headers);
-          
-          // Log request in debug mode
-          if (kDebugMode) {
-            print('📤 Request: ${options.method} ${options.uri}');
-            print('📤 Headers: ${options.headers}');
-            if (options.data != null) {
-              print('📤 Data: ${options.data}');
-            }
-          }
-          
           handler.next(options);
         } catch (e) {
-          print('⚠️ Error in request interceptor: $e');
+          print('⚠️ Error in auth interceptor: $e');
           handler.next(options);
         }
-      }
-    );
-  }
-
-  /// Create response interceptor
-  Interceptor _createResponseInterceptor() {
-    return InterceptorsWrapper(
+      },
       onResponse: (Response response, ResponseInterceptorHandler handler) {
         if (kDebugMode) {
           print('📥 Response: [${response.statusCode}] ${response.requestOptions.uri}');
           print('📥 Data: ${response.data is Map ? json.encode(response.data) : "Non-JSON data"}');
         }
         handler.next(response);
-      }
+      },
     );
   }
 
-  /// Create error interceptor
+  /// Error interceptor — handles 401 token refresh + retry
   Interceptor _createErrorInterceptor() {
     return InterceptorsWrapper(
       onError: (DioException err, ErrorInterceptorHandler handler) async {
@@ -198,73 +178,6 @@ class DioClient {
         handler.next(err);
       }
     );
-  }
-
-  /// Add device info to headers
-  Future<void> _addDeviceInfo(Map<String, dynamic> headers) async {
-    try {
-      if (headers['mobile_device_infos'] == null) {
-        String deviceInfo = '';
-        String? deviceIdHeader;
-
-        if (Platform.isAndroid) {
-          final AndroidDeviceInfo androidInfo = await _deviceInfoPlugin.androidInfo;
-          deviceIdHeader = androidInfo.id;
-          deviceInfo = jsonEncode({
-            'manufacturer': androidInfo.manufacturer,
-            'model': androidInfo.model,
-            'device_id': androidInfo.id,
-            'version': androidInfo.version.release,
-            'version_sdk': androidInfo.version.sdkInt,
-            'brand': androidInfo.brand,
-            'device': androidInfo.device,
-            'isPhysicalDevice': androidInfo.isPhysicalDevice,
-          });
-        } else if (Platform.isIOS) {
-          final IosDeviceInfo iosInfo = await _deviceInfoPlugin.iosInfo;
-          deviceIdHeader = iosInfo.identifierForVendor;
-          deviceInfo = jsonEncode({
-            'manufacturer': 'Apple',
-            'name': iosInfo.name,
-            'model': iosInfo.model,
-            'device_id': iosInfo.identifierForVendor,
-            'version': iosInfo.systemVersion,
-            'system_name': iosInfo.systemName,
-            'is_physical_device': iosInfo.isPhysicalDevice,
-            'brand': 'Apple',
-          });
-        }
-
-        if (deviceInfo.isNotEmpty) {
-          headers['mobile_device_infos'] = deviceInfo;
-        }
-        if (deviceIdHeader != null && deviceIdHeader.isNotEmpty) {
-          headers['device_id'] = deviceIdHeader;
-        }
-      }
-    } catch (e) {
-      print('⚠️ Error setting device info: $e');
-    }
-  }
-
-  /// Add location information to headers without blocking
-  /// Uses cached location synchronously to avoid delaying requests/startup.
-  Future<void> _addLocationHeaders(Map<String, dynamic> headers) async {
-    try {
-      // Non-blocking: read cached location and trigger background refresh
-      final location = LocationTrackingService().getCachedLocationSync();
-      final latitude = location['latitude'];
-      final longitude = location['longitude'];
-
-      if (latitude is double && latitude.isFinite && !headers.containsKey('latitude')) {
-        headers['latitude'] = latitude.toString();
-      }
-      if (longitude is double && longitude.isFinite && !headers.containsKey('longitude')) {
-        headers['longitude'] = longitude.toString();
-      }
-    } catch (e) {
-      print('⚠️ Error setting location headers (non-blocking): $e');
-    }
   }
 
   /// Refresh authentication token

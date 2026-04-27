@@ -5,13 +5,15 @@ import 'package:eblood_bank_mak_app/apps/config/theme/ColorPages.dart';
 import 'package:eblood_bank_mak_app/apps/models/api_response.dart';
 import 'package:eblood_bank_mak_app/utilisateurs/business/service/PatientNetworkServiceImpl.dart';
 import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/patient/AddPatientPage.dart';
+import 'package:eblood_bank_mak_app/core/rbac/models/rbac_models.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 
 class PatientSelectorDialog extends StatefulWidget {
-  const PatientSelectorDialog({super.key});
+  final List<RbacCollectionCrudItem> crudInfo;
+  const PatientSelectorDialog({super.key, required this.crudInfo});
 
   @override
   State<PatientSelectorDialog> createState() => _PatientSelectorDialogState();
@@ -19,7 +21,7 @@ class PatientSelectorDialog extends StatefulWidget {
 
 class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
   final TextEditingController _searchCtrl = TextEditingController();
-  final _patientService = PatientNetworkServiceImpl();
+  late final PatientNetworkServiceImpl _patientService;
 
   Timer? _debounce;
   List<Map<String, dynamic>> _results = [];
@@ -29,6 +31,7 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
   @override
   void initState() {
     super.initState();
+    _patientService = PatientNetworkServiceImpl(widget.crudInfo);
     // Load all patients initially
     _loadAllPatients();
   }

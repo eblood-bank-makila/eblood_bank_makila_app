@@ -1,3 +1,7 @@
+import 'package:eblood_bank_mak_app/core/rbac/providers/rbac_provider.dart';
+import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/profil/admin/ProfileUsersPage.dart';
+import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/roles/org_roles_page.dart';
+import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/profil/admin/ProfileUserDevicesPage.dart';
 import 'package:eblood_bank_mak_app/apps/autres/AproposPage.dart';
 import 'package:eblood_bank_mak_app/apps/autres/ParametrePage.dart';
 import 'package:eblood_bank_mak_app/apps/autres/AidePage.dart';
@@ -23,6 +27,7 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:eblood_bank_mak_app/apps/services/AuthService.dart';
 
 // String extension for text formatting
 extension StringExtension on String {
@@ -271,6 +276,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
           const SizedBox(height: 32),
 
+          // Administration Section (blood_bank, hospital, cnts only)
+          _buildAdminSection(context),
+
           // General Section
           _buildSectionTitle('general'.tr.toUpperCase()),
           const SizedBox(height: 16),
@@ -363,6 +371,53 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           const SizedBox(height: 40),
         ],
       ),
+    );
+  }
+
+  /// RBAC-conditional administration section — only visible when the user
+  /// has at least one of the admin sub_menu flags (users, roles, devices).
+  Widget _buildAdminSection(BuildContext context) {
+    final rbac = ref.read(rbacProvider.notifier);
+    final hasUsers = rbac.hasMenuFlag('flutter_apps_eblood_bank_profile_users');
+    final hasRoles = rbac.hasMenuFlag('flutter_apps_eblood_bank_profile_roles');
+    final hasDevices = rbac.hasMenuFlag('flutter_apps_eblood_bank_profile_user_devices');
+
+    if (!hasUsers && !hasRoles && !hasDevices) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('administration'.tr.toUpperCase()),
+        const SizedBox(height: 16),
+        if (hasUsers)
+          _buildModernListTile(
+            icon: Iconsax.people,
+            title: 'users_management'.tr,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ProfileUsersPage()),
+            ),
+          ),
+        if (hasRoles)
+          _buildModernListTile(
+            icon: Iconsax.shield_tick,
+            title: 'roles_management'.tr,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const OrgRolesPage()),
+            ),
+          ),
+        if (hasDevices)
+          _buildModernListTile(
+            icon: Iconsax.mobile,
+            title: 'user_devices'.tr,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ProfileUserDevicesPage()),
+            ),
+          ),
+        const SizedBox(height: 32),
+      ],
     );
   }
 
@@ -1044,11 +1099,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   }
 
   void _handleLogout(BuildContext context) async {
-    Navigator.of(context).pop(); // Close dialog
+    Navigator.of(context).pop(); // Close confirmation dialog
 
     // Save all context-dependent references before async operations
-    final navigator = Navigator.of(context);
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
     final goRouter = GoRouter.of(context);
 
     try {
@@ -1083,30 +1136,16 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         ),
       );
 
-      // Perform logout
-      final ctrl = ref.read(profileCtrlProvider.notifier);
-      await ctrl.disconnect();
+      // Perform full logout (clears all local data, calls backend, then clears token)
+      await AuthService().logout();
 
-      // Close loading dialog using saved navigator
-      if (mounted) {
-        navigator.pop();
-
-        // Navigate to welcome page using saved router
-        goRouter.go('/welcome');
-      }
+      // Navigate to welcome IMMEDIATELY — goRouter.go() replaces the entire
+      // route stack, which automatically removes the loading dialog overlay.
+      // We must navigate before RBAC rebuild can show the no-access screen.
+      goRouter.go('/welcome');
     } catch (e) {
-      // Close loading dialog using saved navigator
-      if (mounted) {
-        navigator.pop();
-
-        // Show error message using saved scaffold messenger
-        scaffoldMessenger.showSnackBar(
-          SnackBar(
-            content: Text('${'error'.tr}: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      // On error, try to dismiss loading dialog and navigate anyway
+      goRouter.go('/welcome');
     }
   }
 }

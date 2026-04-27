@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -14,6 +15,22 @@ class AuthApi {
 
   final GetStorage _storage = GetStorage();
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
+
+  /// Safely read from FlutterSecureStorage, handling corrupted encryption keys.
+  /// On Android, a BadPaddingException can occur when the Keystore key is
+  /// invalidated (OS update, app reinstall, backup restore). In that case
+  /// the corrupted entry is deleted and null is returned.
+  Future<String?> _safeSecureRead(String key) async {
+    try {
+      return await _secureStorage.read(key: key);
+    } on PlatformException catch (e) {
+      debugPrint('⚠️ SecureStorage corrupted for key "$key": ${e.message} — clearing entry');
+      try {
+        await _secureStorage.delete(key: key);
+      } catch (_) {}
+      return null;
+    }
+  }
 
   // Dio get _dio => DioClient().dio;
 
@@ -280,6 +297,13 @@ class AuthApi {
         final String accountType = _deriveAccountTypeFromProfiles(normalizedProfiles);
         await _storage.write('account_type', accountType);
 
+        // Extract and save identifier + user_entity info
+        await _extractAndSaveIdentifier(
+          profiles: normalizedProfiles,
+          accountType: accountType,
+          userData: data['user'] is Map ? (data['user'] as Map).cast<String, dynamic>() : null,
+        );
+
         return {
           'success': true,
           'requiresMfa': false,
@@ -441,6 +465,13 @@ class AuthApi {
             final String accountType = _deriveAccountTypeFromProfiles(profilsRaw.cast<dynamic>());
             await _storage.write('account_type', accountType);
             print('💾 Stored account_type: $accountType');
+
+            // Extract and save identifier + user_entity info
+            await _extractAndSaveIdentifier(
+              profiles: profilsRaw.cast<dynamic>(),
+              accountType: accountType,
+              userData: userObj,
+            );
           }
         }
 
@@ -594,7 +625,7 @@ class AuthApi {
   /// Uses the current auth token from secure storage
   Future<DatumCodeOtpModele?> getUserProfile() async {
     try {
-      final String? token = await _secureStorage.read(key: 'auth_token');
+      final String? token = await _safeSecureRead('auth_token');
       if (token == null || token.isEmpty) {
         print("⚠️ getUserProfile called with empty token");
         return null;
@@ -667,6 +698,13 @@ class AuthApi {
         final String accountType = _deriveAccountTypeFromProfiles(profilsRaw.cast<dynamic>());
         await _storage.write('account_type', accountType);
         print('💾 Stored account_type: $accountType');
+
+        // Extract and save identifier + user_entity info
+        await _extractAndSaveIdentifier(
+          profiles: profilsRaw.cast<dynamic>(),
+          accountType: accountType,
+          userData: userMap,
+        );
       }
       
       // Map API user payload to our DatumCodeOtpModele structure
@@ -764,7 +802,7 @@ class AuthApi {
   /// Clears all tokens and user data from storage
   Future<bool> logout() async {
     try {
-      final token = await _secureStorage.read(key: 'auth_token');
+      final token = await _safeSecureRead('auth_token');
 
       if (token != null && token.isNotEmpty) {
         try {
@@ -815,6 +853,39 @@ class AuthApi {
     } catch (e) {
       print("💥 Error during logout: $e");
       return false;
+    }
+  }
+
+  /// Extract identifier from user profiles and persist along with user_entity info.
+  /// This stores 'user_identifier' and 'user_entity_id'/'user_entity_name' to GetStorage
+  /// so the search flow can auto-identify hospital accounts.
+  Future<void> _extractAndSaveIdentifier({
+    required List<dynamic> profiles,
+    required String accountType,
+    Map<String, dynamic>? userData,
+  }) async {
+    // 1. Extract identifier from profiles matching the derived account type
+    String identifier = '';
+    for (final p in profiles) {
+      if (p is Map) {
+        final id = (p['identifier'] ?? '').toString().trim();
+        if (id.isNotEmpty) {
+          identifier = id;
+          break; // take the first non-empty identifier
+        }
+      }
+    }
+    await _storage.write('user_identifier', identifier);
+    print('💾 Stored user_identifier: $identifier');
+
+    // 2. Persist user_entity id & name for hospital auto-identification
+    if (userData != null && userData['user_entity'] is Map) {
+      final entity = (userData['user_entity'] as Map).cast<String, dynamic>();
+      final entityId = (entity['id'] ?? entity['_id'] ?? '').toString();
+      final entityName = (entity['entity_name'] ?? entity['name'] ?? '').toString();
+      await _storage.write('user_entity_id', entityId);
+      await _storage.write('user_entity_name', entityName);
+      print('💾 Stored user_entity_id: $entityId, user_entity_name: $entityName');
     }
   }
 }

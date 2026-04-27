@@ -1,19 +1,17 @@
 /// Visitor Registration Service Implementation
 
 import 'dart:convert';
-import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_storage/get_storage.dart';
 import '../../domain/services/service_interfaces.dart';
 import '../../domain/entities/search_flow_state.dart';
-import '../../../core/network/dio_client.dart';
+import '../../../apps/config/api/dio_client.dart';
 
 class VisitorRegistrationServiceImpl implements IVisitorRegistrationService {
-  late final Dio _dio;
   final GetStorage _storage = GetStorage();
+  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
 
-  VisitorRegistrationServiceImpl() {
-    _dio = DioClient().dio;
-  }
+  VisitorRegistrationServiceImpl();
 
   /// Check if visitor is already saved locally
   Future<bool> hasLocalVisitor() async {
@@ -54,9 +52,9 @@ class VisitorRegistrationServiceImpl implements IVisitorRegistrationService {
 
     // Also update backend to mark phone as verified
     try {
-      await _dio.put(
+      await putWithDio(
         '/eblood-connect/users/update-visitor-phone',
-        data: {'phone_number': phone, 'is_phone_verified': true},
+        body: {'phone_number': phone, 'is_phone_verified': true},
       );
       print('✅ Updated visitor phone verification status on backend');
     } catch (e) {
@@ -116,24 +114,33 @@ class VisitorRegistrationServiceImpl implements IVisitorRegistrationService {
   /// Returns: {success, needs_entity, needs_phone_verification, data}
   Future<Map<String, dynamic>?> checkVisitorLogin() async {
     try {
-      final response = await _dio.get('/eblood-connect/users/login-visitor');
+      final response = await getWithDio('/eblood-connect/users/login-visitor');
 
-      // Accept both 200 and 201 status codes
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = response.data;
-        print('✅ Login visitor response: ${data['success']}');
-        if (data['success'] == true && data['data'] != null) {
+      // Accept successful response
+      if (response.success || response.statusCode == 200 || response.statusCode == 201) {
+        final data = <String, dynamic>{
+          'success': response.success,
+          'data': response.data,
+          'message': response.message,
+        };
+        print('✅ Login visitor response: ${response.success}');
+        if (response.success && response.data != null) {
+          final responseData = response.data as Map<String, dynamic>;
           // Device already linked, save the token
           final token =
-              data['data']['access_token']?.toString() ??
-              data['data']['token']?.toString();
+              responseData['access_token']?.toString() ??
+              responseData['token']?.toString();
           if (token != null && token.isNotEmpty) {
             await _storage.write('visitor_token', token);
+            await _storage.write('auth_token', token);
             await _storage.write('is_visitor', true);
+            // Also save to FlutterSecureStorage so AuthInterceptor picks it up
+            await _secureStorage.write(key: 'auth_token', value: token);
+            print('✅ Token saved to both GetStorage and FlutterSecureStorage');
           }
 
           // Check if user has a real phone number (not fake)
-          final user = data['data']['user'];
+          final user = responseData['user'];
           print('👤 User data from backend: ${user != null ? "exists" : "null"}');
           String? phoneNumber;
           bool? phoneVerified;
@@ -184,19 +191,18 @@ class VisitorRegistrationServiceImpl implements IVisitorRegistrationService {
           print('✅ Is phone verified: $isPhoneVerified');
 
           // Add needs_phone_verification flag to response
-          final result = Map<String, dynamic>.from(data);
-          result['needs_phone_verification'] = hasFakePhone || !isPhoneVerified;
-          result['phone_number_verified'] = phoneVerified;
-          result['can_pay_on_delivery'] = canPayOnDelivery;
+          data['needs_phone_verification'] = hasFakePhone || !isPhoneVerified;
+          data['phone_number_verified'] = phoneVerified;
+          data['can_pay_on_delivery'] = canPayOnDelivery;
 
-          print('📦 Returning result: ${result['success']}, needs_verification: ${result['needs_phone_verification']}');
-          return result;
+          print('📦 Returning result: ${data['success']}, needs_verification: ${data['needs_phone_verification']}');
+          return data;
         }
         // needs_entity == true means user needs to provide location_id
         print('📦 Returning data as-is (needs_entity or other case)');
         return data;
       }
-      print('⚠️ Status code not 200/201: ${response.statusCode}');
+      print('⚠️ Response not successful: ${response.statusCode}');
       return null;
     } catch (e) {
       print('❌ VisitorRegistrationService.checkVisitorLogin error: $e');
@@ -209,30 +215,37 @@ class VisitorRegistrationServiceImpl implements IVisitorRegistrationService {
     required String locationId,
   }) async {
     try {
-      final response = await _dio.post(
+      final response = await postWithDio(
         '/eblood-connect/users/login-visitor',
-        data: {'location_id': locationId},
+        body: {'location_id': locationId},
       );
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = response.data;
-        if (data['success'] == true && data['data'] != null) {
-          // Save the token
+      if (response.success) {
+        final responseData = response.data as Map<String, dynamic>?;
+        if (responseData != null) {
+          // Save the token to both storages
           final token =
-              data['data']['access_token']?.toString() ??
-              data['data']['token']?.toString();
+              responseData['access_token']?.toString() ??
+              responseData['token']?.toString();
           if (token != null && token.isNotEmpty) {
             await _storage.write('visitor_token', token);
+            await _storage.write('auth_token', token);
             await _storage.write('is_visitor', true);
+            // Also save to FlutterSecureStorage so AuthInterceptor picks it up
+            await _secureStorage.write(key: 'auth_token', value: token);
+            print('✅ Token saved to both GetStorage and FlutterSecureStorage');
           }
 
           // New visitor always needs phone verification
-          final result = Map<String, dynamic>.from(data);
-          result['needs_phone_verification'] = true;
+          final result = <String, dynamic>{
+            'success': true,
+            'data': responseData,
+            'needs_phone_verification': true,
+          };
 
           return result;
         }
-        return data;
+        return {'success': response.success, 'data': response.data};
       }
       return null;
     } catch (e) {
@@ -278,15 +291,15 @@ class VisitorRegistrationServiceImpl implements IVisitorRegistrationService {
   Future<bool> sendOtp(String sessionId, {String? appSignature}) async {
     // Note: sessionId is actually the phone number for visitor OTP
     try {
-      final response = await _dio.post(
+      final response = await postWithDio(
         '/eblood-connect/users/visitor-send-phone-otp',
-        data: {
+        body: {
           'phone_number': sessionId,
           if (appSignature != null) 'app_signature': appSignature,
         },
       );
 
-      return response.statusCode == 200 && response.data['success'] == true;
+      return response.success;
     } catch (e) {
       print('VisitorRegistrationService.sendOtp error: $e');
       return false;
@@ -296,15 +309,15 @@ class VisitorRegistrationServiceImpl implements IVisitorRegistrationService {
   /// Send OTP to phone number (for visitor phone verification)
   Future<bool> sendPhoneOtp(String phoneNumber, {String? appSignature}) async {
     try {
-      final response = await _dio.post(
+      final response = await postWithDio(
         '/eblood-connect/users/visitor-send-phone-otp',
-        data: {
+        body: {
           'phone_number': phoneNumber,
           if (appSignature != null) 'app_signature': appSignature,
         },
       );
 
-      return response.statusCode == 200 && response.data['success'] == true;
+      return response.success;
     } catch (e) {
       print('VisitorRegistrationService.sendPhoneOtp error: $e');
       return false;
@@ -320,30 +333,21 @@ class VisitorRegistrationServiceImpl implements IVisitorRegistrationService {
     try {
       print('🔐 Sending OTP verification: phone=$sessionId, otp=$otpCode');
 
-      final response = await _dio.post(
+      final response = await postWithDio(
         '/eblood-connect/users/visitor-verify-phone-otp',
-        data: {'phone_number': sessionId, 'otp_code': otpCode},
+        body: {'phone_number': sessionId, 'otp_code': otpCode},
       );
 
       print(
-        '📬 OTP verify response: ${response.statusCode} - ${response.data}',
+        '📬 OTP verify response: ${response.statusCode} - ${response.success}',
       );
 
-      if (response.statusCode == 200 && response.data['success'] == true) {
+      if (response.success) {
         // Phone verified, return the phone number as confirmation
         return sessionId;
       }
-      print('⚠️ OTP verification failed: success=${response.data['success']}');
+      print('⚠️ OTP verification failed: success=${response.success}');
       return null;
-    } on DioException catch (e) {
-      print(
-        '❌ VisitorRegistrationService.verifyOtp DioError: ${e.response?.statusCode} - ${e.response?.data}',
-      );
-      // Rethrow with more details for error handling
-      if (e.response?.data != null && e.response?.data['detail'] != null) {
-        throw Exception(e.response?.data['detail']);
-      }
-      rethrow;
     } catch (e) {
       print('❌ VisitorRegistrationService.verifyOtp error: $e');
       rethrow;
@@ -356,12 +360,12 @@ class VisitorRegistrationServiceImpl implements IVisitorRegistrationService {
     required String otpCode,
   }) async {
     try {
-      final response = await _dio.post(
+      final response = await postWithDio(
         '/eblood-connect/users/visitor-verify-phone-otp',
-        data: {'phone_number': phoneNumber, 'otp_code': otpCode},
+        body: {'phone_number': phoneNumber, 'otp_code': otpCode},
       );
 
-      return response.statusCode == 200 && response.data['success'] == true;
+      return response.success;
     } catch (e) {
       print('VisitorRegistrationService.verifyPhoneOtp error: $e');
       return false;
@@ -372,15 +376,15 @@ class VisitorRegistrationServiceImpl implements IVisitorRegistrationService {
   Future<bool> resendOtp(String sessionId, {String? appSignature}) async {
     // Note: sessionId is actually the phone number for visitor OTP
     try {
-      final response = await _dio.post(
+      final response = await postWithDio(
         '/eblood-connect/users/visitor-send-phone-otp',
-        data: {
+        body: {
           'phone_number': sessionId,
           if (appSignature != null) 'app_signature': appSignature,
         },
       );
 
-      return response.statusCode == 200 && response.data['success'] == true;
+      return response.success;
     } catch (e) {
       print('VisitorRegistrationService.resendOtp error: $e');
       return false;

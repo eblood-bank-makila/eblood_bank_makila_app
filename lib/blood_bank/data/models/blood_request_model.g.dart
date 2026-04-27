@@ -9,11 +9,11 @@ part of 'blood_request_model.dart';
 _$BloodRequestModelImpl _$$BloodRequestModelImplFromJson(
         Map<String, dynamic> json) =>
     _$BloodRequestModelImpl(
-      id: json['_id'] as String,
+      id: _readId(json, '_id') as String,
       identifier: json['identifier'] as String,
-      healthStructureRequestingId:
-          json['health_structure_requesting_id'] as String?,
-      sysOrganizationId: json['sys_organization_id'] as String?,
+      healthStructureRequestingId: _readHealthStructureRequestingId(
+          json, 'health_structure_requesting_id') as String?,
+      sysOrganizationId: _stringFromJson(json['sys_organization_id']),
       requestType: json['request_type'] as String,
       urgencyLevel: json['urgency_level'] as String,
       patientBloodGroup: json['patient_blood_group'] as String,
@@ -42,10 +42,12 @@ _$BloodRequestModelImpl _$$BloodRequestModelImplFromJson(
       failureReason: json['failure_reason'] as String?,
       phoneNumber: json['phone_number'] as String?,
       ebloodFee: (json['eblood_fee'] as num?)?.toDouble(),
-      refCurrencyId: json['ref_currency_id'] as String?,
+      refCurrencyId: _readRefCurrencyId(json, 'ref_currency_id') as String?,
       transactionalEbloodFee:
           (json['transactional_eblood_fee'] as num?)?.toDouble(),
-      transactionalCurrencyId: json['transactional_currency_id'] as String?,
+      transactionalCurrencyId:
+          _readTransactionalCurrencyId(json, 'transactional_currency_id')
+              as String?,
     );
 
 Map<String, dynamic> _$$BloodRequestModelImplToJson(

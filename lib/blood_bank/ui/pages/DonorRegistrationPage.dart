@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:intl/intl.dart';
 import 'package:get/get.dart';
+import '../../../core/rbac/services/rbac_guard.dart';
 import '../../controllers/donor_registration_controller.dart';
 
 class DonorRegistrationPage extends ConsumerStatefulWidget {
@@ -47,6 +48,21 @@ class _DonorRegistrationPageState extends ConsumerState<DonorRegistrationPage> {
 
   // Available blood types
   final List<String> _bloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+
+  @override
+  void initState() {
+    super.initState();
+    // RBAC entry guard — pool bb and cnts donor register flags so the page
+    // is reachable for both profiles (CNTS reuses this screen).
+    guardPageEntryAny(
+      ref,
+      context,
+      const [
+        'flutter_apps_eblood_bank_bb_donors_register',
+        'flutter_apps_eblood_bank_cnts_donors_register',
+      ],
+    );
+  }
 
   @override
   void dispose() {

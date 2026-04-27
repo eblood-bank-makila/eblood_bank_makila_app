@@ -12,7 +12,7 @@ class LanguageService extends GetxService {
   // Observable language code
   final _currentLanguage = 'fr_FR'.obs;
   
-  // Available languages (French, English, Spanish, Lingala, Arabic, Russian)
+  // Available languages (French, English, Spanish, Lingala, Russian)
   final List<Map<String, String>> availableLanguages = [
     {
       'code': 'fr_FR',
@@ -37,12 +37,6 @@ class LanguageService extends GetxService {
       'name': 'Lingala',
       'flag': '🇨🇩',
       'nativeName': 'Lingála',
-    },
-    {
-      'code': 'ar_SA',
-      'name': 'العربية',
-      'flag': '🇸🇦',
-      'nativeName': 'العربية',
     },
     {
       'code': 'ru_RU',
@@ -167,11 +161,6 @@ class LanguageService extends GetxService {
     await changeLanguage('es_ES');
   }
   
-  /// Set Arabic language
-  Future<void> setArabic() async {
-    await changeLanguage('ar_SA');
-  }
-  
   /// Get language name by code
   String getLanguageName(String languageCode) {
     final language = availableLanguages.firstWhere(
@@ -190,13 +179,9 @@ class LanguageService extends GetxService {
     return language['flag'] ?? '🏳️';
   }
   
-  /// Check if current language is RTL
-  bool get isRTL {
-    return languageCode == 'ar';
-  }
-  
+  /// Check if current language is RTL (no RTL languages currently supported)
+  bool get isRTL => false;
+
   /// Get text direction based on current language
-  TextDirection get textDirection {
-    return isRTL ? TextDirection.rtl : TextDirection.ltr;
-  }
+  TextDirection get textDirection => TextDirection.ltr;
 }

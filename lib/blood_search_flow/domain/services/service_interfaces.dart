@@ -10,6 +10,10 @@ abstract class IBloodSearchService {
     required String cityId,
     required String bloodType,
     String? authToken,
+    double? userLatitude,
+    double? userLongitude,
+    double? hospitalLatitude,
+    double? hospitalLongitude,
   });
 }
 
@@ -76,6 +80,13 @@ abstract class IPaymentService {
     required List<String> bloodBagIds,
     required String authToken,
     required Map<String, dynamic> paymentDetails,
+  });
+
+  /// Check payment status by request identifier (polls backend)
+  Future<PaymentResult> checkPaymentStatus({
+    required String requestIdentifier,
+    required String authToken,
+    double? progressPercent,
   });
 }
 

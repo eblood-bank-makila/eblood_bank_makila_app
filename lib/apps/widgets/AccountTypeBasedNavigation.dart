@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../utilisateurs/business/interactors/UtilisateurInteractor.dart';
 import 'BottomNavBarWidget.dart';
 import '../../blood_bank/ui/widgets/BloodBankBottomNavWidget.dart';
@@ -34,9 +35,21 @@ class _AccountTypeBasedNavigationState extends ConsumerState<AccountTypeBasedNav
 
   Future<void> _determineAccountType() async {
     try {
-      // 1) Strongest signal: use stored user_profiles flags (all profiles)
-      // The 'enabled' field will be used later to disable actions, not to hide profiles
       final storage = GetStorage();
+
+      // Safety net: if the user is a visitor, they should never be on this
+      // screen. Redirect them to the blood search welcome immediately.
+      if (storage.read('is_visitor') == true) {
+        debugPrint('🚨 AccountTypeBasedNavigation: Visitor detected, redirecting to /welcome');
+        if (mounted) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) context.go('/welcome');
+          });
+        }
+        return;
+      }
+
+      // 1) Strongest signal: use stored user_profiles flags (all profiles)
       final dynamic storedProfiles = storage.read('user_profiles') ?? storage.read('user_profils');
       if (storedProfiles is List && storedProfiles.isNotEmpty) {
         final allProfiles = storedProfiles

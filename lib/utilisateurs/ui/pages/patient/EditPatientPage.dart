@@ -1,20 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get/get.dart';
 
 import '../../../../apps/config/theme/ColorPages.dart';
 import '../../../../apps/widgets/GradientScaffold.dart';
+import '../../../../core/rbac/services/rbac_guard.dart';
+import '../../../../core/rbac/providers/rbac_provider.dart';
+import '../../../../core/rbac/models/rbac_models.dart';
 import '../../../business/models/patient/PatientModel.dart';
 import '../../../business/service/PatientNetworkServiceImpl.dart';
 
-class EditPatientPage extends StatefulWidget {
+class EditPatientPage extends ConsumerStatefulWidget {
   final PatientModel patient;
   const EditPatientPage({super.key, required this.patient});
 
   @override
-  State<EditPatientPage> createState() => _EditPatientPageState();
+  ConsumerState<EditPatientPage> createState() => _EditPatientPageState();
 }
 
-class _EditPatientPageState extends State<EditPatientPage> {
+class _EditPatientPageState extends ConsumerState<EditPatientPage> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _firstNameCtrl;
   late final TextEditingController _lastNameCtrl;
@@ -25,11 +29,20 @@ class _EditPatientPageState extends State<EditPatientPage> {
   String? _bloodType;
   bool _submitting = false;
 
-  final _service = PatientNetworkServiceImpl();
+  late final PatientNetworkServiceImpl _service;
 
   @override
   void initState() {
     super.initState();
+    guardPageEntry(
+      ref,
+      context,
+      'flutter_apps_eblood_bank_hosp_home_patients',
+    );
+    final crudInfo = ref.read(rbacProvider.notifier).getCrudInfoByPath(
+      'flutter_apps_eblood_bank_hosp_home_patients',
+    );
+    _service = PatientNetworkServiceImpl(crudInfo);
     _firstNameCtrl = TextEditingController(text: widget.patient.demographics.firstName);
     _lastNameCtrl = TextEditingController(text: widget.patient.demographics.lastName);
     _dobCtrl = TextEditingController(text: widget.patient.demographics.dateOfBirth);

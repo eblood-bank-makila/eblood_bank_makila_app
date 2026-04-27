@@ -6,8 +6,8 @@ import 'package:get/get.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../../apps/config/theme/ColorPages.dart';
 import '../../../../../apps/widgets/BottomNavBarWidget.dart';
-import '../../../../../paiement/ui/pages/message/MessagePaiementReussiPage.dart';
-import '../../../../../paiement/ui/pages/message/MessagePaiementEchouer.dart';
+import '../../../../../payments/ui/pages/message/MessagePaiementReussiPage.dart';
+import '../../../../../payments/ui/pages/message/MessagePaiementEchouer.dart';
 import '../../panier/PanierCtrl.dart';
 import '../../../../../apps/config/api/dio_client.dart';
 

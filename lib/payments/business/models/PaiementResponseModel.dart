@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:eblood_bank_mak_app/paiement/businness/models/DatumPaiementModel.dart';
+import 'package:eblood_bank_mak_app/payments/business/models/DatumPaiementModel.dart';
 
 PaiementResponseModel paiementResponseModelFromJson(String str) =>
     PaiementResponseModel.fromJson(json.decode(str));

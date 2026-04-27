@@ -1,7 +1,7 @@
 import 'dart:io';
-import 'package:eblood_bank_mak_app/paiement/businness/models/PaiementModel.dart';
-import 'package:eblood_bank_mak_app/paiement/businness/models/PaiementResponseModel.dart';
-import 'package:eblood_bank_mak_app/paiement/businness/service/PaiementNetworkService.dart';
+import 'package:eblood_bank_mak_app/payments/business/models/PaiementModel.dart';
+import 'package:eblood_bank_mak_app/payments/business/models/PaiementResponseModel.dart';
+import 'package:eblood_bank_mak_app/payments/business/service/PaiementNetworkService.dart';
 import 'package:eblood_bank_mak_app/apps/config/api/dio_client.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 

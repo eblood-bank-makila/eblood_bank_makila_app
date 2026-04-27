@@ -11,8 +11,8 @@ import 'package:eblood_bank_mak_app/gestionStocks/ui/framework/banque/BanqueList
 import 'package:eblood_bank_mak_app/gestionStocks/ui/framework/banque/BanqueListeServiceNetworkImpl.dart';
 import 'package:eblood_bank_mak_app/gestionStocks/ui/framework/favoris/FavorisServiceNetworkImpl.dart';
 import 'package:eblood_bank_mak_app/gestionStocks/ui/framework/poche/PocheListeServiceNetworkImpl.dart';
-import 'package:eblood_bank_mak_app/paiement/businness/interactors/PaiementInteractor.dart';
-import 'package:eblood_bank_mak_app/paiement/ui/framework/PaiementNetworkServiceImpl.dart';
+import 'package:eblood_bank_mak_app/payments/business/interactors/PaiementInteractor.dart';
+import 'package:eblood_bank_mak_app/payments/ui/framework/PaiementNetworkServiceImpl.dart';
 import 'package:eblood_bank_mak_app/utilisateurs/ui/framework/UtilisateurLocalServiceImpl.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';

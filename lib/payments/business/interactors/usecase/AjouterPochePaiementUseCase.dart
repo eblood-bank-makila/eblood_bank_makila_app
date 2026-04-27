@@ -1,7 +1,7 @@
 import 'package:eblood_bank_mak_app/commande/business/model/DatumPanierModel.dart';
-import 'package:eblood_bank_mak_app/paiement/businness/models/PaiementModel.dart';
-import 'package:eblood_bank_mak_app/paiement/businness/models/PaiementResponseModel.dart';
-import 'package:eblood_bank_mak_app/paiement/businness/service/PaiementNetworkService.dart';
+import 'package:eblood_bank_mak_app/payments/business/models/PaiementModel.dart';
+import 'package:eblood_bank_mak_app/payments/business/models/PaiementResponseModel.dart';
+import 'package:eblood_bank_mak_app/payments/business/service/PaiementNetworkService.dart';
 import 'package:eblood_bank_mak_app/utilisateurs/business/service/utilisateurLocalService.dart';
 
 class AjouterPochePaiementUseCase {

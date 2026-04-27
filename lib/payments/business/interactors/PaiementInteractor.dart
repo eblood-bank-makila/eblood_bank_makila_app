@@ -1,6 +1,6 @@
 
-import 'package:eblood_bank_mak_app/paiement/businness/interactors/usecase/AjouterPochePaiementUseCase.dart';
-import 'package:eblood_bank_mak_app/paiement/businness/service/PaiementNetworkService.dart';
+import 'package:eblood_bank_mak_app/payments/business/interactors/usecase/AjouterPochePaiementUseCase.dart';
+import 'package:eblood_bank_mak_app/payments/business/service/PaiementNetworkService.dart';
 import 'package:eblood_bank_mak_app/utilisateurs/business/service/utilisateurLocalService.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';

@@ -1,6 +1,6 @@
 import 'package:eblood_bank_mak_app/apps/config/theme/ColorPages.dart';
-import 'package:eblood_bank_mak_app/commande/ui/pages/panier/PanierCtrl.dart';
-import 'package:eblood_bank_mak_app/commande/ui/pages/qr_action/QrCodeActionPage.dart';
+import 'package:eblood_bank_mak_app/orders/ui/pages/panier/PanierCtrl.dart';
+import 'package:eblood_bank_mak_app/orders/ui/pages/qr_action/QrCodeActionPage.dart';
 import 'package:eblood_bank_mak_app/apps/widgets/HospitalQRCodeWidget.dart';
 import 'package:eblood_bank_mak_app/services/HealthStructureService.dart';
 import 'package:eblood_bank_mak_app/stock_management/ui/pages/banque/BanquePage.dart';
@@ -20,7 +20,7 @@ import 'package:sembast/sembast_io.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart';
 import '../../stock_management/ui/pages/recherchePoche/RecherchePochePage.dart';
-import '../../commande/ui/pages/panier/PanierPage.dart';
+import '../../orders/ui/pages/panier/PanierPage.dart';
 import 'package:get/get.dart';
 
 @pragma('vm:entry-point')

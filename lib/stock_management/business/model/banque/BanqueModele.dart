@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:eblood_bank_mak_app/stock_management/business/model/banque/TownInfoModel.dart';
 import 'package:eblood_bank_mak_app/stock_management/business/model/recherche/BloodBankRecherchePocheModel.dart';
 
-import '../../../../commande/business/model/BloodBankInfoPanierModel.dart';
+import '../../../../orders/business/model/BloodBankInfoPanierModel.dart';
 
 BanqueModele banqueModeleFromJson(String str) =>
     BanqueModele.fromJson(json.decode(str));

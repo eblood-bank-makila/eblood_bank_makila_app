@@ -7,8 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../apps/config/theme/ColorPages.dart';
-import '../../../../commande/ui/pages/panier/PanierCtrl.dart';
-import '../../../../commande/ui/pages/panier/PanierPage.dart';
+import '../../../../orders/ui/pages/panier/PanierCtrl.dart';
+import '../../../../orders/ui/pages/panier/PanierPage.dart';
 
 class FavorisPage extends ConsumerStatefulWidget {
   const FavorisPage({Key? key}) : super(key: key);

@@ -1,4 +1,4 @@
-import 'package:eblood_bank_mak_app/commande/business/model/DatumPanierModel.dart';
+import 'package:eblood_bank_mak_app/orders/business/model/DatumPanierModel.dart';
 import 'package:eblood_bank_mak_app/payments/business/models/PaiementModel.dart';
 import 'package:eblood_bank_mak_app/payments/business/models/PaiementResponseModel.dart';
 import 'package:eblood_bank_mak_app/payments/business/service/PaiementNetworkService.dart';

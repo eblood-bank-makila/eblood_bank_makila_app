@@ -12,7 +12,7 @@ import 'package:get_storage/get_storage.dart';
 import '../../core/rbac/providers/rbac_provider.dart';
 import '../../stock_management/ui/pages/recherchePoche/RecherchePochePage.dart';
 // Removed from quick actions per requirement
-// import '../../commande/ui/pages/blood_request/BloodRequestPage.dart';
+// import '../../orders/ui/pages/blood_request/BloodRequestPage.dart';
 import '../../delivery/ui/pages/DeliveryPersonHomePage.dart';
 import '../widgets/advertisement/AdvertisementCarousel.dart';
 import 'nearby_blood_banks_page.dart';

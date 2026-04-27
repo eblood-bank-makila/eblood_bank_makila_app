@@ -1,5 +1,5 @@
-import 'package:eblood_bank_mak_app/commande/business/model/PanierReponseModel.dart';
-import 'package:eblood_bank_mak_app/commande/business/model/RecupererPanierResponseModel.dart';
+import 'package:eblood_bank_mak_app/orders/business/model/PanierReponseModel.dart';
+import 'package:eblood_bank_mak_app/orders/business/model/RecupererPanierResponseModel.dart';
 import 'package:eblood_bank_mak_app/payments/business/models/PaiementResponseModel.dart';
 
 

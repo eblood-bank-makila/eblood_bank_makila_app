@@ -1,12 +1,12 @@
-// import 'package:eblood_bank_mak_app/commande/ui/pages/panier/PanierCtrl.dart';
+// import 'package:eblood_bank_mak_app/orders/ui/pages/panier/PanierCtrl.dart';
 // import 'package:eblood_bank_mak_app/stock_management/business/model/banque/BanqueModele.dart';
 // import 'package:flutter/material.dart';
 // import 'package:flutter_riverpod/flutter_riverpod.dart';
 // import 'package:eblood_bank_mak_app/apps/config/theme/ColorPages.dart';
 // import 'package:eblood_bank_mak_app/stock_management/business/model/poche/PocheModel.dart';
-// import 'package:eblood_bank_mak_app/commande/ui/pages/panier/PanierPage.dart';
-// import '../../commande/business/interactor/CommandeInteractor.dart';
-// import '../../commande/business/model/CartItemPanierModel.dart';
+// import 'package:eblood_bank_mak_app/orders/ui/pages/panier/PanierPage.dart';
+// import '../../orders/business/interactor/CommandeInteractor.dart';
+// import '../../orders/business/model/CartItemPanierModel.dart';
 //
 // class DetailPocheBanqueWidget extends ConsumerStatefulWidget {
 //   final PocheModel poche; // Modèle de poche à afficher
@@ -338,7 +338,7 @@
 //     );
 //   }
 // }
-import 'package:eblood_bank_mak_app/commande/ui/pages/panier/PanierCtrl.dart';
+import 'package:eblood_bank_mak_app/orders/ui/pages/panier/PanierCtrl.dart';
 import 'package:eblood_bank_mak_app/stock_management/business/model/banque/BanqueModele.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:flutter/material.dart';
@@ -348,9 +348,9 @@ import 'package:iconsax/iconsax.dart';
 import 'package:eblood_bank_mak_app/apps/config/theme/ColorPages.dart';
 import 'package:eblood_bank_mak_app/apps/widgets/AppSpinner.dart';
 import 'package:eblood_bank_mak_app/stock_management/business/model/poche/PocheModel.dart';
-import 'package:eblood_bank_mak_app/commande/ui/pages/panier/PanierPage.dart';
-import '../../commande/business/interactor/CommandeInteractor.dart';
-import '../../commande/ui/pages/commande/pages/DetailCommandePage.dart';
+import 'package:eblood_bank_mak_app/orders/ui/pages/panier/PanierPage.dart';
+import '../../orders/business/interactor/CommandeInteractor.dart';
+import '../../orders/ui/pages/orders/pages/DetailCommandePage.dart';
 
 class DetailPocheBanqueWidget extends ConsumerStatefulWidget {
   final PocheModel poche; // Modèle de poche à afficher

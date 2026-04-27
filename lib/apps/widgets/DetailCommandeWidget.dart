@@ -1,7 +1,7 @@
 import 'package:animate_do/animate_do.dart';
 import 'package:eblood_bank_mak_app/apps/config/theme/ColorPages.dart';
 import 'package:eblood_bank_mak_app/apps/config/utils/Utils.dart';
-import 'package:eblood_bank_mak_app/commande/business/model/DatumPanierModel.dart';
+import 'package:eblood_bank_mak_app/orders/business/model/DatumPanierModel.dart';
 import 'package:flutter/material.dart';
 
 class DetailCommandeWidget extends StatefulWidget {

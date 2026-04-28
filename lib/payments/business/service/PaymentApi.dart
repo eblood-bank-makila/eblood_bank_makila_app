@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import '../../../apps/config/api/dio_client.dart';
 import '../../../apps/services/EbloodAuthHelper.dart';
+import '../../../core/config/app_config.dart';
 
 /// Sprint 15 — thin client over the gateway-agnostic eblood payments
 /// module. The endpoints live under /api/v1/payments/* and are framed
@@ -62,7 +62,7 @@ class PaymentApi {
       }
 
       final notifyPath = (data['notify_url_path']?.toString() ?? '').trim();
-      final base = (dotenv.env['BASE_API_URL'] ?? '').replaceAll(RegExp(r'/$'), '');
+      final base = AppConfig.apiBaseUrl.replaceAll(RegExp(r'/$'), '');
       final notifyUrlAbsolute = notifyPath.isEmpty
           ? ''
           : (notifyPath.startsWith('http') ? notifyPath : '$base$notifyPath');

@@ -1,8 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:lokotro_pay/lokotro_pay.dart';
+
+import '../../../core/config/app_config.dart';
 
 /// Sprint 15 — wraps the lokotro_pay SDK so callers don't have to know
 /// about LokotroPayConfigs / LokotroPaymentBody / Navigator-push
@@ -17,15 +18,14 @@ import 'package:lokotro_pay/lokotro_pay.dart';
 class LokotroPayCheckoutService {
   LokotroPayCheckoutService._();
 
-  /// Read at each launch so .env hot-changes take effect without
-  /// requiring an app restart in dev. Cheap (a few env lookups).
+  /// Read at each launch so env hot-reloads take effect without
+  /// requiring an app restart in dev. Centralised in AppConfig so the
+  /// env-key names (LOKOTRO_PAY_TOKEN etc.) live in one file.
   static LokotroPayConfigs _configs() {
     return LokotroPayConfigs(
-      token: dotenv.env['LOKOTRO_PAY_TOKEN'] ?? '',
-      isProduction: (dotenv.env['LOKOTRO_PAY_IS_PRODUCTION'] ?? 'false')
-              .toLowerCase() ==
-          'true',
-      acceptLanguage: dotenv.env['LOKOTRO_PAY_LANGUAGE'] ?? 'fr',
+      token: AppConfig.lokotroPayToken,
+      isProduction: AppConfig.lokotroPayIsProduction,
+      acceptLanguage: AppConfig.lokotroPayLanguage,
     );
   }
 

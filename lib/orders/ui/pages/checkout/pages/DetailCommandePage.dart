@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:animate_do/animate_do.dart';
 import 'package:confetti/confetti.dart';
 import 'package:eblood_bank_mak_app/apps/config/theme/ColorPages.dart';
+import 'package:eblood_bank_mak_app/core/config/app_config.dart';
 import 'package:eblood_bank_mak_app/apps/widgets/AppSpinner.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
@@ -1397,7 +1398,7 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
       // widget. The webhook on the backend will reconcile the final
       // state regardless of what the SDK reports here, so we treat the
       // SDK callback as a hint and still navigate to the polling page.
-      String baseUrl = dotenv.env['BASE_URL'] ?? 'http://192.168.30.132:3101/eblood-hstdapi/v1';
+      final baseUrl = AppConfig.apiBaseUrl;
       final notifyUrl =
           '${baseUrl.replaceAll(RegExp(r'/$'), '')}/payments/lokotro-webhook';
 

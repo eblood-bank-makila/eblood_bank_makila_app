@@ -2,6 +2,7 @@ import 'package:animate_do/animate_do.dart';
 import 'package:eblood_bank_mak_app/apps/config/api/dio_client.dart';
 import 'package:eblood_bank_mak_app/apps/config/api/ApiConfig.dart';
 import 'package:eblood_bank_mak_app/apps/config/theme/ColorPages.dart';
+import 'package:eblood_bank_mak_app/core/config/app_config.dart';
 import 'package:eblood_bank_mak_app/apps/widgets/AppSpinner.dart';
 import 'package:eblood_bank_mak_app/blood_search_flow/providers/search_flow_provider.dart';
 import 'package:eblood_bank_mak_app/core/rbac/providers/rbac_provider.dart';
@@ -2222,7 +2223,7 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
       // backend webhook is the source of truth for the final state, so
       // we always proceed to the polling step regardless of what the
       // SDK reports here.
-      String baseUrl = dotenv.env['BASE_URL'] ?? '';
+      final baseUrl = AppConfig.apiBaseUrl;
       final notifyUrl =
           '${baseUrl.replaceAll(RegExp(r'/$'), '')}/payments/lokotro-webhook';
       await LokotroPayCheckoutService.launchCheckout(
@@ -2333,7 +2334,7 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
       }
 
       final customerRef = initiate.customerReference!;
-      String baseUrl = dotenv.env['BASE_URL'] ?? '';
+      final baseUrl = AppConfig.apiBaseUrl;
       final notifyUrl =
           '${baseUrl.replaceAll(RegExp(r'/$'), '')}/payments/lokotro-webhook';
       await LokotroPayCheckoutService.launchCheckout(

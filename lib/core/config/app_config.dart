@@ -158,42 +158,12 @@ class AppConfig {
   /// Check if running in staging environment
   static bool get isStaging => environment == 'staging';
 
-  // ------------------------------------------------------------------
-  // lokotro_pay (Sprint 15) — gateway SDK credentials.
-  // These live in the env-flavor files (.env.local /
-  // .env.development / .env.production). Code should call these
-  // getters rather than `dotenv.env['LOKOTRO_PAY_TOKEN']`.
-  // ------------------------------------------------------------------
-
-  /// Encrypted app key from the lokotro_pay merchant console. Required
-  /// — checkout will fail-soft if empty (the SDK rejects the call).
-  static String get lokotroPayToken {
-    final t = dotenv.env['LOKOTRO_PAY_TOKEN'];
-    if (t == null || t.isEmpty) {
-      if (kDebugMode) {
-        print('⚠️ LOKOTRO_PAY_TOKEN missing from env file.');
-      }
-      return '';
-    }
-    return t;
-  }
-
-  /// True for production gateway endpoints. Defaults to false so a
-  /// misconfigured build never accidentally hits production.
-  static bool get lokotroPayIsProduction {
-    final raw = dotenv.env['LOKOTRO_PAY_IS_PRODUCTION'];
-    if (raw == null || raw.isEmpty) return false;
-    return raw.trim().toLowerCase() == 'true';
-  }
-
-  /// Checkout UI language (one of the codes accepted by
-  /// LokotroPayConfigs.acceptLanguage). Defaults to 'fr' since the
-  /// app is shipping French-first.
-  static String get lokotroPayLanguage {
-    final l = dotenv.env['LOKOTRO_PAY_LANGUAGE'];
-    if (l == null || l.isEmpty) return 'fr';
-    return l;
-  }
+  // Sprint 15 — lokotro_pay credentials are NOT in Flutter's .env.
+  // The backend's /payments/initiate/payment response carries the
+  // app_key, is_production, and notify_url so the SDK can be
+  // configured per-transaction. This means rotating the key is an
+  // env change on the API, not a mobile release. See
+  // PaymentApi.initiate / LokotroPayCheckoutService.launchCheckout.
 
   /// Check if debug mode is enabled
   static bool get isDebugMode {

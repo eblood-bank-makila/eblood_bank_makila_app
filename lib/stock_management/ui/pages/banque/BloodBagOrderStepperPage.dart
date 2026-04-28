@@ -2,7 +2,6 @@ import 'package:animate_do/animate_do.dart';
 import 'package:eblood_bank_mak_app/apps/config/api/dio_client.dart';
 import 'package:eblood_bank_mak_app/apps/config/api/ApiConfig.dart';
 import 'package:eblood_bank_mak_app/apps/config/theme/ColorPages.dart';
-import 'package:eblood_bank_mak_app/core/config/app_config.dart';
 import 'package:eblood_bank_mak_app/apps/widgets/AppSpinner.dart';
 import 'package:eblood_bank_mak_app/blood_search_flow/providers/search_flow_provider.dart';
 import 'package:eblood_bank_mak_app/core/rbac/providers/rbac_provider.dart';
@@ -2219,20 +2218,17 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
 
       final customerRef = initiate.customerReference!;
 
-      // Sprint 15 — second leg: launch the lokotro_pay checkout. The
-      // backend webhook is the source of truth for the final state, so
-      // we always proceed to the polling step regardless of what the
-      // SDK reports here.
-      final baseUrl = AppConfig.apiBaseUrl;
-      final notifyUrl =
-          '${baseUrl.replaceAll(RegExp(r'/$'), '')}/payments/lokotro-webhook';
-      await LokotroPayCheckoutService.launchCheckout(
+      // Sprint 15 — launch the lokotro_pay checkout with the full
+      // gateway config the backend just returned. The
+      // /payment-gateway-callback handler is the source of truth for
+      // the final state, so we always advance the stepper regardless
+      // of what the SDK reports here.
+      await LokotroPayCheckoutService.launchFromInitiate(
         context,
-        customerReference: customerRef,
-        amount: amountCents / 100.0,
-        currency: currencyCode,
-        notifyUrlAbsolute: notifyUrl,
-        phoneNumber: phoneNumber,
+        initiate: initiate,
+        paymentMethod: 'wallet',
+        phoneNumberOverride: phoneNumber,
+        mobileMoneyPhoneNumber: phoneNumber,
         title: 'Paiement de livraison',
       );
 
@@ -2334,16 +2330,12 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
       }
 
       final customerRef = initiate.customerReference!;
-      final baseUrl = AppConfig.apiBaseUrl;
-      final notifyUrl =
-          '${baseUrl.replaceAll(RegExp(r'/$'), '')}/payments/lokotro-webhook';
-      await LokotroPayCheckoutService.launchCheckout(
+      await LokotroPayCheckoutService.launchFromInitiate(
         context,
-        customerReference: customerRef,
-        amount: cents / 100.0,
-        currency: currencyCode,
-        notifyUrlAbsolute: notifyUrl,
-        phoneNumber: phoneNumber,
+        initiate: initiate,
+        paymentMethod: 'wallet',
+        phoneNumberOverride: phoneNumber,
+        mobileMoneyPhoneNumber: phoneNumber,
         title: 'Paiement adresse',
       );
 

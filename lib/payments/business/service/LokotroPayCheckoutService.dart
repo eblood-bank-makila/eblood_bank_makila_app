@@ -3,56 +3,89 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:lokotro_pay/lokotro_pay.dart';
 
-import '../../../core/config/app_config.dart';
+import 'PaymentApi.dart';
 
 /// Sprint 15 — wraps the lokotro_pay SDK so callers don't have to know
 /// about LokotroPayConfigs / LokotroPaymentBody / Navigator-push
-/// plumbing. Pair with the backend's POST /payments/initiate endpoint
-/// which returns the customer_reference this widget needs.
+/// plumbing.
 ///
-/// The flow is intentionally one-way: launch the checkout, await the
+/// All gateway credentials (app_key, is_production, notify_url, the
+/// merchant block, prefilled user info) come from the backend's
+/// `/payments/initiate/payment` response, surfaced as [PaymentInitiateResult].
+/// Flutter doesn't carry the app_key in its bundle.
+///
+/// The flow is one-way: launch the checkout, await the
 /// onResponse / onError callback, return a normalised result. The
-/// backend's /payments/lokotro-webhook handler is the source of truth
-/// for the final payment state — this service only reports what the
-/// SDK observed in-app.
+/// backend's `/payments/payment-gateway-callback` handler is the source
+/// of truth for the final payment state — this service only reports
+/// what the SDK observed in-app.
 class LokotroPayCheckoutService {
   LokotroPayCheckoutService._();
 
-  /// Read at each launch so env hot-reloads take effect without
-  /// requiring an app restart in dev. Centralised in AppConfig so the
-  /// env-key names (LOKOTRO_PAY_TOKEN etc.) live in one file.
-  static LokotroPayConfigs _configs() {
-    return LokotroPayConfigs(
-      token: AppConfig.lokotroPayToken,
-      isProduction: AppConfig.lokotroPayIsProduction,
-      acceptLanguage: AppConfig.lokotroPayLanguage,
+  /// Launch the checkout with the config the backend just returned.
+  /// The caller passes [initiate] (from `PaymentApi.initiate(...)`) plus
+  /// the chosen [paymentMethod] string ('wallet', 'card', 'mobile_money',
+  /// 'flash', 'bank_transfer'). Optional [phoneNumberOverride] takes
+  /// precedence over the prefilled phone (e.g. when the user typed a
+  /// different mobile-money number on the previous step).
+  static Future<LokotroPayCheckoutResult> launchFromInitiate(
+    BuildContext context, {
+    required PaymentInitiateResult initiate,
+    required String paymentMethod,
+    String? phoneNumberOverride,
+    String? mobileMoneyPhoneNumber,
+    String? title,
+    String? acceptLanguage,
+  }) {
+    assert(initiate.isSuccess && initiate.customerReference != null,
+        'launchFromInitiate requires a successful PaymentInitiateResult');
+    assert(initiate.appKey.isNotEmpty,
+        'launchFromInitiate requires app_key from the backend response');
+
+    final configs = LokotroPayConfigs(
+      token: initiate.appKey,
+      isProduction: initiate.isProduction,
+      acceptLanguage:
+          acceptLanguage ?? Localizations.localeOf(context).languageCode,
+    );
+
+    final paymentBody = LokotroPaymentBody(
+      customerReference: initiate.customerReference!,
+      amount: (initiate.amountCents / 100.0).toStringAsFixed(2),
+      currency: (initiate.currency ?? 'usd').toLowerCase(),
+      paymentMethod: paymentMethod,
+      userInfo: initiate.userInfo,
+      paymentMethodInfo: initiate.paymentMethodInfo,
+      feeCoveredBy: initiate.feeCoveredBy,
+      deliveryBehaviour: initiate.deliveryBehaviour,
+      notifyUrl: initiate.notifyUrlAbsolute,
+      firstName: initiate.firstName,
+      lastName: initiate.lastName,
+      phoneNumber: phoneNumberOverride ?? initiate.phoneNumber,
+      email: initiate.email,
+      mobileMoneyPhoneNumber: mobileMoneyPhoneNumber,
+      merchant: LokotroMerchantInfo(
+        name: initiate.merchantName,
+        logo: initiate.merchantLogo,
+        url: initiate.merchantUrl,
+      ),
+    );
+
+    return _push(
+      context,
+      configs: configs,
+      paymentBody: paymentBody,
+      title: title,
+      fallbackCustomerReference: initiate.customerReference!,
     );
   }
 
-  /// Push the checkout widget and resolve when the SDK fires
-  /// onResponse or onError. The caller does NOT need to wrap in a
-  /// MaterialPageRoute — that's done here.
-  ///
-  /// [amount] is sent as a string per the SDK contract (the gateway
-  /// API parses it as a decimal). [currency] is an ISO code (USD,
-  /// CDF, ...) and is lowercased internally by the SDK.
-  ///
-  /// [notifyUrlAbsolute] must be the FULL URL the gateway POSTs the
-  /// webhook to — typically `<API_BASE_URL>/payments/lokotro-webhook`.
-  /// The backend returns the path-only suffix in its initiate response;
-  /// the caller is responsible for prefixing the API base URL.
-  static Future<LokotroPayCheckoutResult> launchCheckout(
+  static Future<LokotroPayCheckoutResult> _push(
     BuildContext context, {
-    required String customerReference,
-    required double amount,
-    required String currency,
-    required String notifyUrlAbsolute,
-    String? phoneNumber,
-    String? email,
-    String? firstName,
-    String? lastName,
+    required LokotroPayConfigs configs,
+    required LokotroPaymentBody paymentBody,
+    required String fallbackCustomerReference,
     String? title,
-    String paymentMethod = 'wallet',
   }) async {
     final completer = Completer<LokotroPayCheckoutResult>();
 
@@ -64,24 +97,13 @@ class LokotroPayCheckoutService {
       MaterialPageRoute(
         builder: (innerContext) => LokotroPayCheckout(
           title: title,
-          configs: _configs(),
-          paymentBody: LokotroPaymentBody(
-            customerReference: customerReference,
-            amount: amount.toStringAsFixed(2),
-            currency: currency,
-            paymentMethod: paymentMethod,
-            notifyUrl: notifyUrlAbsolute,
-            phoneNumber: phoneNumber,
-            email: email,
-            firstName: firstName,
-            lastName: lastName,
-            merchant: const LokotroMerchantInfo(name: 'eblood'),
-          ),
+          configs: configs,
+          paymentBody: paymentBody,
           onResponse: (response) {
             resolve(
               LokotroPayCheckoutResult.success(
-                customerReference:
-                    response.customerReference ?? customerReference,
+                customerReference: response.customerReference
+                    ?? fallbackCustomerReference,
                 transactionId: response.transactionId,
                 status: response.paymentStatus.name,
                 message: response.message,
@@ -94,8 +116,8 @@ class LokotroPayCheckoutService {
           onError: (error) {
             resolve(
               LokotroPayCheckoutResult.error(
-                customerReference:
-                    error.customerReference ?? customerReference,
+                customerReference: error.customerReference
+                    ?? fallbackCustomerReference,
                 errorCode: error.errorCode?.code,
                 message: error.message,
                 title: error.title,
@@ -109,11 +131,11 @@ class LokotroPayCheckoutService {
       ),
     );
 
-    // If the user popped the route without picking either callback
-    // (e.g., system back button), surface a cancelled result so the
-    // caller can distinguish from a real error.
+    // System back-button popped the route without firing either
+    // callback — surface a cancelled result so the caller can
+    // distinguish from a real error.
     resolve(LokotroPayCheckoutResult.cancelled(
-      customerReference: customerReference,
+      customerReference: fallbackCustomerReference,
     ));
     return completer.future;
   }

@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 
 import '../../../apps/config/api/dio_client.dart';
 import '../../../apps/services/EbloodAuthHelper.dart';
-import '../../../core/config/app_config.dart';
 
 /// Sprint 15 — thin client over the gateway-agnostic eblood payments
 /// module. The endpoints live under /api/v1/payments/* and are framed
@@ -14,13 +13,17 @@ import '../../../core/config/app_config.dart';
 class PaymentApi {
   PaymentApi._();
 
-  /// POST /api/v1/payments/initiate
+  /// POST /api/v1/payments/initiate/payment
   ///
-  /// Creates a PaymentIntent in PENDING and returns the
-  /// `customer_reference` lokotro_pay needs. [purpose] must be one of
-  /// the backend's PaymentPurpose enum values — at the time of writing:
-  /// `address_access`, `delivery`. [entityId] is the bag id (for
-  /// address_access) or order id (for delivery).
+  /// Creates a PaymentIntent in PENDING AND returns the FULL lokotro_pay
+  /// configuration the checkout widget needs — app_key, is_production,
+  /// notify_url, merchant block, prefilled user info. The Flutter app
+  /// passes these straight through to LokotroPayConfigs/LokotroPaymentBody;
+  /// it does NOT carry the app_key in its bundle.
+  ///
+  /// [purpose] must be one of the backend's PaymentPurpose enum values
+  /// — at the time of writing: `address_access`, `delivery`. [entityId]
+  /// is the bag id (for address_access) or order id (for delivery).
   static Future<PaymentInitiateResult> initiate({
     required String purpose,
     String? entityId,
@@ -47,7 +50,7 @@ class PaymentApi {
           'description': description,
       };
 
-      final res = await postWithDio('/payments/initiate', body: body);
+      final res = await postWithDio('/payments/initiate/payment', body: body);
       if (!res.success || res.data is! Map) {
         return PaymentInitiateResult.error(
           res.message ?? 'Échec de l\'initiation du paiement.',
@@ -61,11 +64,13 @@ class PaymentApi {
         );
       }
 
-      final notifyPath = (data['notify_url_path']?.toString() ?? '').trim();
-      final base = AppConfig.apiBaseUrl.replaceAll(RegExp(r'/$'), '');
-      final notifyUrlAbsolute = notifyPath.isEmpty
-          ? ''
-          : (notifyPath.startsWith('http') ? notifyPath : '$base$notifyPath');
+      // Pull out the lokotro_pay config block. The backend has already
+      // built notify_url as an absolute URL — no client-side prefixing
+      // needed.
+      final merchantRaw = data['merchant'];
+      final merchant = merchantRaw is Map
+          ? Map<String, dynamic>.from(merchantRaw)
+          : <String, dynamic>{};
 
       return PaymentInitiateResult.success(
         customerReference: customerRef,
@@ -74,7 +79,21 @@ class PaymentApi {
             : amountCents,
         currency: (data['currency']?.toString() ?? currency).toUpperCase(),
         state: data['state']?.toString() ?? 'pending',
-        notifyUrlAbsolute: notifyUrlAbsolute,
+        appKey: data['app_key']?.toString() ?? '',
+        isProduction: data['is_production'] == true,
+        notifyUrlAbsolute: data['notify_url']?.toString() ?? '',
+        userInfo: data['user_info']?.toString() ?? 'full',
+        paymentMethodInfo: data['payment_method_info']?.toString() ?? 'full',
+        feeCoveredBy: data['fee_covered_by']?.toString() ?? 'buyer',
+        deliveryBehaviour:
+            data['delivery_behaviour']?.toString() ?? 'direct_delivery',
+        firstName: data['first_name']?.toString(),
+        lastName: data['last_name']?.toString(),
+        phoneNumber: data['phone_number']?.toString(),
+        email: data['email']?.toString(),
+        merchantName: merchant['name']?.toString() ?? 'eblood',
+        merchantLogo: merchant['logo']?.toString(),
+        merchantUrl: merchant['url']?.toString(),
       );
     } catch (e) {
       debugPrint('💥 PaymentApi.initiate error: $e');
@@ -165,23 +184,64 @@ class PaymentApi {
   }
 }
 
+/// Sprint 15 — full lokotro_pay configuration returned by
+/// `/payments/initiate/payment`. Mirrors the backend's
+/// `PaymentInitiateResponse` schema field-for-field. Pass straight
+/// through to `LokotroPayCheckoutService.launchCheckout`; nothing
+/// here needs reading from `.env` on the client.
 class PaymentInitiateResult {
   final bool isSuccess;
+  final String? errorMessage;
+
+  // Core intent
   final String? customerReference;
   final int amountCents;
   final String? currency;
   final String? state;
-  final String? notifyUrlAbsolute;
-  final String? errorMessage;
+
+  // Lokotro gateway config (server-owned)
+  final String appKey;
+  final bool isProduction;
+  final String notifyUrlAbsolute;
+
+  // LokotroPaymentBody flags
+  final String userInfo;
+  final String paymentMethodInfo;
+  final String feeCoveredBy;
+  final String deliveryBehaviour;
+
+  // Prefilled buyer info
+  final String? firstName;
+  final String? lastName;
+  final String? phoneNumber;
+  final String? email;
+
+  // Merchant block
+  final String merchantName;
+  final String? merchantLogo;
+  final String? merchantUrl;
 
   const PaymentInitiateResult._({
     required this.isSuccess,
+    this.errorMessage,
     this.customerReference,
     this.amountCents = 0,
     this.currency,
     this.state,
-    this.notifyUrlAbsolute,
-    this.errorMessage,
+    this.appKey = '',
+    this.isProduction = false,
+    this.notifyUrlAbsolute = '',
+    this.userInfo = 'full',
+    this.paymentMethodInfo = 'full',
+    this.feeCoveredBy = 'buyer',
+    this.deliveryBehaviour = 'direct_delivery',
+    this.firstName,
+    this.lastName,
+    this.phoneNumber,
+    this.email,
+    this.merchantName = 'eblood',
+    this.merchantLogo,
+    this.merchantUrl,
   });
 
   factory PaymentInitiateResult.success({
@@ -189,7 +249,20 @@ class PaymentInitiateResult {
     required int amountCents,
     required String currency,
     required String state,
+    required String appKey,
+    required bool isProduction,
     required String notifyUrlAbsolute,
+    String userInfo = 'full',
+    String paymentMethodInfo = 'full',
+    String feeCoveredBy = 'buyer',
+    String deliveryBehaviour = 'direct_delivery',
+    String? firstName,
+    String? lastName,
+    String? phoneNumber,
+    String? email,
+    required String merchantName,
+    String? merchantLogo,
+    String? merchantUrl,
   }) =>
       PaymentInitiateResult._(
         isSuccess: true,
@@ -197,7 +270,20 @@ class PaymentInitiateResult {
         amountCents: amountCents,
         currency: currency,
         state: state,
+        appKey: appKey,
+        isProduction: isProduction,
         notifyUrlAbsolute: notifyUrlAbsolute,
+        userInfo: userInfo,
+        paymentMethodInfo: paymentMethodInfo,
+        feeCoveredBy: feeCoveredBy,
+        deliveryBehaviour: deliveryBehaviour,
+        firstName: firstName,
+        lastName: lastName,
+        phoneNumber: phoneNumber,
+        email: email,
+        merchantName: merchantName,
+        merchantLogo: merchantLogo,
+        merchantUrl: merchantUrl,
       );
 
   factory PaymentInitiateResult.error(String message) =>

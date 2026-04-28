@@ -10,6 +10,7 @@ import 'package:eblood_bank_mak_app/core/rbac/providers/rbac_provider.dart';
 import 'package:eblood_bank_mak_app/orders/business/model/DatumPanierModel.dart';
 import 'package:eblood_bank_mak_app/orders/ui/pages/panier/PanierPageState.dart';
 import 'package:eblood_bank_mak_app/payments/business/service/LokotroPayCheckoutService.dart';
+import 'package:eblood_bank_mak_app/payments/business/service/PaymentApi.dart';
 import 'package:eblood_bank_mak_app/payments/ui/pages/PaiementCtrl.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -1347,42 +1348,33 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
     });
 
     try {
-      debugPrint("🔧 Getting payment controller...");
-      var ctrl = ref.read(paiementCtrlProvider.notifier);
-
-      debugPrint("💳 Calling /payments/initiate (Sprint 15) — currencyId hint: $currencyId");
-      // Sprint 15 — pass amount + currency explicitly. The backend
-      // payments module is gateway-agnostic and needs them upfront.
+      // Sprint 15 — call /payments/initiate/payment directly. The
+      // legacy `ajouterPaiment` controller goes through the same
+      // PaymentApi under the hood but its PaiementResponseModel strips
+      // the lokotro fields (app_key, notify_url, merchant) we need to
+      // launch the SDK widget — so we go around it.
       final amountCentsToCharge =
           (widget.paiement.totalPrice * 100).round();
       final cartCurrencyCode = widget.paiement.currency;
 
-      var resultat = await ctrl.ajouterPaiment(
-        widget.paiement,
-        phoneNumber: phoneNumber,
-        transactionalCurrencyId: currencyId,
-        requestFor: _requestFor,
-        requestReason: _requestReason,
-        patientId: _patientId,
-        requestType: _requestType,
-        urgencyLevel: _urgencyLevel,
+      debugPrint("💳 POST /payments/initiate/payment — currency $cartCurrencyCode, $amountCentsToCharge cents");
+      final initiate = await PaymentApi.initiate(
+        purpose: 'delivery',
+        entityId: widget.paiement.id,
         amountCents: amountCentsToCharge,
         currency: cartCurrencyCode,
+        description: _requestReason,
       );
 
-      debugPrint("🎯 Payment intent result: $resultat");
-      debugPrint("✅ Success: ${resultat?.success}");
-      debugPrint("📄 Message: ${resultat?.sms}");
-      debugPrint("🔗 customer_reference: ${resultat?.data?.systemRef}");
-
-      if (resultat?.success != true || resultat?.data?.systemRef == null) {
+      if (!initiate.isSuccess || initiate.customerReference == null) {
         setState(() {
           _isLoading = false;
         });
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(resultat?.sms ?? 'Erreur lors de l\'initiation du paiement'),
+              content: Text(initiate.errorMessage
+                  ?? 'Erreur lors de l\'initiation du paiement'),
               backgroundColor: Colors.red,
               duration: const Duration(seconds: 4),
             ),
@@ -1391,29 +1383,23 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
         return;
       }
 
-      final customerRef = resultat!.data!.systemRef;
-      debugPrint("🎉 Intent created. Launching lokotro_pay checkout with ref=$customerRef");
+      final customerRef = initiate.customerReference!;
+      debugPrint("🎉 Intent created. Launching lokotro_pay with ref=$customerRef");
 
-      // Sprint 15 — second leg: hand off to lokotro_pay's checkout
-      // widget. The webhook on the backend will reconcile the final
-      // state regardless of what the SDK reports here, so we treat the
-      // SDK callback as a hint and still navigate to the polling page.
-      final baseUrl = AppConfig.apiBaseUrl;
-      final notifyUrl =
-          '${baseUrl.replaceAll(RegExp(r'/$'), '')}/payments/lokotro-webhook';
-
-      LokotroPayCheckoutResult? checkoutResult;
+      // Sprint 15 — hand off to lokotro_pay's checkout widget with the
+      // full config from the backend. The webhook reconciles the final
+      // state regardless of the SDK callback, so we always navigate to
+      // PaymentStatusPage afterwards.
       if (mounted) {
-        checkoutResult = await LokotroPayCheckoutService.launchCheckout(
+        final outcome = await LokotroPayCheckoutService.launchFromInitiate(
           context,
-          customerReference: customerRef,
-          amount: amountCentsToCharge / 100.0,
-          currency: cartCurrencyCode,
-          notifyUrlAbsolute: notifyUrl,
-          phoneNumber: phoneNumber,
+          initiate: initiate,
+          paymentMethod: 'wallet',
+          phoneNumberOverride: phoneNumber,
+          mobileMoneyPhoneNumber: phoneNumber,
           title: 'Paiement eblood',
         );
-        debugPrint('🪙 lokotro_pay checkout outcome: ${checkoutResult.outcome}');
+        debugPrint('🪙 lokotro_pay checkout outcome: ${outcome.outcome}');
       }
 
       setState(() {
@@ -1421,6 +1407,7 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
       });
 
       if (mounted) {
+        final baseUrl = AppConfig.apiBaseUrl;
         Navigator.push(
           context,
           MaterialPageRoute(

@@ -10,7 +10,16 @@ import 'package:eblood_bank_mak_app/orders/ui/framework/blood_request/BloodReque
 class CoolboxPasswordDialog extends StatefulWidget {
   final BloodRequestModel request;
 
-  const CoolboxPasswordDialog({super.key, required this.request});
+  /// Sprint 17 — required: token from the QR scan that initiated this
+  /// password request. The backend's access gate rejects calls where
+  /// the token doesn't match the delivery's currently-active token.
+  final String qrToken;
+
+  const CoolboxPasswordDialog({
+    super.key,
+    required this.request,
+    required this.qrToken,
+  });
 
   @override
   State<CoolboxPasswordDialog> createState() => _CoolboxPasswordDialogState();
@@ -34,12 +43,15 @@ class _CoolboxPasswordDialogState extends State<CoolboxPasswordDialog> {
       final deliveryId = widget.request.deliveryCoolboxId?.isNotEmpty == true
           ? widget.request.deliveryCoolboxId!
           : widget.request.id;
-      final IApiResponse res = await _service.requestCoolboxPassword(deliveryId);
+      final IApiResponse res = await _service.requestCoolboxPassword(
+        deliveryId: deliveryId,
+        qrToken: widget.qrToken,
+      );
       if (res.success) {
         final data = res.data;
         String? pwd;
         if (data is Map<String, dynamic>) {
-          pwd = (data['coolbox_password'] ?? data['password'] ?? data['code'])?.toString();
+          pwd = (data['password'] ?? data['coolbox_password'] ?? data['code'])?.toString();
         } else if (data is String) {
           pwd = data;
         }

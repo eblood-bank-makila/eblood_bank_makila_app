@@ -4,6 +4,7 @@ import 'package:get_storage/get_storage.dart';
 import '../../../../apps/config/api/ApiConfig.dart';
 import '../../../../apps/config/api/dio_client.dart';
 import '../../../../apps/models/api_response.dart';
+import '../../../../apps/services/EbloodAuthHelper.dart';
 
 import '../../../business/model/blood_request/BloodRequestModel.dart';
 import '../../../business/service/blood_request/BloodRequestNetworkService.dart';
@@ -244,10 +245,39 @@ class BloodRequestNetworkServiceImpl implements BloodRequestNetworkService {
   }
 
   @override
-  Future<IApiResponse> requestCoolboxPassword(String deliveryId) async {
+  Future<IApiResponse> requestCoolboxPassword({
+    required String deliveryId,
+    required String qrToken,
+  }) async {
     try {
-      final endpoint = ApiConfig.requestCoolboxPasswordForDelivery(deliveryId);
-      final res = await postWithDio(endpoint);
+      final userId = EbloodAuthHelper.currentUserId();
+      if (userId.isEmpty) {
+        return IApiResponse.error(
+          'Non connecté: impossible de demander le mot de passe du coolbox.',
+        );
+      }
+      final orgIds = EbloodAuthHelper.currentUserOrgIds();
+      if (orgIds.isEmpty) {
+        return IApiResponse.error(
+          'Aucune organisation associée à votre compte.',
+        );
+      }
+      if (qrToken.trim().isEmpty) {
+        return IApiResponse.error(
+          'Token QR manquant — scannez le coolbox pour continuer.',
+        );
+      }
+
+      final res = await postWithDio(
+        ApiConfig.requestCoolboxPassword,
+        body: {
+          'requester_user_id': userId,
+          'requester_role': EbloodAuthHelper.coolboxRequestRole(),
+          'user_org_ids': orgIds,
+          'delivery_id': deliveryId,
+          'qr_token': qrToken.trim(),
+        },
+      );
       return IApiResponse.fromData(res);
     } catch (e) {
       debugPrint('💥 requestCoolboxPassword error: $e');

@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:get/get.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../../apps/config/theme/ColorPages.dart';
 import '../../../../business/model/blood_request/BloodRequestModel.dart';
 import '../../../../business/interactor/usecase/blood_request/BloodRequestUseCase.dart';
@@ -453,10 +454,27 @@ class BloodRequestCard extends StatelessWidget {
                       height: 44,
                       child: OutlinedButton.icon(
                         onPressed: () async {
+                          // Sprint 17 — the access gate requires a fresh
+                          // QR-token scan from the coolbox sticker. Push
+                          // the existing scanner page; it returns the
+                          // raw barcode value (or null on cancel).
+                          final scanned = await context.push<String>(
+                            '/blood-search/qr-scanner',
+                          );
+                          if (!context.mounted) return;
+                          if (scanned == null || scanned.trim().isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Scan annulé.'),
+                              ),
+                            );
+                            return;
+                          }
                           await showDialog(
                             context: context,
                             builder: (_) => CoolboxPasswordDialog(
                               request: request,
+                              qrToken: scanned.trim(),
                             ),
                           );
                         },

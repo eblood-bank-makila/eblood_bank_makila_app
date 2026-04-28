@@ -58,14 +58,18 @@ class ApiConfig {
   // Delivery confirmation & blood bag operations
   static const String confirmDelivery = '/eblood-connect/blood-requests/confirm-delivery';
   static const String markBloodBagUsed = '/eblood-connect/blood-requests/blood-bags/mark-used';
-  static const String requestCoolboxPassword = '/eblood-connect/blood-requests/deliveries/request-coolbox-password';
+
+  // Sprint 17 — IoT coolbox access gate. The legacy URL was
+  // /eblood-connect/blood-requests/deliveries/request-coolbox-password
+  // and took only ops_delivery_id; the new endpoint requires the full
+  // RBAC context (requester id, role, org_ids) plus the QR token from
+  // the scan that triggered the request.
+  static const String requestCoolboxPassword = '/coolbox/request-password';
 
   static String confirmDeliveryForRequest(String requestId) =>
       '$confirmDelivery?request_id=$requestId';
   static String markBloodBagUsedFor(String bloodBagId) =>
       '$markBloodBagUsed?blood_bag_id=$bloodBagId';
-  static String requestCoolboxPasswordForDelivery(String deliveryId) =>
-      '$requestCoolboxPassword?ops_delivery_id=$deliveryId';
 
   // Users & Roles
   static const String usersList = '/users/fetch';

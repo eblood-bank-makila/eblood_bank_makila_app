@@ -47,8 +47,17 @@ abstract class BloodRequestNetworkService {
     String? usageNotes,
   });
 
-  /// Request the coolbox password for a delivery/request
-  Future<IApiResponse> requestCoolboxPassword(
-    String deliveryId,
-  );
+  /// Request the coolbox password for a delivery.
+  ///
+  /// Sprint 17 contract — the backend gate verifies:
+  ///   * the requester user_id is a member of one of [user_org_ids]
+  ///   * one of those org_ids is on the delivery (supplier or buyer)
+  ///   * [qrToken] matches the delivery's currently-active token
+  ///
+  /// Caller must scan the QR sticker on the coolbox first; the dialog
+  /// no longer auto-opens without that.
+  Future<IApiResponse> requestCoolboxPassword({
+    required String deliveryId,
+    required String qrToken,
+  });
 }

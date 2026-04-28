@@ -8,6 +8,7 @@ import 'package:iconsax/iconsax.dart';
 import 'package:eblood_bank_mak_app/core/rbac/providers/rbac_provider.dart';
 import 'package:eblood_bank_mak_app/orders/business/model/DatumPanierModel.dart';
 import 'package:eblood_bank_mak_app/orders/ui/pages/panier/PanierPageState.dart';
+import 'package:eblood_bank_mak_app/payments/business/service/LokotroPayCheckoutService.dart';
 import 'package:eblood_bank_mak_app/payments/ui/pages/PaiementCtrl.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -1348,7 +1349,13 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
       debugPrint("🔧 Getting payment controller...");
       var ctrl = ref.read(paiementCtrlProvider.notifier);
 
-      debugPrint("💳 Calling payment API with transactional_currency_id: $currencyId");
+      debugPrint("💳 Calling /payments/initiate (Sprint 15) — currencyId hint: $currencyId");
+      // Sprint 15 — pass amount + currency explicitly. The backend
+      // payments module is gateway-agnostic and needs them upfront.
+      final amountCentsToCharge =
+          (widget.paiement.totalPrice * 100).round();
+      final cartCurrencyCode = widget.paiement.currency;
+
       var resultat = await ctrl.ajouterPaiment(
         widget.paiement,
         phoneNumber: phoneNumber,
@@ -1358,48 +1365,71 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
         patientId: _patientId,
         requestType: _requestType,
         urgencyLevel: _urgencyLevel,
+        amountCents: amountCentsToCharge,
+        currency: cartCurrencyCode,
       );
 
-      debugPrint("🎯 Payment result: $resultat");
+      debugPrint("🎯 Payment intent result: $resultat");
       debugPrint("✅ Success: ${resultat?.success}");
       debugPrint("📄 Message: ${resultat?.sms}");
-      debugPrint("🔗 SystemRef: ${resultat?.data?.systemRef}");
+      debugPrint("🔗 customer_reference: ${resultat?.data?.systemRef}");
+
+      if (resultat?.success != true || resultat?.data?.systemRef == null) {
+        setState(() {
+          _isLoading = false;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(resultat?.sms ?? 'Erreur lors de l\'initiation du paiement'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
+        return;
+      }
+
+      final customerRef = resultat!.data!.systemRef;
+      debugPrint("🎉 Intent created. Launching lokotro_pay checkout with ref=$customerRef");
+
+      // Sprint 15 — second leg: hand off to lokotro_pay's checkout
+      // widget. The webhook on the backend will reconcile the final
+      // state regardless of what the SDK reports here, so we treat the
+      // SDK callback as a hint and still navigate to the polling page.
+      String baseUrl = dotenv.env['BASE_URL'] ?? 'http://192.168.30.132:3101/eblood-hstdapi/v1';
+      final notifyUrl =
+          '${baseUrl.replaceAll(RegExp(r'/$'), '')}/payments/lokotro-webhook';
+
+      LokotroPayCheckoutResult? checkoutResult;
+      if (mounted) {
+        checkoutResult = await LokotroPayCheckoutService.launchCheckout(
+          context,
+          customerReference: customerRef,
+          amount: amountCentsToCharge / 100.0,
+          currency: cartCurrencyCode,
+          notifyUrlAbsolute: notifyUrl,
+          phoneNumber: phoneNumber,
+          title: 'Paiement eblood',
+        );
+        debugPrint('🪙 lokotro_pay checkout outcome: ${checkoutResult.outcome}');
+      }
 
       setState(() {
         _isLoading = false;
       });
 
-      if (resultat?.success == true && resultat?.data?.systemRef != null) {
-        debugPrint("🎉 Payment initiated successfully, navigating to status page...");
-
-        // Navigate to payment status page
-        String baseUrl = dotenv.env['BASE_URL'] ?? 'http://192.168.30.132:3101/eblood-hstdapi/v1';
-
-        if (mounted) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => PaymentStatusPage(
-                systemRef: resultat!.data!.systemRef,
-                baseUrl: baseUrl,
-                onPaymentResult: onPaymentResult,
-              ),
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PaymentStatusPage(
+              systemRef: customerRef,
+              baseUrl: baseUrl,
+              onPaymentResult: onPaymentResult,
             ),
-          );
-        }
-      } else {
-        debugPrint("❌ Payment failed: ${resultat?.sms}");
-
-        // Show error message
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(resultat?.sms ?? 'Erreur lors du traitement du paiement'),
-              backgroundColor: Colors.red,
-              duration: Duration(seconds: 4),
-            ),
-          );
-        }
+          ),
+        );
       }
     } catch (e, stackTrace) {
       setState(() {

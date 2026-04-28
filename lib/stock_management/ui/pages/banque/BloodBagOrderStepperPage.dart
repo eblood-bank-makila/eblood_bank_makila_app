@@ -11,6 +11,8 @@ import 'package:eblood_bank_mak_app/orders/business/service/CurrencyExchangeServ
 import 'package:eblood_bank_mak_app/orders/ui/pages/checkout/pages/BloodRequestConfigDialog.dart';
 import 'package:eblood_bank_mak_app/orders/ui/pages/checkout/pages/PaymentStatusPage.dart';
 import 'package:eblood_bank_mak_app/orders/ui/pages/checkout/widgets/PhoneNumberBottomSheet.dart';
+import 'package:eblood_bank_mak_app/payments/business/service/LokotroPayCheckoutService.dart';
+import 'package:eblood_bank_mak_app/payments/business/service/PaymentApi.dart';
 import 'package:eblood_bank_mak_app/stock_management/business/model/banque/BanqueModele.dart';
 import 'package:eblood_bank_mak_app/stock_management/business/model/poche/PocheModel.dart';
 import 'package:eblood_bank_mak_app/stock_management/ui/pages/banque/BloodBankAddressSuccessPage.dart';
@@ -2177,49 +2179,67 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
     });
 
     try {
-      debugPrint("💳 Calling payment API...");
+      debugPrint("💳 Sprint 15 — POST /payments/initiate (delivery)");
 
-      final response = await postWithDio(
-        '/eblood-connect/cart/submit-payment',
-        body: {
-          'cart_id': _cartId,
-          'phone_number': phoneNumber,
-          if (currencyId != null) 'transactional_currency_id': currencyId,
-          if (_requestFor != null) 'request_for': _requestFor,
-          if (_requestReason != null) 'request_reason': _requestReason,
-          if (_patientId != null) 'patient_id': _patientId,
-          if (_requestType != null) 'request_type': _requestType,
-          if (_urgencyLevel != null) 'urgency_level': _urgencyLevel,
-        },
+      // Compute amount in cents from the selected blood bag + quantity.
+      // Currency is the blood bag's ISO code; falls back to USD if the
+      // blood bag is missing currency info (defensive — should never
+      // happen in practice).
+      final bloodBag = _filteredBloodBags.isNotEmpty
+          ? _filteredBloodBags.first
+          : null;
+      final amountCents =
+          bloodBag != null ? (bloodBag.price * _selectedQuantity * 100).round() : 0;
+      final currencyCode = (bloodBag?.currencyCode ?? 'USD').toUpperCase();
+
+      final initiate = await PaymentApi.initiate(
+        purpose: 'delivery',
+        entityId: _cartId,
+        amountCents: amountCents,
+        currency: currencyCode,
+        description: _requestReason,
       );
-
-      debugPrint("🎯 Payment result: ${response.success}");
-      debugPrint("📄 Message: ${response.message}");
 
       if (!mounted) return;
 
+      if (!initiate.isSuccess || initiate.customerReference == null) {
+        setState(() {
+          _isProcessingPayment = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(initiate.errorMessage
+                ?? 'Erreur lors de l\'initiation du paiement'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      final customerRef = initiate.customerReference!;
+
+      // Sprint 15 — second leg: launch the lokotro_pay checkout. The
+      // backend webhook is the source of truth for the final state, so
+      // we always proceed to the polling step regardless of what the
+      // SDK reports here.
+      String baseUrl = dotenv.env['BASE_URL'] ?? '';
+      final notifyUrl =
+          '${baseUrl.replaceAll(RegExp(r'/$'), '')}/payments/lokotro-webhook';
+      await LokotroPayCheckoutService.launchCheckout(
+        context,
+        customerReference: customerRef,
+        amount: amountCents / 100.0,
+        currency: currencyCode,
+        notifyUrlAbsolute: notifyUrl,
+        phoneNumber: phoneNumber,
+        title: 'Paiement de livraison',
+      );
+
+      if (!mounted) return;
       setState(() {
         _isProcessingPayment = false;
+        _systemRef = customerRef;
       });
-
-      if (response.success && response.data != null) {
-        final systemRef = response.data['systemRef'] ?? response.data['blood_request_identifier'];
-
-        if (systemRef != null) {
-          debugPrint("🎉 Payment initiated successfully with systemRef: $systemRef");
-
-          if (!mounted) return;
-
-          // Store systemRef for Step 4 to use
-          setState(() {
-            _systemRef = systemRef;
-          });
-        } else {
-          throw Exception('No system reference returned');
-        }
-      } else {
-        throw Exception(response.message ?? 'Payment failed');
-      }
     } catch (e) {
       debugPrint('❌ Error processing payment: $e');
 
@@ -2273,64 +2293,64 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
     });
 
     try {
-      debugPrint("💳 Calling address request payment API...");
+      debugPrint("💳 Sprint 15 — POST /payments/initiate (address_access)");
 
-      // Get blood bag ID from the first filtered blood bag
-      final bloodBagId = _filteredBloodBags.first.bloodBagInfo.id;
-      final bloodBankId = _selectedBloodBank!.id;
+      final bloodBag = _filteredBloodBags.first;
+      final bloodBagId = bloodBag.bloodBagInfo.id;
+      // Address-access fee is a flat per-bag price; the pricing module
+      // is the source of truth. Re-use the cached
+      // _currencyExchangeResponse amount when present (set when the
+      // user landed on the page) — otherwise fall back to the bag's
+      // sticker price.
+      final priceFromPricing =
+          _currencyExchangeResponse?.data.isNotEmpty == true
+              ? _currencyExchangeResponse!.data.first.amount
+              : bloodBag.price;
+      final cents = (priceFromPricing * 100).round();
+      final currencyCode = (bloodBag.currencyCode ?? 'USD').toUpperCase();
 
-      debugPrint("🏦 Blood bank ID: $bloodBankId");
-      debugPrint("🩸 Blood bag ID: $bloodBagId");
-
-      // Create array explicitly
-      final List<String> bloodBagsIdArray = [bloodBagId];
-      debugPrint("📦 Blood bags ID array: $bloodBagsIdArray (type: ${bloodBagsIdArray.runtimeType})");
-
-      // Get hospital ID (from searchFlowProvider for visitors, or from profile for hospital staff)
-      final hospitalId = await _getHospitalId();
-      debugPrint("🏥 Hospital ID: $hospitalId");
-
-      final requestBody = {
-        'blood_bank_id': bloodBankId,
-        'blood_bags_id': bloodBagsIdArray,
-        'phone_number': phoneNumber,
-        if (hospitalId != null) 'hospital_id': hospitalId,
-        if (currencyId != null) 'transactional_currency_id': currencyId,
-      };
-      debugPrint("📤 Request body: $requestBody");
-
-      final response = await postWithDio(
-        '/eblood-connect/blood-bank-address-request/submit-payment',
-        body: requestBody,
+      final initiate = await PaymentApi.initiate(
+        purpose: 'address_access',
+        entityId: bloodBagId,
+        amountCents: cents,
+        currency: currencyCode,
       );
-
-      debugPrint("🎯 Payment result: ${response.success}");
-      debugPrint("📄 Message: ${response.message}");
 
       if (!mounted) return;
 
+      if (!initiate.isSuccess || initiate.customerReference == null) {
+        setState(() {
+          _isProcessingPayment = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(initiate.errorMessage
+                ?? 'Erreur lors de l\'initiation du paiement'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      final customerRef = initiate.customerReference!;
+      String baseUrl = dotenv.env['BASE_URL'] ?? '';
+      final notifyUrl =
+          '${baseUrl.replaceAll(RegExp(r'/$'), '')}/payments/lokotro-webhook';
+      await LokotroPayCheckoutService.launchCheckout(
+        context,
+        customerReference: customerRef,
+        amount: cents / 100.0,
+        currency: currencyCode,
+        notifyUrlAbsolute: notifyUrl,
+        phoneNumber: phoneNumber,
+        title: 'Paiement adresse',
+      );
+
+      if (!mounted) return;
       setState(() {
         _isProcessingPayment = false;
+        _systemRef = customerRef;
       });
-
-      if (response.success && response.data != null) {
-        final systemRef = response.data['systemRef'] ?? response.data['blood_bank_address_request_identifier'];
-
-        if (systemRef != null) {
-          debugPrint("🎉 Address request payment initiated successfully with systemRef: $systemRef");
-
-          if (!mounted) return;
-
-          // Store systemRef for Step 4 to use
-          setState(() {
-            _systemRef = systemRef;
-          });
-        } else {
-          throw Exception('No system reference returned');
-        }
-      } else {
-        throw Exception(response.message ?? 'Payment failed');
-      }
     } catch (e) {
       debugPrint('❌ Error processing address request payment: $e');
 

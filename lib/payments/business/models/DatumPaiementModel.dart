@@ -10,30 +10,30 @@ DatumPaiementModel datumPaiementModelFromJson(String str) => DatumPaiementModel.
 String datumPaiementModelToJson(DatumPaiementModel data) => json.encode(data.toJson());
 
 class DatumPaiementModel {
+  /// Sprint 15 — `systemRef` now carries the backend's
+  /// `customer_reference` (an opaque, gateway-agnostic id). The field
+  /// name is kept for backward-compat with all the navigation /
+  /// status-page plumbing already wired up around it.
   String systemRef;
   String? bloodRequestId;
-  String? onafriqTransactionRef;
-  String? onafriqState;
 
   DatumPaiementModel ({
    required this.systemRef,
    this.bloodRequestId,
-   this.onafriqTransactionRef,
-   this.onafriqState,
   });
 
   factory DatumPaiementModel.fromJson(Map<String, dynamic> json) => DatumPaiementModel (
-    // Support both old (systemRef) and new (blood_request_identifier) field names
-    systemRef: json["systemRef"] ?? json["blood_request_identifier"] ?? '',
-    bloodRequestId: json["blood_request_id"],
-    onafriqTransactionRef: json["onafriq_transaction_ref"],
-    onafriqState: json["onafriq_state"],
+    // Sprint 15 — accept the new `customer_reference` field first;
+    // fall back to legacy aliases so any cached responses still parse.
+    systemRef: json["customer_reference"]
+        ?? json["systemRef"]
+        ?? json["blood_request_identifier"]
+        ?? '',
+    bloodRequestId: json["blood_request_id"] ?? json["entity_id"],
   );
 
   Map<String, dynamic> toJson() => {
     "systemRef": systemRef,
     "blood_request_id": bloodRequestId,
-    "onafriq_transaction_ref": onafriqTransactionRef,
-    "onafriq_state": onafriqState,
   };
 }

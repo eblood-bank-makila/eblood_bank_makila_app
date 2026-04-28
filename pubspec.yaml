@@ -33,7 +33,7 @@ dependencies:
   iconsax: ^0.0.8
   firebase_core: ^3.5.0
   firebase_messaging: ^15.1.2
-  google_fonts: ^6.2.1
+  google_fonts: ^8.0.1
   flutter_local_notifications: ^17.2.3
   flutter_svg: ^2.0.10+1
   confetti: ^0.8.0
@@ -57,7 +57,13 @@ dependencies:
   fl_chart: ^0.69.0
   csv: ^6.0.0
   flutter_pdfview: ^1.3.2
-  open_file: ^3.3.2
+  # Sprint 15: open_file replaced with open_filex (the maintained
+  # fork). lokotro_pay already pulls in open_filex transitively, and
+  # both packages ship the same com.crazecoder.openfile.FileProvider
+  # Java class — leaving both pinned causes a dex-merge collision on
+  # Android (build fails at :app:mergeLibDexDebug).
+  # open_file: ^3.3.2  # removed
+  open_filex: ^4.7.0
   video_player: ^2.8.2
   chewie: ^1.7.5
   google_mlkit_face_detection: ^0.13.1
@@ -69,6 +75,7 @@ dependencies:
   web_socket_channel: ^3.0.3
   freezed_annotation: ^2.4.1
   json_annotation: ^4.8.1
+  lokotro_pay: ^1.1.0
 
 dev_dependencies:
   flutter_test:
@@ -76,7 +83,7 @@ dev_dependencies:
   flutter_lints: ^5.0.0
   riverpod_generator: ^2.4.0
   build_runner: ^2.4.11
-  custom_lint: ^0.6.4
+  custom_lint: ^0.7.3
   riverpod_lint: ^2.3.10
   freezed: ^2.4.7
   json_serializable: ^6.7.1

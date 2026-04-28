@@ -9,7 +9,7 @@ import 'package:intl/intl.dart';
 import 'package:get_storage/get_storage.dart';
 import '../../../apps/config/api/dio_client.dart' show getAuthToken;
 import 'package:share_plus/share_plus.dart';
-import 'package:open_file/open_file.dart';
+import 'package:open_filex/open_filex.dart';
 import '../../../apps/config/theme/ColorPages.dart';
 import '../../../core/rbac/providers/rbac_provider.dart';
 import '../../../core/rbac/services/rbac_guard.dart';
@@ -934,7 +934,7 @@ class _BloodBankRequestsPageState extends ConsumerState<BloodBankRequestsPage> {
               ElevatedButton.icon(
                 onPressed: () async {
                   Navigator.of(context).pop();
-                  await OpenFile.open(file.path);
+                  await OpenFilex.open(file.path);
                 },
                 icon: const Icon(Iconsax.eye, size: 18),
                 label: Text('open'.tr, style: GoogleFonts.ubuntu()),

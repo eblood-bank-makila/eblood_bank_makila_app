@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
-import 'package:open_file/open_file.dart';
+import 'package:open_filex/open_filex.dart';
 import 'package:share_plus/share_plus.dart';
 
 class InvoiceViewerPage extends StatelessWidget {
@@ -20,7 +20,7 @@ class InvoiceViewerPage extends StatelessWidget {
           IconButton(
             tooltip: 'Ouvrir dans une autre application',
             icon: const Icon(Icons.open_in_new),
-            onPressed: () => OpenFile.open(filePath),
+            onPressed: () => OpenFilex.open(filePath),
           ),
           IconButton(
             tooltip: 'Partager',

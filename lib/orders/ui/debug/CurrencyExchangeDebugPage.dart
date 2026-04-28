@@ -26,11 +26,10 @@ class _CurrencyExchangeDebugPageState extends ConsumerState<CurrencyExchangeDebu
         ? panierState.paniers!.data[0].totalPrice.toDouble()
         : 0.0;
     final cart = panierState.paniers?.data.isNotEmpty == true ? panierState.paniers!.data[0] : null;
-    final itemCurrencyId = (cart?.cartItems.isNotEmpty == true) ? cart!.cartItems[0].currencyId : '';
-    final currencyId = itemCurrencyId.isNotEmpty ? itemCurrencyId : (cart?.refCurrencyId ?? '');
+    final fromCode = (cart?.currency ?? '').toString().trim();
     final currencyExchangeAsync = ref.watch(
       currencyExchangeProvider(
-        CurrencyExchangeParams(amount: amount, refCurrencyId: currencyId),
+        CurrencyExchangeParams(amount: amount, fromCurrencyCode: fromCode),
       ),
     );
 
@@ -51,9 +50,8 @@ class _CurrencyExchangeDebugPageState extends ConsumerState<CurrencyExchangeDebu
                   ? ps.paniers!.data[0].totalPrice.toDouble()
                   : 0.0;
               final cart = ps.paniers?.data.isNotEmpty == true ? ps.paniers!.data[0] : null;
-              final itemCurrencyId = (cart?.cartItems.isNotEmpty == true) ? cart!.cartItems[0].currencyId : '';
-              final cid = itemCurrencyId.isNotEmpty ? itemCurrencyId : (cart?.refCurrencyId ?? '');
-              ref.invalidate(currencyExchangeProvider(CurrencyExchangeParams(amount: amt, refCurrencyId: cid)));
+              final fromCode = (cart?.currency ?? '').toString().trim();
+              ref.invalidate(currencyExchangeProvider(CurrencyExchangeParams(amount: amt, fromCurrencyCode: fromCode)));
             },
             icon: const Icon(Icons.refresh),
           ),
@@ -121,9 +119,8 @@ class _CurrencyExchangeDebugPageState extends ConsumerState<CurrencyExchangeDebu
                               ? ps.paniers!.data[0].totalPrice.toDouble()
                               : 0.0;
                           final cart = ps.paniers?.data.isNotEmpty == true ? ps.paniers!.data[0] : null;
-                          final itemCurrencyId = (cart?.cartItems.isNotEmpty == true) ? cart!.cartItems[0].currencyId : '';
-                          final cid = itemCurrencyId.isNotEmpty ? itemCurrencyId : (cart?.refCurrencyId ?? '');
-                          ref.invalidate(currencyExchangeProvider(CurrencyExchangeParams(amount: amt, refCurrencyId: cid)));
+                          final fromCode = (cart?.currency ?? '').toString().trim();
+                          ref.invalidate(currencyExchangeProvider(CurrencyExchangeParams(amount: amt, fromCurrencyCode: fromCode)));
                         },
                         child: const Text('Retry'),
                       ),
@@ -338,9 +335,8 @@ class _CurrencyExchangeDebugPageState extends ConsumerState<CurrencyExchangeDebu
           ? ps.paniers!.data[0].totalPrice.toDouble()
           : 0.0;
       final cart = ps.paniers?.data.isNotEmpty == true ? ps.paniers!.data[0] : null;
-      final itemCurrencyId = (cart?.cartItems.isNotEmpty == true) ? cart!.cartItems[0].currencyId : '';
-      final cid = itemCurrencyId.isNotEmpty ? itemCurrencyId : (cart?.refCurrencyId ?? '');
-      final result = await service.getCurrencyExchanges(amt, cid);
+      final fromCode = (cart?.currency ?? '').toString().trim();
+      final result = await service.getCurrencyExchanges(amt, fromCode);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -418,9 +414,9 @@ class _CurrencyExchangeDebugPageState extends ConsumerState<CurrencyExchangeDebu
               ],
             ),
             const SizedBox(height: 8),
-            const Text('Endpoint: /eblood-connect/amount-exchances'),
-            const Text('Method: POST'),
-            const Text('Body: {"amount": <double>, "ref_currency_id": "<currencyId>"}'),
+            const Text('Endpoint: /pricing/get-currency-exchange-rate (per pair)'),
+            const Text('Method: GET'),
+            const Text('Query: ?from_currency=<code>&to_currency=<code>'),
             const SizedBox(height: 8),
             const Text(
               'If you see "No currency data available", check:\n'

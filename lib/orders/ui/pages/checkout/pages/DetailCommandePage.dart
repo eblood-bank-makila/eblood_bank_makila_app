@@ -102,23 +102,24 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
               ? cartState.paniers!.data[0].totalPrice.toDouble()
               : 0.0;
           final cart = cartState.paniers?.data.isNotEmpty == true ? cartState.paniers!.data[0] : null;
-          final itemCurrencyId = (cart?.cartItems.isNotEmpty == true) ? cart!.cartItems[0].currencyId : '';
-          final currencyId = itemCurrencyId.isNotEmpty ? itemCurrencyId : (cart?.refCurrencyId ?? '');
+          // Sprint 15 — pricing module wants the ISO code (e.g. 'USD'),
+          // not the legacy Mongo ref_currency_id. The cart already
+          // exposes its currency code; use it directly.
+          final fromCode = (cart?.currency ?? '').toString().trim();
 
-          // Skip if currencyId is empty
-          if (currencyId.trim().isEmpty) {
-            debugPrint('⚠️ Skipping currency exchange fetch: ref_currency_id is empty');
-            debugPrint('🔎 Cart debug: itemCurrencyId="$itemCurrencyId", cart.refCurrencyId="${cart?.refCurrencyId ?? ''}", cart.currency="${cart?.currency ?? ''}"');
+          if (fromCode.isEmpty) {
+            debugPrint('⚠️ Skipping currency exchange fetch: cart.currency code is empty');
+            debugPrint('🔎 Cart debug: cart.currency="${cart?.currency ?? ''}", cart.refCurrencyId="${cart?.refCurrencyId ?? ''}"');
             return;
           }
 
           // Force the provider to fetch data immediately by reading it
           final asyncValue = ref.read(
             currencyExchangeProvider(
-              CurrencyExchangeParams(amount: totalAmount, refCurrencyId: currencyId),
+              CurrencyExchangeParams(amount: totalAmount, fromCurrencyCode: fromCode),
             ),
           );
-          debugPrint('🔄 Currency exchange provider triggered with amount=$totalAmount, ref_currency_id=$currencyId');
+          debugPrint('🔄 Currency exchange provider triggered with amount=$totalAmount, from_currency=$fromCode');
           debugPrint('📊 Initial state: ${asyncValue.runtimeType}');
 
           // Check the current state
@@ -170,13 +171,13 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
         ? state.paniers!.data[0].currency
         : 'CDF';
     final cart = state.paniers?.data.isNotEmpty == true ? state.paniers!.data[0] : null;
-    final itemCurrencyId = (cart?.cartItems.isNotEmpty == true) ? cart!.cartItems[0].currencyId : '';
-    final currencyId = itemCurrencyId.isNotEmpty ? itemCurrencyId : (cart?.refCurrencyId ?? '');
+    // Sprint 15 — pass the ISO code, not the legacy Mongo currency id.
+    final fromCode = (cart?.currency ?? '').toString().trim();
 
-    // Watch provider with params (POST /amount-exchances)
+    // Watch provider with params (Sprint 15: GET /pricing/get-currency-exchange-rate)
     final currencyExchangeAsync = ref.watch(
       currencyExchangeProvider(
-        CurrencyExchangeParams(amount: totalPrice.toDouble(), refCurrencyId: currencyId),
+        CurrencyExchangeParams(amount: totalPrice.toDouble(), fromCurrencyCode: fromCode),
       ),
     );
 
@@ -912,11 +913,10 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
                     ? cartState.paniers!.data[0].totalPrice.toDouble()
                     : 0.0;
                 final cart = cartState.paniers?.data.isNotEmpty == true ? cartState.paniers!.data[0] : null;
-                final itemCurrencyId = (cart?.cartItems.isNotEmpty == true) ? cart!.cartItems[0].currencyId : '';
-                final currencyId = itemCurrencyId.isNotEmpty ? itemCurrencyId : (cart?.refCurrencyId ?? '');
+                final fromCode = (cart?.currency ?? '').toString().trim();
                 ref.invalidate(
                   currencyExchangeProvider(
-                    CurrencyExchangeParams(amount: totalAmount, refCurrencyId: currencyId),
+                    CurrencyExchangeParams(amount: totalAmount, fromCurrencyCode: fromCode),
                   ),
                 );
                 ScaffoldMessenger.of(context).showSnackBar(

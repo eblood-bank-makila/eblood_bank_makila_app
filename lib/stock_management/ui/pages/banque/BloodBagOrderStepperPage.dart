@@ -1129,17 +1129,23 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
       // Calculate total amount ourselves: quantity × price
       final totalAmount = (_selectedQuantity * bloodBag.price).toDouble();
 
-      // Get currency info from blood bag
-      final refCurrencyId = bloodBag.currencyId ?? cartData['ref_currency_id'] ?? '';
+      // Sprint 15 — pricing module wants ISO codes (USD/CDF), not the
+      // legacy Mongo ref_currency_id. Pull currencyCode off the blood
+      // bag, then fall back to the cart's currency_code field.
+      final fromCurrencyCode = (bloodBag.currencyCode
+              ?? cartData['currency_code']
+              ?? cartData['currency']
+              ?? '')
+          .toString();
 
       debugPrint('💱 Calculated total amount: $totalAmount (quantity: $_selectedQuantity × price: ${bloodBag.price})');
-      debugPrint('💱 Fetching currency exchanges for: $refCurrencyId, amount: $totalAmount');
+      debugPrint('💱 Fetching currency exchanges for: $fromCurrencyCode, amount: $totalAmount');
 
-      if (refCurrencyId.isNotEmpty) {
+      if (fromCurrencyCode.isNotEmpty) {
         final currencyService = ref.read(currencyExchangeServiceProvider);
         final currencyResponse = await currencyService.getCurrencyExchanges(
           totalAmount,
-          refCurrencyId,
+          fromCurrencyCode,
         );
 
         setState(() {

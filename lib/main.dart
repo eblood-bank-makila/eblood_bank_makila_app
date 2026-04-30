@@ -111,7 +111,6 @@ void main() async {
   await dotenv.load(fileName: ".env");
 
   LokotroPay.init(LokotroPayConfig(
-    publishableKey: dotenv.env['LOKOTRO_PUBLISHABLE_KEY'] ?? '',
     environment: _resolveLokotroEnv(dotenv.env['LOKOTRO_ENVIRONMENT']),
     defaultLocale: 'fr',
   ));

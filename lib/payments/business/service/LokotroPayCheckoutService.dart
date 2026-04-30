@@ -44,7 +44,6 @@ class LokotroPayCheckoutService {
 
     final configs = LokotroPayConfigs(
       token: initiate.appKey,
-      isProduction: initiate.isProduction,
       acceptLanguage:
           acceptLanguage ?? Localizations.localeOf(context).languageCode,
     );

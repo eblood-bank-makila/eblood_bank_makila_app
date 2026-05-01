@@ -75,7 +75,7 @@ dependencies:
   web_socket_channel: ^3.0.3
   freezed_annotation: ^2.4.1
   json_annotation: ^4.8.1
-  lokotro_pay: ^2.0.0
+  lokotro_pay: ^3.0.0
 
 dev_dependencies:
   flutter_test:

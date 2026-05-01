@@ -43,7 +43,10 @@ class LokotroPayCheckoutService {
         'launchFromInitiate requires app_key from the backend response');
 
     final configs = LokotroPayConfigs(
-      token: initiate.appKey,
+      // Auth-v3: backend's `appKey` field now carries a session_token
+      // minted via lokotro_gateway's /api/v1/internal/sessions/create.
+      // SDK exposes it under the new `sessionToken` parameter.
+      sessionToken: initiate.appKey,
       acceptLanguage:
           acceptLanguage ?? Localizations.localeOf(context).languageCode,
     );

@@ -1,5 +1,5 @@
 # Uncomment this line to define a global platform for your project
-platform :ios, '14.0'
+platform :ios, '15.5'
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
@@ -36,8 +36,42 @@ target 'Runner' do
   end
 end
 
+def remove_stale_pods_aggregate_frameworks(installer)
+  framework_names = %w[Pods_Runner.framework Pods_RunnerTests.framework]
+
+  installer.aggregate_targets.map(&:user_project).uniq.each do |user_project|
+    user_project.objects
+      .grep(Xcodeproj::Project::Object::PBXFileReference)
+      .select { |ref| framework_names.include?(ref.path) }
+      .each(&:remove_from_project)
+
+    user_project.save
+  end
+end
+
+def exclude_arm64_for_simulator_user_targets(installer)
+  installer.aggregate_targets.map(&:user_project).uniq.each do |user_project|
+    user_project.build_configurations.each do |config|
+      config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64'
+    end
+
+    user_project.native_targets.each do |target|
+      target.build_configurations.each do |config|
+        config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64'
+      end
+    end
+
+    user_project.save
+  end
+end
+
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
   end
+end
+
+post_integrate do |installer|
+  remove_stale_pods_aggregate_frameworks(installer)
+  exclude_arm64_for_simulator_user_targets(installer)
 end

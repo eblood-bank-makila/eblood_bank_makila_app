@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:get/get.dart';
 import '../../../apps/config/theme/ColorPages.dart';
+import '../../../core/rbac/providers/rbac_provider.dart';
 import '../../business/interactors/DeliveryController.dart';
 import '../../business/model/DeliveryModels.dart';
 
@@ -31,6 +32,22 @@ class _HospitalDeliveryTrackingPageState
   @override
   void initState() {
     super.initState();
+    // Dual-flag entry guard — this page is reachable from the hospital
+    // inventory AND the hospital blood-requests flows (both show
+    // incoming deliveries), so either flag grants access.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!context.mounted) return;
+      final hasAccess = ref.read(rbacProvider.notifier).hasAnyMenuFlag([
+        'flutter_apps_eblood_bank_hosp_home_inventory',
+        'flutter_apps_eblood_bank_hosp_home_blood_requests',
+      ]);
+      if (!hasAccess) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('access_denied'.tr)),
+        );
+        Navigator.of(context).maybePop();
+      }
+    });
     // Refresh every 30 seconds
     _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       ref.read(incomingDeliveriesProvider.notifier).loadIncomingDeliveries();

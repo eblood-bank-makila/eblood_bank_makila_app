@@ -11,6 +11,7 @@ class BloodStock {
   final DateTime collectionDate;
   final String donorId;
   final String batchNumber;
+  final String bloodBagNumber;
   final String? description; // Changed from notes to description
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -26,6 +27,7 @@ class BloodStock {
     required this.collectionDate,
     required this.donorId,
     required this.batchNumber,
+    required this.bloodBagNumber,
     this.description,
     required this.createdAt,
     required this.updatedAt,
@@ -132,6 +134,7 @@ class BloodStock {
       collectionDate: collectionDate,
       donorId: json['donorId'] ?? json['donor_id'] ?? '',
       batchNumber: json['batchNumber'] ?? json['batch_number'] ?? '',
+      bloodBagNumber: json['bloodBagNumber'] ?? json['blood_bag_number'] ?? '',
       description: json['description'] ?? json['description_str'] ?? json['notes'], // Support for all format variations
       createdAt: createdAt,
       updatedAt: updatedAt,
@@ -150,6 +153,7 @@ class BloodStock {
       'collectionDate': collectionDate.toIso8601String(),
       'donorId': donorId,
       'batchNumber': batchNumber,
+      'bloodBagNumber': bloodBagNumber,
       'description': description,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
@@ -167,6 +171,7 @@ class BloodStock {
     DateTime? collectionDate,
     String? donorId,
     String? batchNumber,
+    String? bloodBagNumber,
     String? description,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -182,6 +187,7 @@ class BloodStock {
       collectionDate: collectionDate ?? this.collectionDate,
       donorId: donorId ?? this.donorId,
       batchNumber: batchNumber ?? this.batchNumber,
+      bloodBagNumber: bloodBagNumber ?? this.bloodBagNumber,
       description: description ?? this.description,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

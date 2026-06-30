@@ -18,10 +18,7 @@ enum SearchFlowStep {
 }
 
 /// Payment option selected by user
-enum PaymentOption {
-  viewAddress,
-  delivery,
-}
+enum PaymentOption { viewAddress, delivery }
 
 /// Hospital identification method
 enum HospitalIdentificationMethod {
@@ -29,6 +26,7 @@ enum HospitalIdentificationMethod {
   galleryImport,
   manualCode,
   deepLink,
+  loggedInAccount,
 }
 
 /// Represents a city/location selection
@@ -64,7 +62,9 @@ class SelectedCity {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is SelectedCity && runtimeType == other.runtimeType && id == other.id;
+      other is SelectedCity &&
+          runtimeType == other.runtimeType &&
+          id == other.id;
 
   @override
   int get hashCode => id.hashCode;
@@ -93,15 +93,22 @@ class IdentifiedHospital {
     required this.method,
   });
 
-  factory IdentifiedHospital.fromJson(Map<String, dynamic> json, HospitalIdentificationMethod method) {
+  factory IdentifiedHospital.fromJson(
+    Map<String, dynamic> json,
+    HospitalIdentificationMethod method,
+  ) {
     return IdentifiedHospital(
       id: json['id']?.toString() ?? json['_id']?.toString() ?? '',
       code: json['code']?.toString() ?? json['hospital_code']?.toString() ?? '',
       name: json['name']?.toString() ?? json['hospital_name']?.toString() ?? '',
       address: json['address']?.toString(),
       phone: json['phone']?.toString() ?? json['phone_number']?.toString(),
-      latitude: json['latitude'] is num ? (json['latitude'] as num).toDouble() : null,
-      longitude: json['longitude'] is num ? (json['longitude'] as num).toDouble() : null,
+      latitude: json['latitude'] is num
+          ? (json['latitude'] as num).toDouble()
+          : null,
+      longitude: json['longitude'] is num
+          ? (json['longitude'] as num).toDouble()
+          : null,
       method: method,
     );
   }
@@ -130,18 +137,20 @@ class BloodSearchResult {
   final String? distance;
   final double? latitude;
   final double? longitude;
-  
+
   // Additional fields for UI display
   final String? hospitalName;
   final String? address;
   final double? distanceKm;
+  final double? distanceFromUserKm;
+  final double? distanceFromHospitalKm;
   final bool isAvailable;
-  
+
   // Pricing info
   final double price;
   final String currency;
   final String? currencySymbol;
-  
+
   // Blood bag info
   final String? bloodProductType;
   final String? status;
@@ -164,6 +173,8 @@ class BloodSearchResult {
     this.hospitalName,
     this.address,
     this.distanceKm,
+    this.distanceFromUserKm,
+    this.distanceFromHospitalKm,
     this.isAvailable = true,
     this.price = 0.0,
     this.currency = 'USD',
@@ -177,32 +188,111 @@ class BloodSearchResult {
     this.description,
   });
 
+  BloodSearchResult copyWith({
+    String? id,
+    String? bloodBankId,
+    String? bloodBankName,
+    String? bloodType,
+    String? rhFactor,
+    int? stockCount,
+    String? distance,
+    double? latitude,
+    double? longitude,
+    String? hospitalName,
+    String? address,
+    double? distanceKm,
+    double? distanceFromUserKm,
+    double? distanceFromHospitalKm,
+    bool? isAvailable,
+    double? price,
+    String? currency,
+    String? currencySymbol,
+    String? bloodProductType,
+    String? status,
+    String? batchNumber,
+    String? expireDate,
+    int? daysUntilExpiry,
+    String? bloodBagCondition,
+    String? description,
+  }) {
+    return BloodSearchResult(
+      id: id ?? this.id,
+      bloodBankId: bloodBankId ?? this.bloodBankId,
+      bloodBankName: bloodBankName ?? this.bloodBankName,
+      bloodType: bloodType ?? this.bloodType,
+      rhFactor: rhFactor ?? this.rhFactor,
+      stockCount: stockCount ?? this.stockCount,
+      distance: distance ?? this.distance,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      hospitalName: hospitalName ?? this.hospitalName,
+      address: address ?? this.address,
+      distanceKm: distanceKm ?? this.distanceKm,
+      distanceFromUserKm: distanceFromUserKm ?? this.distanceFromUserKm,
+      distanceFromHospitalKm: distanceFromHospitalKm ?? this.distanceFromHospitalKm,
+      isAvailable: isAvailable ?? this.isAvailable,
+      price: price ?? this.price,
+      currency: currency ?? this.currency,
+      currencySymbol: currencySymbol ?? this.currencySymbol,
+      bloodProductType: bloodProductType ?? this.bloodProductType,
+      status: status ?? this.status,
+      batchNumber: batchNumber ?? this.batchNumber,
+      expireDate: expireDate ?? this.expireDate,
+      daysUntilExpiry: daysUntilExpiry ?? this.daysUntilExpiry,
+      bloodBagCondition: bloodBagCondition ?? this.bloodBagCondition,
+      description: description ?? this.description,
+    );
+  }
+
   factory BloodSearchResult.fromJson(Map<String, dynamic> json) {
     // Parse blood bank info - matches DatumRecherchePocheModel structure
-    final bloodBank = json['blood_bank_info'] ?? json['blood_bank'] ?? json['bloodBank'] ?? {};
+    final bloodBank =
+        json['blood_bank_info'] ??
+        json['blood_bank'] ??
+        json['bloodBank'] ??
+        {};
     final bloodInfo = json['blood_bag_info'] ?? json['bloodBagInfo'] ?? {};
-    final bloodTypeInfo = bloodInfo['blood_type_info'] ?? bloodInfo['bloodTypeInfo'] ?? {};
+    final bloodTypeInfo =
+        bloodInfo['blood_type_info'] ?? bloodInfo['bloodTypeInfo'] ?? {};
     final townInfo = bloodBank['town_info'] ?? bloodBank['townInfo'] ?? {};
-    
+
     // Get blood bank name from blood_bank_info field
-    final bloodBankName = bloodBank['blood_bank_name']?.toString() ?? 
-                          bloodBank['bloodBankName']?.toString() ?? 
-                          bloodBank['name']?.toString() ?? '';
-    
+    final bloodBankName =
+        bloodBank['blood_bank_name']?.toString() ??
+        bloodBank['bloodBankName']?.toString() ??
+        bloodBank['name']?.toString() ??
+        '';
+
     // Parse blood type and rh factor
-    final bloodTypeName = bloodTypeInfo['blood_type_name']?.toString() ?? 
-                          bloodTypeInfo['bloodTypeName']?.toString() ?? '';
-    final rhFactor = bloodTypeInfo['rh_factor']?.toString() ?? 
-                     bloodTypeInfo['rhFactor']?.toString() ??
-                     json['rhesus_factor']?.toString() ?? '';
-    
+    final bloodTypeName =
+        bloodTypeInfo['blood_type_name']?.toString() ??
+        bloodTypeInfo['bloodTypeName']?.toString() ??
+        '';
+    final rhFactor =
+        bloodTypeInfo['rh_factor']?.toString() ??
+        bloodTypeInfo['rhFactor']?.toString() ??
+        json['rhesus_factor']?.toString() ??
+        '';
+
     // Parse distance as double
     double? parsedDistanceKm;
     final distanceStr = json['distance']?.toString();
     if (distanceStr != null) {
-      parsedDistanceKm = double.tryParse(distanceStr.replaceAll(RegExp(r'[^0-9.]'), ''));
+      parsedDistanceKm = double.tryParse(
+        distanceStr.replaceAll(RegExp(r'[^0-9.]'), ''),
+      );
     }
-    
+
+    // Parse backend-computed distances
+    double? parsedDistanceFromUserKm;
+    if (json['distance_from_user_km'] != null) {
+      parsedDistanceFromUserKm = double.tryParse(json['distance_from_user_km'].toString());
+    }
+    double? parsedDistanceFromHospitalKm;
+    if (json['distance_from_hospital_km'] != null) {
+      parsedDistanceFromHospitalKm = double.tryParse(json['distance_from_hospital_km'].toString());
+    }
+
     // Parse coordinates
     double? lat;
     double? lng;
@@ -212,20 +302,38 @@ class BloodSearchResult {
     if (bloodBank['longitude'] != null) {
       lng = double.tryParse(bloodBank['longitude'].toString());
     }
-    
+
     // Build address from town info
     String? fullAddress;
     if (townInfo.isNotEmpty) {
-      final townName = townInfo['town_name']?.toString() ?? townInfo['townName']?.toString() ?? '';
-      final provinceName = townInfo['province_name']?.toString() ?? townInfo['provinceName']?.toString() ?? '';
-      final countryName = townInfo['country_name']?.toString() ?? townInfo['countryName']?.toString() ?? '';
-      final parts = [townName, provinceName, countryName].where((p) => p.isNotEmpty).toList();
+      final townName =
+          townInfo['town_name']?.toString() ??
+          townInfo['townName']?.toString() ??
+          '';
+      final provinceName =
+          townInfo['province_name']?.toString() ??
+          townInfo['provinceName']?.toString() ??
+          '';
+      final countryName =
+          townInfo['country_name']?.toString() ??
+          townInfo['countryName']?.toString() ??
+          '';
+      final parts = [
+        townName,
+        provinceName,
+        countryName,
+      ].where((p) => p.isNotEmpty).toList();
       if (parts.isNotEmpty) fullAddress = parts.join(', ');
     }
-    
+
     return BloodSearchResult(
-      id: json['id']?.toString() ?? json['_id']?.toString() ?? bloodBank['_id']?.toString() ?? '',
-      bloodBankId: bloodBank['_id']?.toString() ?? bloodBank['id']?.toString() ?? '',
+      id:
+          json['id']?.toString() ??
+          json['_id']?.toString() ??
+          bloodBank['_id']?.toString() ??
+          '',
+      bloodBankId:
+          bloodBank['_id']?.toString() ?? bloodBank['id']?.toString() ?? '',
       bloodBankName: bloodBankName,
       bloodType: bloodTypeName,
       rhFactor: rhFactor,
@@ -234,23 +342,37 @@ class BloodSearchResult {
       latitude: lat,
       longitude: lng,
       hospitalName: bloodBankName,
-      address: fullAddress ?? bloodBank['address']?.toString() ?? json['address']?.toString(),
+      address:
+          fullAddress ??
+          bloodBank['address']?.toString() ??
+          json['address']?.toString(),
       distanceKm: parsedDistanceKm,
-      isAvailable: (json['status'] ?? 'available') == 'available' && 
-                   (json['blood_stock_count'] ?? json['bloodStockCount'] ?? 1) > 0,
+      distanceFromUserKm: parsedDistanceFromUserKm,
+      distanceFromHospitalKm: parsedDistanceFromHospitalKm,
+      isAvailable:
+          (json['status'] ?? 'available') == 'available' &&
+          (json['blood_stock_count'] ?? json['bloodStockCount'] ?? 1) > 0,
       price: (json['price'] ?? 0).toDouble(),
       currency: json['currency']?.toString() ?? 'USD',
-      currencySymbol: json['currency_symbol']?.toString() ?? json['currencySymbol']?.toString(),
-      bloodProductType: json['blood_product_type']?.toString() ?? json['bloodProductType']?.toString(),
+      currencySymbol:
+          json['currency_symbol']?.toString() ??
+          json['currencySymbol']?.toString(),
+      bloodProductType:
+          json['blood_product_type']?.toString() ??
+          json['bloodProductType']?.toString(),
       status: json['status']?.toString(),
-      batchNumber: json['batch_number']?.toString() ?? json['batchNumber']?.toString(),
-      expireDate: json['expire_date']?.toString() ?? json['expireDate']?.toString(),
+      batchNumber:
+          json['batch_number']?.toString() ?? json['batchNumber']?.toString(),
+      expireDate:
+          json['expire_date']?.toString() ?? json['expireDate']?.toString(),
       daysUntilExpiry: json['days_until_expiry'] ?? json['daysUntilExpiry'],
-      bloodBagCondition: json['blood_bag_condition']?.toString() ?? json['bloodBagCondition']?.toString(),
+      bloodBagCondition:
+          json['blood_bag_condition']?.toString() ??
+          json['bloodBagCondition']?.toString(),
       description: json['description']?.toString(),
     );
   }
-  
+
   /// Returns formatted blood type with Rh factor (e.g., "A+", "O-")
   String get fullBloodType {
     if (rhFactor.isNotEmpty) {
@@ -258,11 +380,62 @@ class BloodSearchResult {
     }
     return bloodType;
   }
-  
+
   /// Returns formatted price string
   String get formattedPrice {
     final symbol = currencySymbol ?? currency;
     return '$symbol ${price.toStringAsFixed(2)}';
+  }
+
+  /// Returns formatted distance string
+  String get formattedDistance {
+    if (distanceKm == null) return '--';
+    if (distanceKm! < 1) {
+      return '${(distanceKm! * 1000).toStringAsFixed(0)}m';
+    } else if (distanceKm! < 10) {
+      return '${distanceKm!.toStringAsFixed(1)}km';
+    } else {
+      return '${distanceKm!.toStringAsFixed(0)}km';
+    }
+  }
+
+  /// Returns formatted distance from user (backend-calculated)
+  String get formattedDistanceFromUser {
+    if (distanceFromUserKm == null) return '--';
+    if (distanceFromUserKm! < 1) {
+      return '${(distanceFromUserKm! * 1000).toStringAsFixed(0)}m';
+    } else if (distanceFromUserKm! < 10) {
+      return '${distanceFromUserKm!.toStringAsFixed(1)}km';
+    } else {
+      return '${distanceFromUserKm!.toStringAsFixed(0)}km';
+    }
+  }
+
+  /// Returns formatted distance from hospital (backend-calculated)
+  String get formattedDistanceFromHospital {
+    if (distanceFromHospitalKm == null) return '--';
+    if (distanceFromHospitalKm! < 1) {
+      return '${(distanceFromHospitalKm! * 1000).toStringAsFixed(0)}m';
+    } else if (distanceFromHospitalKm! < 10) {
+      return '${distanceFromHospitalKm!.toStringAsFixed(1)}km';
+    } else {
+      return '${distanceFromHospitalKm!.toStringAsFixed(0)}km';
+    }
+  }
+
+  /// Returns masked blood bank name (for privacy until payment)
+  String get maskedBloodBankName {
+    if (bloodBankName.length <= 4) return bloodBankName;
+    return '${bloodBankName.substring(0, 3)}${'•' * (bloodBankName.length - 3)}';
+  }
+
+  /// Returns masked address (for privacy until payment)
+  String get maskedAddress {
+    if (address == null || address!.isEmpty) return 'Hidden until payment';
+    final parts = address!.split(',');
+    if (parts.isEmpty) return 'Hidden until payment';
+    // Show only the last part (city/region)
+    return parts.last.trim();
   }
 }
 
@@ -271,19 +444,23 @@ class BloodSearchResult {
 class PaymentResult {
   final bool success;
   final String? transactionId;
+  final String? requestIdentifier;
   final String? message;
+  final String? paymentStatus;
   final PaymentOption option;
 
   const PaymentResult({
     required this.success,
     this.transactionId,
+    this.requestIdentifier,
     this.message,
+    this.paymentStatus,
     required this.option,
   });
 }
 
 /// Delivery tracking info
-@immutable  
+@immutable
 class DeliveryTrackingInfo {
   final String trackingId;
   final String status;
@@ -292,7 +469,7 @@ class DeliveryTrackingInfo {
   final double? driverLatitude;
   final double? driverLongitude;
   final String? estimatedArrival;
-  
+
   // Timeline timestamps
   final DateTime? orderTime;
   final DateTime? confirmedTime;
@@ -319,13 +496,25 @@ class DeliveryTrackingInfo {
       status: json['status']?.toString() ?? 'pending',
       driverName: json['driver_name']?.toString(),
       driverPhone: json['driver_phone']?.toString(),
-      driverLatitude: json['driver_latitude'] is num ? (json['driver_latitude'] as num).toDouble() : null,
-      driverLongitude: json['driver_longitude'] is num ? (json['driver_longitude'] as num).toDouble() : null,
+      driverLatitude: json['driver_latitude'] is num
+          ? (json['driver_latitude'] as num).toDouble()
+          : null,
+      driverLongitude: json['driver_longitude'] is num
+          ? (json['driver_longitude'] as num).toDouble()
+          : null,
       estimatedArrival: json['estimated_arrival']?.toString(),
-      orderTime: json['order_time'] != null ? DateTime.tryParse(json['order_time'].toString()) : null,
-      confirmedTime: json['confirmed_time'] != null ? DateTime.tryParse(json['confirmed_time'].toString()) : null,
-      pickedUpTime: json['picked_up_time'] != null ? DateTime.tryParse(json['picked_up_time'].toString()) : null,
-      deliveredTime: json['delivered_time'] != null ? DateTime.tryParse(json['delivered_time'].toString()) : null,
+      orderTime: json['order_time'] != null
+          ? DateTime.tryParse(json['order_time'].toString())
+          : null,
+      confirmedTime: json['confirmed_time'] != null
+          ? DateTime.tryParse(json['confirmed_time'].toString())
+          : null,
+      pickedUpTime: json['picked_up_time'] != null
+          ? DateTime.tryParse(json['picked_up_time'].toString())
+          : null,
+      deliveredTime: json['delivered_time'] != null
+          ? DateTime.tryParse(json['delivered_time'].toString())
+          : null,
     );
   }
 }
@@ -336,21 +525,22 @@ class SearchFlowState {
   final SearchFlowStep currentStep;
   final bool isLoading;
   final String? errorMessage;
-  
+
   // Flow data
   final bool qrScannedFirst;
   final SelectedCity? selectedCity;
   final String? selectedBloodType;
   final List<BloodSearchResult> searchResults;
+  final BloodSearchResult? selectedResult;
   final PaymentOption? selectedPaymentOption;
   final IdentifiedHospital? identifiedHospital;
-  
+
   // Visitor registration
   final String? visitorPhoneNumber;
   final bool otpSent;
   final bool otpVerified;
   final String? visitorToken;
-  
+
   // Payment & post-payment
   final PaymentResult? paymentResult;
   final String? unlockedAddress;
@@ -364,6 +554,7 @@ class SearchFlowState {
     this.selectedCity,
     this.selectedBloodType,
     this.searchResults = const [],
+    this.selectedResult,
     this.selectedPaymentOption,
     this.identifiedHospital,
     this.visitorPhoneNumber,
@@ -384,6 +575,7 @@ class SearchFlowState {
     SelectedCity? selectedCity,
     String? selectedBloodType,
     List<BloodSearchResult>? searchResults,
+    BloodSearchResult? selectedResult,
     PaymentOption? selectedPaymentOption,
     IdentifiedHospital? identifiedHospital,
     String? visitorPhoneNumber,
@@ -402,7 +594,9 @@ class SearchFlowState {
       selectedCity: selectedCity ?? this.selectedCity,
       selectedBloodType: selectedBloodType ?? this.selectedBloodType,
       searchResults: searchResults ?? this.searchResults,
-      selectedPaymentOption: selectedPaymentOption ?? this.selectedPaymentOption,
+      selectedResult: selectedResult ?? this.selectedResult,
+      selectedPaymentOption:
+          selectedPaymentOption ?? this.selectedPaymentOption,
       identifiedHospital: identifiedHospital ?? this.identifiedHospital,
       visitorPhoneNumber: visitorPhoneNumber ?? this.visitorPhoneNumber,
       otpSent: otpSent ?? this.otpSent,
@@ -422,7 +616,7 @@ class SearchFlowState {
 
   /// Check if payment was successful
   bool get paymentSuccessful => paymentResult?.success == true;
-  
+
   /// Get the searched blood type with Rh factor formatted for display
   String? get searchedBloodType => selectedBloodType;
 }

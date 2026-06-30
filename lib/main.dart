@@ -1,19 +1,19 @@
 
-import 'package:eblood_bank_mak_app/utilisateurs/business/interactors/UtilisateurInteractor.dart';
-import 'package:eblood_bank_mak_app/utilisateurs/ui/framework/AuthApiAdapter.dart';
+import 'package:eblood_bank_mak_app/users/business/interactors/UtilisateurInteractor.dart';
+import 'package:eblood_bank_mak_app/users/ui/framework/AuthApiAdapter.dart';
 import 'package:eblood_bank_mak_app/apps/config/theme/ColorPages.dart';
 import 'package:eblood_bank_mak_app/apps/config/AppConfig.dart';
 import 'package:eblood_bank_mak_app/apps/services/ApiTestService.dart';
 import 'package:eblood_bank_mak_app/core/utils/api_initializer.dart';
-import 'package:eblood_bank_mak_app/commande/business/interactor/CommandeInteractor.dart';
-import 'package:eblood_bank_mak_app/gestionStocks/business/interactor/GestionStockInteractor.dart';
-import 'package:eblood_bank_mak_app/gestionStocks/ui/framework/banque/BanqueListeServiceLocalImpl.dart';
-import 'package:eblood_bank_mak_app/gestionStocks/ui/framework/banque/BanqueListeServiceNetworkImpl.dart';
-import 'package:eblood_bank_mak_app/gestionStocks/ui/framework/favoris/FavorisServiceNetworkImpl.dart';
-import 'package:eblood_bank_mak_app/gestionStocks/ui/framework/poche/PocheListeServiceNetworkImpl.dart';
-import 'package:eblood_bank_mak_app/paiement/businness/interactors/PaiementInteractor.dart';
-import 'package:eblood_bank_mak_app/paiement/ui/framework/PaiementNetworkServiceImpl.dart';
-import 'package:eblood_bank_mak_app/utilisateurs/ui/framework/UtilisateurLocalServiceImpl.dart';
+import 'package:eblood_bank_mak_app/orders/business/interactor/CommandeInteractor.dart';
+import 'package:eblood_bank_mak_app/stock_management/business/interactor/GestionStockInteractor.dart';
+import 'package:eblood_bank_mak_app/stock_management/ui/framework/banque/BanqueListeServiceLocalImpl.dart';
+import 'package:eblood_bank_mak_app/stock_management/ui/framework/banque/BanqueListeServiceNetworkImpl.dart';
+import 'package:eblood_bank_mak_app/stock_management/ui/framework/favoris/FavorisServiceNetworkImpl.dart';
+import 'package:eblood_bank_mak_app/stock_management/ui/framework/poche/PocheListeServiceNetworkImpl.dart';
+import 'package:eblood_bank_mak_app/payments/business/interactors/PaiementInteractor.dart';
+import 'package:eblood_bank_mak_app/payments/ui/framework/PaiementNetworkServiceImpl.dart';
+import 'package:eblood_bank_mak_app/users/ui/framework/UtilisateurLocalServiceImpl.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:flutter/material.dart';
@@ -30,10 +30,12 @@ import 'package:path/path.dart';
 import 'package:sembast/sembast_io.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/services.dart';
-import 'commande/ui/framework/panier/PanierServiceNetworkImpl.dart';
-import 'gestionStocks/ui/framework/recherche/RechercheListeServiceNetworkImpl.dart';
+import 'orders/ui/framework/panier/PanierServiceNetworkImpl.dart';
+import 'stock_management/ui/framework/recherche/RechercheListeServiceNetworkImpl.dart';
 import 'core/network/network_manager.dart';
 import 'core/services/app_initialization_service.dart';
+import 'core/rbac/data/rbac_local_storage.dart';
+import 'orders/dead_hand/dead_hand_service.dart';
 
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -48,6 +50,9 @@ void main() async {
   // Initialize GetX services
   final languageService = Get.put(LanguageService());
   await languageService.onInit();
+
+  // Initialize Isar for RBAC cache
+  await RbacLocalStorage.instance.init();
 
   // Debug: Check first launch status
   final storage = GetStorage();
@@ -68,6 +73,27 @@ void main() async {
       // Re-throw other errors
       rethrow;
     }
+  }
+
+  // Sprint M — dead-hand auto-broadcast handler. Only delivery-person
+  // accounts subscribe to the broadcast topic + render the ringing
+  // alert; other profiles get a silent no-op. The user_id is read at
+  // message-receipt time (not now) so a session profile-switch keeps
+  // working without a re-attach.
+  if (DeadHandService.isDeliveryPersonProfile()) {
+    await DeadHandService.attach(
+      navigatorKey: navigatorKey,
+      getCurrentUserId: () async {
+        try {
+          final userData = GetStorage().read('user_data');
+          if (userData is Map) {
+            final id = userData['id']?.toString();
+            return (id == null || id.isEmpty) ? null : id;
+          }
+        } catch (_) {/* fall through */}
+        return null;
+      },
+    );
   }
 
   await SystemChrome.setPreferredOrientations([

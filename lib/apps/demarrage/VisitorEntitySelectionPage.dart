@@ -61,7 +61,7 @@ class _VisitorEntitySelectionPageState extends State<VisitorEntitySelectionPage>
     try {
       final result = await AuthApi.instance.createVisitor(locationId: _selectedLocation['id']!);
       if (result['success'] == true && mounted) {
-        context.go('/app/MainApp');
+        context.go('/rbac-loading');
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(result['message']?.toString() ?? 'Operation failed'), backgroundColor: Colors.red),

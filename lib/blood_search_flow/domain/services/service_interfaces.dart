@@ -10,6 +10,10 @@ abstract class IBloodSearchService {
     required String cityId,
     required String bloodType,
     String? authToken,
+    double? userLatitude,
+    double? userLongitude,
+    double? hospitalLatitude,
+    double? hospitalLongitude,
   });
 }
 
@@ -35,7 +39,8 @@ abstract class IVisitorRegistrationService {
   });
 
   /// Send OTP to registered phone number
-  Future<bool> sendOtp(String sessionId);
+  /// [appSignature] is for SMS Retriever API auto-read on Android
+  Future<bool> sendOtp(String sessionId, {String? appSignature});
 
   /// Verify OTP and get auth token
   Future<String?> verifyOtp({
@@ -44,7 +49,14 @@ abstract class IVisitorRegistrationService {
   });
 
   /// Resend OTP
-  Future<bool> resendOtp(String sessionId);
+  /// [appSignature] is for SMS Retriever API auto-read on Android
+  Future<bool> resendOtp(String sessionId, {String? appSignature});
+
+  /// Check if visitor has a verified phone number
+  Future<bool> hasVisitorPhoneNumber();
+
+  /// Save visitor phone number after verification
+  Future<void> saveVisitorPhone(String phone);
 }
 
 /// Payment service interface
@@ -68,6 +80,13 @@ abstract class IPaymentService {
     required List<String> bloodBagIds,
     required String authToken,
     required Map<String, dynamic> paymentDetails,
+  });
+
+  /// Check payment status by request identifier (polls backend)
+  Future<PaymentResult> checkPaymentStatus({
+    required String requestIdentifier,
+    required String authToken,
+    double? progressPercent,
   });
 }
 
@@ -126,11 +145,8 @@ class HospitalQrData {
   final String? hospitalCode;
   final String? deepLinkUri;
 
-  const HospitalQrData({
-    this.hospitalId,
-    this.hospitalCode,
-    this.deepLinkUri,
-  });
+  const HospitalQrData({this.hospitalId, this.hospitalCode, this.deepLinkUri});
 
-  bool get isValid => hospitalId != null || hospitalCode != null || deepLinkUri != null;
+  bool get isValid =>
+      hospitalId != null || hospitalCode != null || deepLinkUri != null;
 }

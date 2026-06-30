@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:animate_do/animate_do.dart';
-import 'package:ionicons/ionicons.dart';
 import '../config/theme/ColorPages.dart';
 import '../components/SponsorFooter.dart';
 
@@ -65,7 +64,7 @@ class AccountTypeSelectionPage extends StatelessWidget {
                       delay: const Duration(milliseconds: 200),
                       child: _buildAccountTypeCard(
                         context: context,
-                        icon: Ionicons.person_outline,
+                        icon: Icons.person_outline,
                         title: 'personal_account'.tr,
                         description: 'personal_account_description'.tr,
                         color: ColorPages.COLOR_PRINCIPAL,
@@ -81,7 +80,7 @@ class AccountTypeSelectionPage extends StatelessWidget {
                       delay: const Duration(milliseconds: 400),
                       child: _buildAccountTypeCard(
                         context: context,
-                        icon: Ionicons.medical_outline,
+                        icon: Icons.medical_services_outlined,
                         title: 'health_structure_account'.tr,
                         description: 'health_structure_account_description'.tr,
                         color: ColorPages.COLOR_PRINCIPAL,
@@ -97,7 +96,7 @@ class AccountTypeSelectionPage extends StatelessWidget {
                     //   delay: const Duration(milliseconds: 600),
                     //   child: _buildAccountTypeCard(
                     //     context: context,
-                    //     icon: Ionicons.water_outline,
+                    //     icon: Icons.water_drop_outlined,
                     //     title: 'blood_bank_account'.tr,
                     //     description: 'blood_bank_account_description'.tr,
                     //     color: Colors.red[600]!,

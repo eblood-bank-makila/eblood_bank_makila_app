@@ -11,24 +11,25 @@ import 'package:eblood_bank_mak_app/apps/demarrage/PersonalRegistrationStepperPa
 import 'package:eblood_bank_mak_app/apps/demarrage/HealthStructureRegistrationStepperPage.dart';
 import 'package:eblood_bank_mak_app/apps/demarrage/BloodBankRegistrationPage.dart';
 import 'package:eblood_bank_mak_app/apps/debug/FirstLaunchDebugScreen.dart';
-import 'package:eblood_bank_mak_app/apps/widgets/AccountTypeBasedNavigation.dart';
 import 'package:eblood_bank_mak_app/apps/widgets/ConsumerMainApp.dart';
+import 'package:eblood_bank_mak_app/core/rbac/ui/rbac_loading_screen.dart';
+import 'package:eblood_bank_mak_app/core/rbac/ui/rbac_main_screen.dart';
 import 'package:eblood_bank_mak_app/apps/screens/location_permission_warning_screen.dart';
 import 'package:eblood_bank_mak_app/blood_bank/ui/widgets/BloodBankBottomNavWidget.dart';
 import 'package:eblood_bank_mak_app/apps/widgets/DetailsPocheBanqueWidget.dart';
-import 'package:eblood_bank_mak_app/commande/ui/pages/MessageCommadePage.dart';
-import 'package:eblood_bank_mak_app/commande/ui/pages/panier/PanierPage.dart';
-import 'package:eblood_bank_mak_app/gestionStocks/business/model/poche/PocheModel.dart';
-import 'package:eblood_bank_mak_app/gestionStocks/ui/pages/banque/BanquePage.dart';
-import 'package:eblood_bank_mak_app/gestionStocks/ui/pages/favoris/FavorisPage.dart';
-import 'package:eblood_bank_mak_app/gestionStocks/ui/pages/poche/ListePocheBanquePage.dart';
-import 'package:eblood_bank_mak_app/gestionStocks/ui/pages/recherchePoche/RecherchePochePage.dart';
-import 'package:eblood_bank_mak_app/utilisateurs/business/interactors/UtilisateurInteractor.dart';
-import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/authentification/AuthentificationPage.dart';
-import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/changerPassword/ChangerPasswordPage.dart';
-import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/motdepasse/ReinitialiserMotDePassePage.dart';
-import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/profil/ProfilePage.dart';
-import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/otp_code/OtpCodePage.dart';
+import 'package:eblood_bank_mak_app/orders/ui/pages/MessageCommadePage.dart';
+import 'package:eblood_bank_mak_app/orders/ui/pages/panier/PanierPage.dart';
+import 'package:eblood_bank_mak_app/stock_management/business/model/poche/PocheModel.dart';
+import 'package:eblood_bank_mak_app/stock_management/ui/pages/banque/BanquePage.dart';
+import 'package:eblood_bank_mak_app/stock_management/ui/pages/favoris/FavorisPage.dart';
+import 'package:eblood_bank_mak_app/stock_management/ui/pages/poche/ListePocheBanquePage.dart';
+import 'package:eblood_bank_mak_app/stock_management/ui/pages/recherchePoche/RecherchePochePage.dart';
+import 'package:eblood_bank_mak_app/users/business/interactors/UtilisateurInteractor.dart';
+import 'package:eblood_bank_mak_app/users/ui/pages/authentification/AuthentificationPage.dart';
+import 'package:eblood_bank_mak_app/users/ui/pages/changerPassword/ChangerPasswordPage.dart';
+import 'package:eblood_bank_mak_app/users/ui/pages/motdepasse/ReinitialiserMotDePassePage.dart';
+import 'package:eblood_bank_mak_app/users/ui/pages/profil/ProfilePage.dart';
+import 'package:eblood_bank_mak_app/users/ui/pages/otp_code/OtpCodePage.dart';
 
 // Blood Search Flow imports
 import 'package:eblood_bank_mak_app/blood_search_flow/blood_search_routes.dart';
@@ -38,7 +39,7 @@ import 'package:eblood_bank_mak_app/apps/services/FirebaseAuthService.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../gestionStocks/business/model/banque/BanqueModele.dart';
+import '../../../stock_management/business/model/banque/BanqueModele.dart';
 
 final goRouterProvider = Provider<GoRouter>((ref) {
   // Use ref.read instead of ref.watch to prevent continuous rebuilds
@@ -51,6 +52,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) async {
       // Only perform expensive checks for specific routes to avoid rebuild loops
       final location = state.matchedLocation;
+      debugPrint('🔒 GoRouter redirect: location=$location, fullPath=${state.fullPath}');
 
       // Always start with splash screen, let it handle navigation
       if (location == '/') {
@@ -59,7 +61,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
 
       // Only check authentication for app routes to avoid unnecessary async calls
       // But be more careful about when to redirect
-      if (location.startsWith("/app") && location != '/app/MainApp') {
+      if (location.startsWith("/app") && location != '/app/MainApp' && location != '/app') {
         try {
           var tokenOTP = await authProvider.recuperationTokenOtpUseCase.run();
           bool isFirebaseSignedIn = firebaseAuthService.isSignedIn;
@@ -82,6 +84,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       // Blood Search Flow Routes
       ...bloodSearchFlowRoutes,
       
+      // RBAC loading screen (intermediate screen after login)
+      GoRoute(
+        path: '/rbac-loading',
+        pageBuilder: (context, state) =>
+            const MaterialPage(child: RbacLoadingScreen()),
+      ),
+
       // Modern Splash Screen (shows first for all users)
       GoRoute(
         path: '/splash',
@@ -233,10 +242,12 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
           path: '/app',
           name: appPage,
-          pageBuilder: (context, state) => const MaterialPage(
-                  child: Recherchepage(
-                query: '',
-              )),
+          // Default /app route renders RbacMainScreen — the RBAC-driven
+          // dynamic navigation. This replaces the legacy Recherchepage
+          // fallback that caused blood bank users to land on the search
+          // page instead of BloodBankHomePage.
+          pageBuilder: (context, state) =>
+              const MaterialPage(child: RbacMainScreen()),
           routes: [
             GoRoute(
               path: 'ModernSplash',
@@ -264,12 +275,12 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               pageBuilder: (context, state) =>
                   MaterialPage(child: PanierPage()),
             ),
-            // Main app with account type-based navigation
+            // Main app with RBAC-driven dynamic navigation
             GoRoute(
               path: 'MainApp',
               name: bottomNavBarWidget,
               pageBuilder: (context, state) =>
-                  const MaterialPage(child: AccountTypeBasedNavigation()),
+                  const MaterialPage(child: RbacMainScreen()),
             ),
             // Blood bank main app (exclusive profile)
             GoRoute(

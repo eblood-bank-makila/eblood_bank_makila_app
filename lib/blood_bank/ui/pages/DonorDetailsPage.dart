@@ -14,6 +14,10 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
 import '../../../apps/config/utils/LocaleHelper.dart';
+import '../../../core/rbac/services/rbac_guard.dart';
+import '../../../core/rbac/providers/rbac_provider.dart';
+import '../../../core/rbac/services/rbac_url_helper.dart';
+import '../../../core/rbac/enums/collection_crud_info_flag.dart';
 import '../../business/interactors/BloodBankController.dart';
 import '../../business/model/BloodEnums.dart';
 import '../../business/model/BloodStock.dart';
@@ -42,10 +46,29 @@ class _DonorDetailsPageState extends ConsumerState<DonorDetailsPage> with Single
   String? _lastDonationDateOverride;
   late List<Map<String, String>> _donationHistory;
   bool _isProcessingIdCard = false;
+  late final bool _canNewDonation;
 
   @override
   void initState() {
     super.initState();
+    // RBAC entry guard — pool bb and cnts donor detail flags so the page
+    // is reachable for both profiles (CNTS reuses this screen).
+    guardPageEntryAny(
+      ref,
+      context,
+      const [
+        'flutter_apps_eblood_bank_bb_donors_detail',
+        'flutter_apps_eblood_bank_cnts_donors_detail',
+      ],
+    );
+    // Check if user can create new donations (register endpoint)
+    final rbac = ref.read(rbacProvider.notifier);
+    final urlHelper = RbacUrlHelper();
+    var crudInfo = rbac.getCrudInfoByPath('flutter_apps_eblood_bank_bb_donors_register');
+    if (crudInfo.isEmpty) {
+      crudInfo = rbac.getCrudInfoByPath('flutter_apps_eblood_bank_cnts_donors_register');
+    }
+    _canNewDonation = urlHelper.hasRbacUrl(CollectionCrudInfoFlag.createProcessingUrl, 'main', crudInfo);
     _tabController = TabController(length: 3, vsync: this);
     _donationHistory = [
       {
@@ -358,17 +381,19 @@ class _DonorDetailsPageState extends ConsumerState<DonorDetailsPage> with Single
           _buildBadgesTab(),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _openNewDonationSheet,
-        backgroundColor: Colors.red,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: Text(
-          'new_donation'.tr,
-          style: GoogleFonts.poppins(
-            color: Colors.white,
-          ),
-        ),
-      ),
+      floatingActionButton: _canNewDonation
+          ? FloatingActionButton.extended(
+              onPressed: _openNewDonationSheet,
+              backgroundColor: Colors.red,
+              icon: const Icon(Icons.add, color: Colors.white),
+              label: Text(
+                'new_donation'.tr,
+                style: GoogleFonts.poppins(
+                  color: Colors.white,
+                ),
+              ),
+            )
+          : null,
     );
   }
 
@@ -1857,6 +1882,7 @@ class _NewDonationSheetState extends ConsumerState<_NewDonationSheet> {
       collectionDate: now,
       donorId: widget.donor.id,
       batchNumber: batchNumber,
+      bloodBagNumber: '', // Not captured in the quick donor-donation flow
       description: description.isEmpty ? null : description,
       createdAt: now,
       updatedAt: now,

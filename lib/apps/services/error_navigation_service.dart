@@ -1,5 +1,5 @@
-import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/auth/account_not_allowed_screen.dart';
-import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/auth/device_not_allowed_screen.dart';
+import 'package:eblood_bank_mak_app/users/ui/pages/auth/account_not_allowed_screen.dart';
+import 'package:eblood_bank_mak_app/users/ui/pages/auth/device_not_allowed_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 // import 'package:ebloodbankauth/pages/auth/device_not_allowed_screen.dart';

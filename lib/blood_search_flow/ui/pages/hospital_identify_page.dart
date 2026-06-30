@@ -530,26 +530,14 @@ class _HospitalIdentifyPageState extends ConsumerState<HospitalIdentifyPage> {
     }
   }
 
-  void _proceedToNextStep() {
-    // Check if user is authenticated
-    final canAccess = ref.read(canAccessProtectedRoutesProvider);
-    
-    canAccess.when(
-      data: (isAuthenticated) {
-        if (isAuthenticated) {
-          // User is fully authenticated, go to payment
-          context.push('/blood-search/payment', extra: {'option': widget.option});
-        } else {
-          // User needs to register/verify
-          context.push('/blood-search/visitor-phone');
-        }
-      },
-      loading: () {},
-      error: (_, __) {
-        // Default to visitor registration
-        context.push('/blood-search/visitor-phone');
-      },
-    );
+  Future<void> _proceedToNextStep() async {
+    // Hospital identification now comes BEFORE blood type selection.
+    // Flow: City → Hospital Identify → Blood Type → Results → Payment
+    // So after identifying the hospital, navigate to blood type input.
+    print('✅ Hospital identified, proceeding to blood type selection');
+    if (mounted) {
+      context.push('/blood-search/blood-type');
+    }
   }
 }
 

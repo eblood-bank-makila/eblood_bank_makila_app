@@ -6,18 +6,22 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../providers/search_flow_provider.dart';
+import '../../providers/recent_activity_provider.dart';
 import '../../domain/entities/search_flow_state.dart';
 import '../../../apps/config/theme/ColorPages.dart';
 import '../widgets/search_flow_app_bar.dart';
+import '../../data/services/visitor_registration_service_impl.dart';
 
 // Use PaymentOption from domain entities instead of defining a local one
 
 class PaymentPage extends ConsumerStatefulWidget {
   final String? option;
-  
+
   const PaymentPage({super.key, this.option});
 
   @override
@@ -25,45 +29,108 @@ class PaymentPage extends ConsumerStatefulWidget {
 }
 
 class _PaymentPageState extends ConsumerState<PaymentPage> {
-  PaymentOption _selectedOption = PaymentOption.viewAddress;
   String? _selectedPaymentMethod;
   bool _isLoading = false;
   String? _errorMessage;
+  bool _isPhoneVerified = false;
+  bool _hasVisitorSession = false;
+  bool _canPayOnDelivery = false;
+  final _visitorService = VisitorRegistrationServiceImpl();
+  final _phoneController = TextEditingController();
+  String _phoneNumber = '';
 
   final List<_PaymentMethod> _paymentMethods = [
     _PaymentMethod(
       id: 'mobile_money',
       name: 'Mobile Money',
-      icon: Iconsax.mobile,
+      imagePath: 'assets/paymentmethods/mobile_money.png',
       description: 'M-Pesa, Airtel Money, Orange Money',
     ),
     _PaymentMethod(
       id: 'card',
       name: 'Card Payment',
-      icon: Iconsax.card,
+      imagePath: 'assets/paymentmethods/card.png',
       description: 'Visa, Mastercard, etc.',
     ),
     _PaymentMethod(
       id: 'cash',
-      name: 'Cash on Delivery',
-      icon: Iconsax.money,
-      description: 'Pay when you receive',
+      name: 'cash_on_delivery',
+      imagePath: 'assets/paymentmethods/pay_on_receive.png',
+      description: 'pay_when_you_receive',
       isAvailableForDeliveryOnly: true,
     ),
   ];
 
+  PaymentOption get _selectedOption {
+    final state = ref.read(searchFlowProvider);
+    return state.selectedPaymentOption ?? PaymentOption.viewAddress;
+  }
+
+  // Get price from backend blood bag result
+  double get _bloodBagPrice {
+    final state = ref.read(searchFlowProvider);
+    return state.selectedResult?.price ?? 0.0;
+  }
+
+  String get _currency {
+    final state = ref.read(searchFlowProvider);
+    return state.selectedResult?.currency ?? 'USD';
+  }
+
+  String get _currencySymbol {
+    final state = ref.read(searchFlowProvider);
+    return state.selectedResult?.currencySymbol ?? r'$';
+  }
+
+  // View address price: 10% of blood bag price
+  double get _viewAddressPrice => _bloodBagPrice * 0.10;
+  
+  // Delivery price: full blood bag price
+  double get _deliveryPrice => _bloodBagPrice;
+
+  double get _selectedPrice => _selectedOption == PaymentOption.viewAddress
+      ? _viewAddressPrice
+      : _deliveryPrice;
+
   @override
   void initState() {
     super.initState();
-    if (widget.option == 'delivery') {
-      _selectedOption = PaymentOption.delivery;
-    }
+    _checkVisitorStatusAndPhoneVerification();
+    _phoneController.addListener(() {
+      setState(() {
+        _phoneNumber = _phoneController.text;
+      });
+    });
   }
 
-  double get _viewAddressPrice => 500.0; // CDF
-  double get _deliveryPrice => 5000.0; // CDF
-  double get _selectedPrice => 
-      _selectedOption == PaymentOption.viewAddress ? _viewAddressPrice : _deliveryPrice;
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _checkVisitorStatusAndPhoneVerification() async {
+    final hasSession = await _visitorService.hasLocalVisitor();
+    final isVerified = await _visitorService.hasVisitorPhoneNumber();
+    
+    // Check if user is authorized for cash on delivery from backend
+    // This is stored in local storage when user logs in
+    bool canPayOnDelivery = false;
+    try {
+      final storage = GetStorage();
+      canPayOnDelivery = storage.read('visitor_can_pay_on_delivery') == true;
+    } catch (e) {
+      print('Error checking can_pay_on_delivery: $e');
+    }
+    
+    if (mounted) {
+      setState(() {
+        _hasVisitorSession = hasSession;
+        _isPhoneVerified = isVerified;
+        _canPayOnDelivery = canPayOnDelivery;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -80,76 +147,56 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Selected hospital summary
-            if (state.identifiedHospital != null) ...[
-              _HospitalSummaryCard(hospital: state.identifiedHospital!),
+            // Selected hospital/blood bank summary - only distance shown
+            if (state.selectedResult != null) ...[
+              _BloodBankDistanceCard(result: state.selectedResult!),
               const SizedBox(height: 24),
             ],
 
-            // Option selection
-            Text(
-              'choose_option'.tr.isEmpty ? 'Choose an option' : 'choose_option'.tr,
-              style: GoogleFonts.ubuntu(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey.shade800,
-              ),
-            ),
-            
-            const SizedBox(height: 16),
-
-            // View Address option
-            _OptionCard(
-              title: 'view_address'.tr.isEmpty ? 'View Address Only' : 'view_address'.tr,
-              subtitle: 'get_hospital_location'.tr.isEmpty
-                  ? 'Get the hospital location to visit yourself'
-                  : 'get_hospital_location'.tr,
-              icon: Iconsax.location,
-              price: _viewAddressPrice,
-              isSelected: _selectedOption == PaymentOption.viewAddress,
-              onTap: () => setState(() => _selectedOption = PaymentOption.viewAddress),
-            ),
-            
-            const SizedBox(height: 12),
-
-            // Delivery option
-            _OptionCard(
-              title: 'order_delivery'.tr.isEmpty ? 'Order Delivery' : 'order_delivery'.tr,
-              subtitle: 'have_blood_delivered'.tr.isEmpty
-                  ? 'Have the blood product delivered to you'
-                  : 'have_blood_delivered'.tr,
-              icon: Iconsax.truck_fast,
-              price: _deliveryPrice,
-              isSelected: _selectedOption == PaymentOption.delivery,
-              onTap: () => setState(() => _selectedOption = PaymentOption.delivery),
-              isPremium: true,
+            // Selected option summary (read-only)
+            _SelectedOptionSummary(
+              option: _selectedOption,
+              price: _selectedPrice,
             ),
 
-            const SizedBox(height: 32),
+            const SizedBox(height: 24),
 
             // Payment method selection
             Text(
-              'payment_method'.tr.isEmpty ? 'Payment Method' : 'payment_method'.tr,
+              'payment_method'.tr.isEmpty
+                  ? 'Payment Method'
+                  : 'payment_method'.tr,
               style: GoogleFonts.ubuntu(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: Colors.grey.shade800,
               ),
             ),
-            
+
             const SizedBox(height: 16),
 
             ..._paymentMethods.map((method) {
-              final isAvailable = !method.isAvailableForDeliveryOnly || 
-                  _selectedOption == PaymentOption.delivery;
-              
+              // Check if delivery-only (applies to all delivery options)
+              final isDeliveryRequired =
+                  method.isAvailableForDeliveryOnly &&
+                  _selectedOption != PaymentOption.delivery;
+
+              // Check if cash on delivery requires backend authorization
+              final isCashRequiresAuth =
+                  method.id == 'cash' && !_canPayOnDelivery;
+
+              final isAvailable = !isDeliveryRequired && !isCashRequiresAuth;
+
               return Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: _PaymentMethodCard(
                   method: method,
                   isSelected: _selectedPaymentMethod == method.id,
                   isAvailable: isAvailable,
-                  onTap: isAvailable 
+                  requiresBackofficeActivation:
+                      method.id == 'cash' && !_canPayOnDelivery,
+                  hasVisitorSession: _hasVisitorSession,
+                  onTap: isAvailable
                       ? () => setState(() => _selectedPaymentMethod = method.id)
                       : null,
                 ),
@@ -168,7 +215,11 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Iconsax.warning_2, size: 20, color: Colors.red.shade700),
+                    Icon(
+                      Iconsax.warning_2,
+                      size: 20,
+                      color: Colors.red.shade700,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -228,7 +279,7 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
                     ),
                   ),
                   Text(
-                    '${_selectedPrice.toStringAsFixed(0)} CDF',
+                    '${_currencySymbol}${_selectedPrice.toStringAsFixed(2)}',
                     style: GoogleFonts.ubuntu(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
@@ -238,17 +289,19 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Pay button
             SizedBox(
               width: double.infinity,
               height: 56,
               child: ElevatedButton.icon(
-                onPressed: _canPay ? (_isLoading ? null : _processPayment) : null,
-                icon: _isLoading 
-                    ? const SizedBox.shrink() 
+                onPressed: _canPay
+                    ? (_isLoading ? null : _processPayment)
+                    : null,
+                icon: _isLoading
+                    ? const SizedBox.shrink()
                     : const Icon(Iconsax.lock, size: 20),
                 label: _isLoading
                     ? const SizedBox(
@@ -256,7 +309,9 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
                         width: 24,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
                         ),
                       )
                     : Text(
@@ -284,11 +339,15 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Iconsax.shield_tick, size: 14, color: Colors.grey.shade500),
+                Icon(
+                  Iconsax.shield_tick,
+                  size: 14,
+                  color: Colors.grey.shade500,
+                ),
                 const SizedBox(width: 4),
                 Text(
-                  'secure_payment'.tr.isEmpty 
-                      ? 'Secure payment powered by E-Blood' 
+                  'secure_payment'.tr.isEmpty
+                      ? 'Secure payment powered by E-Blood'
                       : 'secure_payment'.tr,
                   style: GoogleFonts.ubuntu(
                     fontSize: 12,
@@ -308,6 +367,16 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
   Future<void> _processPayment() async {
     if (!_canPay) return;
 
+    // If mobile money is selected, show bottom sheet for phone number
+    if (_selectedPaymentMethod == 'mobile_money') {
+      final phoneNumber = await _showMobileMoneyPhoneBottomSheet();
+      if (phoneNumber == null || phoneNumber.isEmpty) {
+        // User cancelled or didn't enter a phone number
+        return;
+      }
+      _phoneNumber = phoneNumber;
+    }
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -315,45 +384,85 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
 
     try {
       final isDelivery = _selectedOption == PaymentOption.delivery;
-      
+      final selectedResult = ref.read(searchFlowProvider).selectedResult;
+
+      // Prepare payment data with correct keys matching backend schema
+      final paymentData = <String, dynamic>{
+        'payment_method': _selectedPaymentMethod!,
+        if (selectedResult != null) 'blood_bank_id': selectedResult.bloodBankId,
+        if (selectedResult != null) 'blood_bags_id': [selectedResult.id], // Backend expects an array
+      };
+
+      // Add phone number for mobile money
+      if (_selectedPaymentMethod == 'mobile_money') {
+        paymentData['phone_number'] = '+243$_phoneNumber';
+      }
+
       if (isDelivery) {
-        await ref.read(searchFlowProvider.notifier).processDeliveryPayment({
-          'amount': _selectedPrice,
-          'method': _selectedPaymentMethod!,
-          'option': 'delivery',
-        });
-        
-        if (mounted) {
-          context.push('/blood-search/live-tracking');
-        }
+        await ref.read(searchFlowProvider.notifier).processDeliveryPayment(paymentData);
       } else {
-        await ref.read(searchFlowProvider.notifier).unlockAddress({
-          'amount': _selectedPrice,
-          'method': _selectedPaymentMethod!,
-          'option': 'view_address',
+        await ref.read(searchFlowProvider.notifier).unlockAddress(paymentData);
+      }
+
+      // Only navigate if payment was actually successful
+      final updatedState = ref.read(searchFlowProvider);
+      final paymentResult = updatedState.paymentResult;
+      if (paymentResult == null || !paymentResult.success) {
+        setState(() {
+          // Prefer specific error from provider state or payment result
+          _errorMessage = paymentResult?.message ?? 
+              updatedState.errorMessage ??
+              ('payment_failed'.tr.isEmpty ? 'Payment failed. Please try again.' : 'payment_failed'.tr);
         });
-        
-        if (mounted) {
-          context.push('/blood-search/address-view');
-        }
+        return;
+      }
+
+      if (mounted) {
+        // Fetch recent activity and trigger auto-open on the correct tab
+        // Tab 0 = pending deliveries, Tab 1 = address requests
+        ref.read(recentActivityProvider.notifier).fetchRecentActivity(
+          autoOpenTab: isDelivery ? 0 : 1,
+        );
+        // Pop back to welcome page
+        context.go('/blood-search');
       }
     } catch (e) {
       setState(() {
         _errorMessage = e.toString();
       });
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
+  }
+
+  Future<String?> _showMobileMoneyPhoneBottomSheet() async {
+    return showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _MobileMoneyPhoneBottomSheet(),
+    );
   }
 }
 
-class _HospitalSummaryCard extends StatelessWidget {
-  final IdentifiedHospital hospital;
+/// Shows only the distance to the blood bank (no name or address for privacy)
+class _BloodBankDistanceCard extends StatelessWidget {
+  final BloodSearchResult result;
 
-  const _HospitalSummaryCard({required this.hospital});
+  const _BloodBankDistanceCard({required this.result});
 
   @override
   Widget build(BuildContext context) {
+    // Format distance
+    String distanceText = 'nearby'.tr.isEmpty ? 'Nearby' : 'nearby'.tr;
+    if (result.distanceKm != null) {
+      distanceText = '${result.distanceKm!.toStringAsFixed(1)} km';
+    } else if (result.distance != null && result.distance!.isNotEmpty) {
+      distanceText = result.distance!;
+    }
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -377,7 +486,7 @@ class _HospitalSummaryCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
-              Iconsax.hospital,
+              Iconsax.routing,
               color: ColorPages.COLOR_PRINCIPAL,
               size: 24,
             ),
@@ -388,32 +497,42 @@ class _HospitalSummaryCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  hospital.name,
+                  'distance_from_you'.tr.isEmpty
+                      ? 'Distance from you'
+                      : 'distance_from_you'.tr,
                   style: GoogleFonts.ubuntu(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey.shade800,
+                    fontSize: 13,
+                    color: Colors.grey.shade600,
                   ),
                 ),
                 const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Icon(Iconsax.location, size: 12, color: Colors.grey.shade500),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        hospital.address ?? 'Address not available',
-                        style: GoogleFonts.ubuntu(
-                          fontSize: 12,
-                          color: Colors.grey.shade600,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
+                Text(
+                  distanceText,
+                  style: GoogleFonts.ubuntu(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: ColorPages.COLOR_PRINCIPAL,
+                  ),
                 ),
               ],
+            ),
+          ),
+          // Blood type badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: ColorPages.COLOR_PRINCIPAL,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              result.fullBloodType.isNotEmpty
+                  ? result.fullBloodType
+                  : result.bloodType,
+              style: GoogleFonts.ubuntu(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
             ),
           ),
         ],
@@ -422,142 +541,132 @@ class _HospitalSummaryCard extends StatelessWidget {
   }
 }
 
-class _OptionCard extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final IconData icon;
+/// Shows the selected option (read-only summary)
+class _SelectedOptionSummary extends StatelessWidget {
+  final PaymentOption option;
   final double price;
-  final bool isSelected;
-  final VoidCallback onTap;
-  final bool isPremium;
 
-  const _OptionCard({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.price,
-    required this.isSelected,
-    required this.onTap,
-    this.isPremium = false,
-  });
+  const _SelectedOptionSummary({required this.option, required this.price});
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isSelected 
-              ? (isPremium ? Colors.purple.shade50 : ColorPages.COLOR_PRINCIPAL.withOpacity(0.05))
-              : Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected 
-                ? (isPremium ? Colors.purple : ColorPages.COLOR_PRINCIPAL)
-                : Colors.grey.shade200,
-            width: isSelected ? 2 : 1,
-          ),
+    final isDelivery = option == PaymentOption.delivery;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDelivery
+            ? Colors.purple.shade50
+            : ColorPages.COLOR_PRINCIPAL.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDelivery ? Colors.purple : ColorPages.COLOR_PRINCIPAL,
+          width: 2,
         ),
-        child: Row(
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: isSelected 
-                    ? (isPremium ? Colors.purple.shade100 : ColorPages.COLOR_PRINCIPAL.withOpacity(0.2))
-                    : Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                icon,
-                color: isSelected 
-                    ? (isPremium ? Colors.purple : ColorPages.COLOR_PRINCIPAL)
-                    : Colors.grey.shade600,
-                size: 24,
-              ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: isDelivery
+                  ? Colors.purple.shade100
+                  : ColorPages.COLOR_PRINCIPAL.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        title,
-                        style: GoogleFonts.ubuntu(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: isSelected 
-                              ? (isPremium ? Colors.purple : ColorPages.COLOR_PRINCIPAL)
-                              : Colors.grey.shade800,
+            child: Icon(
+              isDelivery ? Iconsax.truck_fast : Iconsax.location,
+              color: isDelivery ? Colors.purple : ColorPages.COLOR_PRINCIPAL,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      isDelivery
+                          ? ('order_delivery'.tr.isEmpty
+                                ? 'Order Delivery'
+                                : 'order_delivery'.tr)
+                          : ('view_address'.tr.isEmpty
+                                ? 'View Address Only'
+                                : 'view_address'.tr),
+                      style: GoogleFonts.ubuntu(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: isDelivery
+                            ? Colors.purple
+                            : ColorPages.COLOR_PRINCIPAL,
+                      ),
+                    ),
+                    if (isDelivery) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.purple,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          'BEST',
+                          style: GoogleFonts.ubuntu(
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
-                      if (isPremium) ...[
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.purple,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            'BEST',
-                            style: GoogleFonts.ubuntu(
-                              fontSize: 9,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ],
                     ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: GoogleFonts.ubuntu(
-                      fontSize: 12,
-                      color: Colors.grey.shade600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  '${price.toStringAsFixed(0)}',
-                  style: GoogleFonts.ubuntu(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: isSelected 
-                        ? (isPremium ? Colors.purple : ColorPages.COLOR_PRINCIPAL)
-                        : Colors.grey.shade800,
-                  ),
+                  ],
                 ),
+                const SizedBox(height: 4),
                 Text(
-                  'CDF',
+                  isDelivery
+                      ? ('have_blood_delivered'.tr.isEmpty
+                            ? 'Have the blood product delivered to you'
+                            : 'have_blood_delivered'.tr)
+                      : ('get_hospital_location'.tr.isEmpty
+                            ? 'Get the hospital location to visit yourself'
+                            : 'get_hospital_location'.tr),
                   style: GoogleFonts.ubuntu(
-                    fontSize: 11,
-                    color: Colors.grey.shade500,
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
                   ),
                 ),
               ],
             ),
-            const SizedBox(width: 8),
-            if (isSelected)
-              Icon(
-                Iconsax.tick_circle5,
-                color: isPremium ? Colors.purple : ColorPages.COLOR_PRINCIPAL,
-                size: 24,
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '${price.toStringAsFixed(0)}',
+                style: GoogleFonts.ubuntu(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: isDelivery
+                      ? Colors.purple
+                      : ColorPages.COLOR_PRINCIPAL,
+                ),
               ),
-          ],
-        ),
+              Text(
+                'CDF',
+                style: GoogleFonts.ubuntu(
+                  fontSize: 11,
+                  color: Colors.grey.shade500,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -566,14 +675,14 @@ class _OptionCard extends StatelessWidget {
 class _PaymentMethod {
   final String id;
   final String name;
-  final IconData icon;
+  final String imagePath;
   final String description;
   final bool isAvailableForDeliveryOnly;
 
   const _PaymentMethod({
     required this.id,
     required this.name,
-    required this.icon,
+    required this.imagePath,
     required this.description,
     this.isAvailableForDeliveryOnly = false,
   });
@@ -583,14 +692,31 @@ class _PaymentMethodCard extends StatelessWidget {
   final _PaymentMethod method;
   final bool isSelected;
   final bool isAvailable;
+  final bool requiresBackofficeActivation;
+  final bool hasVisitorSession;
   final VoidCallback? onTap;
 
   const _PaymentMethodCard({
     required this.method,
     required this.isSelected,
     required this.isAvailable,
+    this.requiresBackofficeActivation = false,
+    this.hasVisitorSession = false,
     this.onTap,
   });
+
+  void _contactSupport() async {
+    final Uri emailUri = Uri(
+      scheme: 'mailto',
+      path: 'support@eblood.com',
+      query:
+          'subject=${Uri.encodeComponent('Enable Pay on Delivery')}&body=${Uri.encodeComponent('Hello,\n\nI would like to enable pay on delivery for my account.\n\nThank you.')}',
+    );
+
+    if (await canLaunchUrl(emailUri)) {
+      await launchUrl(emailUri);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -602,28 +728,43 @@ class _PaymentMethodCard extends StatelessWidget {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: isSelected ? ColorPages.COLOR_PRINCIPAL.withOpacity(0.05) : Colors.white,
+            color: isSelected
+                ? ColorPages.COLOR_PRINCIPAL.withOpacity(0.05)
+                : Colors.white,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isSelected ? ColorPages.COLOR_PRINCIPAL : Colors.grey.shade200,
+              color: isSelected
+                  ? ColorPages.COLOR_PRINCIPAL
+                  : Colors.grey.shade200,
               width: isSelected ? 2 : 1,
             ),
           ),
           child: Row(
             children: [
               Container(
-                width: 44,
+                width: 66,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: isSelected 
+                  color: isSelected
                       ? ColorPages.COLOR_PRINCIPAL.withOpacity(0.1)
                       : Colors.grey.shade100,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(
-                  method.icon,
-                  color: isSelected ? ColorPages.COLOR_PRINCIPAL : Colors.grey.shade600,
-                  size: 22,
+                child: Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Image.asset(
+                    method.imagePath,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Icon(
+                        Iconsax.card,
+                        color: isSelected
+                            ? ColorPages.COLOR_PRINCIPAL
+                            : Colors.grey.shade600,
+                        size: 20,
+                      );
+                    },
+                  ),
                 ),
               ),
               const SizedBox(width: 16),
@@ -632,21 +773,87 @@ class _PaymentMethodCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      method.name,
+                      method.name.tr.isEmpty ? method.name : method.name.tr,
                       style: GoogleFonts.ubuntu(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: isSelected ? ColorPages.COLOR_PRINCIPAL : Colors.grey.shade800,
+                        color: isSelected
+                            ? ColorPages.COLOR_PRINCIPAL
+                            : Colors.grey.shade800,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      method.description,
+                      method.description.tr.isEmpty ? method.description : method.description.tr,
                       style: GoogleFonts.ubuntu(
                         fontSize: 11,
                         color: Colors.grey.shade600,
                       ),
                     ),
+                    if (requiresBackofficeActivation) ...[
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(
+                            Iconsax.info_circle,
+                            size: 12,
+                            color: Colors.orange.shade700,
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              'backoffice_activation_required'.tr.isEmpty
+                                  ? 'Requires activation from backoffice'
+                                  : 'backoffice_activation_required'.tr,
+                              style: GoogleFonts.ubuntu(
+                                fontSize: 10,
+                                color: Colors.orange.shade700,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      // Support contact message
+                      Text(
+                        'contact_support_to_enable_cod'.tr.isEmpty
+                            ? 'Contact eBlood support team to enable pay on delivery'
+                            : 'contact_support_to_enable_cod'.tr,
+                        style: GoogleFonts.ubuntu(
+                          fontSize: 10,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      // Contact support button
+                      TextButton.icon(
+                        onPressed: () => _contactSupport(),
+                        icon: Icon(
+                          Iconsax.message,
+                          size: 14,
+                          color: ColorPages.COLOR_PRINCIPAL,
+                        ),
+                        label: Text(
+                          'contact_support'.tr.isEmpty
+                              ? 'Contact Support'
+                              : 'contact_support'.tr,
+                          style: GoogleFonts.ubuntu(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: ColorPages.COLOR_PRINCIPAL,
+                          ),
+                        ),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -658,6 +865,294 @@ class _PaymentMethodCard extends StatelessWidget {
                 ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Bottom sheet for entering mobile money phone number
+class _MobileMoneyPhoneBottomSheet extends StatefulWidget {
+  @override
+  State<_MobileMoneyPhoneBottomSheet> createState() =>
+      _MobileMoneyPhoneBottomSheetState();
+}
+
+class _MobileMoneyPhoneBottomSheetState
+    extends State<_MobileMoneyPhoneBottomSheet> {
+  final _phoneController = TextEditingController();
+  String _phoneNumber = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _phoneController.addListener(() {
+      setState(() {
+        _phoneNumber = _phoneController.text;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(24),
+          topRight: Radius.circular(24),
+        ),
+      ),
+      padding: EdgeInsets.only(bottom: keyboardHeight),
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Handle bar
+            Center(
+              child: Container(
+                margin: const EdgeInsets.only(top: 12, bottom: 8),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Icon and title
+                  Row(
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: ColorPages.COLOR_PRINCIPAL.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(10),
+                          child: Image.asset(
+                            'assets/paymentmethods/mobile_money.png',
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Icon(
+                                Iconsax.mobile,
+                                color: ColorPages.COLOR_PRINCIPAL,
+                                size: 24,
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'mobile_money_number'.tr.isEmpty
+                                  ? 'Mobile Money Number'
+                                  : 'mobile_money_number'.tr,
+                              style: GoogleFonts.ubuntu(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey.shade800,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'enter_number_for_payment'.tr.isEmpty
+                                  ? 'Enter your number for payment'
+                                  : 'enter_number_for_payment'.tr,
+                              style: GoogleFonts.ubuntu(
+                                fontSize: 13,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Phone number input
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: _phoneNumber.length >= 10
+                            ? ColorPages.COLOR_PRINCIPAL
+                            : Colors.grey.shade300,
+                        width: 2,
+                      ),
+                    ),
+                    child: TextField(
+                      controller: _phoneController,
+                      keyboardType: TextInputType.phone,
+                      autofocus: true,
+                      style: GoogleFonts.ubuntu(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey.shade800,
+                        letterSpacing: 1,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: '812345678',
+                        hintStyle: GoogleFonts.ubuntu(
+                          fontSize: 20,
+                          color: Colors.grey.shade400,
+                          letterSpacing: 1,
+                        ),
+                        prefixIcon: Container(
+                          padding: const EdgeInsets.all(12),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: Colors.grey.shade200,
+                                  ),
+                                ),
+                                child: Text(
+                                  '+243',
+                                  style: GoogleFonts.ubuntu(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.grey.shade700,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                            ],
+                          ),
+                        ),
+                        suffixIcon: _phoneNumber.length >= 10
+                            ? Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Icon(
+                                  Iconsax.tick_circle5,
+                                  color: ColorPages.COLOR_PRINCIPAL,
+                                  size: 28,
+                                ),
+                              )
+                            : null,
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 18,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Info message
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Iconsax.info_circle,
+                        size: 16,
+                        color: Colors.grey.shade500,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'mobile_money_info'.tr.isEmpty
+                              ? 'You will receive a payment request on this number. Make sure it\'s active and has sufficient balance.'
+                              : 'mobile_money_info'.tr,
+                          style: GoogleFonts.ubuntu(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Continue button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton.icon(
+                      onPressed: _phoneNumber.length == 9
+                          ? () => Navigator.pop(context, _phoneNumber)
+                          : null,
+                      icon: Icon(
+                        Iconsax.tick_circle,
+                        size: 22,
+                      ),
+                      label: Text(
+                        'continue'.tr.isEmpty ? 'Continue' : 'continue'.tr,
+                        style: GoogleFonts.ubuntu(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: ColorPages.COLOR_PRINCIPAL,
+                        foregroundColor: Colors.white,
+                        disabledBackgroundColor: Colors.grey.shade300,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        elevation: 0,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Cancel button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text(
+                        'cancel'.tr.isEmpty ? 'Cancel' : 'cancel'.tr,
+                        style: GoogleFonts.ubuntu(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

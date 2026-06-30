@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:get/get.dart';
 import '../../../apps/config/theme/ColorPages.dart';
+import '../../../core/rbac/services/rbac_guard.dart';
 import '../../business/interactors/DeliveryController.dart';
 import '../widgets/ActiveDeliveryWidget.dart';
 import '../widgets/PendingDeliveryRequestWidget.dart';
@@ -21,6 +22,14 @@ class _DeliveryPersonHomePageState extends ConsumerState<DeliveryPersonHomePage>
   @override
   void initState() {
     super.initState();
+    // RBAC entry guard — only users with the MOBILE_APP_DELIVERY_PERSON_PROFILE
+    // extra profile (granted via SysUserLinkedProfil + ExtraProfileService)
+    // receive this sub_menu in their app tree.
+    guardPageEntry(
+      ref,
+      context,
+      'flutter_apps_eblood_bank_cust_home_delivery_dashboard',
+    );
     // Load initial data
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(deliveryControllerProvider.notifier).loadDeliveries();

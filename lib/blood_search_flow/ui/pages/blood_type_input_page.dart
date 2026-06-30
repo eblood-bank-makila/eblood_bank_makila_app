@@ -23,6 +23,7 @@ class BloodTypeInputPage extends ConsumerStatefulWidget {
 class _BloodTypeInputPageState extends ConsumerState<BloodTypeInputPage> {
   String? _selectedBloodType;
   String? _selectedRhFactor;
+  bool _isSearching = false;
 
   final List<String> _bloodTypes = ['A', 'B', 'AB', 'O'];
   final List<String> _rhFactors = ['+', '-'];
@@ -231,16 +232,8 @@ class _BloodTypeInputPageState extends ConsumerState<BloodTypeInputPage> {
               child: SizedBox(
                 width: double.infinity,
                 height: 56,
-                child: ElevatedButton.icon(
-                  onPressed: _canContinue ? _onContinue : null,
-                  icon: const Icon(Iconsax.search_normal_1, size: 20),
-                  label: Text(
-                    'search'.tr.isEmpty ? 'Search' : 'search'.tr,
-                    style: GoogleFonts.ubuntu(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                child: ElevatedButton(
+                  onPressed: (_canContinue && !_isSearching) ? _onContinue : null,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: ColorPages.COLOR_PRINCIPAL,
                     foregroundColor: Colors.white,
@@ -251,6 +244,42 @@ class _BloodTypeInputPageState extends ConsumerState<BloodTypeInputPage> {
                     ),
                     elevation: 2,
                   ),
+                  child: _isSearching
+                      ? Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              'searching'.tr.isEmpty ? 'Searching...' : 'searching'.tr,
+                              style: GoogleFonts.ubuntu(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        )
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Iconsax.search_normal_1, size: 20),
+                            const SizedBox(width: 8),
+                            Text(
+                              'search'.tr.isEmpty ? 'Search' : 'search'.tr,
+                              style: GoogleFonts.ubuntu(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
                 ),
               ),
             ),
@@ -263,14 +292,22 @@ class _BloodTypeInputPageState extends ConsumerState<BloodTypeInputPage> {
   bool get _canContinue => _selectedBloodType != null && _selectedRhFactor != null;
 
   void _onContinue() async {
-    if (!_canContinue) return;
+    if (!_canContinue || _isSearching) return;
+
+    setState(() => _isSearching = true);
 
     final bloodType = '$_selectedBloodType$_selectedRhFactor';
     
-    await ref.read(searchFlowProvider.notifier).searchBloodProducts(bloodType);
-    
-    if (mounted) {
-      context.push('/blood-search/results');
+    try {
+      await ref.read(searchFlowProvider.notifier).searchBloodProducts(bloodType);
+      
+      if (mounted) {
+        context.push('/blood-search/results');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSearching = false);
+      }
     }
   }
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -7,159 +9,105 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import '../../../apps/config/theme/ColorPages.dart';
 import '../../../apps/widgets/ModernSpinnerWidget.dart';
+import '../../../core/rbac/services/rbac_guard.dart';
 import '../../business/model/BloodStock.dart';
 import '../../business/model/BloodEnums.dart';
 import '../../business/interactors/BloodBankController.dart';
+import '../../../core/rbac/providers/rbac_provider.dart';
+import '../../controllers/donors_provider.dart';
+import '../../controllers/selected_batch_number_provider.dart';
+import '../../models/donor.dart';
+import '../widgets/BatchNumberSelectorField.dart';
+import 'DonorRegistrationPage.dart';
 
-// Helper class to represent a donor in the selector UI
-class _Donor {
-  final String id;
-  final String name;
-  final String number;
-  final String phoneNumber;
-  final String? photoUrl;
+/// Sentinel popped by [_DonorSelectorSheet] when the user explicitly chooses
+/// the "no donor / anonymous" option — distinct from `null`, which means the
+/// sheet was dismissed and the current selection should be left untouched.
+const String _kNoDonor = '__no_donor__';
 
-  const _Donor({
-    required this.id,
-    required this.name,
-    required this.number,
-    required this.phoneNumber,
-    this.photoUrl,
-  });
-}
-
-// Donor selector modal sheet
-class _DonorSelectorSheet extends StatefulWidget {
+// Donor selector modal sheet — backed by the live donors API (donorsProvider)
+// so the picker shows real, searchable donors instead of placeholder data.
+class _DonorSelectorSheet extends ConsumerStatefulWidget {
   final String? initialDonorId;
 
   const _DonorSelectorSheet({this.initialDonorId});
 
   @override
-  _DonorSelectorSheetState createState() => _DonorSelectorSheetState();
+  ConsumerState<_DonorSelectorSheet> createState() =>
+      _DonorSelectorSheetState();
 }
 
-class _DonorSelectorSheetState extends State<_DonorSelectorSheet> {
+class _DonorSelectorSheetState extends ConsumerState<_DonorSelectorSheet> {
   final _searchController = TextEditingController();
-  String _searchQuery = '';
-  bool _isLoading = false;
+  Timer? _debounce;
   bool _isSearchByPhone = false;
-  bool _showFilters = false;
 
-  // Pagination variables
-  int _currentPage = 1;
-  final int _itemsPerPage = 10;
-  bool _hasMoreItems = true;
-  final _scrollController = ScrollController();
-
-  // List of donors (would normally come from API)
-  final List<_Donor> _allDonors = [
-    _Donor(id: 'DON-2025-001', name: 'Jean Konan', number: 'DN-001', phoneNumber: '0707070707', photoUrl: null),
-    _Donor(id: 'DON-2025-002', name: 'Awa N\'Guessan', number: 'DN-002', phoneNumber: '0708080808', photoUrl: 'https://randomuser.me/api/portraits/women/44.jpg'),
-    _Donor(id: 'DON-2025-003', name: 'Moussa Bamba', number: 'DN-003', phoneNumber: '0709090909', photoUrl: 'https://randomuser.me/api/portraits/men/32.jpg'),
-    _Donor(id: 'DON-2025-004', name: 'Fatou Coulibaly', number: 'DN-004', phoneNumber: '0701010101', photoUrl: 'https://randomuser.me/api/portraits/women/68.jpg'),
-    _Donor(id: 'DON-2025-005', name: 'Ibrahim Touré', number: 'DN-005', phoneNumber: '0702020202', photoUrl: null),
-    _Donor(id: 'DON-2025-006', name: 'Marie Kouadio', number: 'DN-006', phoneNumber: '0703030303', photoUrl: 'https://randomuser.me/api/portraits/women/54.jpg'),
-    _Donor(id: 'DON-2025-007', name: 'Paul Diallo', number: 'DN-007', phoneNumber: '0704040404', photoUrl: 'https://randomuser.me/api/portraits/men/76.jpg'),
-    _Donor(id: 'DON-2025-008', name: 'Aminata Sylla', number: 'DN-008', phoneNumber: '0705050505', photoUrl: null),
-    _Donor(id: 'DON-2025-009', name: 'David Koné', number: 'DN-009', phoneNumber: '0706060606', photoUrl: 'https://randomuser.me/api/portraits/men/41.jpg'),
-    _Donor(id: 'DON-2025-010', name: 'Mariam Ouattara', number: 'DN-010', phoneNumber: '0710101010', photoUrl: 'https://randomuser.me/api/portraits/women/33.jpg'),
-    _Donor(id: 'DON-2025-011', name: 'Gabriel Yao', number: 'DN-011', phoneNumber: '0711111111', photoUrl: null),
-    _Donor(id: 'DON-2025-012', name: 'Sonia Koffi', number: 'DN-012', phoneNumber: '0712121212', photoUrl: 'https://randomuser.me/api/portraits/women/22.jpg'),
-    _Donor(id: 'DON-2025-013', name: 'François Bédié', number: 'DN-013', phoneNumber: '0713131313', photoUrl: null),
-    _Donor(id: 'DON-2025-014', name: 'Raïssa Traoré', number: 'DN-014', phoneNumber: '0714141414', photoUrl: 'https://randomuser.me/api/portraits/women/81.jpg'),
-    _Donor(id: 'DON-2025-015', name: 'Charles Yapi', number: 'DN-015', phoneNumber: '0715151515', photoUrl: 'https://randomuser.me/api/portraits/men/62.jpg'),
-  ];
-
-  // Filtered and paginated list
-  List<_Donor> _displayedDonors = [];
+  // Whether this user may register a donor. Pooled with the CNTS flag because
+  // CNTS reuses the same donor screens (see RbacScreenRegistry).
+  bool get _canRegister =>
+      ref.read(rbacProvider.notifier).hasAnyMenuFlag(const [
+        'flutter_apps_eblood_bank_bb_donors_register',
+        'flutter_apps_eblood_bank_cnts_donors_register',
+      ]);
 
   @override
   void initState() {
     super.initState();
-    _loadInitialDonors();
-
-    // Add scroll listener for pagination
-    _scrollController.addListener(() {
-      if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent * 0.8 &&
-          !_isLoading && _hasMoreItems) {
-        _loadMoreDonors();
-      }
+    // Open on a clean, unfiltered list every time the picker is shown so a
+    // filter left over from another screen doesn't hide donors here.
+    Future.microtask(() {
+      if (!mounted) return;
+      ref.read(donorsProvider.notifier).clearSearch();
     });
   }
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _searchController.dispose();
-    _scrollController.dispose();
     super.dispose();
   }
 
-  void _loadInitialDonors() {
-    setState(() {
-      _isLoading = true;
-    });
-
-    // Simulate API call
-    Future.delayed(const Duration(milliseconds: 300), () {
-      setState(() {
-        _currentPage = 1;
-        _applyFilters();
-        _isLoading = false;
-      });
-    });
-  }
-
-  void _loadMoreDonors() {
-    if (_isLoading || !_hasMoreItems) return;
-
-    setState(() {
-      _isLoading = true;
-    });
-
-    // Simulate API call for next page
-    Future.delayed(const Duration(milliseconds: 500), () {
-      setState(() {
-        _currentPage++;
-        _applyFilters();
-        _isLoading = false;
-      });
+  void _onSearchChanged(String query) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 350), () {
+      if (!mounted) return;
+      final notifier = ref.read(donorsProvider.notifier);
+      final trimmed = query.trim();
+      if (trimmed.isEmpty) {
+        notifier.clearSearch();
+      } else {
+        notifier.searchDonors(
+          searchQuery: trimmed,
+          searchType: _isSearchByPhone ? 'phone' : 'name',
+        );
+      }
     });
   }
 
-  void _applyFilters() {
-    // Filter donors based on search query
-    final List<_Donor> filteredList = _searchQuery.isEmpty
-        ? List.from(_allDonors)
-        : _allDonors.where((donor) {
-            if (_isSearchByPhone) {
-              return donor.phoneNumber.contains(_searchQuery);
-            } else {
-              return donor.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-                     donor.number.toLowerCase().contains(_searchQuery.toLowerCase());
-            }
-          }).toList();
-
-    // Apply pagination
-    final int startIndex = 0;
-    final int endIndex = _currentPage * _itemsPerPage;
-
-    _displayedDonors = filteredList.sublist(
-      startIndex,
-      endIndex < filteredList.length ? endIndex : filteredList.length
+  Future<void> _openRegistration() async {
+    final created = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const DonorRegistrationPage()),
     );
-
-    _hasMoreItems = endIndex < filteredList.length;
-  }
-
-  void _onSearch(String query) {
-    setState(() {
-      _searchQuery = query;
-      _loadInitialDonors();
-    });
+    if (created == true && mounted) {
+      // Pull the freshly registered donor back into the list so it can be
+      // picked right away.
+      ref.read(donorsProvider.notifier).refreshDonors();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('donor_list_updated'.tr),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final donorsState = ref.watch(donorsProvider);
+
     return DraggableScrollableSheet(
       initialChildSize: 0.85,
       minChildSize: 0.5,
@@ -173,9 +121,9 @@ class _DonorSelectorSheetState extends State<_DonorSelectorSheet> {
           ),
           child: Column(
             children: [
-              // Handle and title
-              Container(
-                padding: const EdgeInsets.symmetric(vertical: 12),
+              // Handle + title + "add donor" action
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
                 child: Column(
                   children: [
                     Center(
@@ -184,18 +132,33 @@ class _DonorSelectorSheetState extends State<_DonorSelectorSheet> {
                         height: 4,
                         decoration: BoxDecoration(
                           color: Colors.grey.shade300,
-                          borderRadius: BorderRadius.circular(2)
-                        )
-                      )
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 12),
-                    Text(
-                      'select_donor'.tr,
-                      style: GoogleFonts.ubuntu(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey.shade800,
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'select_donor'.tr,
+                            style: GoogleFonts.ubuntu(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey.shade800,
+                            ),
+                          ),
+                        ),
+                        if (_canRegister)
+                          TextButton.icon(
+                            onPressed: _openRegistration,
+                            icon: const Icon(Icons.person_add, size: 18),
+                            label: Text('add_donor'.tr),
+                            style: TextButton.styleFrom(
+                              foregroundColor: ColorPages.COLOR_PRINCIPAL,
+                            ),
+                          ),
+                      ],
                     ),
                   ],
                 ),
@@ -208,147 +171,240 @@ class _DonorSelectorSheetState extends State<_DonorSelectorSheet> {
                   children: [
                     TextField(
                       controller: _searchController,
+                      keyboardType: _isSearchByPhone
+                          ? TextInputType.phone
+                          : TextInputType.text,
                       decoration: InputDecoration(
                         hintText: _isSearchByPhone
                             ? 'enter_donor_phone_hint'.tr
                             : 'enter_donor_name_hint'.tr,
                         prefixIcon: const Icon(Iconsax.search_normal),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _showFilters ? Iconsax.filter_remove : Iconsax.filter_add,
-                            color: _showFilters ? ColorPages.COLOR_PRINCIPAL : Colors.grey,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              _showFilters = !_showFilters;
-                            });
-                          },
-                        ),
+                        suffixIcon: _searchController.text.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  _onSearchChanged('');
+                                  setState(() {});
+                                },
+                              )
+                            : null,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide(color: Colors.grey.shade300),
                         ),
                       ),
-                      onChanged: _onSearch,
+                      onChanged: (value) {
+                        setState(() {}); // refresh the clear button
+                        _onSearchChanged(value);
+                      },
                     ),
-
-                    // Filter options
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                      height: _showFilters ? 60 : 0,
-                      child: SingleChildScrollView(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          child: Row(
-                            children: [
-                              FilterChip(
-                                label: Text('search_by_phone'.tr),
-                                selected: _isSearchByPhone,
-                                onSelected: (selected) {
-                                  setState(() {
-                                    _isSearchByPhone = selected;
-                                    _onSearch(_searchController.text);
-                                  });
-                                },
-                                selectedColor: ColorPages.COLOR_PRINCIPAL.withOpacity(0.2),
-                                checkmarkColor: ColorPages.COLOR_PRINCIPAL,
-                              ),
-                              const SizedBox(width: 8),
-                              FilterChip(
-                                label: Text('donor_with_photo'.tr),
-                                selected: false,  // Not implemented in demo
-                                onSelected: (selected) {
-                                  // Would filter donors with photos
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: FilterChip(
+                        label: Text('search_by_phone'.tr),
+                        selected: _isSearchByPhone,
+                        onSelected: (selected) {
+                          setState(() => _isSearchByPhone = selected);
+                          _onSearchChanged(_searchController.text);
+                        },
+                        selectedColor:
+                            ColorPages.COLOR_PRINCIPAL.withOpacity(0.2),
+                        checkmarkColor: ColorPages.COLOR_PRINCIPAL,
                       ),
                     ),
                   ],
                 ),
               ),
 
-              // Donor list
+              // Always-available "no donor / anonymous" option
+              ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: Colors.grey.shade200,
+                  child: Icon(Icons.close, color: Colors.grey.shade700),
+                ),
+                title: Text('no_donor'.tr),
+                subtitle: Text('anonymous_or_no_donor'.tr),
+                trailing: widget.initialDonorId == null
+                    ? Icon(Icons.check_circle, color: ColorPages.COLOR_PRINCIPAL)
+                    : null,
+                onTap: () => Navigator.pop(context, _kNoDonor),
+              ),
+              const Divider(height: 1),
+
+              // Donor list (live backend data)
               Expanded(
-                child: _isLoading && _displayedDonors.isEmpty
-                    ? const Center(child: CircularProgressIndicator())
-                    : ListView.builder(
-                        controller: _scrollController,
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                        itemCount: _displayedDonors.length + 2, // +1 for loading indicator, +1 for "No donor" option
-                        itemBuilder: (context, index) {
-                          // First item is "No donor" option
-                          if (index == 0) {
-                            return ListTile(
-                              leading: CircleAvatar(
-                                backgroundColor: Colors.grey.shade200,
-                                child: Icon(Icons.close, color: Colors.grey.shade700),
-                              ),
-                              title: Text('no_donor'.tr),
-                              subtitle: Text('anonymous_or_no_donor'.tr),
-                              onTap: () => Navigator.pop(context, null),
-                            );
-                          }
-
-                          // Last item is loading indicator
-                          if (index == _displayedDonors.length + 1) {
-                            return _hasMoreItems
-                                ? Container(
-                                    padding: const EdgeInsets.symmetric(vertical: 16),
-                                    alignment: Alignment.center,
-                                    child: _isLoading
-                                        ? const CircularProgressIndicator(strokeWidth: 2)
-                                        : const SizedBox(),
-                                  )
-                                : Container(
-                                    padding: const EdgeInsets.symmetric(vertical: 16),
-                                    alignment: Alignment.center,
-                                    child: Text(
-                                      'end_of_list'.tr,
-                                      style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-                                    ),
-                                  );
-                          }
-
-                          // Normal donor items
-                          final donor = _displayedDonors[index - 1]; // -1 because index 0 is "No donor" option
-                          final isSelected = donor.id == widget.initialDonorId;
-
-                          return ListTile(
-                            leading: donor.photoUrl != null
-                                ? CircleAvatar(
-                                    backgroundImage: NetworkImage(donor.photoUrl!),
-                                    onBackgroundImageError: (_, __) => const Icon(Icons.error),
-                                  )
-                                : const CircleAvatar(child: Icon(Icons.person)),
-                            title: Text(
-                              donor.name,
-                              style: TextStyle(
-                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                              ),
-                            ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('${'id'.tr}: ${donor.number}'),
-                                Text('${'phone'.tr}: ${donor.phoneNumber}'),
-                              ],
-                            ),
-                            isThreeLine: true,
-                            trailing: isSelected
-                                ? Icon(Icons.check_circle, color: ColorPages.COLOR_PRINCIPAL)
-                                : null,
-                            onTap: () => Navigator.pop(context, donor),
-                          );
-                        },
-                      ),
+                child: _buildDonorListArea(donorsState, scrollController),
               ),
             ],
           ),
         );
       },
+    );
+  }
+
+  Widget _buildDonorListArea(
+    DonorListState state,
+    ScrollController scrollController,
+  ) {
+    if (state.isLoading && state.donors.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (state.isError && state.donors.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 56, color: Colors.red),
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Text(
+                state.errorMessage.isNotEmpty
+                    ? state.errorMessage
+                    : 'something_went_wrong'.tr,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.ubuntu(color: Colors.grey.shade700),
+              ),
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              onPressed: () =>
+                  ref.read(donorsProvider.notifier).refreshDonors(),
+              icon: const Icon(Icons.refresh),
+              label: Text('retry'.tr),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: ColorPages.COLOR_PRINCIPAL,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (state.donors.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              state.isSearchActive ? Icons.search_off : Icons.people_outline,
+              size: 56,
+              color: Colors.grey.shade400,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              state.isSearchActive
+                  ? 'no_donors_found'.tr
+                  : 'no_donors_registered'.tr,
+              style: GoogleFonts.ubuntu(
+                fontWeight: FontWeight.w600,
+                color: Colors.grey.shade700,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Text(
+                state.isSearchActive
+                    ? 'try_different_search_terms'.tr
+                    : 'add_first_donor_hint'.tr,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.ubuntu(
+                  fontSize: 12,
+                  color: Colors.grey.shade500,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return NotificationListener<ScrollNotification>(
+      onNotification: (notification) {
+        if (notification.metrics.pixels >=
+            notification.metrics.maxScrollExtent * 0.85) {
+          if (!state.isLoading && state.hasMorePages) {
+            ref.read(donorsProvider.notifier).loadNextPage();
+          }
+        }
+        return false;
+      },
+      child: ListView.builder(
+        controller: scrollController,
+        padding: const EdgeInsets.fromLTRB(8, 0, 8, 16),
+        itemCount: state.donors.length + 1, // +1 for the footer
+        itemBuilder: (context, index) {
+          if (index == state.donors.length) {
+            if (state.isLoading) {
+              return const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+              );
+            }
+            if (!state.hasMorePages) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Center(
+                  child: Text(
+                    'end_of_list'.tr,
+                    style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+                  ),
+                ),
+              );
+            }
+            return const SizedBox(height: 8);
+          }
+
+          return _buildDonorTile(state.donors[index]);
+        },
+      ),
+    );
+  }
+
+  Widget _buildDonorTile(Donor donor) {
+    final isSelected = donor.id == widget.initialDonorId;
+    final hasPhoto = donor.photoUrl != null && donor.photoUrl!.isNotEmpty;
+    final hasCode = donor.donorCode != null && donor.donorCode!.isNotEmpty;
+
+    return ListTile(
+      leading: CircleAvatar(
+        backgroundColor: Colors.red.shade100,
+        backgroundImage: hasPhoto ? NetworkImage(donor.photoUrl!) : null,
+        child: hasPhoto
+            ? null
+            : Text(
+                donor.bloodType.isNotEmpty ? donor.bloodType : '?',
+                style: GoogleFonts.ubuntu(
+                  color: Colors.red.shade800,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+      ),
+      title: Text(
+        donor.fullName,
+        style: GoogleFonts.ubuntu(
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+        ),
+      ),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (hasCode) Text('${'donor_code'.tr}: ${donor.donorCode}'),
+          if (donor.phoneNumber.isNotEmpty)
+            Text('${'phone'.tr}: ${donor.phoneNumber}'),
+        ],
+      ),
+      isThreeLine: hasCode && donor.phoneNumber.isNotEmpty,
+      trailing: isSelected
+          ? Icon(Icons.check_circle, color: ColorPages.COLOR_PRINCIPAL)
+          : null,
+      onTap: () => Navigator.pop(context, donor),
     );
   }
 }
@@ -362,7 +418,10 @@ class AddBloodStockPage extends ConsumerStatefulWidget {
 
 class _AddBloodStockPageState extends ConsumerState<AddBloodStockPage> {
   final _formKey = GlobalKey<FormState>();
-  final _batchNumberController = TextEditingController();
+  // Batch number ("numéro de lot") is now picked via the reusable selector,
+  // not a free-text field. Holds the currently chosen value for this form.
+  String? _selectedBatchNumber;
+  final _bloodBagNumberController = TextEditingController();
   final _volumeController = TextEditingController(text: "450"); // Default volume in ml
   final _descriptionController = TextEditingController();
 
@@ -385,8 +444,27 @@ class _AddBloodStockPageState extends ConsumerState<AddBloodStockPage> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    // Pre-fill the batch number from the sticky session selection, so a lot
+    // number chosen earlier in this session is kept across bag creations.
+    _selectedBatchNumber = ref.read(selectedBatchNumberProvider);
+    // RBAC entry guard: auto-pop + snackbar if user lacks permission.
+    // Pool with the CNTS equivalent so CNTS users — who reuse this same
+    // page — can add stock too.
+    guardPageEntryAny(
+      ref,
+      context,
+      const [
+        'flutter_apps_eblood_bank_bb_inventory_stock_add',
+        'flutter_apps_eblood_bank_cnts_inventory_stock_add',
+      ],
+    );
+  }
+
+  @override
   void dispose() {
-    _batchNumberController.dispose();
+    _bloodBagNumberController.dispose();
     _volumeController.dispose();
     _descriptionController.dispose();
     super.dispose();
@@ -619,15 +697,25 @@ class _AddBloodStockPageState extends ConsumerState<AddBloodStockPage> {
           ),
           const SizedBox(height: 16),
 
-          // Batch Number
+          // Batch Number — reusable searchable selector (org-scoped catalog
+          // with an "Autres" option to create a new lot number on the fly).
+          BatchNumberSelectorField(
+            value: _selectedBatchNumber,
+            isRequired: true,
+            onChanged: (value) =>
+                setState(() => _selectedBatchNumber = value),
+          ),
+          const SizedBox(height: 16),
+
+          // Blood Bag Number (numéro de la poche de sang)
           _buildTextField(
-            controller: _batchNumberController,
-            label: 'batch_number'.tr,
-            hint: 'example_batch_number'.tr,
-            icon: Iconsax.barcode,
+            controller: _bloodBagNumberController,
+            label: 'blood_bag_number'.tr,
+            hint: 'example_blood_bag_number'.tr,
+            icon: Iconsax.scan_barcode,
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'batch_number_required'.tr;
+                return 'blood_bag_number_required'.tr;
               }
               return null;
             },
@@ -977,22 +1065,31 @@ class _AddBloodStockPageState extends ConsumerState<AddBloodStockPage> {
   }
 
   Future<void> _openDonorSelector() async {
-    // We'll use this variable to store the selected donor
-    final _Donor? selected = await showModalBottomSheet<_Donor>(
+    // The sheet pops a [Donor] when one is picked, the [_kNoDonor] sentinel for
+    // the explicit "no donor / anonymous" choice, or null when it is dismissed.
+    final result = await showModalBottomSheet<Object>(
       context: context,
-      isScrollControlled: true, // Allow the sheet to take up to 90% of screen height
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      isScrollControlled: true, // Allow the sheet to take up to 95% of screen height
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
       builder: (_) => _DonorSelectorSheet(initialDonorId: _selectedDonorId),
     );
 
-    if (selected != null) {
+    // Dismissed without choosing — keep the current selection untouched.
+    if (result == null) return;
+
+    if (result is Donor) {
       setState(() {
-        _selectedDonorId = selected.id;
-        _selectedDonorName = selected.name;
-        _selectedDonorNumber = selected.number;
+        _selectedDonorId = result.id;
+        _selectedDonorName = result.fullName;
+        _selectedDonorNumber =
+            (result.donorCode != null && result.donorCode!.isNotEmpty)
+                ? result.donorCode
+                : result.phoneNumber;
       });
     } else {
-      // User selected "Aucun donneur" - reset previous selection
+      // Explicit "Aucun donneur" — clear any previous selection.
       setState(() {
         _selectedDonorId = null;
         _selectedDonorName = null;
@@ -1165,7 +1262,8 @@ class _AddBloodStockPageState extends ConsumerState<AddBloodStockPage> {
       print('🩸 Condition: ${_selectedBagCondition.value}');
       print('🩸 Collection Date: $_collectionDate');
       print('🩸 Expiration Date: $_expirationDate');
-      print('🩸 Batch Number: ${_batchNumberController.text}');
+      print('🩸 Batch Number: ${_selectedBatchNumber ?? ''}');
+      print('🩸 Blood Bag Number: ${_bloodBagNumberController.text}');
       print('🩸 Donor ID: ${_selectedDonorId ?? "No donor selected"}');
 
       final bloodStock = BloodStock(
@@ -1178,7 +1276,8 @@ class _AddBloodStockPageState extends ConsumerState<AddBloodStockPage> {
         expirationDate: _expirationDate,
         collectionDate: _collectionDate,
         donorId: _selectedDonorId ?? '',
-        batchNumber: _batchNumberController.text,
+        batchNumber: _selectedBatchNumber ?? '',
+        bloodBagNumber: _bloodBagNumberController.text,
         description: _descriptionController.text.isNotEmpty ? _descriptionController.text : null,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),

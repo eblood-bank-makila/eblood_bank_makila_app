@@ -1,6 +1,8 @@
 import 'dart:async';
 // Using dio_client instead of http package
 import 'package:eblood_bank_mak_app/blood_bank/business/model/BloodEnums.dart';
+import 'package:eblood_bank_mak_app/core/rbac/models/rbac_models.dart';
+import 'package:eblood_bank_mak_app/core/rbac/services/rbac_url_helper.dart';
 
 import '../../../apps/config/api/dio_client.dart';
 import '../../../apps/config/api/ApiConfig.dart';
@@ -8,18 +10,43 @@ import '../model/BloodStock.dart';
 import '../../models/donor_eligibility.dart';
 
 class BloodBankApiService {
-  // No longer need UtilisateurLocalService as the dio_client handles token management
-  
-  BloodBankApiService();
+  /// Inventory stock menu — fetch_url/main=items/list, fetch_url/fetch_blood_availability_url, etc.
+  final List<RbacCollectionCrudItem> _stockCrudInfo;
+  /// Inventory stock_add menu — create_processing_url/main
+  final List<RbacCollectionCrudItem> _stockAddCrudInfo;
+  /// Inventory overview menu — fetch_url/main=stats
+  final List<RbacCollectionCrudItem> _overviewCrudInfo;
+  /// Requests menu — fetch_url/fetch_eblood_requests_url
+  final List<RbacCollectionCrudItem> _requestsCrudInfo;
+  /// BB/CNTS home app — fetch_url/fetch_recent_activity_url
+  final List<RbacCollectionCrudItem> _homeCrudInfo;
+  /// Customer home donor_profile menu — fetch_url/fetch_eligibility_url
+  final List<RbacCollectionCrudItem> _custDonorProfileCrudInfo;
+  final RbacUrlHelper _urlHelper = RbacUrlHelper();
+
+  BloodBankApiService({
+    required List<RbacCollectionCrudItem> stockCrudInfo,
+    required List<RbacCollectionCrudItem> stockAddCrudInfo,
+    required List<RbacCollectionCrudItem> overviewCrudInfo,
+    required List<RbacCollectionCrudItem> requestsCrudInfo,
+    required List<RbacCollectionCrudItem> homeCrudInfo,
+    required List<RbacCollectionCrudItem> custDonorProfileCrudInfo,
+  })  : _stockCrudInfo = stockCrudInfo,
+        _stockAddCrudInfo = stockAddCrudInfo,
+        _overviewCrudInfo = overviewCrudInfo,
+        _requestsCrudInfo = requestsCrudInfo,
+        _homeCrudInfo = homeCrudInfo,
+        _custDonorProfileCrudInfo = custDonorProfileCrudInfo;
   
   // No longer need _getHeaders as the dio_client's AuthInterceptor handles tokens
 
   // Blood Stock Management
   Future<ApiResponse<List<BloodStock>>> getBloodStock() async {
     try {
+      final url = _urlHelper.getFetchUrl(_stockCrudInfo);
       // Use centralized dio client instead of http package
       final response = await getWithDio(
-        ApiConfig.bloodStock,
+        url,
       );
 
       // Debug the full response for troubleshooting
@@ -93,6 +120,7 @@ class BloodBankApiService {
                 collectionDate: DateTime.now(),
                 donorId: '',
                 batchNumber: item['batch_number'] ?? item['batchNumber'] ?? '',
+                bloodBagNumber: item['blood_bag_number'] ?? item['bloodBagNumber'] ?? '',
                 description: 'Error parsing item: ${item.keys.join(", ")}',
                 createdAt: DateTime.now(),
                 updatedAt: DateTime.now(),
@@ -128,11 +156,12 @@ class BloodBankApiService {
         'collectionDate': stock.collectionDate.toIso8601String(),
         'donorId': stock.donorId.isNotEmpty ? stock.donorId : null,
         'batchNumber': stock.batchNumber,
+        'bloodBagNumber': stock.bloodBagNumber,
         'description': stock.description,
       };
       
       // Get endpoint information for logging
-      final endpoint = ApiConfig.bloodStockCreate;
+      final endpoint = _urlHelper.getCreateProcessingUrl(_stockAddCrudInfo);
       
       print('🚀 API CALL DETAILS:');
       print(' Endpoint: $endpoint');
@@ -210,7 +239,8 @@ class BloodBankApiService {
 
   Future<ApiResponse<BloodStock>> updateBloodStock(String id, BloodStock stock) async {
     try {
-      final endpoint = ApiConfig.updateStock(id);
+      final baseUrl = _urlHelper.getUpdateProcessingUrl(_stockCrudInfo);
+      final endpoint = '$baseUrl?item_id=$id';
       final body = stock.toJson();
       
       // Use dio_client for the request
@@ -235,10 +265,10 @@ class BloodBankApiService {
 
   Future<ApiResponse<bool>> deleteBloodStock(String id) async {
     try {
-      final endpoint = ApiConfig.deleteStock(id);
+      final url = _urlHelper.getDeleteProcessingUrl(_stockCrudInfo);
       
       // Use dio_client deleteWithDio function
-      final response = await deleteWithDio(endpoint);
+      final response = await deleteWithDio(url, queryParams: {'item_id': id});
 
       if (response.success) {
         return ApiResponse.success(true);
@@ -253,7 +283,7 @@ class BloodBankApiService {
   // Blood Requests Management
   Future<ApiResponse<List<BloodRequest>>> getBloodRequests() async {
     try {
-      final endpoint = ApiConfig.bloodRequests;
+      final endpoint = _urlHelper.getFetchUrl(_requestsCrudInfo, 'fetch_eblood_requests_url');
       
       // Use dio_client getWithDio function
       final response = await getWithDio(endpoint);
@@ -328,7 +358,7 @@ class BloodBankApiService {
     // Statistics and Analytics
   Future<ApiResponse<BloodBankStats>> getBloodBankStats() async {
     try {
-      final endpoint = ApiConfig.bloodBankStats;
+      final endpoint = _urlHelper.getFetchUrl(_overviewCrudInfo);
       
       print('🌐 BloodBankApiService: Fetching stats from $endpoint');
       // Use dio_client getWithDio function
@@ -355,7 +385,7 @@ class BloodBankApiService {
   // Blood Type Availability
   Future<ApiResponse<Map<String, int>>> getBloodTypeAvailability() async {
     try {
-      final endpoint = ApiConfig.bloodTypeAvailability;
+      final endpoint = _urlHelper.getFetchUrl(_stockCrudInfo, 'fetch_blood_availability_url');
       
       // Use dio_client getWithDio function
       final response = await getWithDio(endpoint);
@@ -375,7 +405,7 @@ class BloodBankApiService {
   Future<ApiResponse<DonorEligibility>> checkDonorEligibility(String donorId) async {
     try {
       final response = await getWithDio(
-        ApiConfig.donorEligibility,
+        _urlHelper.getFetchUrl(_custDonorProfileCrudInfo, 'fetch_eligibility_url'),
         queryParams: {'donor_id': donorId},
       );
 
@@ -408,7 +438,7 @@ class BloodBankApiService {
   // Expiring Stock
   Future<ApiResponse<List<BloodStock>>> getExpiringStock({int days = 7}) async {
     try {
-      final endpoint = ApiConfig.expiringStock;
+      final endpoint = _urlHelper.getFetchUrl(_stockCrudInfo, 'fetch_expiring_stock_url');
       final queryParams = {'days': days};
       
       // Use dio_client getWithDio function
@@ -435,7 +465,7 @@ class BloodBankApiService {
   // Low Stock Alert
   Future<ApiResponse<List<BloodStock>>> getLowStock({int threshold = 5}) async {
     try {
-      final endpoint = ApiConfig.lowStock;
+      final endpoint = _urlHelper.getFetchUrl(_stockCrudInfo, 'fetch_low_stock_url');
       final queryParams = {'threshold': threshold};
       
       // Use dio_client getWithDio function
@@ -462,7 +492,7 @@ class BloodBankApiService {
   // Recent Activity
   Future<ApiResponse<List<BloodBankActivity>>> getRecentActivity({int limit = 10}) async {
     try {
-      final endpoint = ApiConfig.recentActivity;
+      final endpoint = _urlHelper.getFetchUrl(_homeCrudInfo, 'fetch_recent_activity_url');
       final queryParams = {'limit': limit};
       
       // Use dio_client getWithDio function

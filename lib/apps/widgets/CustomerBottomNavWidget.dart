@@ -5,7 +5,7 @@ import 'package:iconsax/iconsax.dart';
 import '../config/theme/ColorPages.dart';
 import '../home/customer_home_page.dart';
 import '../connect/announcements/announcements_screen.dart';
-import '../../utilisateurs/ui/pages/profil/ProfilePage.dart';
+import '../../users/ui/pages/profil/ProfilePage.dart';
 import '../../blood_bank/ui/pages/HealthStructureNetworkPage.dart';
 
 class CustomerBottomNavWidget extends ConsumerStatefulWidget {

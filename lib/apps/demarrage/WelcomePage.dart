@@ -7,7 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:ionicons/ionicons.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
 import '../widgets/LanguageSelector.dart';
 import '../components/SponsorFooter.dart';
@@ -197,7 +197,7 @@ class WelcomePage extends ConsumerWidget {
                         delay: const Duration(milliseconds: 800),
                         child: _buildSocialLoginButton(
                           context: context,
-                          icon: Ionicons.logo_google,
+                          icon: FontAwesomeIcons.google.data,
                           text: 'sign_in_with_google'.tr,
                           color: Colors.white,
                           textColor: Colors.grey.shade700,
@@ -214,7 +214,7 @@ class WelcomePage extends ConsumerWidget {
                       //   delay: const Duration(milliseconds: 900),
                       //   child: _buildSocialLoginButton(
                       //     context: context,
-                      //     icon: Ionicons.phone_portrait_outline,
+                      //     icon: Icons.smartphone,
                       //     text: 'sign_in_with_phone_number'.tr,
                       //     color: ColorPages.COLOR_PRINCIPAL,
                       //     textColor: Colors.white,
@@ -423,7 +423,7 @@ class WelcomePage extends ConsumerWidget {
 
               final next = (result['nextAction'] ?? '').toString();
               if (next == 'login') {
-                if (context.mounted) context.go('/app/MainApp');
+                if (context.mounted) context.go('/rbac-loading');
               } else if (next == 'select_entity') {
                 if (context.mounted) context.push('/visitor/select-entity');
               } else {
@@ -442,7 +442,7 @@ class WelcomePage extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
-                Ionicons.eye_outline,
+                Icons.visibility_outlined,
                 color: ColorPages.COLOR_PRINCIPAL,
                 size: 20,
               ),
@@ -495,7 +495,7 @@ class WelcomePage extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
-                Ionicons.search_outline,
+                Icons.search,
                 color: Colors.white,
                 size: 22,
               ),
@@ -557,7 +557,7 @@ class WelcomePage extends ConsumerWidget {
         await authApi.handleAutoLoginAfterRegistration(result);
 
         // Navigate to main app
-        if (context.mounted) context.go('/app/MainApp');
+        if (context.mounted) context.go('/rbac-loading');
       } else {
         // Handle login failure
         final message = result['message'] ?? 'Login failed';

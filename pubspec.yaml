@@ -2,7 +2,7 @@ name: eblood_bank_mak_app
 description: "Application d'interconnection des banques de sang, hopitaux, donneurs"
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
  
-version: 1.0.0+1
+version: 1.0.0+4
  
 environment:
   sdk: ^3.8.1 
@@ -20,7 +20,7 @@ dependencies:
   http: ^1.5.0
   dio: ^5.4.1
   device_info_plus: ^9.1.2
-  flutter_dotenv: ^5.1.0
+  flutter_dotenv: ^6.0.1
   flutter_spinkit: ^5.2.1
   flutter_launcher_icons: ^0.14.4
   sembast: ^3.7.2
@@ -33,11 +33,10 @@ dependencies:
   iconsax: ^0.0.8
   firebase_core: ^3.5.0
   firebase_messaging: ^15.1.2
-  google_fonts: ^6.2.1
+  google_fonts: ^8.0.1
   flutter_local_notifications: ^17.2.3
   flutter_svg: ^2.0.10+1
   confetti: ^0.8.0
-  ionicons: ^0.2.2
   shared_preferences: ^2.2.2
   shimmer: ^2.0.0
   flutter_secure_storage: ^9.2.4
@@ -57,7 +56,15 @@ dependencies:
   fl_chart: ^0.69.0
   csv: ^6.0.0
   flutter_pdfview: ^1.3.2
-  open_file: ^3.3.2
+  # Sprint 15: open_file replaced with open_filex (the maintained
+  # fork). lokotro_pay already pulls in open_filex transitively, and
+  # both packages ship the same com.crazecoder.openfile.FileProvider
+  # Java class — leaving both pinned causes a dex-merge collision on
+  # Android (build fails at :app:mergeLibDexDebug).
+  # open_file: ^3.3.2  # removed
+  open_filex: ^4.7.0
+  # Sprint 16: pick the filled .xlsx/.csv for bulk blood-bag import.
+  file_picker: ^8.1.4
   video_player: ^2.8.2
   chewie: ^1.7.5
   google_mlkit_face_detection: ^0.13.1
@@ -65,9 +72,12 @@ dependencies:
   google_mlkit_barcode_scanning: ^0.14.1
   pdf: ^3.11.3
   pin_code_fields: ^8.0.1
+  sms_autofill: ^2.4.0
   web_socket_channel: ^3.0.3
   freezed_annotation: ^2.4.1
   json_annotation: ^4.8.1
+  lokotro_pay: ^3.0.0
+  font_awesome_flutter: ^11.0.0
 
 dev_dependencies:
   flutter_test:
@@ -75,7 +85,7 @@ dev_dependencies:
   flutter_lints: ^5.0.0
   riverpod_generator: ^2.4.0
   build_runner: ^2.4.11
-  custom_lint: ^0.6.4
+  custom_lint: ^0.7.3
   riverpod_lint: ^2.3.10
   freezed: ^2.4.7
   json_serializable: ^6.7.1
@@ -97,5 +107,6 @@ flutter:
     - assets/logo/
     - assets/svg/
     - assets/animations/
+    - assets/paymentmethods/
     - .env
   

@@ -9,8 +9,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:get/get.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
+import 'package:sms_autofill/sms_autofill.dart';
 
 import '../../providers/search_flow_provider.dart';
+import '../../data/services/visitor_registration_service_impl.dart';
 import '../../../apps/config/theme/ColorPages.dart';
 import '../widgets/search_flow_app_bar.dart';
 
@@ -18,40 +20,189 @@ class VisitorPhoneOtpPage extends ConsumerStatefulWidget {
   const VisitorPhoneOtpPage({super.key});
 
   @override
-  ConsumerState<VisitorPhoneOtpPage> createState() => _VisitorPhoneOtpPageState();
+  ConsumerState<VisitorPhoneOtpPage> createState() =>
+      _VisitorPhoneOtpPageState();
 }
 
-class _VisitorPhoneOtpPageState extends ConsumerState<VisitorPhoneOtpPage> {
-  final TextEditingController _phoneController = TextEditingController();
-  final TextEditingController _otpController = TextEditingController();
-  final PageController _pageController = PageController();
-  
+class _VisitorPhoneOtpPageState extends ConsumerState<VisitorPhoneOtpPage>
+    with CodeAutoFill {
+  late TextEditingController _phoneController;
+  late TextEditingController _otpController;
+  late PageController _pageController;
+  final VisitorRegistrationServiceImpl _visitorService =
+      VisitorRegistrationServiceImpl();
+
   bool _isLoading = false;
   bool _isOtpSent = false;
+  bool _isVerifying = false; // Prevent duplicate verification calls
+  bool _verificationComplete = false; // Prevent any state changes after success
+  bool _disposed = false; // Track if dispose was called
   String? _errorMessage;
   int _resendCountdown = 0;
   String _formattedPhone = '';
+  String? _appSignature;
+
+  @override
+  void initState() {
+    super.initState();
+    // Create fresh controllers on every mount to avoid reusing disposed ones
+    _phoneController = TextEditingController();
+    _otpController = TextEditingController();
+    _pageController = PageController();
+    _disposed = false;
+    _getAppSignature();
+    // Safety check in case user navigates directly to OTP page
+    // Primary check happens before navigation in hospital_identify_page
+    _checkIfAlreadyVerified();
+  }
+
+  /// Safety check if phone is already verified (fallback)
+  /// Primary verification check happens before navigating to this page
+  Future<void> _checkIfAlreadyVerified() async {
+    try {
+      print('🔍 [OTP Page] Checking if phone already verified...');
+      final isVerified = await _visitorService.hasVisitorPhoneNumber();
+      print('📱 [OTP Page] Local verification status: $isVerified');
+      
+      if (isVerified) {
+        print('✅ [OTP Page] Phone verified locally, fetching backend data...');
+        // Fetch fresh visitor data from backend to get updated can_pay_on_delivery status
+        final result = await _visitorService.checkVisitorLogin();
+        print('🔄 [OTP Page] Backend result: ${result != null}');
+        
+        if (result != null) {
+          print('📦 [OTP Page] Result success: ${result['success']}, needs_verification: ${result['needs_phone_verification']}');
+          
+          final needsVerification = result['needs_phone_verification'] == true;
+          
+          if (result['success'] == true && !needsVerification) {
+            print('✅ [OTP Page] Backend confirms verification, navigating to payment');
+            
+            // Navigate AFTER the current frame finishes layout to avoid
+            // disposing controllers while PageView is still inflating children.
+            if (mounted && !_disposed) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted && !_disposed) {
+                  print('⏭️ [OTP Page] Navigating to payment page...');
+                  context.pushReplacement('/blood-search/payment');
+                }
+              });
+            }
+          } else {
+            print('⚠️ [OTP Page] Backend requires verification, showing OTP input');
+          }
+        } else {
+          print('❌ [OTP Page] No result from backend, showing OTP input');
+        }
+      } else {
+        print('📝 [OTP Page] Phone not verified locally, showing OTP input');
+      }
+    } catch (e) {
+      print('❌ [OTP Page] Error checking verification: $e');
+      // Continue to normal flow if check fails
+    }
+  }
+
+  Future<void> _getAppSignature() async {
+    try {
+      _appSignature = await SmsAutoFill().getAppSignature;
+      print('📱 App Signature for SMS: $_appSignature');
+    } catch (e) {
+      print('⚠️ Could not get app signature: $e');
+    }
+  }
+
+  void _startListeningForSms() {
+    listenForCode();
+    print('👂 Started listening for SMS OTP...');
+  }
+
+  @override
+  void codeUpdated() {
+    // This is called when SMS is received and OTP is extracted
+    // Skip if disposed, verification is already in progress or complete
+    if (_disposed || _isVerifying || _verificationComplete) return;
+
+    if (code != null && code!.length == 6) {
+      print('📨 Auto-received OTP: $code');
+      if (mounted && !_disposed) {
+        setState(() {
+          try {
+            _otpController.text = code!;
+          } catch (_) {
+            // Controller may have been disposed in a race
+          }
+        });
+        // Auto-verify after a short delay
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted &&
+              !_disposed &&
+              _otpController.text.length == 6 &&
+              !_isVerifying &&
+              !_verificationComplete) {
+            _verifyOtp();
+          }
+        });
+      }
+    }
+  }
 
   @override
   void dispose() {
-    _phoneController.dispose();
-    _otpController.dispose();
-    _pageController.dispose();
+    _disposed = true; // Mark as disposed first
+    cancel(); // Stop listening for SMS
+    SmsAutoFill().unregisterListener();
+    // Only dispose controllers if not already disposed
+    try {
+      _phoneController.dispose();
+    } catch (_) {}
+    try {
+      _otpController.dispose();
+    } catch (_) {}
+    try {
+      _pageController.dispose();
+    } catch (_) {}
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    // If verification is complete, show a loading/transitioning state
+    if (_verificationComplete) {
+      return Scaffold(
+        backgroundColor: Colors.grey.shade50,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(height: 16),
+              Text(
+                'Redirecting...',
+                style: GoogleFonts.ubuntu(
+                  fontSize: 16,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: SearchFlowAppBar(
-        title: _isOtpSent 
+        title: _isOtpSent
             ? ('verify_phone'.tr.isEmpty ? 'Verify Phone' : 'verify_phone'.tr)
             : ('enter_phone'.tr.isEmpty ? 'Enter Phone' : 'enter_phone'.tr),
         onBack: () {
           if (_isOtpSent) {
+            // Stop listening for SMS and reset verification state
+            cancel();
             setState(() {
               _isOtpSent = false;
+              _isVerifying = false;
               _otpController.clear();
               _errorMessage = null;
             });
@@ -67,10 +218,7 @@ class _VisitorPhoneOtpPageState extends ConsumerState<VisitorPhoneOtpPage> {
       body: PageView(
         controller: _pageController,
         physics: const NeverScrollableScrollPhysics(),
-        children: [
-          _buildPhoneInputPage(),
-          _buildOtpVerificationPage(),
-        ],
+        children: [_buildPhoneInputPage(), _buildOtpVerificationPage()],
       ),
     );
   }
@@ -97,13 +245,15 @@ class _VisitorPhoneOtpPageState extends ConsumerState<VisitorPhoneOtpPage> {
               ),
             ),
           ),
-          
+
           const SizedBox(height: 32),
 
           // Title
           Center(
             child: Text(
-              'enter_your_phone'.tr.isEmpty ? 'Enter your phone number' : 'enter_your_phone'.tr,
+              'enter_your_phone'.tr.isEmpty
+                  ? 'Enter your phone number'
+                  : 'enter_your_phone'.tr,
               style: GoogleFonts.ubuntu(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
@@ -111,9 +261,9 @@ class _VisitorPhoneOtpPageState extends ConsumerState<VisitorPhoneOtpPage> {
               ),
             ),
           ),
-          
+
           const SizedBox(height: 8),
-          
+
           Center(
             child: Text(
               'we_will_send_code'.tr.isEmpty
@@ -137,9 +287,9 @@ class _VisitorPhoneOtpPageState extends ConsumerState<VisitorPhoneOtpPage> {
               color: Colors.grey.shade700,
             ),
           ),
-          
+
           const SizedBox(height: 12),
-          
+
           Container(
             decoration: BoxDecoration(
               color: Colors.white,
@@ -156,7 +306,10 @@ class _VisitorPhoneOtpPageState extends ConsumerState<VisitorPhoneOtpPage> {
               children: [
                 // Country code
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 16,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.grey.shade50,
                     borderRadius: const BorderRadius.only(
@@ -166,10 +319,7 @@ class _VisitorPhoneOtpPageState extends ConsumerState<VisitorPhoneOtpPage> {
                   ),
                   child: Row(
                     children: [
-                      Text(
-                        '🇨🇩',
-                        style: const TextStyle(fontSize: 20),
-                      ),
+                      Text('🇨🇩', style: const TextStyle(fontSize: 20)),
                       const SizedBox(width: 8),
                       Text(
                         '+243',
@@ -182,11 +332,7 @@ class _VisitorPhoneOtpPageState extends ConsumerState<VisitorPhoneOtpPage> {
                     ],
                   ),
                 ),
-                Container(
-                  width: 1,
-                  height: 30,
-                  color: Colors.grey.shade300,
-                ),
+                Container(width: 1, height: 30, color: Colors.grey.shade300),
                 // Phone input
                 Expanded(
                   child: TextField(
@@ -198,9 +344,14 @@ class _VisitorPhoneOtpPageState extends ConsumerState<VisitorPhoneOtpPage> {
                     ],
                     decoration: InputDecoration(
                       hintText: '812345678',
-                      hintStyle: GoogleFonts.ubuntu(color: Colors.grey.shade400),
+                      hintStyle: GoogleFonts.ubuntu(
+                        color: Colors.grey.shade400,
+                      ),
                       border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 16,
+                      ),
                     ),
                     style: GoogleFonts.ubuntu(
                       fontSize: 18,
@@ -317,14 +468,14 @@ class _VisitorPhoneOtpPageState extends ConsumerState<VisitorPhoneOtpPage> {
               ),
             ),
           ),
-          
+
           const SizedBox(height: 32),
 
           // Title
           Center(
             child: Text(
-              'enter_verification_code'.tr.isEmpty 
-                  ? 'Enter verification code' 
+              'enter_verification_code'.tr.isEmpty
+                  ? 'Enter verification code'
                   : 'enter_verification_code'.tr,
               style: GoogleFonts.ubuntu(
                 fontSize: 22,
@@ -333,9 +484,9 @@ class _VisitorPhoneOtpPageState extends ConsumerState<VisitorPhoneOtpPage> {
               ),
             ),
           ),
-          
+
           const SizedBox(height: 8),
-          
+
           Center(
             child: Text(
               'code_sent_to'.tr.isEmpty
@@ -348,41 +499,90 @@ class _VisitorPhoneOtpPageState extends ConsumerState<VisitorPhoneOtpPage> {
             ),
           ),
 
-          const SizedBox(height: 40),
+          const SizedBox(height: 12),
 
-          // OTP input
-          PinCodeTextField(
-            appContext: context,
-            controller: _otpController,
-            length: 6,
-            keyboardType: TextInputType.number,
-            animationType: AnimationType.fade,
-            pinTheme: PinTheme(
-              shape: PinCodeFieldShape.box,
-              borderRadius: BorderRadius.circular(12),
-              fieldHeight: 56,
-              fieldWidth: 48,
-              activeFillColor: Colors.white,
-              inactiveFillColor: Colors.grey.shade50,
-              selectedFillColor: Colors.white,
-              activeColor: ColorPages.COLOR_PRINCIPAL,
-              inactiveColor: Colors.grey.shade300,
-              selectedColor: ColorPages.COLOR_PRINCIPAL,
+          // Auto-read indicator
+          Center(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.blue.shade200),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: 12,
+                    height: 12,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        Colors.blue.shade600,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'waiting_for_sms'.tr.isEmpty
+                        ? 'Waiting for SMS...'
+                        : 'waiting_for_sms'.tr,
+                    style: GoogleFonts.ubuntu(
+                      fontSize: 12,
+                      color: Colors.blue.shade700,
+                    ),
+                  ),
+                ],
+              ),
             ),
-            textStyle: GoogleFonts.ubuntu(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
-            enableActiveFill: true,
-            onCompleted: (value) {
-              _verifyOtp();
-            },
-            onChanged: (value) {
-              setState(() {
-                _errorMessage = null;
-              });
-            },
           ),
+
+          const SizedBox(height: 28),
+
+          // OTP input — only build PinCodeTextField when the OTP page is
+          // actually active. PageView eagerly inflates both children, so
+          // building PinCodeTextField before _isOtpSent causes a race if the
+          // widget gets disposed during layout (e.g. pushReplacement in
+          // _checkIfAlreadyVerified).
+          if (_isOtpSent && !_disposed)
+            PinCodeTextField(
+              appContext: context,
+              controller: _otpController,
+              length: 6,
+              keyboardType: TextInputType.number,
+              animationType: AnimationType.fade,
+              pinTheme: PinTheme(
+                shape: PinCodeFieldShape.box,
+                borderRadius: BorderRadius.circular(12),
+                fieldHeight: 56,
+                fieldWidth: 48,
+                activeFillColor: Colors.white,
+                inactiveFillColor: Colors.grey.shade50,
+                selectedFillColor: Colors.white,
+                activeColor: ColorPages.COLOR_PRINCIPAL,
+                inactiveColor: Colors.grey.shade300,
+                selectedColor: ColorPages.COLOR_PRINCIPAL,
+              ),
+              textStyle: GoogleFonts.ubuntu(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+              enableActiveFill: true,
+              onCompleted: (value) {
+                // Only verify if not already verifying or complete
+                if (!_disposed && !_isVerifying && !_verificationComplete) {
+                  _verifyOtp();
+                }
+              },
+              onChanged: (value) {
+                if (!_disposed && mounted) {
+                  setState(() {
+                    _errorMessage = null;
+                  });
+                }
+              },
+            ),
 
           // Error message
           if (_errorMessage != null) ...[
@@ -428,7 +628,9 @@ class _VisitorPhoneOtpPageState extends ConsumerState<VisitorPhoneOtpPage> {
                 : TextButton(
                     onPressed: _resendOtp,
                     child: Text(
-                      'resend_code'.tr.isEmpty ? 'Resend Code' : 'resend_code'.tr,
+                      'resend_code'.tr.isEmpty
+                          ? 'Resend Code'
+                          : 'resend_code'.tr,
                       style: GoogleFonts.ubuntu(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -480,7 +682,7 @@ class _VisitorPhoneOtpPageState extends ConsumerState<VisitorPhoneOtpPage> {
 
   Future<void> _sendOtp() async {
     final phone = _phoneController.text.trim();
-    
+
     if (phone.length < 9) {
       setState(() {
         _errorMessage = 'invalid_phone'.tr.isEmpty
@@ -497,70 +699,132 @@ class _VisitorPhoneOtpPageState extends ConsumerState<VisitorPhoneOtpPage> {
 
     try {
       final fullPhone = '+243$phone';
+
+      // Set app signature for SMS auto-read before sending OTP
+      if (_appSignature != null) {
+        ref.read(searchFlowProvider.notifier).setAppSignature(_appSignature);
+      }
+
       await ref.read(searchFlowProvider.notifier).registerVisitor(fullPhone);
-      
+
+      if (!mounted) return;
+
       setState(() {
         _isOtpSent = true;
         _formattedPhone = phone;
-        _startResendCountdown();
       });
-      
+
+      // Start listening for SMS OTP
+      _startListeningForSms();
+
+      _startResendCountdown();
+
       _pageController.nextPage(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _errorMessage = e.toString();
       });
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
   Future<void> _verifyOtp() async {
-    final otp = _otpController.text.trim();
-    
-    if (otp.length < 6) {
-      setState(() {
-        _errorMessage = 'enter_complete_code'.tr.isEmpty
-            ? 'Please enter the complete 6-digit code'
-            : 'enter_complete_code'.tr;
-      });
+    // Prevent duplicate verification calls or calls after success
+    if (_isVerifying || _isLoading || _verificationComplete) {
+      print('⚠️ Verification already in progress or complete, skipping');
       return;
     }
 
+    // Sanitize OTP: trim whitespace and keep only digits
+    final rawOtp = _otpController.text.trim();
+    final otp = rawOtp.replaceAll(RegExp(r'[^0-9]'), '');
+    
+    print('🔐 Raw OTP: "$rawOtp", Sanitized OTP: "$otp"');
+
+    if (otp.length < 6) {
+      setState(() {
+        _errorMessage = 'code_too_short'.tr.isEmpty
+            ? 'Please enter the complete 6-digit code'
+            : 'code_too_short'.tr;
+      });
+      return;
+    }
+    
+    // Ensure we're using exactly 6 digits
+    final otpToVerify = otp.substring(0, 6);
+    
+    print('📤 Verifying OTP: "$otpToVerify" (length: ${otpToVerify.length})');
+
     setState(() {
+      _isVerifying = true;
       _isLoading = true;
       _errorMessage = null;
     });
 
     try {
-      await ref.read(searchFlowProvider.notifier).verifyOtp(otp);
-      
+      // Stop listening for SMS since we're verifying
+      cancel();
+
+      await ref.read(searchFlowProvider.notifier).verifyOtp(otpToVerify);
+
+      if (!mounted) return;
+
       // Check state after verification
       final state = ref.read(searchFlowProvider);
       if (state.otpVerified) {
+        // Mark verification as complete to prevent any further actions
+        _verificationComplete = true;
+
+        // Save the verified phone number locally
+        final fullPhone = '+243$_formattedPhone';
+        await _visitorService.saveVisitorPhone(fullPhone);
+        print('✅ Phone number saved: $fullPhone');
+
         if (mounted) {
-          context.push('/blood-search/payment');
+          // Navigate to payment page (confirm step in blood search flow)
+          // Use pushReplacement to remove this page from the stack
+          context.pushReplacement('/blood-search/payment');
         }
       } else {
-        setState(() {
-          _errorMessage = state.errorMessage ?? ('invalid_otp'.tr.isEmpty
-              ? 'Invalid verification code. Please try again.'
-              : 'invalid_otp'.tr);
-        });
+        if (mounted) {
+          setState(() {
+            _isVerifying = false; // Allow retry on failure
+            _errorMessage =
+                state.errorMessage ??
+                ('invalid_otp'.tr.isEmpty
+                    ? 'Invalid verification code. Please try again.'
+                    : 'invalid_otp'.tr);
+          });
+        }
       }
     } catch (e) {
-      setState(() {
-        _errorMessage = e.toString();
-      });
+      if (mounted) {
+        setState(() {
+          _isVerifying = false; // Allow retry on error
+          _errorMessage = e.toString();
+        });
+      }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted && !_verificationComplete) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
   void _resendOtp() {
+    // Reset verification state when resending
+    setState(() {
+      _isVerifying = false;
+      _otpController.clear();
+      _errorMessage = null;
+    });
     _sendOtp();
   }
 

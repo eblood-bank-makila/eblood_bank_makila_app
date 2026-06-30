@@ -76,38 +76,32 @@ class OptionChoiceBottomSheet extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            result.hospitalName ?? result.bloodBankName,
-                            style: GoogleFonts.ubuntu(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.grey.shade800,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 4),
                           Row(
                             children: [
-                              Icon(Iconsax.location, 
-                                  size: 14, color: Colors.grey.shade500),
+                              Icon(Iconsax.routing_2, 
+                                  size: 14, color: Colors.blue.shade600),
                               const SizedBox(width: 4),
-                              Expanded(
-                                child: Text(
-                                  result.address ?? 'Address not available',
-                                  style: GoogleFonts.ubuntu(
-                                    fontSize: 12,
-                                    color: Colors.grey.shade600,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
+                              Text(
+                                result.formattedDistance,
+                                style: GoogleFonts.ubuntu(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blue.shade700,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                'away'.tr.isEmpty ? 'away' : 'away'.tr,
+                                style: GoogleFonts.ubuntu(
+                                  fontSize: 11,
+                                  color: Colors.grey.shade500,
                                 ),
                               ),
                             ],
                           ),
                           // Price info
                           if (result.price > 0) ...[
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 8),
                             Text(
                               result.formattedPrice,
                               style: GoogleFonts.ubuntu(
@@ -147,7 +141,9 @@ class OptionChoiceBottomSheet extends StatelessWidget {
                   subtitle: 'get_directions'.tr.isEmpty
                       ? 'Get directions to visit yourself'
                       : 'get_directions'.tr,
-                  price: '500 CDF',
+                  price: result.price > 0
+                      ? '${result.currencySymbol ?? r'$'}${(result.price * 0.10).toStringAsFixed(2)}'
+                      : '500 CDF',
                   onTap: onViewAddress,
                 ),
 
@@ -161,7 +157,9 @@ class OptionChoiceBottomSheet extends StatelessWidget {
                   subtitle: 'have_it_delivered'.tr.isEmpty
                       ? 'Have it delivered to you'
                       : 'have_it_delivered'.tr,
-                  price: '5,000 CDF',
+                  price: result.price > 0
+                      ? result.formattedPrice
+                      : '5,000 CDF',
                   onTap: onOrderDelivery,
                   isPremium: true,
                 ),

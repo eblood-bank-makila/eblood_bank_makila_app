@@ -1,11 +1,13 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
-import '../../utilisateurs/business/models/code_otp/DatumCodeOtpModele.dart';
+import '../../users/business/models/code_otp/DatumCodeOtpModele.dart';
+import '../../core/services/session_user_store.dart';
 import '../config/api/dio_client.dart';
 
 class AuthApi {
@@ -15,6 +17,22 @@ class AuthApi {
   final GetStorage _storage = GetStorage();
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
 
+  /// Safely read from FlutterSecureStorage, handling corrupted encryption keys.
+  /// On Android, a BadPaddingException can occur when the Keystore key is
+  /// invalidated (OS update, app reinstall, backup restore). In that case
+  /// the corrupted entry is deleted and null is returned.
+  Future<String?> _safeSecureRead(String key) async {
+    try {
+      return await _secureStorage.read(key: key);
+    } on PlatformException catch (e) {
+      debugPrint('⚠️ SecureStorage corrupted for key "$key": ${e.message} — clearing entry');
+      try {
+        await _secureStorage.delete(key: key);
+      } catch (_) {}
+      return null;
+    }
+  }
+
   // Dio get _dio => DioClient().dio;
 
   static const String _loginEndpoint = '/eblood/auth/login';
@@ -22,17 +40,22 @@ class AuthApi {
   static const String _resendOtpEndpoint = '/eblood/auth/resend-otp';
   static const String _validateOtpEndpoint = '/eblood/auth/mobile-validate-otp';
   static const String _userProfileEndpoint = '/auth/user-profile';
-  static const String _visitorLoginCheckEndpoint = '/eblood-connect/users/login-visitor';
+  // Sprint 16 — split the old single /eblood-connect/users/login-visitor
+  // endpoint (which was overloaded as GET=check and POST=create) into the
+  // new clean POST-only surface:
+  //   /api/v1/auth/visitor/check-existing  -> already-linked device check
+  //   /api/v1/auth/visitor/create-visitor  -> first-time enrolment
+  static const String _visitorCheckExistingEndpoint = '/auth/visitor/check-existing';
+  static const String _visitorCreateEndpoint = '/auth/visitor/create-visitor';
 
   // Visitor endpoints
   Future<Map<String, dynamic>> visitorLoginCheck() async {
     try {
-      final response = await getWithDio(
-        _visitorLoginCheckEndpoint,
-        // headers: {
-        //   // Ensure no stale Authorization interferes; visitor check is anonymous
-        //   'Authorization': '',
-        // },
+      // Sprint 16: was GET, now POST (no body) on the new clean surface.
+      final response = await postWithDio(
+        _visitorCheckExistingEndpoint,
+        // No body — identification is by device fingerprint headers handled
+        // server-side. Anonymous: no stale Authorization should interfere.
       );
 
       final bool success = response.success;
@@ -82,6 +105,12 @@ class AuthApi {
         final String accountType = _deriveAccountTypeFromProfiles(normalizedProfiles);
         await _storage.write('account_type', accountType);
 
+        // Durable secure-storage copy for the logged-in user bar.
+        await SessionUserStore.saveFromUserData(
+          userData: responseData['user'] is Map ? responseData['user'] as Map : null,
+          accountType: accountType,
+        );
+
         return {
           'success': true,
           'nextAction': 'login',
@@ -121,11 +150,13 @@ class AuthApi {
     required String locationId,
   }) async {
     try {
+      // Sprint 16: was POST /eblood-connect/users/login-visitor, now
+      // POST /api/v1/auth/visitor/create-visitor.
       final response = await postWithDio(
-        _visitorLoginCheckEndpoint,
+        _visitorCreateEndpoint,
         body: {
           'location_id': locationId,
-        }, 
+        },
       );
 
       final bool success = response.success;
@@ -172,6 +203,12 @@ class AuthApi {
         // Derive and persist a normalized account_type used by UI routing
         final String accountType = _deriveAccountTypeFromProfiles(normalizedProfiles);
         await _storage.write('account_type', accountType);
+
+        // Durable secure-storage copy for the logged-in user bar.
+        await SessionUserStore.saveFromUserData(
+          userData: responseData['user'] is Map ? responseData['user'] as Map : null,
+          accountType: accountType,
+        );
 
         return {
           'success': true,
@@ -279,6 +316,13 @@ class AuthApi {
         // Derive and persist a normalized account_type used by UI routing
         final String accountType = _deriveAccountTypeFromProfiles(normalizedProfiles);
         await _storage.write('account_type', accountType);
+
+        // Extract and save identifier + user_entity info
+        await _extractAndSaveIdentifier(
+          profiles: normalizedProfiles,
+          accountType: accountType,
+          userData: data['user'] is Map ? (data['user'] as Map).cast<String, dynamic>() : null,
+        );
 
         return {
           'success': true,
@@ -441,6 +485,13 @@ class AuthApi {
             final String accountType = _deriveAccountTypeFromProfiles(profilsRaw.cast<dynamic>());
             await _storage.write('account_type', accountType);
             print('💾 Stored account_type: $accountType');
+
+            // Extract and save identifier + user_entity info
+            await _extractAndSaveIdentifier(
+              profiles: profilsRaw.cast<dynamic>(),
+              accountType: accountType,
+              userData: userObj,
+            );
           }
         }
 
@@ -594,7 +645,7 @@ class AuthApi {
   /// Uses the current auth token from secure storage
   Future<DatumCodeOtpModele?> getUserProfile() async {
     try {
-      final String? token = await _secureStorage.read(key: 'auth_token');
+      final String? token = await _safeSecureRead('auth_token');
       if (token == null || token.isEmpty) {
         print("⚠️ getUserProfile called with empty token");
         return null;
@@ -667,6 +718,13 @@ class AuthApi {
         final String accountType = _deriveAccountTypeFromProfiles(profilsRaw.cast<dynamic>());
         await _storage.write('account_type', accountType);
         print('💾 Stored account_type: $accountType');
+
+        // Extract and save identifier + user_entity info
+        await _extractAndSaveIdentifier(
+          profiles: profilsRaw.cast<dynamic>(),
+          accountType: accountType,
+          userData: userMap,
+        );
       }
       
       // Map API user payload to our DatumCodeOtpModele structure
@@ -764,7 +822,7 @@ class AuthApi {
   /// Clears all tokens and user data from storage
   Future<bool> logout() async {
     try {
-      final token = await _secureStorage.read(key: 'auth_token');
+      final token = await _safeSecureRead('auth_token');
 
       if (token != null && token.isNotEmpty) {
         try {
@@ -786,6 +844,7 @@ class AuthApi {
       // Clear local storage
       await _secureStorage.delete(key: 'auth_token');
       await _secureStorage.delete(key: 'refresh_token');
+      await SessionUserStore.clear();
 
       await _storage.remove('auth_token');
       await _storage.remove('refresh_token');
@@ -794,6 +853,10 @@ class AuthApi {
       await _storage.remove('user_profils');
       await _storage.remove('account_type');
       await _storage.remove('socket_hash');
+      
+      // Clear cached health structure data
+      await _storage.remove('cached_health_structure');
+      await _storage.remove('cached_health_structure_timestamp');
 
       // Sign out from Firebase Auth (Google Sign-In)
       try {
@@ -812,6 +875,47 @@ class AuthApi {
       print("💥 Error during logout: $e");
       return false;
     }
+  }
+
+  /// Extract identifier from user profiles and persist along with user_entity info.
+  /// This stores 'user_identifier' and 'user_entity_id'/'user_entity_name' to GetStorage
+  /// so the search flow can auto-identify hospital accounts.
+  Future<void> _extractAndSaveIdentifier({
+    required List<dynamic> profiles,
+    required String accountType,
+    Map<String, dynamic>? userData,
+  }) async {
+    // 1. Extract identifier from profiles matching the derived account type
+    String identifier = '';
+    for (final p in profiles) {
+      if (p is Map) {
+        final id = (p['identifier'] ?? '').toString().trim();
+        if (id.isNotEmpty) {
+          identifier = id;
+          break; // take the first non-empty identifier
+        }
+      }
+    }
+    await _storage.write('user_identifier', identifier);
+    print('💾 Stored user_identifier: $identifier');
+
+    // 2. Persist user_entity id & name for hospital auto-identification
+    if (userData != null && userData['user_entity'] is Map) {
+      final entity = (userData['user_entity'] as Map).cast<String, dynamic>();
+      final entityId = (entity['id'] ?? entity['_id'] ?? '').toString();
+      final entityName = (entity['entity_name'] ?? entity['name'] ?? '').toString();
+      await _storage.write('user_entity_id', entityId);
+      await _storage.write('user_entity_name', entityName);
+      print('💾 Stored user_entity_id: $entityId, user_entity_name: $entityName');
+    }
+
+    // 3. Persist a durable, secure-storage copy of the display info so the
+    // logged-in user bar (blood-search / QR page) survives an app kill or hot
+    // restart even when the GetStorage `user_data` cache is missing.
+    await SessionUserStore.saveFromUserData(
+      userData: userData,
+      accountType: accountType,
+    );
   }
 }
 

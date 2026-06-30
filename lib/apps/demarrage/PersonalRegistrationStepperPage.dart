@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:ionicons/ionicons.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../core/widgets/network_status_widget.dart';
 import '../widgets/CustomTextField.dart';
@@ -452,7 +451,7 @@ class _PersonalRegistrationStepperPageState extends State<PersonalRegistrationSt
                     controller: _firstNameController,
                     label: 'first_name'.tr,
                     hint: 'hint_first_name'.tr,
-                    prefixIcon: Ionicons.person_outline,
+                    prefixIcon: Icons.person_outline,
                     validator: _validateRequired,
                   ),
                 ),
@@ -462,7 +461,7 @@ class _PersonalRegistrationStepperPageState extends State<PersonalRegistrationSt
                     controller: _lastNameController,
                     label: 'last_name'.tr,
                     hint: 'hint_last_name'.tr,
-                    prefixIcon: Ionicons.person_outline,
+                    prefixIcon: Icons.person_outline,
                     validator: _validateRequired,
                   ),
                 ),
@@ -488,7 +487,7 @@ class _PersonalRegistrationStepperPageState extends State<PersonalRegistrationSt
                   controller: _dateOfBirthController,
                   label: 'date_of_birth'.tr,
                   hint: 'hint_date_format'.tr,
-                  prefixIcon: Ionicons.calendar_outline,
+                  prefixIcon: Icons.calendar_today,
                   validator: _validateDateOfBirth,
                 ),
               ),
@@ -531,7 +530,7 @@ class _PersonalRegistrationStepperPageState extends State<PersonalRegistrationSt
                         controller: _emailController,
                         label: 'email'.tr,
                         hint: 'hint_email'.tr,
-                        prefixIcon: Ionicons.mail_outline,
+                        prefixIcon: Icons.mail_outline,
                         keyboardType: TextInputType.emailAddress,
                         enabled: !_isGoogleMode,
                         validator: _isGoogleMode ? null : _validateEmail,
@@ -542,7 +541,7 @@ class _PersonalRegistrationStepperPageState extends State<PersonalRegistrationSt
                           child: Row(
                             children: [
                               Icon(
-                                Ionicons.shield_checkmark,
+                                Icons.verified_user,
                                 size: 16,
                                 color: Colors.green[600],
                               ),
@@ -568,7 +567,7 @@ class _PersonalRegistrationStepperPageState extends State<PersonalRegistrationSt
                     controller: _addressController,
                     label: 'address'.tr,
                     hint: 'hint_address'.tr,
-                    prefixIcon: Ionicons.home_outline,
+                    prefixIcon: Icons.home_outlined,
                     validator: _validateRequired,
                     maxLines: 2,
                   ),
@@ -644,7 +643,7 @@ class _PersonalRegistrationStepperPageState extends State<PersonalRegistrationSt
                     hintStyle: TextStyle(color: Colors.grey[400]),
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    prefixIcon: Icon(Ionicons.call_outline, color: Colors.grey[600], size: 20),
+                    prefixIcon: Icon(Icons.phone_outlined, color: Colors.grey[600], size: 20),
                     errorText: _phoneError,
                   ),
                   keyboardType: TextInputType.phone,
@@ -715,7 +714,7 @@ class _PersonalRegistrationStepperPageState extends State<PersonalRegistrationSt
           children: [
             const SizedBox(height: 32),
             Icon(
-              Ionicons.alert_circle_outline,
+              Icons.error_outline,
               size: 48,
               color: Colors.red[300],
             ),
@@ -743,7 +742,7 @@ class _PersonalRegistrationStepperPageState extends State<PersonalRegistrationSt
           children: [
             const SizedBox(height: 32),
             Icon(
-              Ionicons.location_outline,
+              Icons.location_on_outlined,
               size: 48,
               color: Colors.grey[400],
             ),
@@ -786,7 +785,7 @@ class _PersonalRegistrationStepperPageState extends State<PersonalRegistrationSt
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Icon(
-                  Ionicons.information_circle_outline,
+                  Icons.info_outline,
                   color: ColorPages.COLOR_BLUE,
                   size: 24,
                 ),
@@ -875,7 +874,7 @@ class _PersonalRegistrationStepperPageState extends State<PersonalRegistrationSt
                       ),
                       if (isSelected)
                         const Icon(
-                          Ionicons.checkmark_circle,
+                          Icons.check_circle,
                           color: ColorPages.COLOR_BLUE,
                           size: 24,
                         ),
@@ -901,7 +900,7 @@ class _PersonalRegistrationStepperPageState extends State<PersonalRegistrationSt
                 controller: _passwordController,
                 label: 'password'.tr,
                 hint: 'hint_password'.tr,
-                prefixIcon: Ionicons.lock_closed_outline,
+                prefixIcon: Icons.lock_outline,
                 obscureText: true,
                 validator: _validatePassword,
               ),
@@ -910,7 +909,7 @@ class _PersonalRegistrationStepperPageState extends State<PersonalRegistrationSt
                 controller: _confirmPasswordController,
                 label: 'confirm_password'.tr,
                 hint: 'hint_confirm_password'.tr,
-                prefixIcon: Ionicons.lock_closed_outline,
+                prefixIcon: Icons.lock_outline,
                 obscureText: true,
                 validator: _validateConfirmPassword,
               ),
@@ -1102,9 +1101,6 @@ class _PersonalRegistrationStepperPageState extends State<PersonalRegistrationSt
         } else if (locale.startsWith('es')) {
           // Spanish format: DD/MM/YYYY
           _dateOfBirthController.text = "${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}";
-        } else if (locale.startsWith('ar')) {
-          // Arabic format: DD/MM/YYYY (right-to-left)
-          _dateOfBirthController.text = "${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}";
         } else {
           // Default format (English, etc.): YYYY-MM-DD
           _dateOfBirthController.text = "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
@@ -1119,7 +1115,7 @@ class _PersonalRegistrationStepperPageState extends State<PersonalRegistrationSt
     String locale = Get.locale?.toString() ?? 'en_US';
 
     // Only normalize if not already in YYYY-MM-DD format
-    if (locale.startsWith('fr') || locale.startsWith('es') || locale.startsWith('ar')) {
+    if (locale.startsWith('fr') || locale.startsWith('es')) {
       try {
         // Convert from DD/MM/YYYY to YYYY-MM-DD for API
         final parts = _dateOfBirthController.text.split('/');
@@ -1223,8 +1219,8 @@ class _PersonalRegistrationStepperPageState extends State<PersonalRegistrationSt
           await authService.handleAutoLoginAfterRegistration(result);
 
           if (mounted) {
-            // Auto-login: go straight to the main app
-            context.go('/app/MainApp');
+            // Auto-login: go through RBAC loading
+            context.go('/rbac-loading');
           }
         } else {
           final msg = (result['message'] as String?) ?? 'Registration failed';

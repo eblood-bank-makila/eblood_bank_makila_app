@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get_storage/get_storage.dart';
 import '../utils/error_utils.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -20,15 +21,15 @@ import '../ins/id_extraction.dart';
 
 
 
-class VolunteerRegistrationStepper extends StatefulWidget {
+class VolunteerRegistrationStepper extends ConsumerStatefulWidget {
   final IdExtractedData? prefill;
   const VolunteerRegistrationStepper({super.key, this.prefill});
 
   @override
-  State<VolunteerRegistrationStepper> createState() => _VolunteerRegistrationStepperState();
+  ConsumerState<VolunteerRegistrationStepper> createState() => _VolunteerRegistrationStepperState();
 }
 
-class _VolunteerRegistrationStepperState extends State<VolunteerRegistrationStepper> {
+class _VolunteerRegistrationStepperState extends ConsumerState<VolunteerRegistrationStepper> {
   int _step = 0;
   bool _loading = false;
 
@@ -66,7 +67,7 @@ class _VolunteerRegistrationStepperState extends State<VolunteerRegistrationStep
 
   final _formKey = GlobalKey<FormState>();
   final _box = GetStorage();
-  final _api = BloodDonorApiService();
+  BloodDonorApiService get _api => ref.read(bloodDonorApiServiceProvider);
 
   @override
   void initState() {

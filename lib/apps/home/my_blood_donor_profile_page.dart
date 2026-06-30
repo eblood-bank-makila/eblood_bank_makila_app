@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
@@ -9,19 +10,20 @@ import 'dart:typed_data';
 import 'package:flutter/rendering.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
+import '../../core/rbac/services/rbac_guard.dart';
 import '../config/api/dio_client.dart';
 
-class MyBloodDonorProfilePage extends StatefulWidget {
+class MyBloodDonorProfilePage extends ConsumerStatefulWidget {
   const MyBloodDonorProfilePage({Key? key}) : super(key: key);
 
   @override
-  State<MyBloodDonorProfilePage> createState() => _MyBloodDonorProfilePageState();
+  ConsumerState<MyBloodDonorProfilePage> createState() => _MyBloodDonorProfilePageState();
 }
 
-class _MyBloodDonorProfilePageState extends State<MyBloodDonorProfilePage> {
+class _MyBloodDonorProfilePageState extends ConsumerState<MyBloodDonorProfilePage> {
   final GlobalKey _idCardKey = GlobalKey();
   final GlobalKey _qrKey = GlobalKey();
-  
+
   bool _isLoading = true;
   bool _hasError = false;
   String _errorMessage = '';
@@ -30,6 +32,12 @@ class _MyBloodDonorProfilePageState extends State<MyBloodDonorProfilePage> {
   @override
   void initState() {
     super.initState();
+    // RBAC entry guard.
+    guardPageEntry(
+      ref,
+      context,
+      'flutter_apps_eblood_bank_cust_home_donor_profile',
+    );
     _fetchDonorProfile();
   }
 
@@ -40,7 +48,8 @@ class _MyBloodDonorProfilePageState extends State<MyBloodDonorProfilePage> {
     });
 
     try {
-      final response = await getWithDio('/eblood-connect/blood-donors/me');
+      // Sprint 12 — migrated to the donor self-service module.
+      final response = await getWithDio('/blood-donors/me');
       
       if (response.success && response.data != null) {
         setState(() {

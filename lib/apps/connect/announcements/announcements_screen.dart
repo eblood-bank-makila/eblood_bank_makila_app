@@ -1,33 +1,43 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../core/rbac/providers/rbac_provider.dart';
 import '../../config/theme/ColorPages.dart';
 import 'announcements_controller.dart';
 import 'create_announcements_screen.dart';
 import 'package:iconsax/iconsax.dart';
-import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/notification/NotificationPage.dart';
+import 'package:eblood_bank_mak_app/users/ui/pages/notification/NotificationPage.dart';
 
-class AnnouncementsScreen extends StatelessWidget {
+class AnnouncementsScreen extends ConsumerWidget {
   final bool showBackButton;
 
   const AnnouncementsScreen({super.key, this.showBackButton = true});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final controller = Get.isRegistered<AnnouncementsController>()
         ? Get.find<AnnouncementsController>()
         : Get.put(AnnouncementsController());
     final theme = Theme.of(context);
     final canPop = Navigator.of(context).canPop() && showBackButton;
+
+    // RBAC gates for sub-menu actions reachable from this screen.
+    final rbac = ref.watch(rbacProvider.notifier);
+    final canCreate = rbac.hasMenuFlag('flutter_apps_eblood_bank_cust_announcement_create');
+    final canDetail = rbac.hasMenuFlag('flutter_apps_eblood_bank_cust_announcement_detail');
+
     return Scaffold(
-      floatingActionButton: FloatingActionButton.extended(
-        heroTag: 'announcements_add_fab',
-        onPressed: () => _showCreateSheet(context, controller),
-        backgroundColor: ColorPages.COLOR_PRINCIPAL,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: Text('add'.tr, style: const TextStyle(color: Colors.white)),
-      ),
+      floatingActionButton: canCreate
+          ? FloatingActionButton.extended(
+              heroTag: 'announcements_add_fab',
+              onPressed: () => _showCreateSheet(context, controller),
+              backgroundColor: ColorPages.COLOR_PRINCIPAL,
+              icon: const Icon(Icons.add, color: Colors.white),
+              label: Text('add'.tr, style: const TextStyle(color: Colors.white)),
+            )
+          : null,
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -123,7 +133,7 @@ class AnnouncementsScreen extends StatelessWidget {
                       const SizedBox(height: 8),
                       _priorityBanner(controller),
                       _filterTabs(theme, controller),
-                      Expanded(child: _list(theme, controller)),
+                      Expanded(child: _list(theme, controller, canDetail: canDetail)),
                     ],
                   ),
                 ),
@@ -196,7 +206,7 @@ class AnnouncementsScreen extends StatelessWidget {
     );
   }
 
-  Widget _list(ThemeData theme, AnnouncementsController controller) {
+  Widget _list(ThemeData theme, AnnouncementsController controller, {required bool canDetail}) {
     return Obx(() => controller.isLoading.value
         ? const Center(child: CircularProgressIndicator())
     : controller.filteredAnnouncements.isEmpty
@@ -210,14 +220,14 @@ class AnnouncementsScreen extends StatelessWidget {
                     final a = controller.filteredAnnouncements[index];
                     return GestureDetector(
                       onLongPress: () => _showManageSheet(context, controller, a),
-                      child: _card(theme, a),
+                      child: _card(theme, a, canDetail: canDetail),
                     );
                   },
                 ),
               ));
   }
 
-  Widget _card(ThemeData theme, AnnouncementModel a) {
+  Widget _card(ThemeData theme, AnnouncementModel a, {required bool canDetail}) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -228,12 +238,15 @@ class AnnouncementsScreen extends StatelessWidget {
           width: 0.4,
         ),
       ),
-      child: ListTile(
-        leading: const Icon(Icons.campaign),
-        title: Text(a.title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
-        subtitle: Text(a.location),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: () {},
+      child: Opacity(
+        opacity: canDetail ? 1.0 : 0.5,
+        child: ListTile(
+          leading: const Icon(Icons.campaign),
+          title: Text(a.title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+          subtitle: Text(a.location),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: canDetail ? () {} : null,
+        ),
       ),
     );
   }

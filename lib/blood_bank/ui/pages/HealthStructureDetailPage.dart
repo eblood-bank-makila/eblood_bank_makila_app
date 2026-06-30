@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:animate_do/animate_do.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
@@ -11,9 +12,10 @@ import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:get/get.dart';
 import '../../../apps/config/theme/ColorPages.dart';
+import '../../../core/rbac/providers/rbac_provider.dart';
 import '../../data/models/HealthStructureModel.dart';
 
-class HealthStructureDetailPage extends StatefulWidget {
+class HealthStructureDetailPage extends ConsumerStatefulWidget {
   final HealthStructureModel structure;
 
   const HealthStructureDetailPage({
@@ -22,10 +24,10 @@ class HealthStructureDetailPage extends StatefulWidget {
   });
 
   @override
-  State<HealthStructureDetailPage> createState() => _HealthStructureDetailPageState();
+  ConsumerState<HealthStructureDetailPage> createState() => _HealthStructureDetailPageState();
 }
 
-class _HealthStructureDetailPageState extends State<HealthStructureDetailPage> with SingleTickerProviderStateMixin {
+class _HealthStructureDetailPageState extends ConsumerState<HealthStructureDetailPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final MapController _mapController = MapController();
   LatLng? _currentPosition;
@@ -38,6 +40,24 @@ class _HealthStructureDetailPageState extends State<HealthStructureDetailPage> w
   @override
   void initState() {
     super.initState();
+    // Multi-flag entry guard — reachable from blood_bank, hospital,
+    // customer, AND cnts network lists. Any one of the detail sub_menu
+    // flags grants access.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!context.mounted) return;
+      final hasAccess = ref.read(rbacProvider.notifier).hasAnyMenuFlag([
+        'flutter_apps_eblood_bank_bb_network_detail',
+        'flutter_apps_eblood_bank_hosp_network_detail',
+        'flutter_apps_eblood_bank_cust_network_detail',
+        'flutter_apps_eblood_bank_cnts_network_detail',
+      ]);
+      if (!hasAccess) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('access_denied'.tr)),
+        );
+        Navigator.of(context).maybePop();
+      }
+    });
     _tabController = TabController(length: 2, vsync: this);
     _initializeMap();
   }

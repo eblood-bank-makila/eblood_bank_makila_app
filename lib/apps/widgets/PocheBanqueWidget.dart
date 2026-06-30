@@ -1,11 +1,11 @@
 import 'package:animate_do/animate_do.dart';
 import 'package:eblood_bank_mak_app/apps/config/theme/ColorPages.dart';
 import 'package:eblood_bank_mak_app/apps/widgets/DetailsPocheBanqueWidget.dart';
-import 'package:eblood_bank_mak_app/gestionStocks/business/model/banque/BanqueModele.dart';
+import 'package:eblood_bank_mak_app/stock_management/business/model/banque/BanqueModele.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get/get.dart';
-import '../../gestionStocks/business/model/poche/PocheModel.dart';
+import '../../stock_management/business/model/poche/PocheModel.dart';
 
 class PocheBanqueWidget extends ConsumerWidget {
   final PocheModel poches;

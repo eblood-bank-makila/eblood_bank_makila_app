@@ -5,7 +5,7 @@ import 'package:get/get.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:csv/csv.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
-import 'package:open_file/open_file.dart';
+import 'package:open_filex/open_filex.dart';
 import '../../../apps/config/theme/ColorPages.dart';
 
 class ReportPreviewDialog extends StatefulWidget {
@@ -788,7 +788,7 @@ class _ReportPreviewDialogState extends State<ReportPreviewDialog> {
       );
 
       // Open file with system default application
-      final result = await OpenFile.open(widget.filePath);
+      final result = await OpenFilex.open(widget.filePath);
 
       print('📂 Open file result: ${result.type} - ${result.message}');
 

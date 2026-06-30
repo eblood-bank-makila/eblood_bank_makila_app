@@ -1,7 +1,7 @@
 // import 'package:eblood_bank_mak_app/apps/config/theme/ColorPages.dart';
 // import 'package:eblood_bank_mak_app/apps/config/utils/Utils.dart';
-// import 'package:eblood_bank_mak_app/commande/business/model/DatumPanierModel.dart';
-// import 'package:eblood_bank_mak_app/commande/ui/pages/panier/PanierCtrl.dart';
+// import 'package:eblood_bank_mak_app/orders/business/model/DatumPanierModel.dart';
+// import 'package:eblood_bank_mak_app/orders/ui/pages/panier/PanierCtrl.dart';
 // import 'package:flutter/material.dart';
 // import 'package:flutter_riverpod/flutter_riverpod.dart';
 // import 'package:flutter_svg/flutter_svg.dart';
@@ -9,11 +9,11 @@
 
 import 'package:eblood_bank_mak_app/apps/config/theme/ColorPages.dart';
 import 'package:eblood_bank_mak_app/apps/config/utils/Utils.dart';
-import 'package:eblood_bank_mak_app/commande/business/model/DatumPanierModel.dart';
-import 'package:eblood_bank_mak_app/commande/ui/pages/panier/PanierCtrl.dart';
+import 'package:eblood_bank_mak_app/orders/business/model/DatumPanierModel.dart';
+import 'package:eblood_bank_mak_app/orders/ui/pages/panier/PanierCtrl.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../commande/business/model/CartItemPanierModel.dart';
+import '../../orders/business/model/CartItemPanierModel.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:iconsax/iconsax.dart';

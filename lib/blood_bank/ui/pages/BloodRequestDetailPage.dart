@@ -6,8 +6,11 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:animate_do/animate_do.dart';
+import '../../../core/rbac/services/rbac_guard.dart';
+import '../../../core/rbac/providers/rbac_provider.dart';
+import '../../../core/rbac/services/rbac_url_helper.dart';
+import '../../../core/rbac/enums/collection_crud_info_flag.dart';
 import '../../data/models/blood_request_model.dart';
-import '../../data/services/blood_request_service.dart';
 import '../../providers/blood_request_provider.dart';
 
 
@@ -42,10 +45,25 @@ class _BloodRequestDetailPageState extends ConsumerState<BloodRequestDetailPage>
   bool _isLoading = false;
   bool _isConfirmingPickup = false;
   String? _error;
+  late final bool _canConfirmPickup;
 
   @override
   void initState() {
     super.initState();
+    // RBAC entry guard.
+    guardPageEntry(
+      ref,
+      context,
+      'flutter_apps_eblood_bank_bb_requests_detail',
+    );
+    final crudInfo = ref.read(rbacProvider.notifier).getCrudInfoByPath(
+      'flutter_apps_eblood_bank_bb_requests_detail',
+    );
+    _canConfirmPickup = RbacUrlHelper().hasRbacUrl(
+      CollectionCrudInfoFlag.updateProcessingUrl,
+      'confirm_pickup_url',
+      crudInfo,
+    );
     _request = widget.initialRequest;
     if (_request == null) {
       _fetchRequestDetails();
@@ -59,7 +77,7 @@ class _BloodRequestDetailPageState extends ConsumerState<BloodRequestDetailPage>
     });
 
     try {
-      final service = BloodRequestService();
+      final service = ref.read(bloodRequestServiceProvider);
       final request = await service.getBloodRequestById(widget.requestId);
       setState(() {
         _request = request;
@@ -367,7 +385,7 @@ class _BloodRequestDetailPageState extends ConsumerState<BloodRequestDetailPage>
                   ),
 
                 // Confirm Pickup Button
-                if (_shouldShowConfirmPickupButton(request.status))
+                if (_canConfirmPickup && _shouldShowConfirmPickupButton(request.status))
                   FadeInDown(
                     duration: const Duration(milliseconds: 1000),
                     child: Padding(

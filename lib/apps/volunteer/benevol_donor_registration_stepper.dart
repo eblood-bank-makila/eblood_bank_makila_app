@@ -1,12 +1,14 @@
 import 'dart:io';
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:go_router/go_router.dart';
+import '../../core/rbac/services/rbac_guard.dart';
 import '../config/theme/ColorPages.dart';
 import '../widgets/GradientScaffold.dart';
 import '../../core/widgets/location_tree_select.dart';
@@ -17,21 +19,20 @@ import '../widgets/CustomTextField.dart';
 import '../widgets/CustomDropdown.dart';
 import '../models/UserInfoValidation.dart';
 import '../demarrage/OTPVerificationPage.dart';
-import 'package:ionicons/ionicons.dart';
 import '../services/AuthApi.dart';
 
 /// Stepper for users to become benevol donors (volunteer donors)
 /// Step 1: Photo selection/capture with face validation
 /// Steps 2-5: Personal information (same as PersonalRegistrationStepperPage)
-class BenevolDonorRegistrationStepper extends StatefulWidget {
+class BenevolDonorRegistrationStepper extends ConsumerStatefulWidget {
   final bool isDonor;
   const BenevolDonorRegistrationStepper({super.key, this.isDonor = false});
 
   @override
-  State<BenevolDonorRegistrationStepper> createState() => _BenevolDonorRegistrationStepperState();
+  ConsumerState<BenevolDonorRegistrationStepper> createState() => _BenevolDonorRegistrationStepperState();
 }
 
-class _BenevolDonorRegistrationStepperState extends State<BenevolDonorRegistrationStepper> {
+class _BenevolDonorRegistrationStepperState extends ConsumerState<BenevolDonorRegistrationStepper> {
   int _currentStep = 0;
   bool _loading = false;
 
@@ -92,6 +93,12 @@ class _BenevolDonorRegistrationStepperState extends State<BenevolDonorRegistrati
   @override
   void initState() {
     super.initState();
+    // RBAC entry guard — volunteer sub_menu flag.
+    guardPageEntry(
+      ref,
+      context,
+      'flutter_apps_eblood_bank_cust_home_volunteer',
+    );
     _prefillFromUser();
     _fetchLocationData();
 
@@ -707,7 +714,7 @@ class _BenevolDonorRegistrationStepperState extends State<BenevolDonorRegistrati
                     controller: _firstNameController,
                     label: 'first_name'.tr,
                     hint: 'hint_first_name'.tr,
-                    prefixIcon: Ionicons.person_outline,
+                    prefixIcon: Icons.person_outline,
                     validator: _validateRequired,
                   ),
                 ),
@@ -717,7 +724,7 @@ class _BenevolDonorRegistrationStepperState extends State<BenevolDonorRegistrati
                     controller: _lastNameController,
                     label: 'last_name'.tr,
                     hint: 'hint_last_name'.tr,
-                    prefixIcon: Ionicons.person_outline,
+                    prefixIcon: Icons.person_outline,
                     validator: _validateRequired,
                   ),
                 ),
@@ -743,7 +750,7 @@ class _BenevolDonorRegistrationStepperState extends State<BenevolDonorRegistrati
                   controller: _dateOfBirthController,
                   label: 'date_of_birth'.tr,
                   hint: 'hint_date_format'.tr,
-                  prefixIcon: Ionicons.calendar_outline,
+                  prefixIcon: Icons.calendar_today,
                   validator: _validateDateOfBirth,
                 ),
               ),
@@ -797,7 +804,7 @@ class _BenevolDonorRegistrationStepperState extends State<BenevolDonorRegistrati
                   controller: _emailController,
                   label: 'email'.tr,
                   hint: 'hint_email'.tr,
-                  prefixIcon: Ionicons.mail_outline,
+                  prefixIcon: Icons.mail_outline,
                   validator: _validateEmail,
                 ),
                 const SizedBox(height: 16),
@@ -846,7 +853,7 @@ class _BenevolDonorRegistrationStepperState extends State<BenevolDonorRegistrati
                               hint: _validPrefixes.isNotEmpty 
                                 ? '${_validPrefixes.first}XXXXXXX'
                                 : 'hint_phone'.tr,
-                              prefixIcon: Ionicons.call_outline,
+                              prefixIcon: Icons.phone_outlined,
                               keyboardType: TextInputType.phone,
                               validator: (value) => _validatePhone(value ?? ''),
                             ),
@@ -902,7 +909,7 @@ class _BenevolDonorRegistrationStepperState extends State<BenevolDonorRegistrati
                   controller: _addressController,
                   label: 'address'.tr,
                   hint: 'hint_address'.tr,
-                  prefixIcon: Ionicons.location_outline,
+                  prefixIcon: Icons.location_on_outlined,
                   maxLines: 3,
                   validator: _validateRequired,
                 ),
@@ -990,7 +997,7 @@ class _BenevolDonorRegistrationStepperState extends State<BenevolDonorRegistrati
             controller: _passwordController,
             label: 'password'.tr,
             hint: 'hint_password'.tr,
-            prefixIcon: Ionicons.lock_closed_outline,
+            prefixIcon: Icons.lock_outline,
             obscureText: true,
             validator: _validatePassword,
           ),
@@ -999,7 +1006,7 @@ class _BenevolDonorRegistrationStepperState extends State<BenevolDonorRegistrati
             controller: _confirmPasswordController,
             label: 'confirm_password'.tr,
             hint: 'hint_confirm_password'.tr,
-            prefixIcon: Ionicons.lock_closed_outline,
+            prefixIcon: Icons.lock_outline,
             obscureText: true,
             validator: _validateConfirmPassword,
           ),
@@ -1330,7 +1337,7 @@ class _BenevolDonorRegistrationStepperState extends State<BenevolDonorRegistrati
     setState(() => _loading = false);
 
     _showRegistrationSuccessDialog(onConfirm: () {
-      context.go('/app/MainApp');
+      context.go('/rbac-loading');
     });
   }
 

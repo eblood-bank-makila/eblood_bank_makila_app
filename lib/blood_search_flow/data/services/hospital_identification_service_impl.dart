@@ -1,31 +1,46 @@
 /// Hospital Identification Service Implementation
 
-import 'package:dio/dio.dart';
 import '../../domain/services/service_interfaces.dart';
 import '../../domain/entities/search_flow_state.dart';
-import '../../../core/network/dio_client.dart';
+import '../../../services/HealthStructureService.dart';
 
 class HospitalIdentificationServiceImpl implements IHospitalIdentificationService {
-  late final Dio _dio;
+  final HealthStructureService _healthStructureService;
 
-  HospitalIdentificationServiceImpl() {
-    _dio = DioClient().dio;
-  }
+  HospitalIdentificationServiceImpl(this._healthStructureService);
 
   @override
   Future<IdentifiedHospital?> identifyByCode(String code) async {
     try {
-      final response = await _dio.get(
-        '/eblood/hospitals/identify',
-        queryParameters: {'code': code},
-      );
-
-      if (response.statusCode == 200 && response.data['success'] == true) {
-        final data = response.data['data'];
-        if (data != null) {
-          return IdentifiedHospital.fromJson(data, HospitalIdentificationMethod.manualCode);
+      // Use new backend endpoint to get health structure by identifier
+      final data = await _healthStructureService.getHealthStructureByIdentifier(code);
+      
+      if (data != null) {
+        final hospitalId = data['id']?.toString();
+        print('🏥 [identifyByCode] Hospital ID from service: $hospitalId');
+        
+        // Validate hospital ID is not null, empty, or invalid string
+        if (hospitalId == null || 
+            hospitalId.isEmpty || 
+            hospitalId.toLowerCase() == 'none' || 
+            hospitalId.toLowerCase() == 'null') {
+          print('❌ [identifyByCode] Invalid hospital ID: $hospitalId');
+          return null;
         }
+        
+        final hospital = IdentifiedHospital(
+          id: hospitalId,
+          code: data['identifier']?.toString() ?? code,
+          name: data['name']?.toString() ?? 'Unknown',
+          address: data['address']?.toString(),
+          latitude: data['latitude'] is num ? (data['latitude'] as num).toDouble() : null,
+          longitude: data['longitude'] is num ? (data['longitude'] as num).toDouble() : null,
+          method: HospitalIdentificationMethod.manualCode,
+        );
+        print('✅ [identifyByCode] Created IdentifiedHospital with ID: ${hospital.id}');
+        return hospital;
       }
+      
       return null;
     } catch (e) {
       print('HospitalIdentificationService.identifyByCode error: $e');
@@ -36,52 +51,54 @@ class HospitalIdentificationServiceImpl implements IHospitalIdentificationServic
   @override
   Future<IdentifiedHospital?> identifyFromQrContent(String qrContent) async {
     try {
+      // QR content is the identifier string
       // Parse QR content - could be JSON, URL, or plain code
-      String? hospitalId;
       String? hospitalCode;
 
       // Try parsing as JSON
       if (qrContent.startsWith('{')) {
         try {
           final Map<String, dynamic> jsonData = _parseJson(qrContent);
-          hospitalId = jsonData['hospital_id']?.toString() ?? jsonData['id']?.toString();
-          hospitalCode = jsonData['code']?.toString() ?? jsonData['hospital_code']?.toString();
+          hospitalCode = jsonData['identifier']?.toString() ?? 
+                        jsonData['code']?.toString() ?? 
+                        jsonData['hospital_code']?.toString();
         } catch (_) {}
       }
       
       // Try parsing as deep link URL
-      if (hospitalId == null && hospitalCode == null) {
+      if (hospitalCode == null) {
         final uri = Uri.tryParse(qrContent);
         if (uri != null && uri.pathSegments.isNotEmpty) {
-          // Format: myapp://hospital/<id_or_code>
-          // Or: https://eblood.app/hospital/<id_or_code>
+          // Format: myapp://hospital/<identifier>
+          // Or: https://eblood.app/hospital/<identifier>
           final lastSegment = uri.pathSegments.last;
-          if (lastSegment.length == 8 && RegExp(r'^[A-Z0-9]+$').hasMatch(lastSegment)) {
+          if (lastSegment.length >= 6 && RegExp(r'^[A-Za-z0-9_-]+$').hasMatch(lastSegment)) {
             hospitalCode = lastSegment;
-          } else {
-            hospitalId = lastSegment;
           }
         }
       }
 
-      // If just an 8-character code
-      if (hospitalId == null && hospitalCode == null) {
-        if (qrContent.length == 8 && RegExp(r'^[A-Z0-9]+$').hasMatch(qrContent)) {
+      // If just a plain identifier string
+      if (hospitalCode == null) {
+        if (qrContent.length >= 6 && RegExp(r'^[A-Za-z0-9_-]+$').hasMatch(qrContent)) {
           hospitalCode = qrContent;
         }
       }
 
-      // Fetch hospital details
-      if (hospitalId != null) {
-        final response = await _dio.get('/eblood/hospitals/$hospitalId');
-        if (response.statusCode == 200 && response.data['success'] == true) {
-          return IdentifiedHospital.fromJson(
-            response.data['data'], 
-            HospitalIdentificationMethod.qrScan,
+      // Fetch hospital details using identifier
+      if (hospitalCode != null) {
+        final hospital = await identifyByCode(hospitalCode);
+        if (hospital != null) {
+          return IdentifiedHospital(
+            id: hospital.id,
+            code: hospital.code,
+            name: hospital.name,
+            address: hospital.address,
+            latitude: hospital.latitude,
+            longitude: hospital.longitude,
+            method: HospitalIdentificationMethod.qrScan,
           );
         }
-      } else if (hospitalCode != null) {
-        return await identifyByCode(hospitalCode);
       }
 
       return null;
@@ -97,12 +114,12 @@ class HospitalIdentificationServiceImpl implements IHospitalIdentificationServic
       final uri = Uri.parse(deepLinkUri);
       
       // Expected formats:
-      // eblood://hospital/<id_or_code>
-      // https://eblood.app/hospital/<id_or_code>
+      // eblood://hospital/<identifier>
+      // https://eblood.app/hospital/<identifier>
       
       if (uri.pathSegments.isEmpty) return null;
 
-      String? identifier;
+      String identifier = '';
       
       // Find hospital segment
       final hospitalIndex = uri.pathSegments.indexOf('hospital');
@@ -113,31 +130,20 @@ class HospitalIdentificationServiceImpl implements IHospitalIdentificationServic
         identifier = uri.pathSegments.last;
       }
 
-      if (identifier == null || identifier.isEmpty) return null;
+      if (identifier.isEmpty) return null;
 
-      // Check if it's a code (8 alphanumeric) or an ID
-      if (identifier.length == 8 && RegExp(r'^[A-Z0-9]+$').hasMatch(identifier)) {
-        final hospital = await identifyByCode(identifier);
-        if (hospital != null) {
-          return IdentifiedHospital(
-            id: hospital.id,
-            code: hospital.code,
-            name: hospital.name,
-            address: hospital.address,
-            latitude: hospital.latitude,
-            longitude: hospital.longitude,
-            method: HospitalIdentificationMethod.deepLink,
-          );
-        }
-      } else {
-        // Treat as hospital ID
-        final response = await _dio.get('/eblood/hospitals/$identifier');
-        if (response.statusCode == 200 && response.data['success'] == true) {
-          return IdentifiedHospital.fromJson(
-            response.data['data'],
-            HospitalIdentificationMethod.deepLink,
-          );
-        }
+      // Use new backend endpoint to get health structure by identifier
+      final hospital = await identifyByCode(identifier);
+      if (hospital != null) {
+        return IdentifiedHospital(
+          id: hospital.id,
+          code: hospital.code,
+          name: hospital.name,
+          address: hospital.address,
+          latitude: hospital.latitude,
+          longitude: hospital.longitude,
+          method: HospitalIdentificationMethod.deepLink,
+        );
       }
 
       return null;

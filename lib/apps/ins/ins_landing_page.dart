@@ -1,13 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../core/rbac/services/rbac_guard.dart';
 import '../config/theme/ColorPages.dart';
 import '../widgets/GradientScaffold.dart';
 import '../volunteer/volunteer_registration_stepper.dart';
 import 'ins_request_stepper.dart';
 
-class InsLandingPage extends StatelessWidget {
+class InsLandingPage extends ConsumerStatefulWidget {
   const InsLandingPage({super.key});
+
+  @override
+  ConsumerState<InsLandingPage> createState() => _InsLandingPageState();
+}
+
+class _InsLandingPageState extends ConsumerState<InsLandingPage> {
+  @override
+  void initState() {
+    super.initState();
+    // RBAC entry guard.
+    guardPageEntry(
+      ref,
+      context,
+      'flutter_apps_eblood_bank_cust_home_ins_request',
+    );
+  }
 
   @override
   Widget build(BuildContext context) {

@@ -10,8 +10,9 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../config/theme/ColorPages.dart';
 import '../services/FirstLaunchService.dart';
 import '../services/FirebaseAuthService.dart';
-import '../../utilisateurs/business/interactors/UtilisateurInteractor.dart';
+import '../../users/business/interactors/UtilisateurInteractor.dart';
 import '../services/AuthApi.dart';
+import '../../core/rbac/providers/rbac_provider.dart';
 
 class ModernSplashPage extends ConsumerStatefulWidget {
   const ModernSplashPage({super.key});
@@ -128,16 +129,41 @@ class _ModernSplashPageState extends ConsumerState<ModernSplashPage>
         }
 
         if (isAuthenticated) {
-          debugPrint('🚀 ModernSplash: User authenticated, going to main app');
-          // Hydrate profile and account_type for routing/UI if we have a JWT
+          debugPrint('🚀 ModernSplash: User authenticated');
+          // Always hydrate profile for all account types (visitor, blood bank, hospital, etc.)
+          bool profileValid = true;
           try {
             if ((jwtToken ?? '').isNotEmpty) {
-              await AuthApi.instance.getUserProfile();
+              final profile = await AuthApi.instance.getUserProfile();
+              if (profile == null) {
+                debugPrint('🚀 ModernSplash: getUserProfile returned null — token may be stale');
+                profileValid = false;
+              }
             }
           } catch (e) {
-            debugPrint('⚠️ ModernSplash: getUserProfile failed (proceeding): $e');
+            debugPrint('⚠️ ModernSplash: getUserProfile failed: $e');
+            profileValid = false;
           }
-          context.go('/app/MainApp');
+
+          if (!profileValid) {
+            // Token is stale/invalid (e.g. 403) — clear tokens and redirect to login
+            debugPrint('🚀 ModernSplash: Invalid session, clearing tokens → /welcome');
+            await _clearAllTokens(authProvider);
+            if (mounted) context.go('/welcome');
+          } else {
+            // Try loading RBAC from local cache for instant navigation
+            final hasCachedApps = await ref.read(rbacProvider.notifier).loadFromCache();
+            if (hasCachedApps && mounted) {
+              debugPrint('🚀 ModernSplash: Cache hit → /app/MainApp (background refresh)');
+              context.go('/app/MainApp');
+              // Refresh from API in background
+              ref.read(rbacProvider.notifier).refreshInBackground();
+            } else if (mounted) {
+              // No cache — go through loading screen (API fetch blocking)
+              debugPrint('🚀 ModernSplash: No cache → /rbac-loading');
+              context.go('/rbac-loading');
+            }
+          }
         }
         // If it's first launch and not authenticated, show intro slides
         else if (isFirstLaunch) {

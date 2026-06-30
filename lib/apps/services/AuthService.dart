@@ -12,6 +12,11 @@ import '../models/api_response.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:eblood_bank_mak_app/core/rbac/providers/rbac_provider.dart';
+import 'package:eblood_bank_mak_app/core/rbac/data/rbac_local_storage.dart';
+import 'package:sembast/sembast.dart';
+import 'package:sembast/sembast_io.dart';
+import 'package:path_provider/path_provider.dart';
 import 'AuthApi.dart';
 
 class AuthService {
@@ -405,8 +410,9 @@ class AuthService {
     try {
       print('🔄 Fetching INS request initialization data');
 
+      // Sprint 14 — migrated to the institution-requests module.
       final response = await getWithDio(
-        '/eblood-connect/init-ins-request-infos',
+        '/institution-requests/get-form-init-data',
         timeoutDuration: const Duration(seconds: 30),
       );
 
@@ -425,8 +431,9 @@ class AuthService {
   Future<IApiResponse> submitInsRequest(Map<String, dynamic> requestData) async {
     try {
       print('🔄 Submitting INS request with payload: ${jsonEncode(requestData)}');
+      // Sprint 14 — migrated to the institution-requests module.
       final response = await postWithDio(
-        '/eblood-connect/ins-request/submit',
+        '/institution-requests/submit-request',
         body: requestData,
         timeoutDuration: const Duration(seconds: 60),
       );
@@ -449,7 +456,8 @@ class AuthService {
       final response = await uploadFile(
         path: idPhoto.path,
         filename: path.basename(idPhoto.path),
-        endpoint: '/eblood-connect/ins-request/upload-id-photo',
+        // Sprint 14 — migrated to the institution-requests module.
+        endpoint: '/institution-requests/upload-id-photo',
         extraData: {'id': sysInsRequestId},
         fileFieldName: 'upload_file',
         timeoutDuration: const Duration(seconds: 60),
@@ -474,7 +482,8 @@ class AuthService {
       final response = await uploadFile(
         path: facePhoto.path,
         filename: path.basename(facePhoto.path),
-        endpoint: '/eblood-connect/ins-request/upload-face-photo',
+        // Sprint 14 — migrated to the institution-requests module.
+        endpoint: '/institution-requests/upload-face-photo',
         extraData: {'id': sysInsRequestId},
         fileFieldName: 'upload_file',
         timeoutDuration: const Duration(seconds: 60),
@@ -503,7 +512,8 @@ class AuthService {
       final response = await uploadFile(
         path: profilePhoto.path,
         filename: path.basename(profilePhoto.path),
-        endpoint: '/eblood-connect/ins-request/upload-profile-photo',
+        // Sprint 14 — migrated to the institution-requests module.
+        endpoint: '/institution-requests/upload-profile-photo',
         extraData: {
           'id': sysInsRequestId,
           'side': side,
@@ -527,8 +537,10 @@ class AuthService {
   Future<IApiResponse> getMyInsRequest() async {
     try {
       print('🔄 Fetching my INS request');
+      // Sprint 14 — migrated to the institution-requests module
+      // (note: also renamed get-my-ins-request → get-my-request).
       final response = await getWithDio(
-        '/eblood-connect/ins-request/get-my-ins-request',
+        '/institution-requests/get-my-request',
         timeoutDuration: const Duration(seconds: 30),
       );
       print('📊 My INS request response: $response');
@@ -914,62 +926,95 @@ class AuthService {
    // Logout user
   Future<bool> logout({bool silent = false, BuildContext? context}) async {
     try {
-      // _isLoadingController.add(true);
+      // ── Step 1: Clear ALL local data EXCEPT the access token ──
+      // (access token is kept so the backend logout call can authenticate)
 
-      // Cancel token refresh timer
-      // _tokenRefreshTimer?.cancel();
+      // 1a. Clear RBAC local cache
+      try {
+        await RbacLocalStorage.instance.clearAll();
+        debugPrint('🔐 [Logout] RBAC cache cleared');
+      } catch (e) {
+        debugPrint('⚠️ [Logout] RBAC cache clear failed: $e');
+      }
 
-        try {
-          final connectivityResult = await Connectivity().checkConnectivity();
-          if (connectivityResult != ConnectivityResult.none) {
-            await postWithDio(
-              _logoutEndpoint,
+      // 1b. Clear Sembast OTP tokens + user data
+      try {
+        final dir = await getApplicationDocumentsDirectory();
+        final dbPath = path.join(dir.path, 'sembast.db');
+        final db = await databaseFactoryIo.openDatabase(dbPath);
+        final store = StoreRef.main();
+        await store.record('TOKENKey').delete(db);
+        await store.record('OTP_TOKENKey').delete(db);
+        await store.record('UserKey').delete(db);
+        debugPrint('🔐 [Logout] Sembast tokens cleared');
+      } catch (e) {
+        debugPrint('⚠️ [Logout] Sembast clear failed: $e');
+      }
 
-            );
-          }
-        } catch (e) {
-          debugPrint('Error during logout API call: $e');
-          // Continue with local logout even if API call fails
-        }
-
-      // Preserve non-auth related settings before clearing storage
-      final themeMode = await _secureStorage.read(key: 'theme_mode');
-      final locale = await _secureStorage.read(key: 'app_locale');
-
-      // Clear ALL secure storage data (including TOTP accounts and signatures)
-      await _secureStorage.deleteAll();
-
-      // Clear GetStorage tokens
+      // 1c. Clear GetStorage (except auth_token — needed for backend call)
       try {
         final storage = GetStorage();
-        await storage.remove('auth_token');
         await storage.remove('refresh_token');
         await storage.remove('user_data');
         await storage.remove('user_profiles');
         await storage.remove('account_type');
+        debugPrint('🔐 [Logout] GetStorage cleared (kept auth_token)');
       } catch (e) {
-        debugPrint('Error clearing GetStorage: $e');
+        debugPrint('⚠️ [Logout] GetStorage clear failed: $e');
       }
 
-      // Sign out from Firebase Auth (Google Sign-In)
+      // 1d. Sign out from Firebase Auth (Google Sign-In)
       try {
         final firebaseAuth = FirebaseAuth.instance;
         final googleSignIn = GoogleSignIn();
         await googleSignIn.signOut();
         await firebaseAuth.signOut();
-        debugPrint('🔐 Firebase sign-out successful');
+        debugPrint('🔐 [Logout] Firebase sign-out done');
       } catch (e) {
-        debugPrint('⚠️ Firebase sign-out failed: $e');
-        // Continue with logout even if Firebase sign-out fails
+        debugPrint('⚠️ [Logout] Firebase sign-out failed: $e');
       }
 
-      // Restore non-auth related settings if needed
+      // 1e. Reset RBAC in-memory state
+      try {
+        RbacNotifier.resetIfActive();
+        debugPrint('🔐 [Logout] RBAC state reset');
+      } catch (e) {
+        debugPrint('⚠️ [Logout] RBAC reset failed: $e');
+      }
+
+      // ── Step 2: Call backend logout (auth_token still present) ──
+      try {
+        final connectivityResult = await Connectivity().checkConnectivity();
+        if (connectivityResult != ConnectivityResult.none) {
+          await Future.value(postWithDio(_logoutEndpoint))
+              .timeout(const Duration(seconds: 5));
+          debugPrint('🔐 [Logout] Backend logout called');
+        }
+      } catch (e) {
+        debugPrint('⚠️ [Logout] Backend logout failed (non-blocking): $e');
+      }
+
+      // ── Step 3: Now clear the access token (last) ──
+      final themeMode = await _secureStorage.read(key: 'theme_mode');
+      final locale = await _secureStorage.read(key: 'app_locale');
+
+      await _secureStorage.deleteAll();
+
+      try {
+        final storage = GetStorage();
+        await storage.remove('auth_token');
+      } catch (e) {
+        debugPrint('⚠️ [Logout] auth_token clear failed: $e');
+      }
+
+      // Restore non-auth settings
       if (themeMode != null) {
         await _secureStorage.write(key: 'theme_mode', value: themeMode);
       }
       if (locale != null) {
         await _secureStorage.write(key: 'app_locale', value: locale);
       }
+      debugPrint('🔐 [Logout] All tokens cleared');
 
       // Clear streams and reset to initial state
       // _accessTokenController.add(null);

@@ -1,12 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:get/get.dart';
+import '../../core/rbac/services/rbac_guard.dart';
 import '../config/theme/ColorPages.dart';
 import '../config/api/dio_client.dart';
 
-class CustomerTopDonorsPage extends StatelessWidget {
+class CustomerTopDonorsPage extends ConsumerStatefulWidget {
   const CustomerTopDonorsPage({super.key});
+
+  @override
+  ConsumerState<CustomerTopDonorsPage> createState() => _CustomerTopDonorsPageState();
+}
+
+class _CustomerTopDonorsPageState extends ConsumerState<CustomerTopDonorsPage> {
+  @override
+  void initState() {
+    super.initState();
+    // RBAC entry guard.
+    guardPageEntry(
+      ref,
+      context,
+      'flutter_apps_eblood_bank_cust_home_top_donors',
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -60,8 +78,10 @@ class _TopDonorListState extends State<_TopDonorList> {
     });
 
     try {
+      // Sprint 12 — migrated from /eblood-connect/blood-donors/top-donors
+      // to the dedicated donor self-service module.
       final response = await getWithDio(
-        '/eblood-connect/blood-donors/top-donors',
+        '/blood-donors/top-donors',
         queryParams: {
           'scope': widget.scope,
           'limit': '20',

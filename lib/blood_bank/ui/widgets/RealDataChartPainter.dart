@@ -25,7 +25,8 @@ class RealDataChartPainter extends CustomPainter {
     
     // Calculate scaling factors
     final allValues = [...collectedValues, ...distributedValues];
-    final maxValue = (allValues.isEmpty ? 100 : allValues.reduce((max, value) => max > value ? max : value)) * 1.2;
+    final rawMax = allValues.isEmpty ? 0 : allValues.reduce((max, value) => max > value ? max : value);
+    final maxValue = (rawMax == 0 ? 100 : rawMax) * 1.2;
     final xStep = width / (collectedValues.length - 1 > 0 ? collectedValues.length - 1 : 1);
     final yScale = height / maxValue;
     

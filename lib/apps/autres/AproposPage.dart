@@ -27,9 +27,9 @@ class _AproposPageState extends ConsumerState<AproposPage> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              ColorPages.COLOR_PRINCIPAL,
-              ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.8),
-              Colors.red.shade700,
+              Colors.red.shade100,
+              Colors.red.shade50,
+              Colors.white,
             ],
           ),
         ),
@@ -48,12 +48,12 @@ class _AproposPageState extends ConsumerState<AproposPage> {
                   icon: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
+                      color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(
                       Icons.arrow_back_ios_new,
-                      color: Colors.white,
+                      color: ColorPages.COLOR_PRINCIPAL,
                       size: 20,
                     ),
                   ),
@@ -62,7 +62,7 @@ class _AproposPageState extends ConsumerState<AproposPage> {
                   title: Text(
                     'À propos',
                     style: GoogleFonts.ubuntu(
-                      color: Colors.white,
+                      color: ColorPages.COLOR_PRINCIPAL,
                       fontWeight: FontWeight.bold,
                       fontSize: 20,
                     ),
@@ -83,80 +83,87 @@ class _AproposPageState extends ConsumerState<AproposPage> {
   }
 
   Widget _buildContent(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // App Header Card
-          FadeInUp(
-            delay: const Duration(milliseconds: 100),
-            child: _buildAppHeader(),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // App Header Card - Full width
+        FadeInUp(
+          delay: const Duration(milliseconds: 100),
+          child: _buildAppHeader(),
+        ),
+
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 24),
+
+              // App Info Section
+              FadeInUp(
+                delay: const Duration(milliseconds: 200),
+                child: _buildInfoSection(),
+              ),
+
+              const SizedBox(height: 24),
+
+              // Mission Section
+              FadeInUp(
+                delay: const Duration(milliseconds: 300),
+                child: _buildMissionSection(),
+              ),
+
+              const SizedBox(height: 24),
+
+              // Features Section
+              FadeInUp(
+                delay: const Duration(milliseconds: 400),
+                child: _buildFeaturesSection(),
+              ),
+
+              const SizedBox(height: 24),
+
+              // Partners Section
+              FadeInUp(
+                delay: const Duration(milliseconds: 500),
+                child: _buildPartnersSection(),
+              ),
+
+              const SizedBox(height: 24),
+
+              // Contact Section
+              FadeInUp(
+                delay: const Duration(milliseconds: 600),
+                child: _buildContactSection(),
+              ),
+
+              const SizedBox(height: 24),
+
+              // Legal Section
+              FadeInUp(
+                delay: const Duration(milliseconds: 700),
+                child: _buildLegalSection(),
+              ),
+
+              const SizedBox(height: 40),
+            ],
           ),
-
-          const SizedBox(height: 24),
-
-          // App Info Section
-          FadeInUp(
-            delay: const Duration(milliseconds: 200),
-            child: _buildInfoSection(),
-          ),
-
-          const SizedBox(height: 24),
-
-          // Mission Section
-          FadeInUp(
-            delay: const Duration(milliseconds: 300),
-            child: _buildMissionSection(),
-          ),
-
-          const SizedBox(height: 24),
-
-          // Features Section
-          FadeInUp(
-            delay: const Duration(milliseconds: 400),
-            child: _buildFeaturesSection(),
-          ),
-
-          const SizedBox(height: 24),
-
-          // Partners Section
-          FadeInUp(
-            delay: const Duration(milliseconds: 500),
-            child: _buildPartnersSection(),
-          ),
-
-          const SizedBox(height: 24),
-
-          // Contact Section
-          FadeInUp(
-            delay: const Duration(milliseconds: 600),
-            child: _buildContactSection(),
-          ),
-
-          const SizedBox(height: 24),
-
-          // Legal Section
-          FadeInUp(
-            delay: const Duration(milliseconds: 700),
-            child: _buildLegalSection(),
-          ),
-
-          const SizedBox(height: 40),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
   Widget _buildAppHeader() {
     return Container(
-      padding: const EdgeInsets.all(24),
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: const BorderRadius.all(Radius.circular(30)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),

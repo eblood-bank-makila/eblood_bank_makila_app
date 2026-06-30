@@ -25,7 +25,9 @@ class SearchResultsPage extends ConsumerWidget {
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: SearchFlowAppBar(
-        title: 'search_results'.tr.isEmpty ? 'Search Results' : 'search_results'.tr,
+        title: 'search_results'.tr.isEmpty
+            ? 'Search Results'
+            : 'search_results'.tr,
         onBack: () => context.pop(),
       ),
       body: Column(
@@ -83,8 +85,8 @@ class SearchResultsPage extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'blood_type_search'.tr.isEmpty 
-                            ? 'Blood Type Search' 
+                        'blood_type_search'.tr.isEmpty
+                            ? 'Blood Type Search'
                             : 'blood_type_search'.tr,
                         style: GoogleFonts.ubuntu(
                           fontSize: 16,
@@ -95,7 +97,11 @@ class SearchResultsPage extends ConsumerWidget {
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          Icon(Iconsax.location, size: 14, color: Colors.grey.shade600),
+                          Icon(
+                            Iconsax.location,
+                            size: 14,
+                            color: Colors.grey.shade600,
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             state.selectedCity?.name ?? '--',
@@ -126,18 +132,19 @@ class SearchResultsPage extends ConsumerWidget {
             child: state.isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : state.searchResults.isEmpty
-                    ? _buildEmptyState(context)
-                    : ListView.builder(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: state.searchResults.length,
-                        itemBuilder: (context, index) {
-                          final result = state.searchResults[index];
-                          return _ResultCard(
-                            result: result,
-                            onTap: () => _showOptionBottomSheet(context, ref, result),
-                          );
-                        },
-                      ),
+                ? _buildEmptyState(context)
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: state.searchResults.length,
+                    itemBuilder: (context, index) {
+                      final result = state.searchResults[index];
+                      return _ResultCard(
+                        result: result,
+                        onTap: () =>
+                            _showOptionBottomSheet(context, ref, result),
+                      );
+                    },
+                  ),
           ),
         ],
       ),
@@ -166,7 +173,9 @@ class SearchResultsPage extends ConsumerWidget {
             ),
             const SizedBox(height: 24),
             Text(
-              'no_results_found'.tr.isEmpty ? 'No Results Found' : 'no_results_found'.tr,
+              'no_results_found'.tr.isEmpty
+                  ? 'No Results Found'
+                  : 'no_results_found'.tr,
               style: GoogleFonts.ubuntu(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -190,13 +199,18 @@ class SearchResultsPage extends ConsumerWidget {
               onPressed: () => context.pop(),
               icon: const Icon(Iconsax.arrow_left_2, size: 18),
               label: Text(
-                'modify_search'.tr.isEmpty ? 'Modify Search' : 'modify_search'.tr,
+                'modify_search'.tr.isEmpty
+                    ? 'Modify Search'
+                    : 'modify_search'.tr,
                 style: GoogleFonts.ubuntu(fontWeight: FontWeight.w600),
               ),
               style: OutlinedButton.styleFrom(
                 foregroundColor: ColorPages.COLOR_PRINCIPAL,
                 side: BorderSide(color: ColorPages.COLOR_PRINCIPAL),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -208,7 +222,11 @@ class SearchResultsPage extends ConsumerWidget {
     );
   }
 
-  void _showOptionBottomSheet(BuildContext context, WidgetRef ref, BloodSearchResult result) {
+  void _showOptionBottomSheet(
+    BuildContext context,
+    WidgetRef ref,
+    BloodSearchResult result,
+  ) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -218,26 +236,89 @@ class SearchResultsPage extends ConsumerWidget {
         onViewAddress: () {
           Navigator.pop(context);
           ref.read(searchFlowProvider.notifier).selectResult(result);
-          context.push('/blood-search/hospital-identify', extra: {'option': 'view_address'});
+          ref
+              .read(searchFlowProvider.notifier)
+              .selectPaymentOption(PaymentOption.viewAddress);
+          // Hospital is already identified (before blood type in new flow).
+          // Navigate based on provider state (payment or visitor OTP).
+          final step = ref.read(searchFlowProvider).currentStep;
+          final route = _routeForStep(step, 'view_address');
+          context.push(route);
         },
         onOrderDelivery: () {
           Navigator.pop(context);
           ref.read(searchFlowProvider.notifier).selectResult(result);
-          context.push('/blood-search/hospital-identify', extra: {'option': 'delivery'});
+          ref
+              .read(searchFlowProvider.notifier)
+              .selectPaymentOption(PaymentOption.delivery);
+          // Hospital is already identified (before blood type in new flow).
+          final step = ref.read(searchFlowProvider).currentStep;
+          final route = _routeForStep(step, 'delivery');
+          context.push(route);
         },
       ),
     );
   }
+
+  /// Maps the provider's currentStep to the correct route after result selection.
+  /// Hospital is already identified earlier in the flow, so we skip hospital-identify.
+  String _routeForStep(SearchFlowStep step, String option) {
+    switch (step) {
+      case SearchFlowStep.payment:
+        return '/blood-search/payment';
+      case SearchFlowStep.visitorRegistration:
+        return '/blood-search/visitor-phone-otp';
+      case SearchFlowStep.hospitalIdentification:
+        // Fallback: hospital should already be identified, but just in case
+        return '/blood-search/hospital-identify';
+      default:
+        return '/blood-search/payment';
+    }
+  }
 }
 
-class _ResultCard extends StatelessWidget {
+class _ResultCard extends StatefulWidget {
   final BloodSearchResult result;
   final VoidCallback onTap;
 
-  const _ResultCard({
-    required this.result,
-    required this.onTap,
-  });
+  const _ResultCard({required this.result, required this.onTap});
+
+  @override
+  State<_ResultCard> createState() => _ResultCardState();
+}
+
+class _ResultCardState extends State<_ResultCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _shimmerController;
+  late Animation<double> _shimmerAnimation;
+  bool _animationStarted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _shimmerController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3000),
+    );
+
+    _shimmerAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _shimmerController, curve: Curves.easeInOut),
+    );
+
+    // Delay the animation start by 3 seconds so user can read the text first
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) {
+        setState(() => _animationStarted = true);
+        _shimmerController.repeat(reverse: true);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _shimmerController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -257,120 +338,100 @@ class _ResultCard extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: onTap,
+          onTap: widget.onTap,
           borderRadius: BorderRadius.circular(16),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+              children: [ 
+                const SizedBox(height: 12),
+                // Distance (prominent display)
                 Row(
                   children: [
-                    // Blood type badge
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: ColorPages.COLOR_PRINCIPAL,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        result.fullBloodType.isNotEmpty ? result.fullBloodType : result.bloodType,
-                        style: GoogleFonts.ubuntu(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
+                    Icon(
+                      Iconsax.routing_2,
+                      size: 16,
+                      color: Colors.blue.shade600,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      widget.result.distanceFromUserKm != null
+                          ? widget.result.formattedDistanceFromUser
+                          : widget.result.formattedDistance,
+                      style: GoogleFonts.ubuntu(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue.shade700,
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    // Hospital name
-                    Expanded(
-                      child: Text(
-                        result.hospitalName ?? result.bloodBankName,
-                        style: GoogleFonts.ubuntu(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.grey.shade800,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                    const SizedBox(width: 8),
+                    Text(
+                      'from_you'.tr.isEmpty ? 'from you' : 'from_you'.tr,
+                      style: GoogleFonts.ubuntu(
+                        fontSize: 13,
+                        color: Colors.grey.shade600,
                       ),
                     ),
-                    // Price badge
-                    if (result.price > 0)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.green.shade50,
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: Colors.green.shade200),
-                        ),
-                        child: Text(
-                          result.formattedPrice,
-                          style: GoogleFonts.ubuntu(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.green.shade700,
-                          ),
-                        ),
-                      ),
                   ],
                 ),
-                const SizedBox(height: 12),
-                // Location
-                Row(
-                  children: [
-                    Icon(Iconsax.location, size: 16, color: Colors.grey.shade500),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        result.address ?? 'Address not available',
+
+                // Distance from hospital (if available)
+                if (widget.result.distanceFromHospitalKm != null) ...[
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(
+                        Iconsax.hospital,
+                        size: 16,
+                        color: Colors.orange.shade600,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        widget.result.formattedDistanceFromHospital,
+                        style: GoogleFonts.ubuntu(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.orange.shade700,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'from_hospital'.tr.isEmpty ? 'from hospital' : 'from_hospital'.tr,
                         style: GoogleFonts.ubuntu(
                           fontSize: 13,
                           color: Colors.grey.shade600,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    if (result.distanceKm != null) ...[
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.shade50,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          '${result.distanceKm!.toStringAsFixed(1)} km',
-                          style: GoogleFonts.ubuntu(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.blue.shade700,
-                          ),
-                        ),
                       ),
                     ],
-                  ],
-                ),
-                
+                  ),
+                ],
+
                 // Product type and expiry info row
-                if (result.bloodProductType != null || result.daysUntilExpiry != null) ...[
+                if (widget.result.bloodProductType != null ||
+                    widget.result.daysUntilExpiry != null) ...[
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      if (result.bloodProductType != null) ...[
-                        Icon(Iconsax.drop, size: 14, color: Colors.grey.shade500),
+                      if (widget.result.bloodProductType != null) ...[
+                        Icon(
+                          Iconsax.drop,
+                          size: 14,
+                          color: Colors.grey.shade500,
+                        ),
                         const SizedBox(width: 4),
                         Text(
-                          result.bloodProductType!.replaceAll('_', ' ').toUpperCase(),
+                          widget.result.bloodProductType!
+                              .replaceAll('_', ' ')
+                              .toUpperCase(),
                           style: GoogleFonts.ubuntu(
                             fontSize: 11,
                             color: Colors.grey.shade600,
                           ),
                         ),
                       ],
-                      if (result.bloodProductType != null && result.daysUntilExpiry != null)
+                      if (widget.result.bloodProductType != null &&
+                          widget.result.daysUntilExpiry != null)
                         Container(
                           width: 4,
                           height: 4,
@@ -380,18 +441,22 @@ class _ResultCard extends StatelessWidget {
                             shape: BoxShape.circle,
                           ),
                         ),
-                      if (result.daysUntilExpiry != null) ...[
+                      if (widget.result.daysUntilExpiry != null) ...[
                         Icon(
                           Iconsax.timer_1,
                           size: 14,
-                          color: result.daysUntilExpiry! <= 14 ? Colors.orange : Colors.grey.shade500,
+                          color: widget.result.daysUntilExpiry! <= 14
+                              ? Colors.orange
+                              : Colors.grey.shade500,
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          '${result.daysUntilExpiry} days',
+                          '${widget.result.daysUntilExpiry} days',
                           style: GoogleFonts.ubuntu(
                             fontSize: 11,
-                            color: result.daysUntilExpiry! <= 14 ? Colors.orange : Colors.grey.shade600,
+                            color: widget.result.daysUntilExpiry! <= 14
+                                ? Colors.orange
+                                : Colors.grey.shade600,
                           ),
                         ),
                       ],
@@ -399,58 +464,166 @@ class _ResultCard extends StatelessWidget {
                   ),
                 ],
                 const SizedBox(height: 12),
-                // Availability and quantity
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: result.isAvailable ? Colors.green : Colors.orange,
-                            shape: BoxShape.circle,
+                // Divider
+                Divider(height: 1, color: Colors.grey.shade200),
+                const SizedBox(height: 12),
+                // Options section title
+                Text(
+                  'see_options'.tr.isEmpty ? 'See Options' : 'see_options'.tr,
+                  style: GoogleFonts.ubuntu(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey.shade700,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                // View Address Option
+                _buildOptionRow(
+                  icon: Iconsax.location,
+                  iconColor: Colors.blue,
+                  title: 'view_full_address'.tr.isEmpty
+                      ? 'View Full Address'
+                      : 'view_full_address'.tr,
+                  price: widget.result.price > 0
+                      ? '${widget.result.currencySymbol ?? r'$'}${(widget.result.price * 0.10).toStringAsFixed(2)}'
+                      : '500 CDF',
+                ),
+                const SizedBox(height: 8),
+                // Delivery Option
+                _buildOptionRow(
+                  icon: Iconsax.truck_fast,
+                  iconColor: Colors.orange,
+                  title: 'order_delivery'.tr.isEmpty
+                      ? 'Order Delivery'
+                      : 'order_delivery'.tr,
+                  price: widget.result.price > 0
+                      ? widget.result.formattedPrice
+                      : '5,000 CDF',
+                ),
+                const SizedBox(height: 12),
+                // Tap to choose - with pulsing animation
+                AnimatedBuilder(
+                  animation: _shimmerAnimation,
+                  builder: (context, child) {
+                    // When background is deep (high value), text is light
+                    // When background is light (low value), text is deep
+                    final textColor = Color.lerp(
+                      ColorPages.COLOR_PRINCIPAL,
+                      Colors.white,
+                      _shimmerAnimation.value * 0.9,
+                    )!;
+
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 16,
+                      ),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            // ColorPages.COLOR_PRINCIPAL.withOpacity(0.8),
+                            // Colors.red.shade600.withOpacity(0.8),
+                            // ColorPages.COLOR_PRINCIPAL.withOpacity(0.8),
+                            ColorPages.COLOR_PRINCIPAL.withOpacity(
+                              0.1 + (_shimmerAnimation.value * 0.6),
+                            ),
+                            Colors.red.shade600.withOpacity(
+                              0.1 + (_shimmerAnimation.value * 0.5),
+                            ),
+                            ColorPages.COLOR_PRINCIPAL.withOpacity(
+                              0.1 + (_shimmerAnimation.value * 0.6),
+                            ),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: ColorPages.COLOR_PRINCIPAL.withOpacity(
+                            0.5 + (_shimmerAnimation.value * 0.5),
                           ),
+                          width: 1.5,
                         ),
-                        const SizedBox(width: 6),
-                        Text(
-                          result.isAvailable
-                              ? ('available'.tr.isEmpty ? 'Available' : 'available'.tr)
-                              : ('limited_stock'.tr.isEmpty ? 'Limited Stock' : 'limited_stock'.tr),
-                          style: GoogleFonts.ubuntu(
-                            fontSize: 13,
-                            color: result.isAvailable ? Colors.green : Colors.orange,
-                            fontWeight: FontWeight.w500,
+                        // boxShadow: [
+                        //   BoxShadow(
+                        //     color: ColorPages.COLOR_PRINCIPAL.withOpacity(_shimmerAnimation.value * 0.4),
+                        //     blurRadius: 12,
+                        //     spreadRadius: 1,
+                        //   ),
+                        // ],
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Iconsax.finger_cricle,
+                            size: 22,
+                            color: textColor,
                           ),
-                        ),
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        Text(
-                          'view_options'.tr.isEmpty ? 'View Options' : 'view_options'.tr,
-                          style: GoogleFonts.ubuntu(
-                            fontSize: 13,
-                            color: ColorPages.COLOR_PRINCIPAL,
-                            fontWeight: FontWeight.w600,
+                          const SizedBox(width: 8),
+                          Text(
+                            'tap_to_choose'.tr.isEmpty
+                                ? 'Tap to choose an option'
+                                : 'tap_to_choose'.tr,
+                            style: GoogleFonts.ubuntu(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: textColor,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 4),
-                        Icon(
-                          Iconsax.arrow_right_3,
-                          size: 16,
-                          color: ColorPages.COLOR_PRINCIPAL,
-                        ),
-                      ],
-                    ),
-                  ],
+                          const SizedBox(width: 8),
+                          Icon(
+                            Iconsax.arrow_right_3,
+                            size: 16,
+                            color: textColor,
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildOptionRow({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String price,
+  }) {
+    return Row(
+      children: [
+        Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: iconColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, size: 16, color: iconColor),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            title,
+            style: GoogleFonts.ubuntu(
+              fontSize: 12,
+              color: Colors.grey.shade700,
+            ),
+          ),
+        ),
+        Text(
+          price,
+          style: GoogleFonts.ubuntu(
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
+            color: Colors.green.shade700,
+          ),
+        ),
+      ],
     );
   }
 }

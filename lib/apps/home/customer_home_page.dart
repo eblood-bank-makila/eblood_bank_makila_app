@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:get/get.dart';
 import '../config/theme/ColorPages.dart';
 import '../connect/announcements/announcements_service.dart';
 import 'package:iconsax/iconsax.dart';
-import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/notification/NotificationPage.dart';
+import 'package:eblood_bank_mak_app/users/ui/pages/notification/NotificationPage.dart';
 
 import 'package:get_storage/get_storage.dart';
-import '../../gestionStocks/ui/pages/recherchePoche/RecherchePochePage.dart';
+import '../../core/rbac/providers/rbac_provider.dart';
+import '../../stock_management/ui/pages/recherchePoche/RecherchePochePage.dart';
 // Removed from quick actions per requirement
-// import '../../commande/ui/pages/blood_request/BloodRequestPage.dart';
+// import '../../orders/ui/pages/blood_request/BloodRequestPage.dart';
 import '../../delivery/ui/pages/DeliveryPersonHomePage.dart';
 import '../widgets/advertisement/AdvertisementCarousel.dart';
 import 'nearby_blood_banks_page.dart';
@@ -27,26 +29,33 @@ import '../services/AuthService.dart';
 import '../ins/ins_request_details_page.dart';
 
 
-class CustomerHomePage extends StatefulWidget {
+class CustomerHomePage extends ConsumerStatefulWidget {
   const CustomerHomePage({super.key});
 
   @override
-  State<CustomerHomePage> createState() => _CustomerHomePageState();
+  ConsumerState<CustomerHomePage> createState() => _CustomerHomePageState();
 }
 
-class _CustomerHomePageState extends State<CustomerHomePage> with WidgetsBindingObserver {
+class _CustomerHomePageState extends ConsumerState<CustomerHomePage> with WidgetsBindingObserver {
   final _service = AnnouncementsService();
   bool _loading = true;
   List<Map<String, dynamic>> _all = [];
 
   final _box = GetStorage();
   bool _isDonor = false;
-  bool _isDelivery = false;
+  // _isDelivery removed in Phase 5 — the delivery dashboard card is now
+  // gated purely by the cust_home_delivery_dashboard RBAC flag, which
+  // requires the MOBILE_APP_DELIVERY_PERSON_PROFILE extra profile.
   bool _isVolunteerDonor = false;
   String _firstName = '';
   final _auth = AuthService();
   bool _hasInsRequest = false;
   Map<String, dynamic>? _insRequestData;
+
+  /// RBAC helper — checks whether a given sub_menu flag is present in the
+  /// loaded applications tree. Mirrors the pattern from BloodBankHomePage.
+  bool _hasFlag(String flag) =>
+      ref.read(rbacProvider.notifier).hasMenuFlag(flag);
 
 
   @override
@@ -104,7 +113,6 @@ class _CustomerHomePageState extends State<CustomerHomePage> with WidgetsBinding
 
   void _loadProfileFlags() {
     bool newIsDonor = _isDonor;
-    bool newIsDelivery = _isDelivery;
     bool newIsVolunteerDonor = _isVolunteerDonor;
     String newFirstName = _firstName;
 
@@ -125,10 +133,9 @@ class _CustomerHomePageState extends State<CustomerHomePage> with WidgetsBinding
         debugPrint('🔍 CustomerHome - extracted flags: $flags');
 
         newIsDonor = flags.contains('mobile_app_blood_donor_profil');
-        newIsDelivery = flags.contains('mobile_app_delivery_person_profil');
         newIsVolunteerDonor = flags.contains('mobile_app_volonteer_blood_donor_profil');
 
-        debugPrint('🔍 CustomerHome - newIsDonor: $newIsDonor, newIsDelivery: $newIsDelivery, newIsVolunteerDonor: $newIsVolunteerDonor');
+        debugPrint('🔍 CustomerHome - newIsDonor: $newIsDonor, newIsVolunteerDonor: $newIsVolunteerDonor');
       }
 
       final user = _box.read('user_data');
@@ -141,18 +148,16 @@ class _CustomerHomePageState extends State<CustomerHomePage> with WidgetsBinding
 
     if (!mounted) {
       _isDonor = newIsDonor;
-      _isDelivery = newIsDelivery;
       _isVolunteerDonor = newIsVolunteerDonor;
       _firstName = newFirstName;
       return;
     }
 
     debugPrint('🔍 CustomerHome - comparing: old isDonor=$_isDonor vs new=$newIsDonor, old isVolunteerDonor=$_isVolunteerDonor vs new=$newIsVolunteerDonor');
-    if (newIsDonor != _isDonor || newIsDelivery != _isDelivery || newIsVolunteerDonor != _isVolunteerDonor || newFirstName != _firstName) {
-      debugPrint('✅ CustomerHome - updating state: isDonor=$newIsDonor, isDelivery=$newIsDelivery, isVolunteerDonor=$newIsVolunteerDonor');
+    if (newIsDonor != _isDonor || newIsVolunteerDonor != _isVolunteerDonor || newFirstName != _firstName) {
+      debugPrint('✅ CustomerHome - updating state: isDonor=$newIsDonor, isVolunteerDonor=$newIsVolunteerDonor');
       setState(() {
         _isDonor = newIsDonor;
-        _isDelivery = newIsDelivery;
         _isVolunteerDonor = newIsVolunteerDonor;
         _firstName = newFirstName;
       });
@@ -623,6 +628,11 @@ class _CustomerHomePageState extends State<CustomerHomePage> with WidgetsBinding
   }
 
   Widget _buildPrimaryCTASection(BuildContext context) {
+    // RBAC gates for primary CTAs — each button is locked when its
+    // corresponding sub_menu flag is missing from the loaded apps.
+    final canVolunteer  = _hasFlag('flutter_apps_eblood_bank_cust_home_volunteer');
+    final canInsRequest = _hasFlag('flutter_apps_eblood_bank_cust_home_ins_request');
+
     // Show volunteer donor dashboard for existing volunteer donors
     if (_isVolunteerDonor) {
       return Row(
@@ -632,6 +642,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> with WidgetsBinding
               title: 'my_volunteer_dashboard'.tr,
               icon: Icons.volunteer_activism,
               color: Colors.green.shade600,
+              locked: !canVolunteer,
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const VolunteerDonorDashboardPage()),
               ),
@@ -643,6 +654,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> with WidgetsBinding
               title: _hasInsRequest ? 'view_my_ins_request'.tr : 'request_your_ins'.tr,
               icon: Icons.badge_outlined,
               color: Colors.indigo,
+              locked: !canInsRequest,
               onTap: () {
                 if (_hasInsRequest && _insRequestData != null) {
                   Navigator.of(context).push(
@@ -668,6 +680,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> with WidgetsBinding
             title: 'become_benevol_donor'.tr,
             icon: Icons.volunteer_activism,
             color: ColorPages.COLOR_PRINCIPAL,
+            locked: !canVolunteer,
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const BenevolDonorLandingPage()),
             ),
@@ -679,6 +692,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> with WidgetsBinding
             title: _hasInsRequest ? 'view_my_ins_request'.tr : 'request_your_ins'.tr,
             icon: Icons.badge_outlined,
             color: Colors.indigo,
+            locked: !canInsRequest,
             onTap: () {
               if (_hasInsRequest && _insRequestData != null) {
                 Navigator.of(context).push(
@@ -701,44 +715,65 @@ class _CustomerHomePageState extends State<CustomerHomePage> with WidgetsBinding
     required IconData icon,
     required Color color,
     required VoidCallback onTap,
+    bool locked = false,
   }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        height: 64,
-        padding: const EdgeInsets.symmetric(horizontal: 14),
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(14),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: Colors.white, size: 20),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Text(
-                title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.ubuntu(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700),
+    // Mirror BloodBankHomePage's locked-card pattern: disable tap, dim
+    // the background colour, and wrap the whole button in Opacity.
+    final effectiveColor = locked ? Colors.grey.shade400 : color;
+    return Opacity(
+      opacity: locked ? 0.5 : 1.0,
+      child: InkWell(
+        onTap: locked ? null : onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          height: 64,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: BoxDecoration(
+            color: effectiveColor,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
               ),
-            ),
-          ],
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: Colors.white, size: 20),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.ubuntu(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildQuickActionsSection(BuildContext context) {
+    // RBAC gates — mirror the BloodBankHomePage pattern. Each card is locked
+    // when its corresponding sub_menu flag is missing from the loaded apps.
+    // Note: Phase 2 keeps the existing GetStorage-based _isDonor visibility
+    // gates in place; the delivery card has been migrated to pure RBAC in
+    // Phase 5 (the cust_home_delivery_dashboard flag is only granted to
+    // users with the MOBILE_APP_DELIVERY_PERSON_PROFILE extra profile).
+    final canBecomeDonor    = _hasFlag('flutter_apps_eblood_bank_cust_home_become_donor');
+    final canTopDonors      = _hasFlag('flutter_apps_eblood_bank_cust_home_top_donors');
+    final canFindBlood      = _hasFlag('flutter_apps_eblood_bank_cust_home_find_blood');
+    final canNearbyBanks    = _hasFlag('flutter_apps_eblood_bank_cust_home_nearby_banks');
+    final canDonorProfile   = _hasFlag('flutter_apps_eblood_bank_cust_home_donor_profile');
+    final canDonationHist   = _hasFlag('flutter_apps_eblood_bank_cust_home_donation_history');
+    final canDeliveryDash   = _hasFlag('flutter_apps_eblood_bank_cust_home_delivery_dashboard');
+
     final cards = <Widget>[];
 
     // Become Donor (only if user is not a donor)
@@ -748,6 +783,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> with WidgetsBinding
         subtitle: 'blood_donor'.tr,
         icon: Iconsax.heart_add,
         color: Colors.redAccent,
+        locked: !canBecomeDonor,
         onTap: () => Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => const DonorLandingPage()),
         ),
@@ -760,13 +796,16 @@ class _CustomerHomePageState extends State<CustomerHomePage> with WidgetsBinding
       subtitle: 'donors'.tr,
       icon: Iconsax.crown,
       color: Colors.orange,
+      locked: !canTopDonors,
       onTap: () => Navigator.of(context).push(
         MaterialPageRoute(builder: (_) => const CustomerTopDonorsPage()),
       ),
     ));
 
-    // Delivery Dashboard
-    if (_isDelivery) {
+    // Delivery Dashboard — pure RBAC gating: the card is only added when
+    // the user has the cust_home_delivery_dashboard sub_menu flag, which
+    // requires the MOBILE_APP_DELIVERY_PERSON_PROFILE extra profile.
+    if (canDeliveryDash) {
       cards.add(_buildActionCard(
         title: 'delivery_dashboard'.tr,
         subtitle: 'dashboard'.tr,
@@ -786,6 +825,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> with WidgetsBinding
       subtitle: 'search'.tr,
       icon: Iconsax.search_normal_1,
       color: Colors.indigo,
+      locked: !canFindBlood,
       onTap: () => Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => const Recherchepage(query: '', isModal: true),
@@ -800,6 +840,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> with WidgetsBinding
       subtitle: 'medical_network'.tr,
       icon: Iconsax.hospital,
       color: Colors.green,
+      locked: !canNearbyBanks,
       onTap: () => Navigator.of(context).push(
         MaterialPageRoute(builder: (_) => const CustomerNearbyBloodBanksPage()),
       ),
@@ -812,6 +853,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> with WidgetsBinding
         subtitle: 'blood_donor'.tr,
         icon: Iconsax.profile_circle,
         color: Colors.redAccent,
+        locked: !canDonorProfile,
         onTap: () => Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => const MyBloodDonorProfilePage()),
         ),
@@ -821,6 +863,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> with WidgetsBinding
         subtitle: 'my_donations'.tr,
         icon: Iconsax.activity,
         color: Colors.blueGrey,
+        locked: !canDonationHist,
         onTap: () => Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => const DonationHistoryPage()),
         ),
@@ -844,52 +887,59 @@ class _CustomerHomePageState extends State<CustomerHomePage> with WidgetsBinding
     required IconData icon,
     required Color color,
     required VoidCallback onTap,
+    bool locked = false,
   }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(12),
+    // Mirror BloodBankHomePage's locked-card pattern: disable tap, dim
+    // the icon colour, and wrap the whole card in Opacity.
+    final effectiveColor = locked ? Colors.grey.shade400 : color;
+    return Opacity(
+      opacity: locked ? 0.5 : 1.0,
+      child: InkWell(
+        onTap: locked ? null : onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
               ),
-              child: Icon(icon, color: color, size: 22),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.ubuntu(fontSize: 14, fontWeight: FontWeight.w700),
-            ),
-            if (subtitle != null) ...[
-              const SizedBox(height: 4),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: effectiveColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: effectiveColor, size: 22),
+              ),
+              const SizedBox(height: 12),
               Text(
-                subtitle,
-                maxLines: 1,
+                title,
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.ubuntu(fontSize: 12, color: Colors.grey.shade600),
+                style: GoogleFonts.ubuntu(fontSize: 14, fontWeight: FontWeight.w700),
               ),
-            ]
-          ],
+              if (subtitle != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.ubuntu(fontSize: 12, color: Colors.grey.shade600),
+                ),
+              ]
+            ],
+          ),
         ),
       ),
     );

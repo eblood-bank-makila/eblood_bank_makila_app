@@ -8,7 +8,6 @@ class LocaleHelper {
     'en', 'en_US', 'en-US',
     'fr', 'fr_FR', 'fr-FR',
     'es', 'es_ES', 'es-ES',
-    'ar', 'ar_SA', 'ar-SA',
     'ru', 'ru_RU', 'ru-RU',
     'de', 'de_DE', 'de-DE',
     'it', 'it_IT', 'it-IT',

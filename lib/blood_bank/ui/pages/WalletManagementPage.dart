@@ -4,8 +4,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
 import '../../../apps/config/utils/LocaleHelper.dart';
+import '../../../core/rbac/services/rbac_guard.dart';
+import '../../providers/ewallet_provider.dart';
+import '../../business/models/ewallet_models.dart';
 
 
 class WalletManagementPage extends ConsumerStatefulWidget {
@@ -51,20 +53,40 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
 
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
-  bool _autoReception = true;
+  final TextEditingController _withdrawalPhoneController = TextEditingController();
+  final TextEditingController _withdrawAmountController = TextEditingController();
+  bool _autoReception = false;
+  // Tracks which wallet's settings have been loaded into the fields, so we hydrate
+  // the email/phone/toggle once when the wallet arrives without clobbering edits on
+  // every provider rebuild.
+  String? _settingsHydratedForWalletId;
 
   @override
   void initState() {
     super.initState();
+    // Shared wallet screen (blood bank + CNTS). Visibility is already gated by the RBAC
+    // nav + screen registry, so guard on the shared home app flag (both profiles have it)
+    // rather than the blood-bank-only wallet flag — otherwise CNTS users get redirected.
+    guardPageEntry(
+      ref,
+      context,
+      'flutter_apps_eblood_bank_home_app',
+    );
     _tabController = TabController(
       length: 2,
       vsync: this,
       initialIndex: widget.initialTabIndex,
     );
 
-    // Load saved settings (in a real app, these would come from persistent storage)
-    _emailController.text = 'notification@eblood.com';
-    _phoneController.text = '+243 970123456';
+    // Settings fields are hydrated from the loaded wallet (see _hydrateSettingsFromWallet),
+    // not hardcoded — so they reflect what is actually persisted on the backend.
+
+    // Load the authenticated org's wallet(s) + history once the first frame is scheduled.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.read(ewalletProvider.notifier).loadWallets();
+      }
+    });
   }
 
   @override
@@ -72,11 +94,93 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
     _tabController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
+    _withdrawalPhoneController.dispose();
+    _withdrawAmountController.dispose();
     super.dispose();
+  }
+
+  /// Populate the settings fields from the loaded wallet once (per wallet id), so the
+  /// email / phone / auto-reception controls reflect the persisted backend values and
+  /// don't get clobbered on every provider rebuild.
+  void _hydrateSettingsFromWallet(EWalletModel? wallet) {
+    if (wallet == null || wallet.id == _settingsHydratedForWalletId) return;
+    _settingsHydratedForWalletId = wallet.id;
+    // Show the most recent submitted value while a change is pending/rejected, otherwise
+    // the validated value that is actually live on the wallet.
+    String fieldValue(EWalletSettingStatus s, String validated) =>
+        (s.isPending || s.isRejected) && s.pendingValue != null ? s.pendingValue! : validated;
+    _emailController.text = fieldValue(wallet.emailStatus, wallet.authEmail);
+    _phoneController.text = fieldValue(wallet.phoneStatus, wallet.authPhoneNumber);
+    _withdrawalPhoneController.text = fieldValue(wallet.withdrawalPhoneStatus, wallet.withdrawalPhoneNumber);
+    final aco = wallet.autoCashOutStatus;
+    final autoVal = (aco.isPending || aco.isRejected) && aco.pendingValue != null
+        ? aco.pendingValue == 'true'
+        : wallet.autoCashOut;
+    if (mounted) {
+      setState(() => _autoReception = autoVal);
+    } else {
+      _autoReception = autoVal;
+    }
+  }
+
+  /// A small status pill for a setting's validation state (pending / rejected / validated).
+  Widget _settingStatusBadge(EWalletSettingStatus s) {
+    if (s.isNotSet) return const SizedBox.shrink();
+    late final Color color;
+    late final IconData icon;
+    late final String label;
+    if (s.isPending) {
+      color = Colors.orange;
+      icon = Iconsax.clock;
+      label = 'status_pending_validation'.tr;
+    } else if (s.isRejected) {
+      color = Colors.red;
+      icon = Iconsax.close_circle;
+      label = 'status_rejected'.tr;
+    } else {
+      color = Colors.green;
+      icon = Iconsax.tick_circle;
+      label = 'status_validated'.tr;
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 14, color: color),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: GoogleFonts.ubuntu(fontSize: 12, fontWeight: FontWeight.w600, color: color),
+              ),
+            ],
+          ),
+        ),
+        if (s.isRejected && (s.rejectionReason?.isNotEmpty ?? false))
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+              '${'rejection_reason'.tr}: ${s.rejectionReason}',
+              style: GoogleFonts.ubuntu(fontSize: 12, color: Colors.red.shade700),
+            ),
+          ),
+      ],
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    // React to wallet load/changes to hydrate the settings tab from persisted values.
+    ref.listen<EWalletState>(ewalletProvider, (previous, next) {
+      _hydrateSettingsFromWallet(next.selected);
+    });
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       body: SafeArea(
@@ -222,6 +326,13 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
   }
 
   Widget _buildWalletCard() {
+    final walletState = ref.watch(ewalletProvider);
+    final selected = walletState.selected;
+    final currency = selected == null
+        ? 'USD'
+        : (selected.currencySymbol.isNotEmpty
+            ? selected.currencySymbol
+            : (selected.currencyCode.isNotEmpty ? selected.currencyCode : 'USD'));
     return FadeInUp(
       delay: const Duration(milliseconds: 400),
       child: Container(
@@ -274,7 +385,7 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
             ),
             const SizedBox(height: 8),
             Text(
-              '${_formatAmount(1250, signed: false)} USD',
+              '${_formatAmount(walletState.balance, signed: false)} $currency',
               style: GoogleFonts.ubuntu(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
@@ -338,6 +449,7 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
             ),
             const SizedBox(height: 16),
             TextField(
+              controller: _withdrawAmountController,
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
                 labelText: 'amount'.tr,
@@ -352,27 +464,73 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {
+                  // Capture the messenger from the *page* context up-front. The dialog
+                  // builder below shadows `context` with its own (dialog) context, which is
+                  // torn down the instant Navigator.pop runs — reusing it for the post-await
+                  // snackbar silently dropped every success/error toast.
+                  final messenger = ScaffoldMessenger.of(context);
+                  final walletState = ref.read(ewalletProvider);
+                  final amt = double.tryParse(
+                        _withdrawAmountController.text.trim().replaceAll(',', '.'),
+                      ) ??
+                      0;
+                  // Validate everything BEFORE opening the confirm dialog so a withdrawal that
+                  // cannot possibly succeed (invalid amount, no wallet, or more than the
+                  // available balance) never gets sent to the backend.
+                  if (amt <= 0) {
+                    messenger.showSnackBar(SnackBar(
+                      content: Text('enter_valid_amount'.tr),
+                      backgroundColor: Colors.red,
+                    ));
+                    return;
+                  }
+                  if (walletState.selected == null) {
+                    messenger.showSnackBar(SnackBar(
+                      content: Text('no_wallet_available'.tr),
+                      backgroundColor: Colors.red,
+                    ));
+                    return;
+                  }
+                  if (amt > walletState.balance) {
+                    messenger.showSnackBar(SnackBar(
+                      content: Text('insufficient_balance'.tr),
+                      backgroundColor: Colors.red,
+                    ));
+                    return;
+                  }
                   // Show confirmation dialog
                   showDialog(
                     context: context,
-                    builder: (context) => AlertDialog(
+                    builder: (dialogContext) => AlertDialog(
                       title: Text('confirm_withdrawal'.tr),
                       content: Text('confirm_withdrawal_message'.tr),
                       actions: [
                         TextButton(
-                          onPressed: () => Navigator.pop(context),
+                          onPressed: () => Navigator.pop(dialogContext),
                           child: Text('cancel'.tr),
                         ),
                         ElevatedButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                            // Show success message
-                            ScaffoldMessenger.of(context).showSnackBar(
+                          onPressed: () async {
+                            Navigator.pop(dialogContext);
+                            final ok = await ref
+                                .read(ewalletProvider.notifier)
+                                .withdraw(amount: amt);
+                            // `mounted` here is the page State's — still mounted after the
+                            // dialog pops — so it is safe to read the provider and show the
+                            // toast via the captured (page) messenger.
+                            if (!mounted) return;
+                            final err = ref.read(ewalletProvider).error;
+                            messenger.showSnackBar(
                               SnackBar(
-                                content: Text('withdrawal_initiated_successfully'.tr),
-                                backgroundColor: Colors.green,
+                                content: Text(ok
+                                    ? 'withdrawal_initiated_successfully'.tr
+                                    : ((err != null && err.isNotEmpty)
+                                        ? err
+                                        : 'withdrawal_failed'.tr)),
+                                backgroundColor: ok ? Colors.green : Colors.red,
                               ),
                             );
+                            if (ok) _withdrawAmountController.clear();
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.green,
@@ -408,55 +566,20 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
   }
 
   Widget _buildTransactionHistory() {
-    // Sample transaction data (localized)
-    final now = DateTime.now();
-    final transactions = [
-      {
-        'titleKey': 'payment_received',
-        'subtitleKey': 'from',
-        'party': 'Hôpital Central',
-        'amount': 320.00,
-        'date': DateTime(now.year, now.month, now.day, 14, 30),
-        'icon': Iconsax.money_recive,
-        'isPositive': true,
-      },
-      {
-        'titleKey': 'withdrawal_made',
-        'subtitleKey': 'to',
-        'party': 'bank_account'.tr,
-        'amount': -500.00,
-        'date': DateTime(now.year, now.month, now.day - 1, 10, 15),
-        'icon': Iconsax.money_send,
-        'isPositive': false,
-      },
-      {
-        'titleKey': 'payment_received',
-        'subtitleKey': 'from',
-        'party': 'Clinique Saint-Joseph',
-        'amount': 180.00,
-        'date': DateTime(now.year, now.month, 8, 16, 45),
-        'icon': Iconsax.money_recive,
-        'isPositive': true,
-      },
-      {
-        'titleKey': 'payment_received',
-        'subtitleKey': 'from',
-        'party': 'Centre Médical Espoir',
-        'amount': 420.00,
-        'date': DateTime(now.year, now.month, 5, 9, 20),
-        'icon': Iconsax.money_recive,
-        'isPositive': true,
-      },
-      {
-        'titleKey': 'withdrawal_made',
-        'subtitleKey': 'to',
-        'party': 'mobile_money'.tr,
-        'amount': -300.00,
-        'date': DateTime(now.year, now.month, 1, 11, 30),
-        'icon': Iconsax.money_send,
-        'isPositive': false,
-      },
-    ];
+    // Real transactions from the per-profile e-wallet provider (mapped to the
+    // tile shape the renderer below already expects). `.tr` on a non-key label is a no-op.
+    final walletState = ref.watch(ewalletProvider);
+    final transactions = walletState.history
+        .map((tx) => <String, dynamic>{
+              'titleKey': tx.title,
+              'subtitleKey': 'from',
+              'party': tx.userName ?? '',
+              'amount': tx.isCredit ? tx.amount : -tx.amount,
+              'date': tx.createdAt ?? DateTime.now(),
+              'icon': tx.icon,
+              'isPositive': tx.isCredit,
+            })
+        .toList();
 
     return FadeInUp(
       delay: const Duration(milliseconds: 600),
@@ -563,6 +686,10 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
           _buildMobilePaymentSection(),
           const SizedBox(height: 24),
 
+          // Withdrawal payout phone
+          _buildWithdrawalPhoneSection(),
+          const SizedBox(height: 24),
+
           // Auto reception settings
           _buildAutoReceptionSection(),
         ],
@@ -623,18 +750,44 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
               ),
               keyboardType: TextInputType.emailAddress,
             ),
+            if (!(ref.watch(ewalletProvider).selected?.emailStatus.isNotSet ?? true)) ...[
+              const SizedBox(height: 12),
+              _settingStatusBadge(ref.watch(ewalletProvider).selected?.emailStatus ?? const EWalletSettingStatus()),
+            ],
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {
-                  // Save email settings
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('settings_saved'.tr),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
+                onPressed: () async {
+                  final messenger = ScaffoldMessenger.of(context);
+                  final email = _emailController.text.trim();
+                  if (email.isEmpty || !email.contains('@')) {
+                    messenger.showSnackBar(SnackBar(
+                      content: Text('enter_valid_email'.tr),
+                      backgroundColor: Colors.red,
+                    ));
+                    return;
+                  }
+                  if (ref.read(ewalletProvider).selected == null) {
+                    messenger.showSnackBar(SnackBar(
+                      content: Text('no_wallet_available'.tr),
+                      backgroundColor: Colors.red,
+                    ));
+                    return;
+                  }
+                  final ok = await ref
+                      .read(ewalletProvider.notifier)
+                      .updateSettings(authEmail: email);
+                  if (!mounted) return;
+                  final err = ref.read(ewalletProvider).error;
+                  messenger.showSnackBar(SnackBar(
+                    content: Text(ok
+                        ? 'settings_submitted_for_validation'.tr
+                        : ((err != null && err.isNotEmpty)
+                            ? err
+                            : 'settings_save_failed'.tr)),
+                    backgroundColor: ok ? Colors.green : Colors.red,
+                  ));
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green,
@@ -645,7 +798,7 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
                   ),
                 ),
                 child: Text(
-                  'save'.tr,
+                  'submit_for_validation'.tr,
                   style: GoogleFonts.ubuntu(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -712,18 +865,44 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
               ),
               keyboardType: TextInputType.phone,
             ),
+            if (!(ref.watch(ewalletProvider).selected?.phoneStatus.isNotSet ?? true)) ...[
+              const SizedBox(height: 12),
+              _settingStatusBadge(ref.watch(ewalletProvider).selected?.phoneStatus ?? const EWalletSettingStatus()),
+            ],
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {
-                  // Save phone settings
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('phone_number_saved'.tr),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
+                onPressed: () async {
+                  final messenger = ScaffoldMessenger.of(context);
+                  final phone = _phoneController.text.trim();
+                  if (phone.isEmpty) {
+                    messenger.showSnackBar(SnackBar(
+                      content: Text('enter_valid_phone'.tr),
+                      backgroundColor: Colors.red,
+                    ));
+                    return;
+                  }
+                  if (ref.read(ewalletProvider).selected == null) {
+                    messenger.showSnackBar(SnackBar(
+                      content: Text('no_wallet_available'.tr),
+                      backgroundColor: Colors.red,
+                    ));
+                    return;
+                  }
+                  final ok = await ref
+                      .read(ewalletProvider.notifier)
+                      .updateSettings(authPhoneNumber: phone);
+                  if (!mounted) return;
+                  final err = ref.read(ewalletProvider).error;
+                  messenger.showSnackBar(SnackBar(
+                    content: Text(ok
+                        ? 'settings_submitted_for_validation'.tr
+                        : ((err != null && err.isNotEmpty)
+                            ? err
+                            : 'settings_save_failed'.tr)),
+                    backgroundColor: ok ? Colors.green : Colors.red,
+                  ));
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green,
@@ -734,7 +913,123 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
                   ),
                 ),
                 child: Text(
-                  'save'.tr,
+                  'submit_for_validation'.tr,
+                  style: GoogleFonts.ubuntu(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWithdrawalPhoneSection() {
+    final status = ref.watch(ewalletProvider).selected?.withdrawalPhoneStatus ?? const EWalletSettingStatus();
+    return FadeInUp(
+      delay: const Duration(milliseconds: 550),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Iconsax.money_send, color: Colors.green),
+                const SizedBox(width: 10),
+                Text(
+                  'withdrawal_phone'.tr,
+                  style: GoogleFonts.ubuntu(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey.shade800,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'withdrawal_phone_description'.tr,
+              style: GoogleFonts.ubuntu(
+                fontSize: 14,
+                color: Colors.grey.shade600,
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _withdrawalPhoneController,
+              decoration: InputDecoration(
+                labelText: 'phone_number'.tr,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                suffixIcon: const Icon(Icons.phone),
+              ),
+              keyboardType: TextInputType.phone,
+            ),
+            if (!status.isNotSet) ...[
+              const SizedBox(height: 12),
+              _settingStatusBadge(status),
+            ],
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () async {
+                  final messenger = ScaffoldMessenger.of(context);
+                  final phone = _withdrawalPhoneController.text.trim();
+                  if (phone.isEmpty) {
+                    messenger.showSnackBar(SnackBar(
+                      content: Text('enter_valid_phone'.tr),
+                      backgroundColor: Colors.red,
+                    ));
+                    return;
+                  }
+                  if (ref.read(ewalletProvider).selected == null) {
+                    messenger.showSnackBar(SnackBar(
+                      content: Text('no_wallet_available'.tr),
+                      backgroundColor: Colors.red,
+                    ));
+                    return;
+                  }
+                  final ok = await ref
+                      .read(ewalletProvider.notifier)
+                      .updateSettings(withdrawalPhoneNumber: phone);
+                  if (!mounted) return;
+                  final err = ref.read(ewalletProvider).error;
+                  messenger.showSnackBar(SnackBar(
+                    content: Text(ok
+                        ? 'settings_submitted_for_validation'.tr
+                        : ((err != null && err.isNotEmpty)
+                            ? err
+                            : 'settings_save_failed'.tr)),
+                    backgroundColor: ok ? Colors.green : Colors.red,
+                  ));
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.all(16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(
+                  'submit_for_validation'.tr,
                   style: GoogleFonts.ubuntu(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -805,23 +1100,43 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
                 ),
               ),
               value: _autoReception,
-              onChanged: (value) {
-                setState(() {
-                  _autoReception = value;
-                });
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      value
-                          ? 'automatic_reception_enabled'.tr
-                          : 'on_demand_reception_enabled'.tr
-                    ),
-                    backgroundColor: Colors.green,
-                  ),
-                );
+              onChanged: (value) async {
+                final messenger = ScaffoldMessenger.of(context);
+                if (ref.read(ewalletProvider).selected == null) {
+                  messenger.showSnackBar(SnackBar(
+                    content: Text('no_wallet_available'.tr),
+                    backgroundColor: Colors.red,
+                  ));
+                  return;
+                }
+                // Flip optimistically, then revert if the backend rejects the change.
+                setState(() => _autoReception = value);
+                final ok = await ref
+                    .read(ewalletProvider.notifier)
+                    .updateSettings(autoCashOut: value);
+                if (!mounted) return;
+                if (!ok) {
+                  setState(() => _autoReception = !value);
+                  final err = ref.read(ewalletProvider).error;
+                  messenger.showSnackBar(SnackBar(
+                    content: Text((err != null && err.isNotEmpty)
+                        ? err
+                        : 'settings_save_failed'.tr),
+                    backgroundColor: Colors.red,
+                  ));
+                  return;
+                }
+                messenger.showSnackBar(SnackBar(
+                  content: Text('settings_submitted_for_validation'.tr),
+                  backgroundColor: Colors.green,
+                ));
               },
               activeColor: Colors.green,
             ),
+            if (!(ref.watch(ewalletProvider).selected?.autoCashOutStatus.isNotSet ?? true)) ...[
+              const SizedBox(height: 12),
+              _settingStatusBadge(ref.watch(ewalletProvider).selected?.autoCashOutStatus ?? const EWalletSettingStatus()),
+            ],
             if (!_autoReception) ...[
               const SizedBox(height: 16),
               Text(

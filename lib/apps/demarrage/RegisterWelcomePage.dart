@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:ionicons/ionicons.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
 
 class RegisterWelcomePage extends ConsumerWidget {
@@ -160,7 +160,7 @@ class RegisterWelcomePage extends ConsumerWidget {
                         delay: const Duration(milliseconds: 800),
                         child: _buildSocialRegisterButton(
                           context: context,
-                          icon: Ionicons.logo_google,
+                          icon: FontAwesomeIcons.google.data,
                           text: 'create_account_with_google'.tr,
                           color: Colors.white,
                           textColor: Colors.grey.shade700,
@@ -177,7 +177,7 @@ class RegisterWelcomePage extends ConsumerWidget {
                       //   delay: const Duration(milliseconds: 900),
                       //   child: _buildSocialRegisterButton(
                       //     context: context,
-                      //     icon: Ionicons.phone_portrait_outline,
+                      //     icon: Icons.smartphone,
                       //     text: 'create_account_with_phone_number'.tr,
                       //     color: ColorPages.COLOR_PRINCIPAL,
                       //     textColor: Colors.white,
@@ -338,15 +338,15 @@ class RegisterWelcomePage extends ConsumerWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: () {
-            // Navigate to main app as visitor
-            context.go('/app/MainApp');
+            // Navigate to RBAC loading as visitor
+            context.go('/rbac-loading');
           },
           borderRadius: BorderRadius.circular(16),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
-                Ionicons.eye_outline,
+                Icons.visibility_outlined,
                 color: ColorPages.COLOR_PRINCIPAL,
                 size: 20,
               ),

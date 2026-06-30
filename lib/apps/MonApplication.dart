@@ -79,7 +79,6 @@ class MonApplication extends ConsumerWidget {
         Locale('en', 'US'),
         Locale('es', 'ES'),
         Locale('ln', 'CD'),
-        Locale('ar', 'SA'),
         Locale('ru', 'RU'),
       ],
       localizationsDelegates: const [

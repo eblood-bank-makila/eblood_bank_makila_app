@@ -4,7 +4,7 @@ import 'package:get/get.dart';
 import '../../config/theme/ColorPages.dart';
 import 'network_controller.dart';
 import 'package:iconsax/iconsax.dart';
-import 'package:eblood_bank_mak_app/utilisateurs/ui/pages/notification/NotificationPage.dart';
+import 'package:eblood_bank_mak_app/users/ui/pages/notification/NotificationPage.dart';
 
 class NetworkScreen extends StatelessWidget {
   const NetworkScreen({super.key});

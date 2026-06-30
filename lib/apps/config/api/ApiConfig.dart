@@ -29,7 +29,8 @@ class ApiConfig {
   static const String expiringStock = '/eblood/stock/expiring';
   static const String lowStock = '/eblood/stock/low';
   static const String recentActivity = '/blood-bank/activity';
-  static const String donorEligibility = '/eblood-connect/blood-donors/eligibility';
+  // Sprint 12 — migrated to the donor self-service module.
+  static const String donorEligibility = '/blood-donors/eligibility';
   static const String inventorySettings = '/eblood/inventory/settings';
 
   // Blood requests endpoints
@@ -57,14 +58,24 @@ class ApiConfig {
   // Delivery confirmation & blood bag operations
   static const String confirmDelivery = '/eblood-connect/blood-requests/confirm-delivery';
   static const String markBloodBagUsed = '/eblood-connect/blood-requests/blood-bags/mark-used';
-  static const String requestCoolboxPassword = '/eblood-connect/blood-requests/deliveries/request-coolbox-password';
+
+  // E-wallet (per-profile: blood bank / CNTS). Backend scopes to the caller's org.
+  static const String ewalletMyWallets = '/eblood-connect/ewallet/my-wallets';
+  static const String ewalletHistory = '/eblood-connect/ewallet/history';
+  static const String ewalletWithdraw = '/eblood-connect/ewallet/withdraw';
+  static const String ewalletUpdateSettings = '/eblood-connect/ewallet/settings';
+
+  // Sprint 17 — IoT coolbox access gate. The legacy URL was
+  // /eblood-connect/blood-requests/deliveries/request-coolbox-password
+  // and took only ops_delivery_id; the new endpoint requires the full
+  // RBAC context (requester id, role, org_ids) plus the QR token from
+  // the scan that triggered the request.
+  static const String requestCoolboxPassword = '/coolbox/request-password';
 
   static String confirmDeliveryForRequest(String requestId) =>
       '$confirmDelivery?request_id=$requestId';
   static String markBloodBagUsedFor(String bloodBagId) =>
       '$markBloodBagUsed?blood_bag_id=$bloodBagId';
-  static String requestCoolboxPasswordForDelivery(String deliveryId) =>
-      '$requestCoolboxPassword?ops_delivery_id=$deliveryId';
 
   // Users & Roles
   static const String usersList = '/users/fetch';

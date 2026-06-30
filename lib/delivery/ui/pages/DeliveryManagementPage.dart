@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:animate_do/animate_do.dart';
 import '../../../apps/config/theme/ColorPages.dart';
+import '../../../core/rbac/services/rbac_guard.dart';
 import '../../business/interactors/DeliveryController.dart';
 import '../../business/model/DeliveryModels.dart';
 
@@ -28,6 +29,12 @@ class _DeliveryManagementPageState
   @override
   void initState() {
     super.initState();
+    // RBAC entry guard.
+    guardPageEntry(
+      ref,
+      context,
+      'flutter_apps_eblood_bank_cust_delivery_management',
+    );
     // Load deliveries on page load
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(deliveryControllerProvider.notifier).loadDeliveries();

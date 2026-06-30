@@ -59,6 +59,12 @@ class ApiConfig {
   static const String confirmDelivery = '/eblood-connect/blood-requests/confirm-delivery';
   static const String markBloodBagUsed = '/eblood-connect/blood-requests/blood-bags/mark-used';
 
+  // E-wallet (per-profile: blood bank / CNTS). Backend scopes to the caller's org.
+  static const String ewalletMyWallets = '/eblood-connect/ewallet/my-wallets';
+  static const String ewalletHistory = '/eblood-connect/ewallet/history';
+  static const String ewalletWithdraw = '/eblood-connect/ewallet/withdraw';
+  static const String ewalletUpdateSettings = '/eblood-connect/ewallet/settings';
+
   // Sprint 17 — IoT coolbox access gate. The legacy URL was
   // /eblood-connect/blood-requests/deliveries/request-coolbox-password
   // and took only ops_delivery_id; the new endpoint requires the full

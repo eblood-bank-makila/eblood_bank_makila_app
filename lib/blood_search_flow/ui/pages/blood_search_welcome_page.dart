@@ -15,6 +15,7 @@ import '../../providers/search_flow_provider.dart';
 import '../../providers/recent_activity_provider.dart';
 import '../../data/services/visitor_registration_service_impl.dart';
 import '../../../apps/config/theme/ColorPages.dart';
+import '../../../core/services/session_user_store.dart';
 import '../widgets/recent_activity_bottom_sheet.dart';
 
 class BloodSearchWelcomePage extends ConsumerStatefulWidget {
@@ -70,7 +71,12 @@ class _BloodSearchWelcomePageState extends ConsumerState<BloodSearchWelcomePage>
     });
   }
 
-  /// Load user info from local storage to determine logged-in state
+  /// Load user info from local storage to determine logged-in state.
+  ///
+  /// Token detection: GetStorage fast path → FlutterSecureStorage durable
+  /// fallback. Display info: GetStorage `user_data` (fast) → secure
+  /// [SessionUserStore] (durable, survives an app kill / GetStorage wipe).
+  /// Whenever we derive from GetStorage we also (re)write the durable copy.
   Future<void> _loadUserInfo() async {
     try {
       final storage = GetStorage();
@@ -84,64 +90,65 @@ class _BloodSearchWelcomePageState extends ConsumerState<BloodSearchWelcomePage>
         token = await secure.read(key: 'auth_token');
       }
 
-      if (token != null && token.isNotEmpty) {
-        final accountType = (storage.read('account_type') ?? '').toString().toLowerCase();
-        final userData = storage.read('user_data');
+      // No token at all → not logged in, leave the guest (login/register) bar.
+      if (token == null || token.isEmpty) {
+        return;
+      }
 
-        String displayName = '';
-        String subtitle = '';
+      String accountType = (storage.read('account_type') ?? '').toString().toLowerCase();
+      final userData = storage.read('user_data');
 
-        if (userData is Map) {
-          final firstName = (userData['first_name'] ?? '').toString().trim();
-          final lastName = (userData['last_name'] ?? '').toString().trim();
-          final username = (userData['username'] ?? '').toString().trim();
-          final phone = (userData['phone_number'] ?? '').toString().trim();
-          final email = (userData['email_address'] ?? '').toString().trim();
+      String displayName = '';
 
-          // For hospital / blood bank, try entity name
-          final entity = userData['user_entity'];
-          if (entity is Map && (accountType == 'hospital' || accountType == 'blood_bank')) {
-            final entityName = (entity['entity_name'] ?? entity['name'] ?? '').toString().trim();
-            if (entityName.isNotEmpty) {
-              displayName = entityName;
-              subtitle = _accountTypeLabel(accountType);
-            }
-          }
+      // 1) Fast path: derive from the GetStorage user_data cache.
+      if (userData is Map) {
+        displayName = SessionUserStore.deriveDisplayName(userData, accountType);
+      }
 
-          // Fallback to personal name
-          if (displayName.isEmpty) {
-            if (firstName.isNotEmpty || lastName.isNotEmpty) {
-              displayName = '$firstName $lastName'.trim();
-            } else if (username.isNotEmpty) {
-              displayName = username;
-            } else if (phone.isNotEmpty) {
-              displayName = phone;
-            } else if (email.isNotEmpty) {
-              displayName = email;
-            }
-            subtitle = _accountTypeLabel(accountType);
+      // 2) Visitor with no user_data → use the saved visitor phone.
+      if (displayName.isEmpty) {
+        final visitorPhone = (storage.read('visitor_phone') ?? '').toString();
+        if (visitorPhone.isNotEmpty) {
+          displayName = visitorPhone;
+        }
+      }
+
+      // 3) Durable fallback: GetStorage was wiped / incomplete but the secure
+      //    token survived — recover the name from secure storage.
+      if (displayName.isEmpty) {
+        final cached = await SessionUserStore.read();
+        if (cached != null && cached.displayName.isNotEmpty) {
+          displayName = cached.displayName;
+          if (accountType.isEmpty) {
+            accountType = cached.accountType.toLowerCase();
           }
         }
+      }
 
-        // Visitor with no user_data
-        if (displayName.isEmpty) {
-          final visitorPhone = (storage.read('visitor_phone') ?? '').toString();
-          if (visitorPhone.isNotEmpty) {
-            displayName = visitorPhone;
-          } else {
-            displayName = 'visitor'.tr.isEmpty ? 'Visitor' : 'visitor'.tr;
-          }
-          subtitle = _accountTypeLabel(accountType.isEmpty ? 'visitor' : accountType);
-        }
+      // 4) Last resort: generic visitor label.
+      if (displayName.isEmpty) {
+        displayName = 'visitor'.tr.isEmpty ? 'Visitor' : 'visitor'.tr;
+      }
 
-        if (mounted) {
-          setState(() {
-            _isLoggedIn = true;
-            _userDisplayName = displayName;
-            _userSubtitle = subtitle;
-            _accountType = accountType;
-          });
-        }
+      final subtitle =
+          _accountTypeLabel(accountType.isEmpty ? 'visitor' : accountType);
+
+      // Persist a durable secure-storage copy so the next cold start / hot
+      // restart can show the user even if the GetStorage cache is gone.
+      if (userData is Map) {
+        await SessionUserStore.saveFromUserData(
+          userData: userData,
+          accountType: accountType,
+        );
+      }
+
+      if (mounted) {
+        setState(() {
+          _isLoggedIn = true;
+          _userDisplayName = displayName;
+          _userSubtitle = subtitle;
+          _accountType = accountType;
+        });
       }
     } catch (e) {
       debugPrint('⚠️ BloodSearchWelcome: _loadUserInfo error: $e');

@@ -1,6 +1,7 @@
 import 'package:eblood_bank_mak_app/users/business/models/authentification/AuthentificationModele.dart';
 import 'package:eblood_bank_mak_app/users/business/models/code_otp/DatumCodeOtpModele.dart';
 import 'package:eblood_bank_mak_app/users/business/service/utilisateurLocalService.dart';
+import 'package:eblood_bank_mak_app/core/services/session_user_store.dart';
 import 'package:sembast/sembast.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -80,6 +81,7 @@ class UtilisateurLocalServiceImpl implements UtilisateurLocalService {
       const secure = FlutterSecureStorage();
       await secure.delete(key: 'auth_token');
       await secure.delete(key: 'refresh_token');
+      await SessionUserStore.clear();
     } catch (e) {
       print('⚠️ SecureStorage clear on logout failed: $e');
     }

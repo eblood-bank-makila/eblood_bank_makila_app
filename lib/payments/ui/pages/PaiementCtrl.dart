@@ -24,8 +24,6 @@ class PaiementCtrl extends _$PaiementCtrl {
     String? patientId,
     String? requestType,
     String? urgencyLevel,
-    int? amountCents,
-    String? currency,
   }) async {
     var usecase = ref.watch(paiementInteractorProvider).ajouterPochePaiementUseCase;
     var res = await usecase.run(
@@ -37,8 +35,6 @@ class PaiementCtrl extends _$PaiementCtrl {
       patientId: patientId,
       requestType: requestType,
       urgencyLevel: urgencyLevel,
-      amountCents: amountCents,
-      currency: currency,
     );
     state = state.copyWith(paiement: res);
 

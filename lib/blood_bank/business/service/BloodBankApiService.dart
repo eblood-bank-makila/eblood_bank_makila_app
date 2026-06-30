@@ -120,6 +120,7 @@ class BloodBankApiService {
                 collectionDate: DateTime.now(),
                 donorId: '',
                 batchNumber: item['batch_number'] ?? item['batchNumber'] ?? '',
+                bloodBagNumber: item['blood_bag_number'] ?? item['bloodBagNumber'] ?? '',
                 description: 'Error parsing item: ${item.keys.join(", ")}',
                 createdAt: DateTime.now(),
                 updatedAt: DateTime.now(),
@@ -155,6 +156,7 @@ class BloodBankApiService {
         'collectionDate': stock.collectionDate.toIso8601String(),
         'donorId': stock.donorId.isNotEmpty ? stock.donorId : null,
         'batchNumber': stock.batchNumber,
+        'bloodBagNumber': stock.bloodBagNumber,
         'description': stock.description,
       };
       

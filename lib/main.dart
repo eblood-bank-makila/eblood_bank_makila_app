@@ -21,7 +21,6 @@ import 'package:flutter/foundation.dart';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lokotro_pay/lokotro_pay.dart';
 import 'package:sembast/sembast.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:get/get.dart';
@@ -109,12 +108,6 @@ void main() async {
 
   // Initialize AppConfig first
   await dotenv.load(fileName: ".env");
-
-  LokotroPay.init(LokotroPayConfig(
-    environment: _resolveLokotroEnv(dotenv.env['LOKOTRO_ENVIRONMENT']),
-    defaultLocale: 'fr',
-  ));
-
   await AppConfig.initialize();
 
   // Initialize background services (location tracking, etc.)
@@ -210,22 +203,4 @@ void main() async {
       paiementInteractorProvider.overrideWithValue(paiementInteractor)
     ],
   ));
-}
-
-LokotroPayEnvironment _resolveLokotroEnv(String? raw) {
-  switch (raw?.toLowerCase()) {
-    case 'production':
-      return LokotroPayEnvironment.production;
-    case 'staging':
-      return LokotroPayEnvironment.staging;
-    case 'sandbox':
-    case null:
-    case '':
-      return LokotroPayEnvironment.sandbox;
-    default:
-      throw StateError(
-        'Unknown LOKOTRO_ENVIRONMENT="$raw" in .env. '
-        'Expected one of: sandbox | staging | production.',
-      );
-  }
 }

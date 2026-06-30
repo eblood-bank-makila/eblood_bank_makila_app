@@ -7,6 +7,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../users/business/models/code_otp/DatumCodeOtpModele.dart';
+import '../../core/services/session_user_store.dart';
 import '../config/api/dio_client.dart';
 
 class AuthApi {
@@ -104,6 +105,12 @@ class AuthApi {
         final String accountType = _deriveAccountTypeFromProfiles(normalizedProfiles);
         await _storage.write('account_type', accountType);
 
+        // Durable secure-storage copy for the logged-in user bar.
+        await SessionUserStore.saveFromUserData(
+          userData: responseData['user'] is Map ? responseData['user'] as Map : null,
+          accountType: accountType,
+        );
+
         return {
           'success': true,
           'nextAction': 'login',
@@ -196,6 +203,12 @@ class AuthApi {
         // Derive and persist a normalized account_type used by UI routing
         final String accountType = _deriveAccountTypeFromProfiles(normalizedProfiles);
         await _storage.write('account_type', accountType);
+
+        // Durable secure-storage copy for the logged-in user bar.
+        await SessionUserStore.saveFromUserData(
+          userData: responseData['user'] is Map ? responseData['user'] as Map : null,
+          accountType: accountType,
+        );
 
         return {
           'success': true,
@@ -831,6 +844,7 @@ class AuthApi {
       // Clear local storage
       await _secureStorage.delete(key: 'auth_token');
       await _secureStorage.delete(key: 'refresh_token');
+      await SessionUserStore.clear();
 
       await _storage.remove('auth_token');
       await _storage.remove('refresh_token');
@@ -894,6 +908,14 @@ class AuthApi {
       await _storage.write('user_entity_name', entityName);
       print('💾 Stored user_entity_id: $entityId, user_entity_name: $entityName');
     }
+
+    // 3. Persist a durable, secure-storage copy of the display info so the
+    // logged-in user bar (blood-search / QR page) survives an app kill or hot
+    // restart even when the GetStorage `user_data` cache is missing.
+    await SessionUserStore.saveFromUserData(
+      userData: userData,
+      accountType: accountType,
+    );
   }
 }
 

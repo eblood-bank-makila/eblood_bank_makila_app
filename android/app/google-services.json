@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "747927280653-k1p2jn6mhm7mrn0gqrvoivhnhhbnm25o.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.ebloodbank.makila.grpe.apps.eblood_bank_mak_app",
+            "certificate_hash": "0044e48a657372a9d37b4c3fa90d1c7e0204d0c0"
+          }
+        },
+        {
           "client_id": "747927280653-nmgrvp8emngj9e42r11tt2nljuutouon.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {

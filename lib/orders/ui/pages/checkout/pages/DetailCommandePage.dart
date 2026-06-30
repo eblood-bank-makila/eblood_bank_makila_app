@@ -2,15 +2,12 @@ import 'dart:math';
 import 'package:animate_do/animate_do.dart';
 import 'package:confetti/confetti.dart';
 import 'package:eblood_bank_mak_app/apps/config/theme/ColorPages.dart';
-import 'package:eblood_bank_mak_app/core/config/app_config.dart';
 import 'package:eblood_bank_mak_app/apps/widgets/AppSpinner.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:eblood_bank_mak_app/core/rbac/providers/rbac_provider.dart';
 import 'package:eblood_bank_mak_app/orders/business/model/DatumPanierModel.dart';
 import 'package:eblood_bank_mak_app/orders/ui/pages/panier/PanierPageState.dart';
-import 'package:eblood_bank_mak_app/payments/business/service/LokotroPayCheckoutService.dart';
-import 'package:eblood_bank_mak_app/payments/business/service/PaymentApi.dart';
 import 'package:eblood_bank_mak_app/payments/ui/pages/PaiementCtrl.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -1348,76 +1345,61 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
     });
 
     try {
-      // Sprint 15 — call /payments/initiate/payment directly. The
-      // legacy `ajouterPaiment` controller goes through the same
-      // PaymentApi under the hood but its PaiementResponseModel strips
-      // the lokotro fields (app_key, notify_url, merchant) we need to
-      // launch the SDK widget — so we go around it.
-      final amountCentsToCharge =
-          (widget.paiement.totalPrice * 100).round();
-      final cartCurrencyCode = widget.paiement.currency;
+      debugPrint("🔧 Getting payment controller...");
+      var ctrl = ref.read(paiementCtrlProvider.notifier);
 
-      debugPrint("💳 POST /payments/initiate/payment — currency $cartCurrencyCode, $amountCentsToCharge cents");
-      final initiate = await PaymentApi.initiate(
-        purpose: 'delivery',
-        entityId: widget.paiement.id,
-        amountCents: amountCentsToCharge,
-        currency: cartCurrencyCode,
-        description: _requestReason,
+      debugPrint("💳 Calling payment API with transactional_currency_id: $currencyId");
+      var resultat = await ctrl.ajouterPaiment(
+        widget.paiement,
+        phoneNumber: phoneNumber,
+        transactionalCurrencyId: currencyId,
+        requestFor: _requestFor,
+        requestReason: _requestReason,
+        patientId: _patientId,
+        requestType: _requestType,
+        urgencyLevel: _urgencyLevel,
       );
 
-      if (!initiate.isSuccess || initiate.customerReference == null) {
-        setState(() {
-          _isLoading = false;
-        });
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(initiate.errorMessage
-                  ?? 'Erreur lors de l\'initiation du paiement'),
-              backgroundColor: Colors.red,
-              duration: const Duration(seconds: 4),
-            ),
-          );
-        }
-        return;
-      }
-
-      final customerRef = initiate.customerReference!;
-      debugPrint("🎉 Intent created. Launching lokotro_pay with ref=$customerRef");
-
-      // Sprint 15 — hand off to lokotro_pay's checkout widget with the
-      // full config from the backend. The webhook reconciles the final
-      // state regardless of the SDK callback, so we always navigate to
-      // PaymentStatusPage afterwards.
-      if (mounted) {
-        final outcome = await LokotroPayCheckoutService.launchFromInitiate(
-          context,
-          initiate: initiate,
-          paymentMethod: 'wallet',
-          phoneNumberOverride: phoneNumber,
-          mobileMoneyPhoneNumber: phoneNumber,
-          title: 'Paiement eblood',
-        );
-        debugPrint('🪙 lokotro_pay checkout outcome: ${outcome.outcome}');
-      }
+      debugPrint("🎯 Payment result: $resultat");
+      debugPrint("✅ Success: ${resultat?.success}");
+      debugPrint("📄 Message: ${resultat?.sms}");
+      debugPrint("🔗 SystemRef: ${resultat?.data?.systemRef}");
 
       setState(() {
         _isLoading = false;
       });
 
-      if (mounted) {
-        final baseUrl = AppConfig.apiBaseUrl;
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => PaymentStatusPage(
-              systemRef: customerRef,
-              baseUrl: baseUrl,
-              onPaymentResult: onPaymentResult,
+      if (resultat?.success == true && resultat?.data?.systemRef != null) {
+        debugPrint("🎉 Payment initiated successfully, navigating to status page...");
+
+        // Navigate to payment status page
+        String baseUrl = dotenv.env['BASE_URL'] ?? 'http://192.168.30.132:3101/eblood-hstdapi/v1';
+
+        if (mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => PaymentStatusPage(
+                systemRef: resultat!.data!.systemRef,
+                baseUrl: baseUrl,
+                onPaymentResult: onPaymentResult,
+              ),
             ),
-          ),
-        );
+          );
+        }
+      } else {
+        debugPrint("❌ Payment failed: ${resultat?.sms}");
+
+        // Show error message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(resultat?.sms ?? 'Erreur lors du traitement du paiement'),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 4),
+            ),
+          );
+        }
       }
     } catch (e, stackTrace) {
       setState(() {

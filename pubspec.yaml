@@ -2,7 +2,7 @@ name: eblood_bank_mak_app
 description: "Application d'interconnection des banques de sang, hopitaux, donneurs"
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
  
-version: 1.0.0+1
+version: 1.0.0+4
  
 environment:
   sdk: ^3.8.1 
@@ -37,7 +37,6 @@ dependencies:
   flutter_local_notifications: ^17.2.3
   flutter_svg: ^2.0.10+1
   confetti: ^0.8.0
-  ionicons: ^0.2.2
   shared_preferences: ^2.2.2
   shimmer: ^2.0.0
   flutter_secure_storage: ^9.2.4
@@ -64,6 +63,8 @@ dependencies:
   # Android (build fails at :app:mergeLibDexDebug).
   # open_file: ^3.3.2  # removed
   open_filex: ^4.7.0
+  # Sprint 16: pick the filled .xlsx/.csv for bulk blood-bag import.
+  file_picker: ^8.1.4
   video_player: ^2.8.2
   chewie: ^1.7.5
   google_mlkit_face_detection: ^0.13.1
@@ -76,6 +77,7 @@ dependencies:
   freezed_annotation: ^2.4.1
   json_annotation: ^4.8.1
   lokotro_pay: ^3.0.0
+  font_awesome_flutter: ^11.0.0
 
 dev_dependencies:
   flutter_test:

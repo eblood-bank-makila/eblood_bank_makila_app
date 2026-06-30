@@ -1,76 +1,80 @@
+import 'dart:io';
 import 'package:eblood_bank_mak_app/payments/business/models/PaiementModel.dart';
 import 'package:eblood_bank_mak_app/payments/business/models/PaiementResponseModel.dart';
-import 'package:eblood_bank_mak_app/payments/business/models/DatumPaiementModel.dart';
 import 'package:eblood_bank_mak_app/payments/business/service/PaiementNetworkService.dart';
-import 'package:eblood_bank_mak_app/payments/business/service/PaymentApi.dart';
+import 'package:eblood_bank_mak_app/apps/config/api/dio_client.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-/// Sprint 15 — server-side first leg of the payment flow.
-///
-/// Replaces the legacy POST /eblood-connect/cart/submit-payment call
-/// (onafriq-shaped request body) with the gateway-agnostic
-/// PaymentApi.initiate which talks to /api/v1/payments/initiate. The
-/// SECOND leg (showing the lokotro_pay widget to actually collect the
-/// funds) is launched from the UI in DetailCommandePage with
-/// LokotroPayCheckoutService — kept separate because the checkout
-/// widget needs a BuildContext.
-///
-/// The legacy PaiementResponseModel shape is preserved so the rest of
-/// the app — including the navigation to PaymentStatusPage — can keep
-/// using `result.data.systemRef` as the opaque payment identifier.
-/// In the new world that string is the backend's `customer_reference`.
 class PaiementServiceNetworkImpl implements PaiementNetworkService {
-  // Kept for ABI compatibility with main.dart's bootstrap; not used
-  // by the new dio_client-driven flow.
   String baseURL;
 
   PaiementServiceNetworkImpl(this.baseURL);
 
   @override
   Future<PaiementResponseModel?> ajouterPaiement(
-    PaiementModel data,
-    String authBearer,
-  ) async {
-    final result = await PaymentApi.initiate(
-      purpose: 'delivery',
-      entityId: data.cartId,
-      amountCents: data.amountCents ?? 0,
-      currency: data.currency ?? 'USD',
-      description: _buildDescription(data),
-    );
-
-    if (!result.isSuccess || result.customerReference == null) {
-      return PaiementResponseModel(
-        data: null,
-        sms: result.errorMessage ?? 'Échec de l\'initiation du paiement.',
-        statusCode: 0,
-        success: false,
+      PaiementModel data, String authBearer) async {
+    try {
+      // Use dio_client for automatic auth header injection
+      final response = await postWithDio(
+        '/eblood-connect/cart/submit-payment',
+        body: {
+          'cart_id': data.cartId,
+          if (data.phoneNumber != null) 'phone_number': data.phoneNumber,
+          if (data.transactionalCurrencyId != null)
+            'transactional_currency_id': data.transactionalCurrencyId,
+          if (data.requestFor != null) 'request_for': data.requestFor,
+          if (data.requestReason != null) 'request_reason': data.requestReason,
+          if (data.patientId != null) 'patient_id': data.patientId,
+          if (data.requestType != null) 'request_type': data.requestType,
+          if (data.urgencyLevel != null) 'urgency_level': data.urgencyLevel,
+        },
       );
-    }
 
-    return PaiementResponseModel(
-      data: DatumPaiementModel(
-        // systemRef is now the customer_reference — the opaque token
-        // used by both lokotro_pay's widget and the backend webhook.
-        systemRef: result.customerReference!,
-        bloodRequestId: data.cartId,
-      ),
-      sms: 'Payment intent created',
-      statusCode: 201,
-      success: true,
-    );
-  }
+      if (response.success && response.data != null) {
+        print("✅ Payment Response: ${response.message}");
 
-  String? _buildDescription(PaiementModel data) {
-    final parts = <String>[];
-    if (data.requestFor != null && data.requestFor!.isNotEmpty) {
-      parts.add(data.requestFor!);
+        // Extract data from IApiResponse
+        final responseData = response.data as Map<String, dynamic>?;
+
+        if (responseData != null) {
+          // Create PaiementResponseModel from new response format
+          var responseFinal = PaiementResponseModel.fromJson({
+            'success': true,
+            'message': response.message ?? 'Payment submitted successfully',
+            'data': responseData,
+          });
+          return responseFinal;
+        }
+      }
+
+      print("❌ Payment failed: ${response.message ?? 'Invalid response'}");
+      return null;
+
+    } catch (e) {
+      print("❌ Payment error: $e");
+      return null;
     }
-    if (data.requestReason != null && data.requestReason!.isNotEmpty) {
-      parts.add(data.requestReason!);
-    }
-    if (data.urgencyLevel != null && data.urgencyLevel!.isNotEmpty) {
-      parts.add('urgence: ${data.urgencyLevel}');
-    }
-    return parts.isEmpty ? null : parts.join(' — ');
   }
+}
+
+class MyHttpOverrides extends HttpOverrides {
+  @override
+  HttpClient createHttpClient(SecurityContext? context) {
+    return super.createHttpClient(context)
+      ..badCertificateCallback =
+          (X509Certificate cert, String host, int port) => true;
+  }
+}
+
+void main() {
+  HttpOverrides.global = new MyHttpOverrides();
+  String baseUrl = dotenv.env['BASE_URL'] ?? '';
+  var impl = PaiementServiceNetworkImpl(baseUrl);
+  var authBearer =
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1X2lkIjoiNjZkNzE5MDk3NWQ5MGE3YmMyMjgwYjkxIiwiaWV3IjoiMjAyNC0wOS0zMFQxMTozNDoxOS41ODVaIiwiaWF0IjoxNzI3Njk1NzU5LCJleHAiOjE3Mjc5NTQ5NTl9.DeRfSlq90U9DylDtzqbEbSIuazLd9n2PoN9wFSbFoJ8';
+  var card = PaiementModel(cartId: "66fd405f337dfdc01e1bd9c4");
+
+  //String cart_id = "66fd405f337dfdc01e1bd9c4";
+
+  impl.ajouterPaiement(card, authBearer);
 }

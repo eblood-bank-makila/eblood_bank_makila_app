@@ -10,7 +10,6 @@ import '../../../../../payments/ui/pages/message/MessagePaiementReussiPage.dart'
 import '../../../../../payments/ui/pages/message/MessagePaiementEchouer.dart';
 import '../../panier/PanierCtrl.dart';
 import '../../../../../apps/config/api/dio_client.dart';
-import '../../../../../payments/business/service/PaymentApi.dart';
 
 class PaymentStatusPage extends ConsumerStatefulWidget {
   final String systemRef;
@@ -174,45 +173,35 @@ class _PaymentStatusPageState extends ConsumerState<PaymentStatusPage>
 
 
   Future<void> _checkPaymentStatus({required double percent}) async {
-    // Sprint 15 — `widget.systemRef` is the customer_reference now.
-    // Polling endpoint moved to /payments/get-payment-status. The
-    // legacy `customCheckStatusEndpoint` override is honoured for any
-    // caller that wired a one-off URL (rare; kept for back-compat).
     try {
-      debugPrint('🔍 Polling /payments/get-payment-status for ${widget.systemRef}');
+      print('🔍 Checking payment status for systemRef: ${widget.systemRef}');
 
-      if (widget.customCheckStatusEndpoint != null) {
-        final response =
-            await getWithDio(widget.customCheckStatusEndpoint!);
-        if (response.success && response.data is Map<String, dynamic>) {
-          _handleStatusResponse(response.data as Map<String, dynamic>);
-          return;
+      // Use custom endpoint if provided, otherwise use default
+      final endpoint = widget.customCheckStatusEndpoint ??
+          '/eblood-connect/payment-status/checking?identifier=${widget.systemRef}&percent=$percent';
+
+      // Use dio_client for automatic auth header injection
+      final response = await getWithDio(endpoint);
+
+      print('📡 Payment status response: ${response.statusCode}');
+      print('📄 Response success: ${response.success}');
+      print('📄 Response data: ${response.data}');
+
+      if (response.success && response.data != null) {
+        // Extract the actual data from IApiResponse
+        final responseData = response.data as Map<String, dynamic>?;
+        if (responseData != null) {
+          _handleStatusResponse(responseData);
+        } else {
+          print('❌ Response data is null');
+          _updateStatusMessage('Vérification du statut...');
         }
+      } else {
+        print('❌ Error checking payment status: ${response.message}');
         _updateStatusMessage('Vérification du statut...');
-        return;
       }
-
-      final status = await PaymentApi.getStatus(widget.systemRef);
-      if (!status.ok) {
-        debugPrint('❌ get-payment-status failed: ${status.errorMessage}');
-        _updateStatusMessage('Vérification du statut...');
-        return;
-      }
-      // Reuse _handleStatusResponse by handing it a synthetic envelope —
-      // no need to keep two parallel parsers.
-      _handleStatusResponse({
-        'success': status.display == PaymentDisplayState.paid,
-        'data': {
-          'state': status.state,
-          'amount': status.amountCents / 100.0,
-          'currency': status.currency,
-          'gateway_transaction_id': status.gatewayTransactionId,
-          'customer_reference': status.customerReference,
-          'is_terminal': status.isTerminal,
-        },
-      });
     } catch (e) {
-      debugPrint('💥 Exception polling payment status: $e');
+      print('💥 Exception checking payment status: $e');
       _updateStatusMessage('Vérification du statut...');
     }
   }
@@ -233,51 +222,50 @@ class _PaymentStatusPageState extends ConsumerState<PaymentStatusPage>
     debugPrint('📊 Message: $message');
     debugPrint('📊 Data: $data');
 
-    // Sprint 15 — the new payments module returns {state, amount,
-    // currency, gateway_transaction_id, customer_reference,
-    // is_terminal}. Legacy onafriq fields (onafriq_transaction_ref,
-    // onafriq_error_messages, blood_request_identifier) are gone — the
-    // success ref is the gateway_transaction_id when present, falling
-    // back to the customer_reference.
+    // Extract status from data object (backend now returns it there)
     String? status;
     String? failureReason;
     String? bloodRequestId;
     String? systemIdentifier;
+
+    // Extra details for UI
     String? amountText;
-    String? successRef;
-    String? failureRef;
+    String? successRef; // Onafriq ref when available
+    String? failureRef; // System reference
     List<String>? errorMessages;
 
-    status = data['state']?.toString().toLowerCase()
-        ?? data['status']?.toString().toLowerCase();
+    // Normalize status from either 'status' or 'state'
+    status = data['status']?.toString().toLowerCase() ?? data['state']?.toString().toLowerCase();
     failureReason = data['failure_reason']?.toString();
-    debugPrint('📊 Payment status: $status');
+    debugPrint('📊 Payment status from data: $status');
     if (failureReason != null) {
       debugPrint('📊 Failure reason: $failureReason');
     }
 
-    final amountVal = data['amount'];
-    final currency = data['currency']?.toString();
-    if (amountVal != null && currency != null) {
-      amountText = amountVal is num
-          ? '${amountVal.toStringAsFixed(2)} $currency'
-          : '${amountVal.toString()} $currency';
-    }
+      // Amount and currency formatting
+      final amountVal = data['amount'];
+      final currency = data['currency']?.toString();
+      if (amountVal != null && currency != null) {
+        if (amountVal is num) {
+          amountText = '${amountVal.toStringAsFixed(2)} $currency';
+        } else {
+          amountText = '${amountVal.toString()} $currency';
+        }
+      }
 
-    bloodRequestId = data['entity_id']?.toString()
-        ?? data['blood_request_id']?.toString();
-    systemIdentifier = data['customer_reference']?.toString()
-        ?? data['blood_request_identifier']?.toString();
+      // IDs and references
+      bloodRequestId = data['blood_request_id']?.toString();
+      systemIdentifier = data['blood_request_identifier']?.toString();
 
-    successRef = data['gateway_transaction_id']?.toString()
-        ?? data['onafriq_transaction_ref']?.toString()
-        ?? systemIdentifier;
-    failureRef = systemIdentifier;
+      // References
+      successRef = data['onafriq_transaction_ref']?.toString();
+      failureRef = systemIdentifier;
 
-    final em = data['error_messages'] ?? data['onafriq_error_messages'];
-    if (em is List) {
-      errorMessages = em.map((e) => e.toString()).toList();
-    }
+      // Error messages list
+      final em = data['onafriq_error_messages'];
+      if (em is List) {
+        errorMessages = em.map((e) => e.toString()).toList();
+      }
 
     // Check multiple possible success indicators
     bool isSuccess = false;

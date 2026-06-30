@@ -1882,6 +1882,7 @@ class _NewDonationSheetState extends ConsumerState<_NewDonationSheet> {
       collectionDate: now,
       donorId: widget.donor.id,
       batchNumber: batchNumber,
+      bloodBagNumber: '', // Not captured in the quick donor-donation flow
       description: description.isEmpty ? null : description,
       createdAt: now,
       updatedAt: now,

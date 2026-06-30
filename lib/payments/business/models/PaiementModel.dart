@@ -17,13 +17,6 @@ class PaiementModel {
   final String? requestType; // e.g., TRAUMA, ANEMIA_SEVERE, ...
   final String? urgencyLevel; // e.g., ROUTINE, PRIORITY, URGENT, CRITICAL, EMERGENCY
 
-  /// Sprint 15 — the gateway-agnostic payments module needs the amount
-  /// and currency upfront (the legacy onafriq submit-payment endpoint
-  /// derived these from the cart server-side; the new contract is more
-  /// explicit). amount_cents is integer to avoid float drift.
-  final int? amountCents;
-  final String? currency; // ISO code: USD, CDF, ...
-
   PaiementModel({
     required this.cartId,
     this.phoneNumber,
@@ -33,8 +26,6 @@ class PaiementModel {
     this.patientId,
     this.requestType,
     this.urgencyLevel,
-    this.amountCents,
-    this.currency,
   });
 
   factory PaiementModel.fromJson(Map json) => PaiementModel(
@@ -46,10 +37,6 @@ class PaiementModel {
     patientId: json['patient_id'],
     requestType: json['request_type'],
     urgencyLevel: json['urgency_level'],
-    amountCents: (json['amount_cents'] is num)
-        ? (json['amount_cents'] as num).toInt()
-        : null,
-    currency: json['currency'],
   );
 
   Map<String, dynamic> toJson() => {
@@ -61,7 +48,5 @@ class PaiementModel {
     if (patientId != null) 'patient_id': patientId,
     if (requestType != null) 'request_type': requestType,
     if (urgencyLevel != null) 'urgency_level': urgencyLevel,
-    if (amountCents != null) 'amount_cents': amountCents,
-    if (currency != null) 'currency': currency,
   };
 }

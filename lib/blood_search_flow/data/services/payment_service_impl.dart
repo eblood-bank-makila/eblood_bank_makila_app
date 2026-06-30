@@ -1,17 +1,8 @@
 /// Payment Service Implementation
-///
-/// Sprint 15 — migrated off the legacy onafriq-shaped endpoints
-/// (/eblood-connect/blood-bank-address-request/submit-payment,
-/// /eblood-connect/cart/submit-payment, etc.) onto the gateway-agnostic
-/// payments module. The actual gateway interaction (lokotro_pay) is
-/// launched separately by the UI layer, which has the BuildContext
-/// the lokotro_pay widget needs; this service is the server-side
-/// initiate-and-poll half of the flow.
 
 import '../../domain/services/service_interfaces.dart';
 import '../../domain/entities/search_flow_state.dart';
 import '../../../apps/config/api/dio_client.dart';
-import '../../../payments/business/service/PaymentApi.dart';
 
 class PaymentServiceImpl implements IPaymentService {
   PaymentServiceImpl();
@@ -19,16 +10,10 @@ class PaymentServiceImpl implements IPaymentService {
   @override
   Future<double> getAddressViewPrice() async {
     try {
+      // Sprint 15 — migrated to the dedicated pricing module.
       final response = await getWithDio('/pricing/get-address-access-price');
-      if (response.success && response.data is Map) {
-        final data = Map<String, dynamic>.from(response.data as Map);
-        // Sprint 15: pricing module returns {amount_cents, currency,
-        // description}. UI wants a plain double for display, so divide.
-        final cents = data['amount_cents'];
-        if (cents is num) return cents.toDouble() / 100.0;
-        // Fallback for any caller that still returns the legacy
-        // {price: <double>} shape.
-        final price = data['price'];
+      if (response.success && response.data != null) {
+        final price = response.data['price'];
         return price is num ? price.toDouble() : 0.0;
       }
       return 0.0;
@@ -41,12 +26,10 @@ class PaymentServiceImpl implements IPaymentService {
   @override
   Future<double> getDeliveryPrice() async {
     try {
+      // Sprint 15 — migrated to the dedicated pricing module.
       final response = await getWithDio('/pricing/get-delivery-price');
-      if (response.success && response.data is Map) {
-        final data = Map<String, dynamic>.from(response.data as Map);
-        final cents = data['amount_cents'];
-        if (cents is num) return cents.toDouble() / 100.0;
-        final price = data['price'];
+      if (response.success && response.data != null) {
+        final price = response.data['price'];
         return price is num ? price.toDouble() : 0.0;
       }
       return 0.0;
@@ -62,17 +45,57 @@ class PaymentServiceImpl implements IPaymentService {
     required String authToken,
     required Map<String, dynamic> paymentDetails,
   }) async {
-    final entityId = _firstNonEmpty([
-      paymentDetails['blood_bag_id'],
-      _firstFromList(paymentDetails['blood_bags_id']),
-    ]);
-    final result = await PaymentApi.initiate(
-      purpose: 'address_access',
-      entityId: entityId,
-      amountCents: _readAmountCents(paymentDetails),
-      currency: _readCurrency(paymentDetails),
-    );
-    return _initiateToPaymentResult(result, PaymentOption.viewAddress);
+    try {
+      // Backend schema expects: blood_bank_id, blood_bags_id (array), hospital_id, phone_number, transactional_currency_id
+      // Ensure blood_bags_id is always an array
+      final bloodBagsId = paymentDetails['blood_bags_id'];
+      final bloodBagsIdArray = bloodBagsId is List ? bloodBagsId : [bloodBagsId];
+      
+      final data = <String, dynamic>{
+        'blood_bank_id': paymentDetails['blood_bank_id'],
+        'blood_bags_id': bloodBagsIdArray,
+        if (paymentDetails['phone_number'] != null) 'phone_number': paymentDetails['phone_number'],
+        if (paymentDetails['transactional_currency_id'] != null) 'transactional_currency_id': paymentDetails['transactional_currency_id'],
+      };
+      
+      // Only include hospital_id if it's not empty
+      if (hospitalId.isNotEmpty) {
+        data['hospital_id'] = hospitalId;
+      }
+      
+      print('🏥 [PaymentService.payForAddressView] hospitalId param: $hospitalId');
+      print('📤 [PaymentService.payForAddressView] Sending data: $data');
+      
+      final response = await postWithDio(
+        '/eblood-connect/blood-bank-address-request/submit-payment',
+        body: data,
+      );
+
+      if (response.success) {
+        final resultData = response.data as Map<String, dynamic>?;
+        return PaymentResult(
+          success: true,
+          transactionId: resultData?['onafriq_transaction_ref']?.toString(),
+          requestIdentifier: resultData?['blood_bank_address_request_identifier']?.toString(),
+          message: response.message,
+          paymentStatus: resultData?['onafriq_state']?.toString(),
+          option: PaymentOption.viewAddress,
+        );
+      }
+
+      return PaymentResult(
+        success: false,
+        message: response.message ?? 'Payment failed',
+        option: PaymentOption.viewAddress,
+      );
+    } catch (e) {
+      print('PaymentService.payForAddressView error: $e');
+      return PaymentResult(
+        success: false,
+        message: 'Payment error: $e',
+        option: PaymentOption.viewAddress,
+      );
+    }
   }
 
   @override
@@ -82,18 +105,44 @@ class PaymentServiceImpl implements IPaymentService {
     required String authToken,
     required Map<String, dynamic> paymentDetails,
   }) async {
-    final entityId = _firstNonEmpty([
-      paymentDetails['order_id'],
-      paymentDetails['cart_id'],
-      bloodBagIds.isNotEmpty ? bloodBagIds.first : null,
-    ]);
-    final result = await PaymentApi.initiate(
-      purpose: 'delivery',
-      entityId: entityId,
-      amountCents: _readAmountCents(paymentDetails),
-      currency: _readCurrency(paymentDetails),
-    );
-    return _initiateToPaymentResult(result, PaymentOption.delivery);
+    try {
+      final response = await postWithDio(
+        '/eblood-connect/cart/submit-payment',
+        body: {
+          'hospital_id': hospitalId,
+          'blood_bag_ids': bloodBagIds,
+          'payment_method': paymentDetails['payment_method'] ?? 'mobile_money',
+          ...paymentDetails,
+        },
+      );
+
+      if (response.success) {
+        final resultData = response.data as Map<String, dynamic>?;
+        return PaymentResult(
+          success: true,
+          transactionId: resultData?['onafriq_transaction_ref']?.toString() ??
+                         resultData?['tracking_id']?.toString(),
+          requestIdentifier: resultData?['blood_bank_address_request_identifier']?.toString() ??
+                             resultData?['blood_request_identifier']?.toString(),
+          message: response.message,
+          paymentStatus: resultData?['onafriq_state']?.toString(),
+          option: PaymentOption.delivery,
+        );
+      }
+
+      return PaymentResult(
+        success: false,
+        message: response.message ?? 'Payment failed',
+        option: PaymentOption.delivery,
+      );
+    } catch (e) {
+      print('PaymentService.payForDelivery error: $e');
+      return PaymentResult(
+        success: false,
+        message: 'Payment error: $e',
+        option: PaymentOption.delivery,
+      );
+    }
   }
 
   @override
@@ -102,79 +151,45 @@ class PaymentServiceImpl implements IPaymentService {
     required String authToken,
     double? progressPercent,
   }) async {
-    // Sprint 15 — `requestIdentifier` is the customer_reference now.
-    final status = await PaymentApi.getStatus(requestIdentifier);
-    if (!status.ok) {
+    try {
+      final queryParams = <String, dynamic>{
+        'identifier': requestIdentifier,
+      };
+      if (progressPercent != null) {
+        queryParams['percent'] = progressPercent;
+      }
+
+      final response = await getWithDio(
+        '/eblood-connect/blood-bank-address-request/check-payment-status',
+        queryParams: queryParams,
+      );
+
+      if (response.success && response.data != null) {
+        final resultData = response.data as Map<String, dynamic>;
+        final status = resultData['status']?.toString() ?? 'unknown';
+
+        return PaymentResult(
+          success: status == 'success' || status == 'successful',
+          transactionId: resultData['onafriq_transaction_ref']?.toString(),
+          requestIdentifier: resultData['blood_request_identifier']?.toString(),
+          message: resultData['failure_reason']?.toString() ?? response.message,
+          paymentStatus: status,
+          option: PaymentOption.viewAddress,
+        );
+      }
+
       return PaymentResult(
         success: false,
-        message: status.errorMessage ?? 'Status check failed',
+        message: response.message ?? 'Status check failed',
+        option: PaymentOption.viewAddress,
+      );
+    } catch (e) {
+      print('PaymentService.checkPaymentStatus error: $e');
+      return PaymentResult(
+        success: false,
+        message: 'Status check error: $e',
         option: PaymentOption.viewAddress,
       );
     }
-    final isPaid = status.display == PaymentDisplayState.paid;
-    return PaymentResult(
-      success: isPaid,
-      transactionId: status.gatewayTransactionId,
-      requestIdentifier: status.customerReference,
-      message: 'state=${status.state}',
-      paymentStatus: status.state,
-      option: PaymentOption.viewAddress,
-    );
-  }
-
-  PaymentResult _initiateToPaymentResult(
-    PaymentInitiateResult initiate,
-    PaymentOption option,
-  ) {
-    if (!initiate.isSuccess) {
-      return PaymentResult(
-        success: false,
-        message: initiate.errorMessage ?? 'Payment initiation failed',
-        option: option,
-      );
-    }
-    return PaymentResult(
-      // initiate succeeded — the actual checkout still has to run on
-      // the UI side; callers treat this as "intent created, please
-      // launch the lokotro widget".
-      success: true,
-      transactionId: initiate.customerReference,
-      requestIdentifier: initiate.customerReference,
-      message: 'Payment intent created (state=${initiate.state})',
-      paymentStatus: initiate.state,
-      option: option,
-    );
-  }
-
-  String? _firstNonEmpty(List<dynamic> candidates) {
-    for (final c in candidates) {
-      if (c == null) continue;
-      final s = c.toString();
-      if (s.isNotEmpty) return s;
-    }
-    return null;
-  }
-
-  String? _firstFromList(dynamic v) {
-    if (v is List && v.isNotEmpty) return v.first.toString();
-    if (v is String && v.isNotEmpty) return v;
-    return null;
-  }
-
-  int _readAmountCents(Map<String, dynamic> details) {
-    final cents = details['amount_cents'];
-    if (cents is num) return cents.toInt();
-    final amount = details['amount'];
-    if (amount is num) return (amount * 100).round();
-    return 0;
-  }
-
-  String _readCurrency(Map<String, dynamic> details) {
-    final c = (details['currency']
-            ?? details['currency_code']
-            ?? details['transactional_currency_code'])
-        ?.toString();
-    if (c != null && c.trim().isNotEmpty) return c.trim().toUpperCase();
-    return 'USD';
   }
 }

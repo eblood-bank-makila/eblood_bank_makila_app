@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:ionicons/ionicons.dart';
 import '../config/theme/ColorPages.dart';
 import '../widgets/CustomButton.dart';
 import '../widgets/PinInputField.dart';
@@ -236,7 +235,7 @@ class _HealthStructureEmailVerificationPageState extends State<HealthStructureEm
         children: [
           Row(
             children: [
-              Icon(item.verified ? Ionicons.checkmark_circle : Ionicons.mail_outline, color: item.verified ? Colors.green : ColorPages.COLOR_PRINCIPAL),
+              Icon(item.verified ? Icons.check_circle : Icons.mail_outline, color: item.verified ? Colors.green : ColorPages.COLOR_PRINCIPAL),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(

@@ -24,6 +24,7 @@ import '../../business/interactors/BloodReportExportController.dart';
 import '../../business/model/BloodStock.dart';
 import '../../business/model/BloodEnums.dart';
 import 'AddBloodStockPage.dart';
+import 'BulkImportBloodStockPage.dart';
 
 enum InventoryTab {
   overview,
@@ -1010,9 +1011,37 @@ class _BloodBankInventoryPageState extends ConsumerState<BloodBankInventoryPage>
     );
   }
 
+  // Wraps a centered message so it stays pull-to-refresh-able even when there
+  // is nothing scrollable to show (empty or error state). LayoutBuilder +
+  // AlwaysScrollableScrollPhysics give the RefreshIndicator a scrollable child
+  // that fills the viewport so the swipe-down gesture is always available.
+  Widget _buildRefreshableMessage({
+    required Future<void> Function() onRefresh,
+    required Widget child,
+  }) {
+    return RefreshIndicator(
+      onRefresh: onRefresh,
+      child: LayoutBuilder(
+        builder: (context, constraints) => SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Center(child: child),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildBloodStockTab() {
     final stockState = ref.watch(bloodStockControllerProvider);
-    
+
+    // Shared pull-to-refresh handler so every state (loading, error, empty,
+    // or populated) can be swiped down to re-fetch the stock.
+    Future<void> refreshStock() async {
+      await ref.read(bloodStockControllerProvider.notifier).loadBloodStock();
+    }
+
     if (stockState.isLoading) {
       return const Center(
         child: CircularProgressIndicator(),
@@ -1020,7 +1049,8 @@ class _BloodBankInventoryPageState extends ConsumerState<BloodBankInventoryPage>
     }
     
     if (stockState.error != null) {
-      return Center(
+      return _buildRefreshableMessage(
+        onRefresh: refreshStock,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -1065,7 +1095,8 @@ class _BloodBankInventoryPageState extends ConsumerState<BloodBankInventoryPage>
     }
     
     if (stockState.stocks.isEmpty) {
-      return Center(
+      return _buildRefreshableMessage(
+        onRefresh: refreshStock,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -1127,10 +1158,9 @@ class _BloodBankInventoryPageState extends ConsumerState<BloodBankInventoryPage>
     }
     
     return RefreshIndicator(
-      onRefresh: () async {
-        await ref.read(bloodStockControllerProvider.notifier).loadBloodStock();
-      },
+      onRefresh: refreshStock,
       child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(16),
         children: [
           // Header with search and filter
@@ -2187,25 +2217,49 @@ class _BloodBankInventoryPageState extends ConsumerState<BloodBankInventoryPage>
         // Hide the FAB entirely when the user does not have access
         // to the Add Stock sub_menu.
         if (!_canAddStock) return null;
-        return FloatingActionButton.extended(
-          heroTag: 'inventory_add_stock_fab',
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const AddBloodStockPage(),
-              ),
-            );
-          },
-          backgroundColor: ColorPages.COLOR_PRINCIPAL,
-          icon: const Icon(Iconsax.add, color: Colors.white),
-          label: Text(
-            'add_stock'.tr,
-            style: GoogleFonts.ubuntu(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            // Bulk Excel import (download template + upload). Same permission
+            // gate as adding a single bag.
+            FloatingActionButton.small(
+              heroTag: 'inventory_bulk_import_fab',
+              tooltip: 'bulk_import_title'.tr,
+              backgroundColor: Colors.white,
+              foregroundColor: ColorPages.COLOR_PRINCIPAL,
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const BulkImportBloodStockPage(),
+                  ),
+                );
+              },
+              child: const Icon(Iconsax.document_upload),
             ),
-          ),
+            const SizedBox(height: 12),
+            FloatingActionButton.extended(
+              heroTag: 'inventory_add_stock_fab',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AddBloodStockPage(),
+                  ),
+                );
+              },
+              backgroundColor: ColorPages.COLOR_PRINCIPAL,
+              icon: const Icon(Iconsax.add, color: Colors.white),
+              label: Text(
+                'add_stock'.tr,
+                style: GoogleFonts.ubuntu(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
         );
       default:
         return null;

@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 // Removed unused UI imports
-import 'package:ionicons/ionicons.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/network/network_manager.dart';
@@ -570,7 +569,7 @@ class _HealthStructureRegistrationStepperPageState
               controller: _structureNameController,
               label: 'structure_name'.tr,
               hint: 'hint_structure_name'.tr,
-              prefixIcon: Ionicons.medical_outline,
+              prefixIcon: Icons.medical_services_outlined,
               validator: _validateRequired,
             ),
             const SizedBox(height: 16),
@@ -581,7 +580,7 @@ class _HealthStructureRegistrationStepperPageState
                   controller: _structureEmailController,
                   label: 'email'.tr,
                   hint: 'hint_structure_email'.tr,
-                  prefixIcon: Ionicons.mail_outline,
+                  prefixIcon: Icons.mail_outline,
                   keyboardType: TextInputType.emailAddress,
                   enabled: !_isGoogleMode,
                   validator: _isGoogleMode ? null : _validateEmail,
@@ -592,7 +591,7 @@ class _HealthStructureRegistrationStepperPageState
                     child: Row(
                       children: [
                         Icon(
-                          Ionicons.shield_checkmark,
+                          Icons.verified_user,
                           size: 16,
                           color: Colors.green[600],
                         ),
@@ -680,7 +679,7 @@ class _HealthStructureRegistrationStepperPageState
                               vertical: 12,
                             ),
                             prefixIcon: Icon(
-                              Ionicons.call_outline,
+                              Icons.phone_outlined,
                               color: Colors.grey[600],
                               size: 20,
                             ),
@@ -699,7 +698,7 @@ class _HealthStructureRegistrationStepperPageState
               controller: _addressController,
               label: 'address'.tr,
               hint: 'hint_structure_address'.tr,
-              prefixIcon: Ionicons.location_outline,
+              prefixIcon: Icons.location_on_outlined,
               validator: _validateRequired,
               maxLines: 2,
             ),
@@ -711,7 +710,7 @@ class _HealthStructureRegistrationStepperPageState
                     controller: _longitudeController,
                     label: 'longitude'.tr,
                     hint: 'hint_longitude'.tr,
-                    prefixIcon: Ionicons.navigate_outline,
+                    prefixIcon: Icons.navigation_outlined,
                     keyboardType: TextInputType.numberWithOptions(
                       decimal: true,
                     ),
@@ -724,7 +723,7 @@ class _HealthStructureRegistrationStepperPageState
                     controller: _latitudeController,
                     label: 'latitude'.tr,
                     hint: 'hint_latitude'.tr,
-                    prefixIcon: Ionicons.navigate_outline,
+                    prefixIcon: Icons.navigation_outlined,
                     keyboardType: TextInputType.numberWithOptions(
                       decimal: true,
                     ),
@@ -742,7 +741,7 @@ class _HealthStructureRegistrationStepperPageState
                       height: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Icon(Ionicons.location_outline),
+                  : const Icon(Icons.location_on_outlined),
               label: Text(
                 _isLoading
                     ? 'obtaining_location'.tr
@@ -768,7 +767,7 @@ class _HealthStructureRegistrationStepperPageState
                     controller: _adminFirstNameController,
                     label: 'first_name'.tr,
                     hint: 'hint_first_name'.tr,
-                    prefixIcon: Ionicons.person_outline,
+                    prefixIcon: Icons.person_outline,
                     validator: _validateRequired,
                   ),
                 ),
@@ -778,7 +777,7 @@ class _HealthStructureRegistrationStepperPageState
                     controller: _adminLastNameController,
                     label: 'last_name'.tr,
                     hint: 'hint_last_name'.tr,
-                    prefixIcon: Ionicons.person_outline,
+                    prefixIcon: Icons.person_outline,
                     validator: _validateRequired,
                   ),
                 ),
@@ -806,7 +805,7 @@ class _HealthStructureRegistrationStepperPageState
                   controller: _adminEmailController,
                   label: 'email'.tr,
                   hint: 'hint_admin_email'.tr,
-                  prefixIcon: Ionicons.mail_outline,
+                  prefixIcon: Icons.mail_outline,
                   keyboardType: TextInputType.emailAddress,
                   enabled: !_isGoogleMode,
                   validator: _isGoogleMode ? null : _validateEmail,
@@ -817,7 +816,7 @@ class _HealthStructureRegistrationStepperPageState
                     child: Row(
                       children: [
                         Icon(
-                          Ionicons.shield_checkmark,
+                          Icons.verified_user,
                           size: 16,
                           color: Colors.green[600],
                         ),
@@ -905,7 +904,7 @@ class _HealthStructureRegistrationStepperPageState
                                 vertical: 12,
                               ),
                               prefixIcon: Icon(
-                                Ionicons.call_outline,
+                                Icons.phone_outlined,
                                 color: Colors.grey[600],
                                 size: 20,
                               ),
@@ -925,7 +924,7 @@ class _HealthStructureRegistrationStepperPageState
                 controller: _adminPasswordController,
                 label: 'password'.tr,
                 hint: 'hint_password'.tr,
-                prefixIcon: Ionicons.lock_closed_outline,
+                prefixIcon: Icons.lock_outline,
                 obscureText: true,
                 validator: _validatePassword,
               ),
@@ -934,7 +933,7 @@ class _HealthStructureRegistrationStepperPageState
                 controller: _adminConfirmPasswordController,
                 label: 'confirm_password'.tr,
                 hint: 'hint_confirm_password'.tr,
-                prefixIcon: Ionicons.lock_closed_outline,
+                prefixIcon: Icons.lock_outline,
                 obscureText: true,
                 validator: _validateConfirmPassword,
               ),

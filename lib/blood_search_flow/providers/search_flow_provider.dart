@@ -1,6 +1,7 @@
 /// Blood Search Flow - State Notifier (Riverpod)
 /// Main state management for the blood search journey
 
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get_storage/get_storage.dart';
@@ -12,6 +13,7 @@ import '../domain/services/service_interfaces.dart';
 import '../data/services/blood_search_service_impl.dart';
 import '../data/services/hospital_identification_service_impl.dart';
 import '../data/services/visitor_registration_service_impl.dart';
+import '../data/services/visitor_fcm_registration_service.dart';
 import '../data/services/payment_service_impl.dart';
 import '../data/services/auth_service_impl.dart';
 import '../../services/HealthStructureService.dart';
@@ -742,6 +744,18 @@ class SearchFlowNotifier extends StateNotifier<SearchFlowState> {
         // Load auth token from storage so it's available for payment
         final token = await authService.getAuthToken();
         print('🔑 Auth token loaded after OTP: ${token != null ? 'yes' : 'no'}');
+
+        // Register the device's FCM token to cfg_fcm_config under this
+        // visitor's user_id. Without this, the visitor has zero rows in
+        // cfg_fcm_config and the backend's per-user FCM dispatch
+        // (`OrderNotificationService._push_to_users_safe`) skips them
+        // — they'd never get `order_created` / `delivery_assigned` /
+        // `delivered` push notifications. Best-effort: the registration
+        // call's own error handling means a failure here doesn't block
+        // payment. The dio AuthInterceptor injects the visitor's
+        // Bearer token automatically so the backend resolves
+        // `targeted_id` to this specific visitor user.
+        unawaited(VisitorFcmRegistrationService().registerCurrentDevice());
 
         state = state.copyWith(
           otpVerified: true,

@@ -26,7 +26,13 @@ class PushNotificationService {
         body: {
           "platform": Platform.isIOS ? 'ios' : 'android',
           "fcm_token": "$token",
-          "fcm_topic": "hopital"
+          // BUG FIX: this app is the BLOOD BANK app — registering as
+          // 'hopital' caused the backend to record blood-bank devices
+          // under the hospital FCM topic, leaking hospital-targeted
+          // pushes to BB phones. Topic-based dispatch is being phased
+          // out in favour of per-user CfgFcmConfigModel lookups
+          // (ticket: backend OrderNotificationService refactor).
+          "fcm_topic": "blood_bank"
         },
       );
 
@@ -97,7 +103,24 @@ class PushNotificationService {
       _sendUserToken(value);
     });
 
-    await _fcm.subscribeToTopic('hopital');
+    // BUG FIX: this is the BLOOD BANK app, not the hospital app. The
+    // previous unconditional `subscribeToTopic('hopital')` caused every
+    // blood-bank device to receive hospital-targeted pushes. The
+    // unsubscribe call below is a migration step — FCM persists topic
+    // subscriptions on its servers across app updates, so devices that
+    // installed prior versions stay subscribed to 'hopital' until we
+    // explicitly remove them. Safe to run on devices that were never
+    // subscribed (FCM treats it as a no-op).
+    //
+    // NOTE: even the corrected `subscribeToTopic('blood_bank')` here
+    // is a transitional fix. The end state is per-user/per-org FCM
+    // dispatch via `CfgFcmConfigModel` rows (see
+    // `OrderNotificationService` backend refactor) so a blood bank in
+    // city A doesn't receive pushes for orders bound for a blood bank
+    // in city B. Both lines below should be removed once the backend
+    // stops broadcasting to topics.
+    await _fcm.unsubscribeFromTopic('hopital');
+    await _fcm.subscribeToTopic('blood_bank');
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       RemoteNotification? notification = message.notification;
       AndroidNotification? android = message.notification?.android;

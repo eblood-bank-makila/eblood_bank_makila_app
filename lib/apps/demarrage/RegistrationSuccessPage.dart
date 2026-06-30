@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:animate_do/animate_do.dart';
-import 'package:ionicons/ionicons.dart';
 import 'package:lottie/lottie.dart';
 import 'package:go_router/go_router.dart';
 import '../config/theme/ColorPages.dart';
@@ -93,7 +92,7 @@ class RegistrationSuccessPage extends StatelessWidget {
                     children: [
                       Row(
                         children: [
-                          Icon(Ionicons.call_outline, color: Colors.grey.shade700, size: 20),
+                          Icon(Icons.phone_outlined, color: Colors.grey.shade700, size: 20),
                           const SizedBox(width: 8),
                           Text(
                             'phone_label'.tr + ': ',
@@ -118,7 +117,7 @@ class RegistrationSuccessPage extends StatelessWidget {
                       const SizedBox(height: 8),
                       Row(
                         children: [
-                          Icon(Ionicons.mail_outline, color: Colors.grey.shade700, size: 20),
+                          Icon(Icons.mail_outline, color: Colors.grey.shade700, size: 20),
                           const SizedBox(width: 8),
                           Text(
                             'email'.tr + ': ',

@@ -137,6 +137,13 @@ class RbacScreenRegistry {
       selectedIcon: Iconsax.people,
       labelKey: 'donors',
     ),
+    // CNTS wallet reuses the same (org-scoped) wallet screen as blood bank.
+    'flutter_apps_eblood_bank_cnts_wallet_app': RbacScreenEntry(
+      screenBuilder: () => const WalletManagementPage(),
+      icon: Iconsax.wallet,
+      selectedIcon: Iconsax.wallet_15,
+      labelKey: 'wallet',
+    ),
   };
 
   /// Get the screen entry for a given app flag. Returns null if unknown.

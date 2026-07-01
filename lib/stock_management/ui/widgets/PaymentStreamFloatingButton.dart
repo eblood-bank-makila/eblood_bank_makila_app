@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:eblood_bank_mak_app/apps/config/theme/ColorPages.dart';
-import 'package:eblood_bank_mak_app/apps/config/api/dio_client.dart';
+import 'package:eblood_bank_mak_app/payments/business/service/PaymentApi.dart';
 
 /// Model for a payment transaction
 class PaymentTransaction {
@@ -46,32 +46,56 @@ class PaymentTransaction {
   });
 
   factory PaymentTransaction.fromJson(Map<String, dynamic> json) {
+    // Sprint 15 — accept both the legacy onafriq-shaped row and the
+    // new PaymentStatusResponse from /payments/list-by-payer.
+    final state = (json['state'] ?? json['status'] ?? '').toString().toLowerCase();
+    final amountCents = (json['amount_cents'] is num)
+        ? (json['amount_cents'] as num).toInt()
+        : null;
+    final totalAmount = amountCents != null
+        ? amountCents / 100.0
+        : (json['total_amount'] ?? 0).toDouble();
+
+    bool _is(Iterable<String> values) => values.contains(state);
+
     return PaymentTransaction(
-      id: json['id'] ?? '',
-      identifier: json['identifier'] ?? '',
-      status: json['status'] ?? '',
-      statusDisplay: json['status_display'] ?? '',
-      totalAmount: (json['total_amount'] ?? 0).toDouble(),
-      totalAmountMerged: (json['total_amount_merged'] ?? 0).toDouble(),
+      id: (json['id'] ?? json['customer_reference'] ?? '').toString(),
+      identifier: (json['customer_reference']
+              ?? json['identifier']
+              ?? '')
+          .toString(),
+      status: state,
+      statusDisplay: (json['status_display'] ?? state).toString(),
+      totalAmount: totalAmount,
+      totalAmountMerged: (json['total_amount_merged'] ?? totalAmount).toDouble(),
       fee: (json['fee'] ?? 0).toDouble(),
       phoneNumber: json['phone_number'],
-      onafriqTransactionRef: json['onafriq_transaction_ref'],
+      onafriqTransactionRef: json['gateway_transaction_id']
+          ?? json['onafriq_transaction_ref'],
       bloodBankId: json['blood_bank_id'],
       bloodBankInfo: json['blood_bank_info'] != null
           ? Map<String, dynamic>.from(json['blood_bank_info'])
           : null,
       currencyInfo: json['currency_info'] != null
           ? Map<String, dynamic>.from(json['currency_info'])
-          : null,
-      createdAt: json['created_at'] != null
-          ? DateTime.tryParse(json['created_at'])
-          : null,
-      updatedAt: json['updated_at'] != null
-          ? DateTime.tryParse(json['updated_at'])
-          : null,
-      isSuccessful: json['is_successful'] ?? false,
-      isPending: json['is_pending'] ?? false,
-      isFailed: json['is_failed'] ?? false,
+          : (json['currency'] != null
+              ? {'code': json['currency'].toString().toUpperCase()}
+              : null),
+      createdAt: json['initiated_at'] != null
+          ? DateTime.tryParse(json['initiated_at'])
+          : (json['created_at'] != null
+              ? DateTime.tryParse(json['created_at'])
+              : null),
+      updatedAt: json['completed_at'] != null
+          ? DateTime.tryParse(json['completed_at'])
+          : (json['updated_at'] != null
+              ? DateTime.tryParse(json['updated_at'])
+              : null),
+      isSuccessful: json['is_successful'] ??
+          _is({'paid', 'approved', 'success', 'completed'}),
+      isPending: json['is_pending'] ?? _is({'pending', 'processing'}),
+      isFailed: json['is_failed'] ??
+          _is({'failed', 'rejected', 'error', 'cancelled', 'expired'}),
     );
   }
 
@@ -156,20 +180,16 @@ class _PaymentStreamFloatingButtonState
   }
 
   Future<void> _fetchTransactionCount() async {
+    // Sprint 15 — was paginated /payment-stream; new endpoint returns
+    // a flat list. Limit to 100 (way more than the badge ever shows
+    // and well under the backend cap of 100 per call).
     try {
-      final response = await getWithDio(
-        '/eblood-connect/blood-bank-address-request/payment-stream?page=0&page_size=1',
-      );
-
-      if (response.success && response.data != null) {
-        final total = response.data['pagination']?['total'] ?? 0;
-        if (mounted) {
-          setState(() {
-            _transactionCount = total;
-            _hasNewTransactions = total > 0;
-          });
-        }
-      }
+      final results = await PaymentApi.listMine(limit: 100);
+      if (!mounted) return;
+      setState(() {
+        _transactionCount = results.length;
+        _hasNewTransactions = results.isNotEmpty;
+      });
     } catch (e) {
       debugPrint('Error fetching transaction count: $e');
     }
@@ -296,41 +316,43 @@ class _PaymentStreamBottomSheetState extends State<PaymentStreamBottomSheet> {
       });
     }
 
+    // Sprint 15 — uses /payments/list-by-payer (skip+limit pagination).
+    // The backend caps limit at 100 per call. The legacy summary card
+    // (counts by status) is now computed locally — backend doesn't
+    // return aggregate stats for this endpoint.
+    const pageSize = 20;
     try {
-      final response = await getWithDio(
-        '/eblood-connect/blood-bank-address-request/payment-stream?page=$_currentPage&page_size=10',
+      final results = await PaymentApi.listMine(
+        limit: pageSize,
+        skip: _currentPage * pageSize,
       );
+      final newTransactions = results
+          .map((r) => PaymentTransaction.fromJson({
+                'id': r.customerReference,
+                'customer_reference': r.customerReference,
+                'state': r.state,
+                'amount_cents': r.amountCents,
+                'currency': r.currency,
+                'gateway_transaction_id': r.gatewayTransactionId,
+                'is_terminal': r.isTerminal,
+              }))
+          .toList();
 
-      if (response.success && response.data != null) {
-        final transactionsList = response.data['transactions'] as List? ?? [];
-        final pagination = response.data['pagination'] ?? {};
-        final summary = response.data['summary'] ?? {};
-
-        final newTransactions = transactionsList
-            .map((json) => PaymentTransaction.fromJson(json))
-            .toList();
-
-        setState(() {
-          if (refresh || _currentPage == 0) {
-            _transactions = newTransactions;
-          } else {
-            _transactions.addAll(newTransactions);
-          }
-          _hasMore = pagination['has_more'] ?? false;
-          _totalTransactions = summary['total_transactions'] ?? 0;
-          _successfulCount = summary['successful_count'] ?? 0;
-          _pendingCount = summary['pending_count'] ?? 0;
-          _failedCount = summary['failed_count'] ?? 0;
-          _isLoading = false;
-          _isLoadingMore = false;
-        });
-      } else {
-        setState(() {
-          _error = response.message ?? 'Failed to load transactions';
-          _isLoading = false;
-          _isLoadingMore = false;
-        });
-      }
+      setState(() {
+        if (refresh || _currentPage == 0) {
+          _transactions = newTransactions;
+        } else {
+          _transactions.addAll(newTransactions);
+        }
+        _hasMore = newTransactions.length >= pageSize;
+        _totalTransactions = _transactions.length;
+        _successfulCount =
+            _transactions.where((t) => t.isSuccessful).length;
+        _pendingCount = _transactions.where((t) => t.isPending).length;
+        _failedCount = _transactions.where((t) => t.isFailed).length;
+        _isLoading = false;
+        _isLoadingMore = false;
+      });
     } catch (e) {
       setState(() {
         _error = 'Error: $e';

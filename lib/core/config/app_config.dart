@@ -157,7 +157,14 @@ class AppConfig {
   
   /// Check if running in staging environment
   static bool get isStaging => environment == 'staging';
-  
+
+  // Sprint 15 — lokotro_pay credentials are NOT in Flutter's .env.
+  // The backend's /payments/initiate/payment response carries the
+  // app_key, is_production, and notify_url so the SDK can be
+  // configured per-transaction. This means rotating the key is an
+  // env change on the API, not a mobile release. See
+  // PaymentApi.initiate / LokotroPayCheckoutService.launchCheckout.
+
   /// Check if debug mode is enabled
   static bool get isDebugMode {
     final debugMode = dotenv.env['DEBUG_MODE']?.toLowerCase();

@@ -319,18 +319,47 @@ class _IncomingDeliveryWidgetState extends ConsumerState<IncomingDeliveryWidget>
   }
 
   Future<void> _confirmDelivery(IncomingDelivery delivery) async {
-    final confirmed = await showDialog<bool>(
+    // The reception confirm is code-gated: the courier presents the
+    // verification code at the door, the receiving structure types it here.
+    // Backend-side it triggers the seller wallet settlement.
+    final codeController = TextEditingController();
+    final code = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text('confirm_delivery'.tr),
-        content: Text('confirm_delivery_message'.tr),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('confirm_delivery_message'.tr),
+            const SizedBox(height: 16),
+            TextField(
+              controller: codeController,
+              keyboardType: TextInputType.number,
+              maxLength: 6,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.ubuntu(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 6,
+              ),
+              decoration: InputDecoration(
+                counterText: '',
+                hintText: '______',
+                labelText: 'Code de confirmation du livreur',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ],
+        ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.pop(context),
             child: Text('cancel'.tr),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(context, codeController.text.trim()),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.green,
             ),
@@ -340,20 +369,38 @@ class _IncomingDeliveryWidgetState extends ConsumerState<IncomingDeliveryWidget>
       ),
     );
 
-    if (confirmed == true) {
-      final success = await ref
-          .read(incomingDeliveriesProvider.notifier)
-          .confirmDelivery(delivery.id);
-
-      if (success && mounted) {
+    if (code == null) return;
+    if (code.isEmpty) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('delivery_confirmed'.tr),
-            backgroundColor: Colors.green,
+          const SnackBar(
+            content: Text('Veuillez entrer le code présenté par le livreur'),
+            backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
           ),
         );
       }
+      return;
+    }
+
+    final success = await ref
+        .read(incomingDeliveriesProvider.notifier)
+        .confirmDelivery(
+          delivery.id,
+          bloodRequestId: delivery.bloodRequestId,
+          verificationCode: code,
+        );
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(success
+              ? 'delivery_confirmed'.tr
+              : 'Code invalide ou confirmation impossible'),
+          backgroundColor: success ? Colors.green : Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 

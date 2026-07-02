@@ -2,7 +2,7 @@ name: eblood_bank_mak_app
 description: "Application d'interconnection des banques de sang, hopitaux, donneurs"
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
  
-version: 1.0.0+4
+version: 1.1.0+5
  
 environment:
   sdk: ^3.8.1 

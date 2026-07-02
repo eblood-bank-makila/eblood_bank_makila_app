@@ -484,6 +484,14 @@ class ActiveDelivery {
   final double? estimatedArrivalMinutes;
   final LocationInfo? currentLocation;
 
+  /// Code the courier presents at the hospital door — the hospital types
+  /// it into its confirm-delivery dialog. Courier-only payload field.
+  final String? deliveryVerificationCode;
+
+  /// Set once the SOURCE structure confirmed the handover — the courier
+  /// cannot advance to picked_up before this.
+  final DateTime? pickupConfirmedAt;
+
   ActiveDelivery({
     required this.id,
     required this.deliveryPhase,
@@ -495,6 +503,8 @@ class ActiveDelivery {
     this.arrivedAt,
     this.estimatedArrivalMinutes,
     this.currentLocation,
+    this.deliveryVerificationCode,
+    this.pickupConfirmedAt,
   });
 
   factory ActiveDelivery.fromJson(Map<String, dynamic> json) {
@@ -517,8 +527,14 @@ class ActiveDelivery {
       currentLocation: json['delivery_person_current_location'] != null
           ? LocationInfo.fromJson(json['delivery_person_current_location'])
           : null,
+      deliveryVerificationCode: json['delivery_verification_code']?.toString(),
+      pickupConfirmedAt: json['pickup_confirmed_by_seller_at'] != null
+          ? DateTime.tryParse(json['pickup_confirmed_by_seller_at'].toString())
+          : null,
     );
   }
+
+  bool get isPickupConfirmedBySeller => pickupConfirmedAt != null;
 
   bool get isEnRouteToBloodBank => deliveryPhase == 'en_route_to_blood_bank';
   bool get isAtBloodBank => deliveryPhase == 'at_blood_bank';
@@ -678,4 +694,58 @@ class IncomingDelivery {
   bool get isAtHospital => status == 'at_hospital';
   bool get isEnRoute => status == 'en_route_to_hospital';
   bool get isPickedUp => status == 'picked_up_from_blood_bank';
+}
+
+/// Outgoing delivery as seen by the SELLER structure (blood bank selling to
+/// a hospital, or CNTS selling to a blood bank). Parsed from the enriched
+/// /delivery-assignment/outgoing-deliveries payload (nested blocks).
+class OutgoingDelivery {
+  final String id;
+  final String deliveryPhase;
+  final String assignmentStatus;
+  final String destinationName;
+  final String? deliveryPersonName;
+  final String? deliveryPersonPhone;
+  final DateTime? pickupConfirmedAt;
+
+  OutgoingDelivery({
+    required this.id,
+    required this.deliveryPhase,
+    required this.assignmentStatus,
+    required this.destinationName,
+    this.deliveryPersonName,
+    this.deliveryPersonPhone,
+    this.pickupConfirmedAt,
+  });
+
+  factory OutgoingDelivery.fromJson(Map<String, dynamic> json) {
+    final hospital = json['hospital'] is Map
+        ? Map<String, dynamic>.from(json['hospital'])
+        : <String, dynamic>{};
+    final person = json['delivery_person'] is Map
+        ? Map<String, dynamic>.from(json['delivery_person'])
+        : <String, dynamic>{};
+    final firstName = person['first_name']?.toString() ?? '';
+    final lastName = person['last_name']?.toString() ?? '';
+    final fullName = '$firstName $lastName'.trim();
+
+    return OutgoingDelivery(
+      id: json['_id']?.toString() ?? json['id']?.toString() ?? '',
+      deliveryPhase: json['delivery_phase']?.toString() ?? 'awaiting_assignment',
+      assignmentStatus: json['assignment_status']?.toString() ?? 'pending',
+      destinationName: hospital['name']?.toString() ?? '',
+      deliveryPersonName: fullName.isNotEmpty ? fullName : null,
+      deliveryPersonPhone: person['phone_number']?.toString(),
+      pickupConfirmedAt: json['pickup_confirmed_by_seller_at'] != null
+          ? DateTime.tryParse(json['pickup_confirmed_by_seller_at'].toString())
+          : null,
+    );
+  }
+
+  bool get isPickupConfirmed => pickupConfirmedAt != null;
+
+  /// Courier accepted / is on the way / is at the door — handover can be
+  /// confirmed as soon as a courier is assigned.
+  bool get canConfirmPickup => !isPickupConfirmed &&
+      (assignmentStatus == 'accepted' || assignmentStatus == 'picked_up');
 }

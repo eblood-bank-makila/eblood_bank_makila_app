@@ -2179,25 +2179,33 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
     });
 
     try {
-      debugPrint("💳 Sprint 15 — POST /payments/initiate (delivery)");
+      debugPrint("💳 POST /eblood-connect/cart/initiate-lokotro-payment (blood_bag_purchase)");
 
-      // Compute amount in cents from the selected blood bag + quantity.
-      // Currency is the blood bag's ISO code; falls back to USD if the
-      // blood bag is missing currency info (defensive — should never
-      // happen in practice).
-      final bloodBag = _filteredBloodBags.isNotEmpty
-          ? _filteredBloodBags.first
-          : null;
-      final amountCents =
-          bloodBag != null ? (bloodBag.price * _selectedQuantity * 100).round() : 0;
-      final currencyCode = (bloodBag?.currencyCode ?? 'USD').toUpperCase();
+      if (_cartId == null || _cartId!.isEmpty) {
+        setState(() {
+          _isProcessingPayment = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Panier introuvable — veuillez recommencer'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
 
-      final initiate = await PaymentApi.initiate(
-        purpose: 'delivery',
-        entityId: _cartId,
-        amountCents: amountCents,
-        currency: currencyCode,
-        description: _requestReason,
+      // The backend materializes the cart into a blood request and
+      // computes the FULL amount server-side (bags + eblood_fee +
+      // transaction fee) — the app never declares what a cart costs.
+      final initiate = await PaymentApi.initiateCartPurchase(
+        cartId: _cartId!,
+        phoneNumber: phoneNumber,
+        transactionalCurrencyId: currencyId,
+        requestFor: _requestFor,
+        patientId: _patientId,
+        requestType: _requestType,
+        urgencyLevel: _urgencyLevel,
+        requestReason: _requestReason,
       );
 
       if (!mounted) return;
@@ -2229,7 +2237,7 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
         paymentMethod: 'wallet',
         phoneNumberOverride: phoneNumber,
         mobileMoneyPhoneNumber: phoneNumber,
-        title: 'Paiement de livraison',
+        title: 'Paiement de la commande',
       );
 
       if (!mounted) return;

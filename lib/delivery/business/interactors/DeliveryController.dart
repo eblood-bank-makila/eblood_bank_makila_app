@@ -1,4 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../apps/config/api/ApiConfig.dart';
+import '../../../apps/services/EbloodAuthHelper.dart';
+import '../../../orders/ui/framework/blood_request/BloodRequestNetworkServiceImpl.dart';
 import '../service/DeliveryApiService.dart';
 import '../model/DeliveryModels.dart';
 
@@ -551,6 +554,51 @@ class IncomingDeliveriesState {
   IncomingDelivery? get firstDelivery => deliveries.isNotEmpty ? deliveries.first : null;
 }
 
+/// Controller for outgoing deliveries (SELLER view — blood bank selling to
+/// a hospital, or CNTS selling to a blood bank). The backend derives the
+/// seller structure from the authenticated caller.
+class OutgoingDeliveriesController extends StateNotifier<List<OutgoingDelivery>> {
+  final DeliveryApiService _apiService;
+
+  OutgoingDeliveriesController(this._apiService) : super([]);
+
+  Future<void> loadOutgoingDeliveries() async {
+    try {
+      final response = await _apiService.getOutgoingDeliveries();
+      if (response.success && response.data != null) {
+        state = response.data!;
+      }
+    } catch (e) {
+      // Keep current state on error
+    }
+  }
+
+  /// Seller attests the bags were handed to the courier. Returns the error
+  /// message on failure, null on success.
+  Future<String?> confirmPickup(String deliveryId) async {
+    try {
+      final response = await _apiService.confirmPickupBySeller(deliveryId);
+      if (response.success) {
+        await loadOutgoingDeliveries();
+        return null;
+      }
+      return response.error ?? 'Échec de la confirmation de remise';
+    } catch (e) {
+      return 'Erreur: $e';
+    }
+  }
+
+  Future<void> refresh() async {
+    await loadOutgoingDeliveries();
+  }
+}
+
+final outgoingDeliveriesProvider =
+    StateNotifierProvider<OutgoingDeliveriesController, List<OutgoingDelivery>>((ref) {
+  final apiService = ref.watch(deliveryApiServiceProvider);
+  return OutgoingDeliveriesController(apiService);
+});
+
 /// Controller for incoming deliveries (hospital view)
 class IncomingDeliveriesController extends StateNotifier<List<IncomingDelivery>> {
   final DeliveryApiService _apiService;
@@ -571,10 +619,40 @@ class IncomingDeliveriesController extends StateNotifier<List<IncomingDelivery>>
     }
   }
 
-  /// Confirm delivery receipt
-  Future<bool> confirmDelivery(String deliveryId) async {
+  /// Confirm delivery receipt.
+  ///
+  /// When [verificationCode] is provided (the code the courier presents at
+  /// the door), the settlement-triggering confirm
+  /// (/eblood-connect/blood-requests/confirm-delivery) runs FIRST — it is
+  /// the operation that credits the seller wallets — then the assignment is
+  /// closed. Without a code (legacy path) only the assignment is closed.
+  Future<bool> confirmDelivery(
+    String deliveryId, {
+    String? bloodRequestId,
+    String? verificationCode,
+  }) async {
     try {
-      final response = await _apiService.confirmDeliveryReceipt(deliveryId, hospitalUserId);
+      if (verificationCode != null &&
+          verificationCode.isNotEmpty &&
+          bloodRequestId != null &&
+          bloodRequestId.isNotEmpty) {
+        final service = BloodRequestNetworkServiceImpl(ApiConfig.BASE_URL);
+        final settlementRes = await service.confirmDelivery(
+          bloodRequestId,
+          verificationCode,
+          'code',
+        );
+        if (!settlementRes.success) {
+          return false;
+        }
+      }
+
+      // Real authenticated user id — the legacy hospitalUserId provider was
+      // never populated.
+      final userId = hospitalUserId.isNotEmpty
+          ? hospitalUserId
+          : EbloodAuthHelper.currentUserId();
+      final response = await _apiService.confirmDeliveryReceipt(deliveryId, userId);
       if (response.success) {
         // Remove from list
         state = state.where((d) => d.id != deliveryId).toList();

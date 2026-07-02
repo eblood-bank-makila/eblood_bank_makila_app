@@ -1,13 +1,18 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../../../apps/config/api/ApiConfig.dart';
+import '../../../apps/config/api/dio_client.dart' show getAuthToken;
 import '../model/DeliveryModels.dart';
 
 class DeliveryApiService {
   // Get authorization headers
   Future<Map<String, String>> _getHeaders() async {
-    // For now, return default headers - will be updated with proper token management
-    return ApiConfig.defaultHeaders;
+    final headers = Map<String, String>.from(ApiConfig.defaultHeaders);
+    final token = await getAuthToken();
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+    return headers;
   }
 
   // Delivery Management
@@ -481,6 +486,57 @@ class DeliveryApiService {
         return ApiResponse.success(deliveries);
       } else {
         return ApiResponse.error('Failed to load incoming deliveries');
+      }
+    } catch (e) {
+      return ApiResponse.error('Network error: $e');
+    }
+  }
+
+  /// Get outgoing deliveries for the SELLER structure (blood bank selling
+  /// to a hospital, or CNTS selling to a blood bank). The backend derives
+  /// the structure from the authenticated caller — no id param.
+  Future<ApiResponse<List<OutgoingDelivery>>> getOutgoingDeliveries() async {
+    try {
+      final headers = await _getHeaders();
+      final response = await http.get(
+        Uri.parse(ApiConfig.buildUrl('/eblood-connect/delivery-assignment/outgoing-deliveries')),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final List<OutgoingDelivery> deliveries = (data['data'] as List?)
+            ?.map((item) => OutgoingDelivery.fromJson(item))
+            .toList() ?? [];
+
+        return ApiResponse.success(deliveries);
+      } else {
+        return ApiResponse.error('Failed to load outgoing deliveries');
+      }
+    } catch (e) {
+      return ApiResponse.error('Network error: $e');
+    }
+  }
+
+  /// Seller confirms the handover of the bags to the courier — unlocks the
+  /// courier's picked_up phase transition backend-side.
+  Future<ApiResponse<bool>> confirmPickupBySeller(String deliveryId) async {
+    try {
+      final headers = await _getHeaders();
+      final response = await http.post(
+        Uri.parse(ApiConfig.buildUrl('/eblood-connect/delivery-assignment/$deliveryId/confirm-pickup')),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        return ApiResponse.success(true);
+      } else {
+        String message = 'Failed to confirm pickup';
+        try {
+          final body = json.decode(response.body);
+          message = body['detail']?.toString() ?? message;
+        } catch (_) {}
+        return ApiResponse.error(message);
       }
     } catch (e) {
       return ApiResponse.error('Network error: $e');

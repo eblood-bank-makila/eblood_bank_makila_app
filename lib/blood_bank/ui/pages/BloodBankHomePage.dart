@@ -6,6 +6,8 @@ import 'package:animate_do/animate_do.dart';
 import 'package:get/get.dart';
 import '../../../apps/config/theme/ColorPages.dart';
 import '../../../core/rbac/providers/rbac_provider.dart';
+import '../../../delivery/ui/widgets/IncomingDeliveryWidget.dart';
+import '../../../delivery/ui/widgets/OutgoingDeliveryWidget.dart';
 import '../../business/interactors/BloodBankController.dart';
 import 'AnnouncementsManagementPage.dart';
 import 'BloodBankInventoryPage.dart';
@@ -96,40 +98,65 @@ class _BloodBankHomePageState extends ConsumerState<BloodBankHomePage> {
         ),
       ) : null,
       body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: _refreshData,
-          color: ColorPages.COLOR_PRINCIPAL,
-          backgroundColor: Colors.white,
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            physics: const AlwaysScrollableScrollPhysics(),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header
-                _buildHeader(),
-                const SizedBox(height: 24),
+        child: Stack(
+          children: [
+            RefreshIndicator(
+              onRefresh: _refreshData,
+              color: ColorPages.COLOR_PRINCIPAL,
+              backgroundColor: Colors.white,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header
+                    _buildHeader(),
+                    const SizedBox(height: 24),
 
-                // Stats Cards (visible only if user has inventory access).
-                // Pool with the CNTS inventory app flag so CNTS users — who
-                // reuse this same screen — also see the dashboard stats.
-                if (_hasAnySubMenu([
-                  'flutter_apps_eblood_bank_bb_home_inventory',
-                  'flutter_apps_eblood_bank_cnts_inventory_app',
-                ])) ...[
-                  _buildStatsSection(),
-                  const SizedBox(height: 24),
-                ],
+                    // Stats Cards (visible only if user has inventory access).
+                    // Pool with the CNTS inventory app flag so CNTS users — who
+                    // reuse this same screen — also see the dashboard stats.
+                    if (_hasAnySubMenu([
+                      'flutter_apps_eblood_bank_bb_home_inventory',
+                      'flutter_apps_eblood_bank_cnts_inventory_app',
+                    ])) ...[
+                      _buildStatsSection(),
+                      const SizedBox(height: 24),
+                    ],
 
-                // Quick Actions
-                _buildQuickActionsSection(),
-                const SizedBox(height: 24),
+                    // Quick Actions
+                    _buildQuickActionsSection(),
+                    const SizedBox(height: 24),
 
-                // Recent Activity
-                _buildRecentActivitySection(),
-              ],
+                    // Recent Activity
+                    _buildRecentActivitySection(),
+
+                    // Bottom padding so the floating delivery cards never
+                    // cover the last content rows.
+                    const SizedBox(height: 180),
+                  ],
+                ),
+              ),
             ),
-          ),
+            // Floating delivery cards (both self-hide when empty):
+            // — OutgoingDeliveryWidget: SELLER handover confirmation
+            //   (blood bank → hospital, or CNTS → blood bank).
+            // — IncomingDeliveryWidget: BUYER reception confirmation
+            //   (blood bank buying from CNTS).
+            const Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  OutgoingDeliveryWidget(),
+                  IncomingDeliveryWidget(),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

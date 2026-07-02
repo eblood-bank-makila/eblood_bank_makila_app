@@ -56,49 +56,118 @@ class PaymentApi {
           res.message ?? 'Échec de l\'initiation du paiement.',
         );
       }
-      final data = Map<String, dynamic>.from(res.data as Map);
-      final customerRef = data['customer_reference']?.toString();
-      if (customerRef == null || customerRef.isEmpty) {
-        return PaymentInitiateResult.error(
-          'Réponse invalide du backend (customer_reference manquant).',
-        );
-      }
-
-      // Pull out the lokotro_pay config block. The backend has already
-      // built notify_url as an absolute URL — no client-side prefixing
-      // needed.
-      final merchantRaw = data['merchant'];
-      final merchant = merchantRaw is Map
-          ? Map<String, dynamic>.from(merchantRaw)
-          : <String, dynamic>{};
-
-      return PaymentInitiateResult.success(
-        customerReference: customerRef,
-        amountCents: (data['amount_cents'] is num)
-            ? (data['amount_cents'] as num).toInt()
-            : amountCents,
-        currency: (data['currency']?.toString() ?? currency).toUpperCase(),
-        state: data['state']?.toString() ?? 'pending',
-        appKey: data['app_key']?.toString() ?? '',
-        isProduction: data['is_production'] == true,
-        notifyUrlAbsolute: data['notify_url']?.toString() ?? '',
-        userInfo: data['user_info']?.toString() ?? 'full',
-        paymentMethodInfo: data['payment_method_info']?.toString() ?? 'full',
-        feeCoveredBy: data['fee_covered_by']?.toString() ?? 'buyer',
-        deliveryBehaviour:
-            data['delivery_behaviour']?.toString() ?? 'direct_delivery',
-        firstName: data['first_name']?.toString(),
-        lastName: data['last_name']?.toString(),
-        phoneNumber: data['phone_number']?.toString(),
-        email: data['email']?.toString(),
-        merchantName: merchant['name']?.toString() ?? 'eblood',
-        merchantLogo: merchant['logo']?.toString(),
-        merchantUrl: merchant['url']?.toString(),
+      return _parseInitiateData(
+        Map<String, dynamic>.from(res.data as Map),
+        fallbackAmountCents: amountCents,
+        fallbackCurrency: currency,
       );
     } catch (e) {
       debugPrint('💥 PaymentApi.initiate error: $e');
       return PaymentInitiateResult.error('Erreur: $e');
     }
+  }
+
+  /// POST /api/v1/eblood-connect/cart/initiate-lokotro-payment
+  ///
+  /// Lokotro checkout for the blood-bag PURCHASE itself. Unlike
+  /// [initiate], the client does NOT declare the amount — the backend
+  /// materializes the cart into an OpsBloodRequest, computes
+  /// total + eblood_fee + transaction fee server-side and returns the
+  /// same lokotro_pay widget config (plus blood_request identifiers).
+  /// On the gateway's SUCCEEDED webhook the backend approves the
+  /// request and starts the delivery chain.
+  static Future<PaymentInitiateResult> initiateCartPurchase({
+    required String cartId,
+    String? phoneNumber,
+    String? transactionalCurrencyId,
+    String? requestFor,
+    String? patientId,
+    String? requestType,
+    String? urgencyLevel,
+    String? requestReason,
+  }) async {
+    try {
+      final body = <String, dynamic>{
+        'cart_id': cartId,
+        if (phoneNumber != null && phoneNumber.isNotEmpty)
+          'phone_number': phoneNumber,
+        if (transactionalCurrencyId != null && transactionalCurrencyId.isNotEmpty)
+          'transactional_currency_id': transactionalCurrencyId,
+        if (requestFor != null && requestFor.isNotEmpty) 'request_for': requestFor,
+        if (patientId != null && patientId.isNotEmpty) 'patient_id': patientId,
+        if (requestType != null && requestType.isNotEmpty)
+          'request_type': requestType,
+        if (urgencyLevel != null && urgencyLevel.isNotEmpty)
+          'urgency_level': urgencyLevel,
+        if (requestReason != null && requestReason.isNotEmpty)
+          'request_reason': requestReason,
+      };
+
+      final res = await postWithDio(
+        '/eblood-connect/cart/initiate-lokotro-payment',
+        body: body,
+      );
+      if (!res.success || res.data is! Map) {
+        return PaymentInitiateResult.error(
+          res.message ?? 'Échec de l\'initiation du paiement.',
+        );
+      }
+      return _parseInitiateData(
+        Map<String, dynamic>.from(res.data as Map),
+        fallbackAmountCents: 0,
+        fallbackCurrency: 'USD',
+      );
+    } catch (e) {
+      debugPrint('💥 PaymentApi.initiateCartPurchase error: $e');
+      return PaymentInitiateResult.error('Erreur: $e');
+    }
+  }
+
+  /// Shared parser for the initiate-response shape (used by both the
+  /// generic /payments/initiate/payment and the cart purchase endpoint).
+  static PaymentInitiateResult _parseInitiateData(
+    Map<String, dynamic> data, {
+    required int fallbackAmountCents,
+    required String fallbackCurrency,
+  }) {
+    final customerRef = data['customer_reference']?.toString();
+    if (customerRef == null || customerRef.isEmpty) {
+      return PaymentInitiateResult.error(
+        'Réponse invalide du backend (customer_reference manquant).',
+      );
+    }
+
+    // Pull out the lokotro_pay config block. The backend has already
+    // built notify_url as an absolute URL — no client-side prefixing
+    // needed.
+    final merchantRaw = data['merchant'];
+    final merchant = merchantRaw is Map
+        ? Map<String, dynamic>.from(merchantRaw)
+        : <String, dynamic>{};
+
+    return PaymentInitiateResult.success(
+      customerReference: customerRef,
+      amountCents: (data['amount_cents'] is num)
+          ? (data['amount_cents'] as num).toInt()
+          : fallbackAmountCents,
+      currency: (data['currency']?.toString() ?? fallbackCurrency).toUpperCase(),
+      state: data['state']?.toString() ?? 'pending',
+      appKey: data['app_key']?.toString() ?? '',
+      isProduction: data['is_production'] == true,
+      notifyUrlAbsolute: data['notify_url']?.toString() ?? '',
+      userInfo: data['user_info']?.toString() ?? 'full',
+      paymentMethodInfo: data['payment_method_info']?.toString() ?? 'full',
+      feeCoveredBy: data['fee_covered_by']?.toString() ?? 'buyer',
+      deliveryBehaviour:
+          data['delivery_behaviour']?.toString() ?? 'direct_delivery',
+      firstName: data['first_name']?.toString(),
+      lastName: data['last_name']?.toString(),
+      phoneNumber: data['phone_number']?.toString(),
+      email: data['email']?.toString(),
+      merchantName: merchant['name']?.toString() ?? 'eblood',
+      merchantLogo: merchant['logo']?.toString(),
+      merchantUrl: merchant['url']?.toString(),
+    );
   }
 
   /// GET /api/v1/payments/get-payment-status?customer_reference=...

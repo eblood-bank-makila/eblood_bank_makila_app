@@ -49,9 +49,12 @@ class _ActiveDeliveryTrackingPageState
   }
 
   void _startLocationTracking() {
-    // Update location every 30 seconds
+    // Update location every 30 seconds. Also refresh the active delivery so
+    // the seller's handover confirmation unblocks the pickup button without
+    // the courier leaving the page.
     _locationTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       _updateLocation();
+      ref.read(pendingDeliveryRequestProvider.notifier).loadActiveDelivery();
     });
     // Initial update
     _updateLocation();
@@ -115,6 +118,13 @@ class _ActiveDeliveryTrackingPageState
                       // Current destination card
                       _buildCurrentDestinationCard(activeDelivery),
                       const SizedBox(height: 24),
+                      // Delivery verification code (courier shows it to the
+                      // hospital at handover — hospital types it to confirm)
+                      if (activeDelivery.deliveryVerificationCode != null &&
+                          !activeDelivery.isDelivered) ...[
+                        _buildVerificationCodeCard(activeDelivery),
+                        const SizedBox(height: 24),
+                      ],
                       // Action button
                       _buildActionButton(activeDelivery),
                     ],
@@ -380,6 +390,76 @@ class _ActiveDeliveryTrackingPageState
     );
   }
 
+  /// Card showing the delivery verification code. The courier presents
+  /// this code to the hospital staff at handover; the hospital enters it
+  /// in its confirm-delivery dialog to close the delivery (and trigger
+  /// seller wallet settlement backend-side).
+  Widget _buildVerificationCodeCard(ActiveDelivery delivery) {
+    final code = delivery.deliveryVerificationCode!;
+    final highlight = delivery.isAtHospital;
+    return FadeInUp(
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: highlight ? Colors.green.shade50 : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: highlight ? Colors.green.shade400 : Colors.grey.shade200,
+            width: highlight ? 2 : 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Iconsax.shield_tick,
+                    color: highlight ? Colors.green.shade700 : ColorPages.COLOR_PRINCIPAL,
+                    size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  'Code de confirmation de livraison',
+                  style: GoogleFonts.ubuntu(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              code,
+              style: GoogleFonts.ubuntu(
+                fontSize: 32,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 8,
+                color: highlight ? Colors.green.shade700 : Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'À communiquer au personnel de l\'hôpital à la remise des poches',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.ubuntu(
+                fontSize: 12,
+                color: Colors.grey.shade600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildActionButton(ActiveDelivery delivery) {
     String buttonText;
     String nextPhase;
@@ -392,9 +472,17 @@ class _ActiveDeliveryTrackingPageState
         buttonIcon = Iconsax.hospital;
         break;
       case 'at_blood_bank':
-        buttonText = 'confirm_pickup'.tr;
-        nextPhase = 'picked_up_from_blood_bank';
-        buttonIcon = Iconsax.box_tick;
+        // The pickup is gated backend-side on the SELLER's handover
+        // confirmation — until it lands, the button shows a waiting state.
+        if (delivery.isPickupConfirmedBySeller) {
+          buttonText = 'confirm_pickup'.tr;
+          nextPhase = 'picked_up_from_blood_bank';
+          buttonIcon = Iconsax.box_tick;
+        } else {
+          buttonText = 'En attente de la remise par la structure...';
+          nextPhase = '';
+          buttonIcon = Iconsax.timer_1;
+        }
         break;
       case 'picked_up_from_blood_bank':
         buttonText = 'start_delivery'.tr;

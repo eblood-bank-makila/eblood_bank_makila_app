@@ -167,7 +167,7 @@ class _LocalisationBanquePageState
   Future<List<LatLng>> getRoute(LatLng start, LatLng end) async {
     final response = await http.get(
       Uri.parse(
-          'http://router.project-osrm.org/route/v1/driving/${start.longitude},${start.latitude};${end.longitude},${end.latitude}?geometries=geojson'),
+          'https://router.project-osrm.org/route/v1/driving/${start.longitude},${start.latitude};${end.longitude},${end.latitude}?geometries=geojson'),
     );
 
     if (response.statusCode == 200) {

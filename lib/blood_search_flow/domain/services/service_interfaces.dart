@@ -2,6 +2,7 @@
 /// Abstract interfaces for the data layer
 
 import '../entities/search_flow_state.dart';
+import '../../../payments/business/service/PaymentApi.dart' show PaymentInitiateResult;
 
 /// Search service interface for blood bag search
 abstract class IBloodSearchService {
@@ -67,15 +68,19 @@ abstract class IPaymentService {
   /// Get price for delivery
   Future<double> getDeliveryPrice();
 
-  /// Process payment for address view
-  Future<PaymentResult> payForAddressView({
+  /// Create the payment intent + gateway session for an address-view
+  /// payment and return the full lokotro checkout config. The UI then
+  /// launches the SDK checkout with this result; the payment is only
+  /// actually collected when the SDK reports success.
+  Future<PaymentInitiateResult> initiateAddressViewPayment({
     required String hospitalId,
     required String authToken,
     required Map<String, dynamic> paymentDetails,
   });
 
-  /// Process payment for delivery
-  Future<PaymentResult> payForDelivery({
+  /// Create the payment intent + gateway session for a delivery payment
+  /// and return the full lokotro checkout config (see above).
+  Future<PaymentInitiateResult> initiateDeliveryPayment({
     required String hospitalId,
     required List<String> bloodBagIds,
     required String authToken,

@@ -57,7 +57,7 @@ class PaymentServiceImpl implements IPaymentService {
   }
 
   @override
-  Future<PaymentResult> payForAddressView({
+  Future<PaymentInitiateResult> initiateAddressViewPayment({
     required String hospitalId,
     required String authToken,
     required Map<String, dynamic> paymentDetails,
@@ -66,34 +66,39 @@ class PaymentServiceImpl implements IPaymentService {
       paymentDetails['blood_bag_id'],
       _firstFromList(paymentDetails['blood_bags_id']),
     ]);
-    final result = await PaymentApi.initiate(
+    // Returns the FULL config (incl. the gateway session_token in appKey).
+    // The UI launches LokotroPayCheckout with it; money is collected there.
+    return PaymentApi.initiate(
       purpose: 'address_access',
       entityId: entityId,
       amountCents: _readAmountCents(paymentDetails),
       currency: _readCurrency(paymentDetails),
     );
-    return _initiateToPaymentResult(result, PaymentOption.viewAddress);
   }
 
   @override
-  Future<PaymentResult> payForDelivery({
+  Future<PaymentInitiateResult> initiateDeliveryPayment({
     required String hospitalId,
     required List<String> bloodBagIds,
     required String authToken,
     required Map<String, dynamic> paymentDetails,
   }) async {
-    final entityId = _firstNonEmpty([
-      paymentDetails['order_id'],
-      paymentDetails['cart_id'],
+    // Visitor delivery = a full purchase of the selected bag, delivered to
+    // the hospital the visitor scanned. The backend resolves the price from
+    // the stock bag and mints a BLOOD_BAG_PURCHASE session so the gateway's
+    // success webhook dispatches a courier (blood bank → hospital).
+    final bagId = _firstNonEmpty([
+      paymentDetails['blood_bag_id'],
+      _firstFromList(paymentDetails['blood_bags_id']),
       bloodBagIds.isNotEmpty ? bloodBagIds.first : null,
     ]);
-    final result = await PaymentApi.initiate(
-      purpose: 'delivery',
-      entityId: entityId,
-      amountCents: _readAmountCents(paymentDetails),
-      currency: _readCurrency(paymentDetails),
+    return PaymentApi.initiateVisitorDeliveryPurchase(
+      bloodBagId: bagId ?? '',
+      hospitalId: hospitalId,
+      phoneNumber: paymentDetails['phone_number']?.toString(),
+      transactionalCurrencyId:
+          paymentDetails['transactional_currency_id']?.toString(),
     );
-    return _initiateToPaymentResult(result, PaymentOption.delivery);
   }
 
   @override
@@ -119,30 +124,6 @@ class PaymentServiceImpl implements IPaymentService {
       message: 'state=${status.state}',
       paymentStatus: status.state,
       option: PaymentOption.viewAddress,
-    );
-  }
-
-  PaymentResult _initiateToPaymentResult(
-    PaymentInitiateResult initiate,
-    PaymentOption option,
-  ) {
-    if (!initiate.isSuccess) {
-      return PaymentResult(
-        success: false,
-        message: initiate.errorMessage ?? 'Payment initiation failed',
-        option: option,
-      );
-    }
-    return PaymentResult(
-      // initiate succeeded — the actual checkout still has to run on
-      // the UI side; callers treat this as "intent created, please
-      // launch the lokotro widget".
-      success: true,
-      transactionId: initiate.customerReference,
-      requestIdentifier: initiate.customerReference,
-      message: 'Payment intent created (state=${initiate.state})',
-      paymentStatus: initiate.state,
-      option: option,
     );
   }
 

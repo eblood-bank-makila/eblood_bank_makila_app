@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:animate_do/animate_do.dart';
+import 'package:go_router/go_router.dart';
 import '../config/theme/ColorPages.dart';
 import '../services/AuthService.dart';
 import '../widgets/CustomButton.dart';
@@ -140,6 +141,16 @@ class _OTPVerificationPageState extends State<OTPVerificationPage> {
           final outcome = await _executeRegistration(widget.userData!);
 
           if (outcome.success) {
+            // Establish the session (auth_token, user, profiles, Sembast profile)
+            // exactly like login and the Google-registration path, so the RBAC
+            // apps + menus SSE fetch (/static/data/sse/apps-progress) is
+            // authenticated for the freshly-registered user.
+            if (outcome.raw is Map<String, dynamic>) {
+              await _authService.handleAutoLoginAfterRegistration(
+                outcome.raw as Map<String, dynamic>,
+              );
+            }
+
             if (widget.onRegistrationSuccess != null) {
               setState(() => _isLoading = false);
               widget.onRegistrationSuccess!(context, outcome.raw);
@@ -147,15 +158,10 @@ class _OTPVerificationPageState extends State<OTPVerificationPage> {
             }
 
             if (mounted) {
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(
-                  builder: (context) => RegistrationSuccessPage(
-                    phoneNumber: widget.phoneNumber,
-                    email: widget.email,
-                    token: outcome.token ?? '',
-                  ),
-                ),
-              );
+              // Route through the RBAC loading screen (apps + menus SSE), just
+              // like after login, so the newly-registered user is not denied
+              // access ("access_denied") on the main screen.
+              context.go('/rbac-loading');
             }
           } else {
             final failureMessage = outcome.message ?? 'registration_failed_after_verification'.tr;

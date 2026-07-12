@@ -67,6 +67,88 @@ class PaymentApi {
     }
   }
 
+  /// POST /api/v1/eblood-connect/visitor/blood-bag/initiate-purchase
+  ///
+  /// Visitor (QR/blood-search) buys a single blood bag to be DELIVERED to the
+  /// hospital they scanned. The backend resolves the bag price
+  /// SERVER-AUTHORITATIVELY (client doesn't dictate the amount), creates the
+  /// blood request, and mints a BLOOD_BAG_PURCHASE session — so the gateway's
+  /// SUCCEEDED webhook dispatches a courier. Same lokotro widget config shape.
+  static Future<PaymentInitiateResult> initiateVisitorDeliveryPurchase({
+    required String bloodBagId,
+    required String hospitalId,
+    String? phoneNumber,
+    String? transactionalCurrencyId,
+  }) async {
+    try {
+      final payerUserId = EbloodAuthHelper.currentUserId();
+      if (payerUserId.isEmpty) {
+        return PaymentInitiateResult.error(
+          'Non connecté: impossible d\'initier le paiement.',
+        );
+      }
+      final orgIds = EbloodAuthHelper.currentUserOrgIds();
+      final body = <String, dynamic>{
+        'blood_bag_id': bloodBagId,
+        'hospital_id': hospitalId,
+        'payer_user_id': payerUserId,
+        if (orgIds.isNotEmpty) 'payer_org_id': orgIds.first,
+        if (phoneNumber != null && phoneNumber.isNotEmpty)
+          'phone_number': phoneNumber,
+        if (transactionalCurrencyId != null && transactionalCurrencyId.isNotEmpty)
+          'transactional_currency_id': transactionalCurrencyId,
+      };
+      final res = await postWithDio(
+        '/eblood-connect/visitor/blood-bag/initiate-purchase',
+        body: body,
+      );
+      if (!res.success || res.data is! Map) {
+        return PaymentInitiateResult.error(
+          res.message ?? 'Échec de l\'initiation du paiement.',
+        );
+      }
+      return _parseInitiateData(
+        Map<String, dynamic>.from(res.data as Map),
+        fallbackAmountCents: 0,
+        fallbackCurrency: 'USD',
+      );
+    } catch (e) {
+      debugPrint('💥 PaymentApi.initiateVisitorDeliveryPurchase error: $e');
+      return PaymentInitiateResult.error('Erreur: $e');
+    }
+  }
+
+  /// POST /api/v1/eblood-connect/visitor/blood-bag/purchase-quote
+  ///
+  /// Read-only price breakdown (bag + eBlood fee + 10% platform fee) so the
+  /// app can show the visitor the exact total BEFORE checkout. Guaranteed
+  /// equal to what [initiateVisitorDeliveryPurchase] charges (same backend
+  /// pricing helpers). Returns null on failure (caller falls back to the
+  /// bag price for display).
+  static Future<VisitorPurchaseQuote?> getVisitorDeliveryQuote({
+    required String bloodBagId,
+    String? transactionalCurrencyId,
+  }) async {
+    try {
+      final body = <String, dynamic>{
+        'blood_bag_id': bloodBagId,
+        if (transactionalCurrencyId != null && transactionalCurrencyId.isNotEmpty)
+          'transactional_currency_id': transactionalCurrencyId,
+      };
+      final res = await postWithDio(
+        '/eblood-connect/visitor/blood-bag/purchase-quote',
+        body: body,
+      );
+      if (!res.success || res.data is! Map) return null;
+      return VisitorPurchaseQuote.fromJson(
+        Map<String, dynamic>.from(res.data as Map),
+      );
+    } catch (e) {
+      debugPrint('💥 PaymentApi.getVisitorDeliveryQuote error: $e');
+      return null;
+    }
+  }
+
   /// POST /api/v1/eblood-connect/cart/initiate-lokotro-payment
   ///
   /// Lokotro checkout for the blood-bag PURCHASE itself. Unlike
@@ -250,6 +332,36 @@ class PaymentApi {
       debugPrint('💥 PaymentApi.listMine error: $e');
       return const [];
     }
+  }
+}
+
+/// Read-only price breakdown for a visitor delivery purchase — what the
+/// backend `/visitor/blood-bag/purchase-quote` returns. `total` is exactly
+/// what the purchase will charge (bag + eBlood fee + platform fee).
+class VisitorPurchaseQuote {
+  final double bagPrice;
+  final double ebloodFee;
+  final double platformFee;
+  final double total;
+  final String? currency;
+
+  const VisitorPurchaseQuote({
+    required this.bagPrice,
+    required this.ebloodFee,
+    required this.platformFee,
+    required this.total,
+    this.currency,
+  });
+
+  factory VisitorPurchaseQuote.fromJson(Map<String, dynamic> json) {
+    double d(dynamic v) => (v is num) ? v.toDouble() : 0.0;
+    return VisitorPurchaseQuote(
+      bagPrice: d(json['bag_price']),
+      ebloodFee: d(json['eblood_fee']),
+      platformFee: d(json['platform_fee']),
+      total: d(json['total']),
+      currency: json['currency']?.toString(),
+    );
   }
 }
 

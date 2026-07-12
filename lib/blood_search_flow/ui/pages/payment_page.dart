@@ -16,6 +16,8 @@ import '../../domain/entities/search_flow_state.dart';
 import '../../../apps/config/theme/ColorPages.dart';
 import '../widgets/search_flow_app_bar.dart';
 import '../../data/services/visitor_registration_service_impl.dart';
+import '../../../payments/business/service/LokotroPayCheckoutService.dart';
+import '../../../payments/business/service/PaymentApi.dart';
 
 // Use PaymentOption from domain entities instead of defining a local one
 
@@ -38,6 +40,12 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
   final _visitorService = VisitorRegistrationServiceImpl();
   final _phoneController = TextEditingController();
   String _phoneNumber = '';
+
+  // Server-authoritative quote for the delivery option (bag + eBlood fee +
+  // 10% platform fee). Fetched on load so the visitor sees the exact total
+  // BEFORE checkout — the backend adds fees the client can't compute.
+  VisitorPurchaseQuote? _deliveryQuote;
+  bool _quoteLoading = false;
 
   final List<_PaymentMethod> _paymentMethods = [
     _PaymentMethod(
@@ -92,14 +100,42 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
       ? _viewAddressPrice
       : _deliveryPrice;
 
+  // Amount actually charged, for DISPLAY. Delivery adds server-side fees on
+  // top of the bag price, so show the quote (falls back to the bag price
+  // while it loads). View-address is just the 10% fee — accurate locally.
+  double get _displayPrice {
+    if (_selectedOption == PaymentOption.delivery) {
+      return _deliveryQuote?.total ?? _deliveryPrice;
+    }
+    return _viewAddressPrice;
+  }
+
   @override
   void initState() {
     super.initState();
     _checkVisitorStatusAndPhoneVerification();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeFetchDeliveryQuote());
     _phoneController.addListener(() {
       setState(() {
         _phoneNumber = _phoneController.text;
       });
+    });
+  }
+
+  /// Fetch the exact delivery total (bag + fees) from the backend so the
+  /// pre-checkout price matches what the SDK will charge. No-op for the
+  /// view-address option (its 10% fee is computed accurately client-side).
+  Future<void> _maybeFetchDeliveryQuote() async {
+    if (_selectedOption != PaymentOption.delivery) return;
+    final selected = ref.read(searchFlowProvider).selectedResult;
+    if (selected == null || selected.id.isEmpty) return;
+    setState(() => _quoteLoading = true);
+    final quote =
+        await PaymentApi.getVisitorDeliveryQuote(bloodBagId: selected.id);
+    if (!mounted) return;
+    setState(() {
+      _deliveryQuote = quote;
+      _quoteLoading = false;
     });
   }
 
@@ -156,7 +192,7 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
             // Selected option summary (read-only)
             _SelectedOptionSummary(
               option: _selectedOption,
-              price: _selectedPrice,
+              price: _displayPrice,
             ),
 
             const SizedBox(height: 24),
@@ -267,24 +303,59 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
                 color: Colors.grey.shade50,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              child: Column(
                 children: [
-                  Text(
-                    'total'.tr.isEmpty ? 'Total' : 'total'.tr,
-                    style: GoogleFonts.ubuntu(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.grey.shade700,
+                  // Fee breakdown — only for the delivery purchase, once the
+                  // server quote has loaded (bag + eBlood fee + platform fee).
+                  if (_selectedOption == PaymentOption.delivery &&
+                      _deliveryQuote != null) ...[
+                    _QuoteLine(
+                      label: 'blood_bag'.tr.isEmpty ? 'Blood bag' : 'blood_bag'.tr,
+                      value: '$_currencySymbol${_deliveryQuote!.bagPrice.toStringAsFixed(2)}',
                     ),
-                  ),
-                  Text(
-                    '${_currencySymbol}${_selectedPrice.toStringAsFixed(2)}',
-                    style: GoogleFonts.ubuntu(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: ColorPages.COLOR_PRINCIPAL,
+                    const SizedBox(height: 6),
+                    _QuoteLine(
+                      label: 'service_fees'.tr.isEmpty
+                          ? 'Service fees'
+                          : 'service_fees'.tr,
+                      value:
+                          '$_currencySymbol${(_deliveryQuote!.ebloodFee + _deliveryQuote!.platformFee).toStringAsFixed(2)}',
                     ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      child: Divider(height: 1, color: Colors.grey.shade300),
+                    ),
+                  ],
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'total'.tr.isEmpty ? 'Total' : 'total'.tr,
+                        style: GoogleFonts.ubuntu(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
+                      _quoteLoading &&
+                              _selectedOption == PaymentOption.delivery
+                          ? SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: ColorPages.COLOR_PRINCIPAL,
+                              ),
+                            )
+                          : Text(
+                              '$_currencySymbol${_displayPrice.toStringAsFixed(2)}',
+                              style: GoogleFonts.ubuntu(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                color: ColorPages.COLOR_PRINCIPAL,
+                              ),
+                            ),
+                    ],
                   ),
                 ],
               ),
@@ -367,14 +438,21 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
   Future<void> _processPayment() async {
     if (!_canPay) return;
 
-    // If mobile money is selected, show bottom sheet for phone number
-    if (_selectedPaymentMethod == 'mobile_money') {
+    final method = _selectedPaymentMethod!;
+    final isDelivery = _selectedOption == PaymentOption.delivery;
+    final option =
+        isDelivery ? PaymentOption.delivery : PaymentOption.viewAddress;
+
+    // Mobile money: collect the phone number up-front (prefilled into the SDK).
+    String? momoPhone;
+    if (method == 'mobile_money') {
       final phoneNumber = await _showMobileMoneyPhoneBottomSheet();
       if (phoneNumber == null || phoneNumber.isEmpty) {
         // User cancelled or didn't enter a phone number
         return;
       }
       _phoneNumber = phoneNumber;
+      momoPhone = '+243$_phoneNumber';
     }
 
     setState(() {
@@ -383,49 +461,84 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
     });
 
     try {
-      final isDelivery = _selectedOption == PaymentOption.delivery;
       final selectedResult = ref.read(searchFlowProvider).selectedResult;
 
-      // Prepare payment data with correct keys matching backend schema
+      // Amount + currency come from the selected blood bag (dynamic): the
+      // address-view fee is 10% of the bag price, delivery is the full
+      // price. The backend mints the gateway session bound to this amount.
       final paymentData = <String, dynamic>{
-        'payment_method': _selectedPaymentMethod!,
+        'payment_method': method,
+        'amount_cents': (_selectedPrice * 100).round(),
+        'currency': _currency,
         if (selectedResult != null) 'blood_bank_id': selectedResult.bloodBankId,
-        if (selectedResult != null) 'blood_bags_id': [selectedResult.id], // Backend expects an array
+        if (selectedResult != null) 'blood_bag_id': selectedResult.id,
+        if (selectedResult != null) 'blood_bags_id': [selectedResult.id],
+        if (momoPhone != null) 'phone_number': momoPhone,
       };
 
-      // Add phone number for mobile money
-      if (_selectedPaymentMethod == 'mobile_money') {
-        paymentData['phone_number'] = '+243$_phoneNumber';
+      // Cash on delivery: no online collection — the courier collects on
+      // receipt. Skip the SDK entirely.
+      if (method == 'cash') {
+        ref.read(searchFlowProvider.notifier).markPaymentCollected(
+              option,
+              'COD-${DateTime.now().millisecondsSinceEpoch}',
+            );
+        _afterCollected(isDelivery);
+        return;
       }
 
-      if (isDelivery) {
-        await ref.read(searchFlowProvider.notifier).processDeliveryPayment(paymentData);
-      } else {
-        await ref.read(searchFlowProvider.notifier).unlockAddress(paymentData);
-      }
-
-      // Only navigate if payment was actually successful
-      final updatedState = ref.read(searchFlowProvider);
-      final paymentResult = updatedState.paymentResult;
-      if (paymentResult == null || !paymentResult.success) {
+      // PHASE 1 — create the payment intent + gateway session.
+      final initiate = await ref
+          .read(searchFlowProvider.notifier)
+          .beginPayment(option, paymentData);
+      if (initiate == null) {
+        // beginPayment already set errorMessage / paymentResult.
+        final st = ref.read(searchFlowProvider);
         setState(() {
-          // Prefer specific error from provider state or payment result
-          _errorMessage = paymentResult?.message ?? 
-              updatedState.errorMessage ??
-              ('payment_failed'.tr.isEmpty ? 'Payment failed. Please try again.' : 'payment_failed'.tr);
+          _errorMessage = st.paymentResult?.message ??
+              st.errorMessage ??
+              'Payment could not be started. Please try again.';
         });
         return;
       }
 
-      if (mounted) {
-        // Fetch recent activity and trigger auto-open on the correct tab
-        // Tab 0 = pending deliveries, Tab 1 = address requests
-        ref.read(recentActivityProvider.notifier).fetchRecentActivity(
-          autoOpenTab: isDelivery ? 0 : 1,
-        );
-        // Pop back to welcome page
-        context.go('/blood-search');
+      if (!mounted) return;
+
+      // PHASE 2 — launch the lokotro_pay SDK checkout to actually collect
+      // the money. onResponse/onError resolve the returned result.
+      final sdkMethod = method == 'mobile_money' ? 'mobile_money' : 'card';
+      final result = await LokotroPayCheckoutService.launchFromInitiate(
+        context,
+        initiate: initiate,
+        paymentMethod: sdkMethod,
+        phoneNumberOverride: momoPhone,
+        mobileMoneyPhoneNumber: momoPhone,
+        title: isDelivery
+            ? 'Paiement de la livraison'
+            : 'Paiement (accès adresse)',
+      );
+
+      if (!mounted) return;
+
+      if (!result.isSuccess) {
+        // Cancelled or errored — do NOT navigate. Surface real errors only
+        // (a user-cancelled checkout is silent).
+        if (result.outcome == LokotroPayCheckoutOutcome.error) {
+          setState(() {
+            _errorMessage =
+                result.message ?? 'Payment failed. Please try again.';
+          });
+        }
+        return;
       }
+
+      // Collected — record success and proceed.
+      ref.read(searchFlowProvider.notifier).markPaymentCollected(
+            option,
+            result.customerReference,
+            transactionId: result.transactionId,
+          );
+      _afterCollected(isDelivery);
     } catch (e) {
       setState(() {
         _errorMessage = e.toString();
@@ -437,12 +550,53 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
     }
   }
 
+  /// Post-collection: refresh recent activity (auto-open the right tab) and
+  /// return to the blood-search welcome page. Address reveal / delivery
+  /// tracking then proceeds from the updated flow state.
+  void _afterCollected(bool isDelivery) {
+    if (!mounted) return;
+    // Tab 0 = pending deliveries, Tab 1 = address requests
+    ref.read(recentActivityProvider.notifier).fetchRecentActivity(
+          autoOpenTab: isDelivery ? 0 : 1,
+        );
+    context.go('/blood-search');
+  }
+
   Future<String?> _showMobileMoneyPhoneBottomSheet() async {
     return showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => _MobileMoneyPhoneBottomSheet(),
+    );
+  }
+}
+
+/// A label/value row used in the delivery fee breakdown.
+class _QuoteLine extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _QuoteLine({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.ubuntu(fontSize: 13, color: Colors.grey.shade600),
+        ),
+        Text(
+          value,
+          style: GoogleFonts.ubuntu(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: Colors.grey.shade800,
+          ),
+        ),
+      ],
     );
   }
 }

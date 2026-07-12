@@ -16,6 +16,7 @@ import '../data/services/visitor_registration_service_impl.dart';
 import '../data/services/visitor_fcm_registration_service.dart';
 import '../data/services/payment_service_impl.dart';
 import '../data/services/auth_service_impl.dart';
+import '../../payments/business/service/PaymentApi.dart' show PaymentInitiateResult;
 import '../../services/HealthStructureService.dart';
 
 /// Provider for the search flow state
@@ -805,8 +806,19 @@ class SearchFlowNotifier extends StateNotifier<SearchFlowState> {
   // Payment
   // ============================================
 
-  /// Process payment
-  Future<void> processPayment(Map<String, dynamic> paymentDetails) async {
+  /// PHASE 1 — create the payment intent + gateway session and return the
+  /// full lokotro checkout config for the UI to launch the SDK with.
+  ///
+  /// Does NOT mark the payment successful — money is only collected once
+  /// the SDK reports success, at which point the UI calls
+  /// [markPaymentCollected]. Returns null (with errorMessage/paymentResult
+  /// set) if validation fails or the backend couldn't start the payment.
+  Future<PaymentInitiateResult?> beginPayment(
+    PaymentOption option,
+    Map<String, dynamic> paymentDetails,
+  ) async {
+    state = state.copyWith(selectedPaymentOption: option, clearError: true);
+
     // Try to load token from storage if not in state
     if (state.visitorToken == null) {
       final token = await authService.getAuthToken();
@@ -819,77 +831,94 @@ class SearchFlowNotifier extends StateNotifier<SearchFlowState> {
           paymentResult: PaymentResult(
             success: false,
             message: 'Authentication required. Please verify your phone first.',
-            option: state.selectedPaymentOption ?? PaymentOption.viewAddress,
+            option: option,
           ),
         );
-        return;
+        return null;
       }
     }
 
     if (state.identifiedHospital == null || state.identifiedHospital!.id.isEmpty) {
-      print('========================================');
-      print('❌ [processPayment] Hospital not identified or ID is empty');
-      print('❌ [processPayment] state.identifiedHospital: ${state.identifiedHospital}');
-      print('❌ [processPayment] state.identifiedHospital?.id: "${state.identifiedHospital?.id}"');
-      print('❌ [processPayment] state.identifiedHospital?.name: ${state.identifiedHospital?.name}');
-      print('========================================');
+      print('❌ [beginPayment] Hospital not identified or ID is empty');
       state = state.copyWith(
         errorMessage: 'Hospital not identified',
         paymentResult: PaymentResult(
           success: false,
           message: 'Hospital not identified. Please go back and scan a QR code.',
-          option: state.selectedPaymentOption ?? PaymentOption.viewAddress,
+          option: option,
         ),
       );
-      return;
+      return null;
     }
 
     final hospitalId = state.identifiedHospital!.id;
-    print('========================================');
-    print('✅ [processPayment] Using hospital ID: "$hospitalId"');
-    print('========================================');
-
     state = state.copyWith(isLoading: true);
 
     try {
-      PaymentResult result;
+      final PaymentInitiateResult initiate =
+          option == PaymentOption.viewAddress
+              ? await paymentService.initiateAddressViewPayment(
+                  hospitalId: hospitalId,
+                  authToken: state.visitorToken!,
+                  paymentDetails: paymentDetails,
+                )
+              : await paymentService.initiateDeliveryPayment(
+                  hospitalId: hospitalId,
+                  bloodBagIds: state.searchResults.map((r) => r.id).toList(),
+                  authToken: state.visitorToken!,
+                  paymentDetails: paymentDetails,
+                );
 
-      if (state.selectedPaymentOption == PaymentOption.viewAddress) {
-        result = await paymentService.payForAddressView(
-          hospitalId: hospitalId,
-          authToken: state.visitorToken!,
-          paymentDetails: paymentDetails,
+      state = state.copyWith(isLoading: false);
+
+      if (!initiate.isSuccess || initiate.customerReference == null) {
+        state = state.copyWith(
+          errorMessage: initiate.errorMessage ?? 'Payment initiation failed',
+          paymentResult: PaymentResult(
+            success: false,
+            message: initiate.errorMessage ?? 'Payment initiation failed',
+            option: option,
+          ),
         );
-      } else {
-        result = await paymentService.payForDelivery(
-          hospitalId: hospitalId,
-          bloodBagIds: state.searchResults.map((r) => r.id).toList(),
-          authToken: state.visitorToken!,
-          paymentDetails: paymentDetails,
-        );
+        return null;
       }
-
-      state = state.copyWith(
-        paymentResult: result,
-        isLoading: false,
-        currentStep: result.success
-            ? (state.selectedPaymentOption == PaymentOption.viewAddress
-                  ? SearchFlowStep.addressView
-                  : SearchFlowStep.deliveryTracking)
-            : state.currentStep,
-        errorMessage: result.success ? null : result.message,
-      );
+      return initiate;
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
         errorMessage: 'Payment failed: $e',
+        paymentResult: PaymentResult(
+          success: false,
+          message: 'Payment failed: $e',
+          option: option,
+        ),
       );
+      return null;
     }
   }
 
-  /// Retry payment
-  Future<void> retryPayment(Map<String, dynamic> paymentDetails) async {
-    await processPayment(paymentDetails);
+  /// PHASE 2 — record a successful SDK collection: mark the payment
+  /// successful and advance to the address-view / delivery-tracking step.
+  /// Called by the UI from the SDK's onResponse success callback.
+  void markPaymentCollected(
+    PaymentOption option,
+    String customerReference, {
+    String? transactionId,
+  }) {
+    state = state.copyWith(
+      clearError: true,
+      paymentResult: PaymentResult(
+        success: true,
+        requestIdentifier: customerReference,
+        transactionId: transactionId,
+        paymentStatus: 'success',
+        message: 'Payment collected',
+        option: option,
+      ),
+      currentStep: option == PaymentOption.viewAddress
+          ? SearchFlowStep.addressView
+          : SearchFlowStep.deliveryTracking,
+    );
   }
 
   // ============================================
@@ -1041,20 +1070,6 @@ class SearchFlowNotifier extends StateNotifier<SearchFlowState> {
   /// Register visitor (alias for registerVisitorAndSendOtp)
   Future<void> registerVisitor(String phoneNumber) =>
       registerVisitorAndSendOtp(phoneNumber);
-
-  /// Process delivery payment
-  Future<void> processDeliveryPayment(
-    Map<String, dynamic> paymentDetails,
-  ) async {
-    state = state.copyWith(selectedPaymentOption: PaymentOption.delivery);
-    await processPayment(paymentDetails);
-  }
-
-  /// Unlock address (pay for address view)
-  Future<void> unlockAddress(Map<String, dynamic> paymentDetails) async {
-    state = state.copyWith(selectedPaymentOption: PaymentOption.viewAddress);
-    await processPayment(paymentDetails);
-  }
 
   /// Start delivery tracking
   Future<void> startDeliveryTracking([String? orderId]) async {

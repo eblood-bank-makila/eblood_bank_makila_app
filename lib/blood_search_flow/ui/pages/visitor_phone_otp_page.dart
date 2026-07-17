@@ -1,6 +1,8 @@
 /// Visitor Phone OTP Page
 /// Phone verification for visitor registration
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -41,6 +43,23 @@ class _VisitorPhoneOtpPageState extends ConsumerState<VisitorPhoneOtpPage>
   int _resendCountdown = 0;
   String _formattedPhone = '';
   String? _appSignature;
+
+  /// Whether the SMS retriever is actually listening right now. The
+  /// "waiting for SMS" chip is driven by this, so it can never claim to be
+  /// listening after the listener has stopped.
+  bool _isListeningForSms = false;
+
+  /// Stops the SMS listener once the code the backend sent has expired.
+  Timer? _smsListenTimer;
+
+  /// Fallback window when send-phone-otp doesn't report otp_expiry_minutes.
+  static const int _fallbackListenMinutes = 10;
+
+  /// Android's SMS Retriever API stops delivering after 5 minutes — a platform
+  /// limit we can't extend. The code may stay valid longer (the backend says
+  /// 10), but auto-read is dead past this, so the chip must not outlive it or
+  /// it would claim to be listening when nothing is.
+  static const int _smsRetrieverMaxMinutes = 5;
 
   @override
   void initState() {
@@ -112,9 +131,42 @@ class _VisitorPhoneOtpPageState extends ConsumerState<VisitorPhoneOtpPage>
     }
   }
 
-  void _startListeningForSms() {
+  /// Listen for the OTP SMS for as long as auto-read can actually work:
+  /// min(backend's otp_expiry_minutes, SMS Retriever's 5-minute ceiling).
+  /// Past either bound there is nothing left to auto-read, so keeping the
+  /// listener (and its spinner) alive would only mislead the user.
+  void _startListeningForSms(int? expiryMinutes) {
+    final codeLifetime = (expiryMinutes != null && expiryMinutes > 0)
+        ? expiryMinutes
+        : _fallbackListenMinutes;
+    final minutes = codeLifetime > _smsRetrieverMaxMinutes
+        ? _smsRetrieverMaxMinutes
+        : codeLifetime;
+
     listenForCode();
-    print('👂 Started listening for SMS OTP...');
+    _smsListenTimer?.cancel();
+    _smsListenTimer = Timer(Duration(minutes: minutes), () {
+      print('⏱️ SMS listen window ($minutes min) elapsed — stopping listener');
+      _stopListeningForSms();
+    });
+
+    if (mounted && !_disposed) {
+      setState(() => _isListeningForSms = true);
+    }
+    print('👂 Started listening for SMS OTP (window: $minutes min)...');
+  }
+
+  /// Tear down the SMS listener and its timer, and drop the waiting chip.
+  /// Safe to call repeatedly and after dispose.
+  void _stopListeningForSms() {
+    _smsListenTimer?.cancel();
+    _smsListenTimer = null;
+    cancel(); // sms_autofill: stop listening
+    if (mounted && !_disposed && _isListeningForSms) {
+      setState(() => _isListeningForSms = false);
+    } else {
+      _isListeningForSms = false;
+    }
   }
 
   @override
@@ -150,6 +202,8 @@ class _VisitorPhoneOtpPageState extends ConsumerState<VisitorPhoneOtpPage>
   @override
   void dispose() {
     _disposed = true; // Mark as disposed first
+    _smsListenTimer?.cancel(); // Don't fire setState after dispose
+    _smsListenTimer = null;
     cancel(); // Stop listening for SMS
     SmsAutoFill().unregisterListener();
     // Only dispose controllers if not already disposed
@@ -199,7 +253,7 @@ class _VisitorPhoneOtpPageState extends ConsumerState<VisitorPhoneOtpPage>
         onBack: () {
           if (_isOtpSent) {
             // Stop listening for SMS and reset verification state
-            cancel();
+            _stopListeningForSms();
             setState(() {
               _isOtpSent = false;
               _isVerifying = false;
@@ -499,44 +553,49 @@ class _VisitorPhoneOtpPageState extends ConsumerState<VisitorPhoneOtpPage>
             ),
           ),
 
-          const SizedBox(height: 12),
-
-          // Auto-read indicator
-          Center(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.blue.shade200),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SizedBox(
-                    width: 12,
-                    height: 12,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        Colors.blue.shade600,
+          // Auto-read indicator — only while the SMS listener is actually
+          // running. It stops when the code expires, on verify, or on back.
+          if (_isListeningForSms) ...[
+            const SizedBox(height: 12),
+            Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.blue.shade200),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 12,
+                      height: 12,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          Colors.blue.shade600,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'waiting_for_sms'.tr.isEmpty
-                        ? 'Waiting for SMS...'
-                        : 'waiting_for_sms'.tr,
-                    style: GoogleFonts.ubuntu(
-                      fontSize: 12,
-                      color: Colors.blue.shade700,
+                    const SizedBox(width: 8),
+                    Text(
+                      'waiting_for_sms'.tr.isEmpty
+                          ? 'Waiting for SMS...'
+                          : 'waiting_for_sms'.tr,
+                      style: GoogleFonts.ubuntu(
+                        fontSize: 12,
+                        color: Colors.blue.shade700,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
+          ],
 
           const SizedBox(height: 28),
 
@@ -714,8 +773,9 @@ class _VisitorPhoneOtpPageState extends ConsumerState<VisitorPhoneOtpPage>
         _formattedPhone = phone;
       });
 
-      // Start listening for SMS OTP
-      _startListeningForSms();
+      // Listen for the SMS only for as long as the backend says the code
+      // lives (otp_expiry_minutes), so the listener can't outlive the code.
+      _startListeningForSms(ref.read(searchFlowProvider).otpExpiryMinutes);
 
       _startResendCountdown();
 
@@ -770,7 +830,7 @@ class _VisitorPhoneOtpPageState extends ConsumerState<VisitorPhoneOtpPage>
 
     try {
       // Stop listening for SMS since we're verifying
-      cancel();
+      _stopListeningForSms();
 
       await ref.read(searchFlowProvider.notifier).verifyOtp(otpToVerify);
 

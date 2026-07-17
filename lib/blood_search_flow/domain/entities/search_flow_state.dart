@@ -541,6 +541,10 @@ class SearchFlowState {
   final bool otpVerified;
   final String? visitorToken;
 
+  /// Backend's `otp_expiry_minutes` from send-phone-otp: how long the code
+  /// stays valid. Bounds how long the OTP page listens for the SMS.
+  final int? otpExpiryMinutes;
+
   // Payment & post-payment
   final PaymentResult? paymentResult;
   final String? unlockedAddress;
@@ -561,6 +565,7 @@ class SearchFlowState {
     this.otpSent = false,
     this.otpVerified = false,
     this.visitorToken,
+    this.otpExpiryMinutes,
     this.paymentResult,
     this.unlockedAddress,
     this.deliveryTracking,
@@ -582,6 +587,7 @@ class SearchFlowState {
     bool? otpSent,
     bool? otpVerified,
     String? visitorToken,
+    int? otpExpiryMinutes,
     PaymentResult? paymentResult,
     String? unlockedAddress,
     DeliveryTrackingInfo? deliveryTracking,
@@ -602,6 +608,7 @@ class SearchFlowState {
       otpSent: otpSent ?? this.otpSent,
       otpVerified: otpVerified ?? this.otpVerified,
       visitorToken: visitorToken ?? this.visitorToken,
+      otpExpiryMinutes: otpExpiryMinutes ?? this.otpExpiryMinutes,
       paymentResult: paymentResult ?? this.paymentResult,
       unlockedAddress: unlockedAddress ?? this.unlockedAddress,
       deliveryTracking: deliveryTracking ?? this.deliveryTracking,

@@ -295,7 +295,7 @@ class VisitorRegistrationServiceImpl implements IVisitorRegistrationService {
   }
 
   @override
-  Future<bool> sendOtp(String sessionId, {String? appSignature}) async {
+  Future<OtpSendResult> sendOtp(String sessionId, {String? appSignature}) async {
     // Note: sessionId is actually the phone number for visitor OTP
     try {
       final response = await postWithDio(
@@ -306,11 +306,26 @@ class VisitorRegistrationServiceImpl implements IVisitorRegistrationService {
         },
       );
 
-      return response.success;
+      return OtpSendResult(
+        success: response.success,
+        expiryMinutes: _parseExpiryMinutes(response.data),
+      );
     } catch (e) {
       print('VisitorRegistrationService.sendOtp error: $e');
-      return false;
+      return const OtpSendResult(success: false);
     }
+  }
+
+  /// Pull the backend's `otp_expiry_minutes` out of the response payload.
+  /// Tolerates int, num or String so a backend serialisation change doesn't
+  /// silently drop the value and leave the SMS listener running forever.
+  int? _parseExpiryMinutes(dynamic data) {
+    if (data is! Map) return null;
+    final raw = data['otp_expiry_minutes'];
+    if (raw is int) return raw;
+    if (raw is num) return raw.toInt();
+    if (raw is String) return int.tryParse(raw);
+    return null;
   }
 
   /// Send OTP to phone number (for visitor phone verification)

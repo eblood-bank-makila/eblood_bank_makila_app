@@ -692,18 +692,19 @@ class SearchFlowNotifier extends StateNotifier<SearchFlowState> {
       _visitorSessionId = phoneNumber;
 
       // Send OTP to phone number (with app signature for auto-read)
-      final otpSent = await visitorService.sendOtp(
+      final otpResult = await visitorService.sendOtp(
         phoneNumber,
         appSignature: _appSignature,
       );
 
       state = state.copyWith(
-        otpSent: otpSent,
+        otpSent: otpResult.success,
+        otpExpiryMinutes: otpResult.expiryMinutes,
         isLoading: false,
         currentStep: SearchFlowStep.otpVerification,
       );
 
-      if (!otpSent) {
+      if (!otpResult.success) {
         state = state.copyWith(
           errorMessage: 'Failed to send OTP. Please try again.',
         );

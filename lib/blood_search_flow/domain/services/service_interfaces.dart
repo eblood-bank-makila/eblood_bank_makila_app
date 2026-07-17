@@ -30,6 +30,19 @@ abstract class IHospitalIdentificationService {
   Future<IdentifiedHospital?> identifyFromDeepLink(String deepLinkUri);
 }
 
+/// Outcome of an OTP send.
+///
+/// [expiryMinutes] carries the backend's `otp_expiry_minutes` — how long the
+/// code stays valid. It drives how long the UI keeps listening for the SMS,
+/// so the listener dies with the code instead of spinning forever. Null when
+/// the backend didn't say.
+class OtpSendResult {
+  final bool success;
+  final int? expiryMinutes;
+
+  const OtpSendResult({required this.success, this.expiryMinutes});
+}
+
 /// Visitor registration service interface
 abstract class IVisitorRegistrationService {
   /// Register visitor with phone number, returns session ID
@@ -41,7 +54,7 @@ abstract class IVisitorRegistrationService {
 
   /// Send OTP to registered phone number
   /// [appSignature] is for SMS Retriever API auto-read on Android
-  Future<bool> sendOtp(String sessionId, {String? appSignature});
+  Future<OtpSendResult> sendOtp(String sessionId, {String? appSignature});
 
   /// Verify OTP and get auth token
   Future<String?> verifyOtp({

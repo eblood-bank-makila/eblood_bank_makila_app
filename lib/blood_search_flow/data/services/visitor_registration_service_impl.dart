@@ -123,10 +123,23 @@ class VisitorRegistrationServiceImpl implements IVisitorRegistrationService {
 
       // Accept successful response
       if (response.success || response.statusCode == 200 || response.statusCode == 201) {
+        // needs_entity sits at the TOP level of the body, which IApiResponse
+        // only preserves in `raw` — `data` is the nested "data" object and is
+        // null on the needs_entity branches. registerVisitor gates
+        // create-visitor on checkResult['needs_entity'], so until this was
+        // lifted out of raw it read null every time and no visitor account
+        // could ever be created for a device.
+        final rawBody = response.raw;
         final data = <String, dynamic>{
           'success': response.success,
           'data': response.data,
           'message': response.message,
+          'needs_entity':
+              (rawBody is Map ? rawBody['needs_entity'] : null) ??
+              (response.data is Map
+                  ? (response.data as Map)['needs_entity']
+                  : null) ??
+              false,
         };
         print('✅ Login visitor response: ${response.success}');
         if (response.success && response.data != null) {
@@ -215,6 +228,32 @@ class VisitorRegistrationServiceImpl implements IVisitorRegistrationService {
     }
   }
 
+  /// Mint a REGISTRATION_PROCESS token.
+  ///
+  /// create-visitor requires one (see auth_controller.create_visitor_user),
+  /// but a brand new visitor has no session yet — so it is bootstrapped from
+  /// this public endpoint, which is exempt from the permission check and
+  /// returns {countries, token}. Without it create-visitor answers 401 and no
+  /// visitor account can ever be created.
+  Future<String?> _fetchRegistrationToken() async {
+    try {
+      final response = await getWithDio(
+        '/auth/init-customer-registration-process',
+      );
+      if (!response.success) {
+        print('⚠️ registration bootstrap failed: ${response.message}');
+        return null;
+      }
+      final data = response.data;
+      final token = data is Map ? data['token']?.toString() : null;
+      print('🎟️ registration token: ${token == null ? "none" : "obtained"}');
+      return token;
+    } catch (e) {
+      print('❌ VisitorRegistrationService._fetchRegistrationToken error: $e');
+      return null;
+    }
+  }
+
   /// Create visitor account with location_id (POST request)
   Future<Map<String, dynamic>?> createVisitorAccount({
     required String locationId,
@@ -222,9 +261,17 @@ class VisitorRegistrationServiceImpl implements IVisitorRegistrationService {
     try {
       // Sprint 16 — migrated from POST /eblood-connect/users/login-visitor to
       // POST /api/v1/auth/visitor/create-visitor.
+      //
+      // Pass the registration token explicitly: AuthInterceptor only injects a
+      // stored token when Authorization is absent/empty, so an explicit header
+      // is preserved — and the visitor has no stored session token yet anyway.
+      final registrationToken = await _fetchRegistrationToken();
       final response = await postWithDio(
         '/auth/visitor/create-visitor',
         body: {'location_id': locationId},
+        headers: (registrationToken != null && registrationToken.isNotEmpty)
+            ? {'Authorization': 'Bearer $registrationToken'}
+            : null,
       );
 
       if (response.success) {

@@ -70,51 +70,49 @@ class _VisitorPhoneOtpPageState extends ConsumerState<VisitorPhoneOtpPage>
     _pageController = PageController();
     _disposed = false;
     _getAppSignature();
-    // Safety check in case user navigates directly to OTP page
-    // Primary check happens before navigation in hospital_identify_page
+    // Safety check in case user navigates directly to OTP page.
+    // Primary check happens before navigation in
+    // SearchFlowProvider.selectPaymentOption.
     _checkIfAlreadyVerified();
   }
 
-  /// Safety check if phone is already verified (fallback)
-  /// Primary verification check happens before navigating to this page
+  /// Skip the OTP step when this device's visitor phone is already verified.
+  ///
+  /// Verification is once per device: the local flag is written after a
+  /// successful OTP, and the backend keeps is_phone_verified on the
+  /// device-linked visitor account — so when local storage was wiped
+  /// (reinstall), check-existing recovers the verified state and back-fills
+  /// visitor_phone / visitor_phone_verified.
   Future<void> _checkIfAlreadyVerified() async {
     try {
       print('🔍 [OTP Page] Checking if phone already verified...');
-      final isVerified = await _visitorService.hasVisitorPhoneNumber();
+      bool isVerified = await _visitorService.hasVisitorPhoneNumber();
       print('📱 [OTP Page] Local verification status: $isVerified');
-      
-      if (isVerified) {
-        print('✅ [OTP Page] Phone verified locally, fetching backend data...');
-        // Fetch fresh visitor data from backend to get updated can_pay_on_delivery status
+
+      if (!isVerified) {
+        // Local cache empty — ask the backend, which resolves the visitor
+        // account by device id and returns is_phone_verified.
         final result = await _visitorService.checkVisitorLogin();
-        print('🔄 [OTP Page] Backend result: ${result != null}');
-        
-        if (result != null) {
-          print('📦 [OTP Page] Result success: ${result['success']}, needs_verification: ${result['needs_phone_verification']}');
-          
-          final needsVerification = result['needs_phone_verification'] == true;
-          
-          if (result['success'] == true && !needsVerification) {
-            print('✅ [OTP Page] Backend confirms verification, navigating to payment');
-            
-            // Navigate AFTER the current frame finishes layout to avoid
-            // disposing controllers while PageView is still inflating children.
+        isVerified = result != null &&
+            result['success'] == true &&
+            result['needs_phone_verification'] != true;
+        print('🔄 [OTP Page] Backend verification status: $isVerified');
+      }
+
+      if (isVerified) {
+        print('✅ [OTP Page] Phone already verified, skipping OTP step');
+        // Navigate AFTER the current frame finishes layout to avoid
+        // disposing controllers while PageView is still inflating children.
+        if (mounted && !_disposed) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted && !_disposed) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (mounted && !_disposed) {
-                  print('⏭️ [OTP Page] Navigating to payment page...');
-                  context.pushReplacement('/blood-search/payment');
-                }
-              });
+              print('⏭️ [OTP Page] Navigating to payment page...');
+              context.pushReplacement('/blood-search/payment');
             }
-          } else {
-            print('⚠️ [OTP Page] Backend requires verification, showing OTP input');
-          }
-        } else {
-          print('❌ [OTP Page] No result from backend, showing OTP input');
+          });
         }
       } else {
-        print('📝 [OTP Page] Phone not verified locally, showing OTP input');
+        print('📝 [OTP Page] Phone not verified, showing OTP input');
       }
     } catch (e) {
       print('❌ [OTP Page] Error checking verification: $e');

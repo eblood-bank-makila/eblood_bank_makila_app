@@ -88,6 +88,12 @@ class _BloodSearchWelcomePageState extends ConsumerState<BloodSearchWelcomePage>
       if (token == null || token.toString().isEmpty) {
         const secure = FlutterSecureStorage();
         token = await secure.read(key: 'auth_token');
+        // Restore the GetStorage copy — downstream sync gates
+        // (selectPaymentOption, _ensureVisitorRegistered) read auth_token
+        // from GetStorage to detect a logged-in account.
+        if (token != null && token.isNotEmpty) {
+          await storage.write('auth_token', token);
+        }
       }
 
       // No token at all → not logged in, leave the guest (login/register) bar.
@@ -121,6 +127,13 @@ class _BloodSearchWelcomePageState extends ConsumerState<BloodSearchWelcomePage>
           displayName = cached.displayName;
           if (accountType.isEmpty) {
             accountType = cached.accountType.toLowerCase();
+            // Restore the canonical GetStorage key too — downstream sync
+            // gates (selectPaymentOption, _ensureVisitorRegistered) read
+            // account_type from GetStorage to decide whether to skip the
+            // visitor bootstrap and the phone-OTP step.
+            if (accountType.isNotEmpty) {
+              await storage.write('account_type', accountType);
+            }
           }
         }
       }
@@ -193,6 +206,22 @@ class _BloodSearchWelcomePageState extends ConsumerState<BloodSearchWelcomePage>
 
   /// Ensure visitor is registered (either locally saved or via backend)
   Future<bool> _ensureVisitorRegistered() async {
+    // Logged-in non-visitor profiles (hospital, blood_bank, customer, …) use
+    // their own account for the QR/search flow — no visitor bootstrap and no
+    // phone-OTP step. Running checkVisitorLogin here would also overwrite
+    // their auth_token with a visitor token when the device happens to be
+    // linked to a visitor account.
+    final storage = GetStorage();
+    final accountType = _accountType.isNotEmpty
+        ? _accountType
+        : (storage.read('account_type') ?? '').toString().toLowerCase();
+    final isLoggedIn = _isLoggedIn ||
+        (storage.read('auth_token') ?? '').toString().isNotEmpty;
+    if (isLoggedIn && accountType.isNotEmpty && accountType != 'visitor') {
+      print('✅ Logged-in $accountType account — skipping visitor bootstrap');
+      return true;
+    }
+
     // Check if visitor is already saved locally
     final hasLocal = await _visitorService.hasLocalVisitor();
     if (hasLocal) {

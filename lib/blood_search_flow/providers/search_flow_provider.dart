@@ -537,12 +537,23 @@ class SearchFlowNotifier extends StateNotifier<SearchFlowState> {
       return;
     }
 
-    // --- Guest / Visitor: original flow ---
+    // --- Guest / Visitor ---
+    // Phone OTP is once per device: after a successful verification the
+    // backend keeps is_phone_verified on the device-linked visitor account
+    // and check-existing back-fills visitor_phone / visitor_phone_verified
+    // locally — so an already-verified visitor goes straight to payment.
+    final visitorPhone = (storage.read('visitor_phone') ?? '').toString();
+    final visitorPhoneVerified =
+        storage.read('visitor_phone_verified') == true &&
+        visitorPhone.isNotEmpty;
     state = state.copyWith(
       selectedPaymentOption: option,
-      currentStep: state.hasHospitalIdentified
-          ? SearchFlowStep.visitorRegistration
-          : SearchFlowStep.hospitalIdentification,
+      otpVerified: visitorPhoneVerified,
+      currentStep: !state.hasHospitalIdentified
+          ? SearchFlowStep.hospitalIdentification
+          : (visitorPhoneVerified
+              ? SearchFlowStep.payment
+              : SearchFlowStep.visitorRegistration),
     );
   }
 

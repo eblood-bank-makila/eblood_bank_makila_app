@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../../../apps/config/api/dio_client.dart';
+import '../../../apps/models/api_response.dart';
 import '../../../apps/services/EbloodAuthHelper.dart';
 
 /// Sprint 15 — thin client over the gateway-agnostic eblood payments
@@ -12,6 +13,38 @@ import '../../../apps/services/EbloodAuthHelper.dart';
 /// reconciles the payment intent with the gateway result.
 class PaymentApi {
   PaymentApi._();
+
+  /// Pull the Lokotro checkout config out of an initiate response.
+  ///
+  /// These endpoints answer FLAT — the config sits at the top level with no
+  /// `{success, data, message}` envelope — because the web checkout consumes
+  /// exactly that shape (see ebloodweb `order-blood.types.ts`). But
+  /// [IApiResponse.fromData] assumes the envelope, so a perfectly good HTTP
+  /// 201 arrives as `success: false`, `data: null`, `message: ''` and the
+  /// payment was reported as a failure with a blank error. Read the envelope
+  /// when one is present, otherwise fall back to the raw body.
+  @visibleForTesting
+  static Map<String, dynamic>? initiatePayload(IApiResponse res) {
+    if (res.data is Map) {
+      return Map<String, dynamic>.from(res.data as Map);
+    }
+    final raw = res.raw;
+    if (raw is Map && raw['customer_reference'] != null) {
+      return Map<String, dynamic>.from(raw);
+    }
+    return null;
+  }
+
+  /// `??` does not fire on an empty string, and [IApiResponse] uses `''` —
+  /// not null — when the body carries no `message`. That produced an error
+  /// banner with no text at all, so treat blank as missing.
+  @visibleForTesting
+  static String initiateErrorMessage(IApiResponse res) {
+    final message = res.message?.trim() ?? '';
+    return message.isNotEmpty
+        ? message
+        : 'Échec de l\'initiation du paiement.';
+  }
 
   /// POST /api/v1/payments/initiate/payment
   ///
@@ -51,13 +84,12 @@ class PaymentApi {
       };
 
       final res = await postWithDio('/payments/initiate/payment', body: body);
-      if (!res.success || res.data is! Map) {
-        return PaymentInitiateResult.error(
-          res.message ?? 'Échec de l\'initiation du paiement.',
-        );
+      final payload = initiatePayload(res);
+      if (payload == null) {
+        return PaymentInitiateResult.error(initiateErrorMessage(res));
       }
       return _parseInitiateData(
-        Map<String, dynamic>.from(res.data as Map),
+        payload,
         fallbackAmountCents: amountCents,
         fallbackCurrency: currency,
       );
@@ -102,13 +134,12 @@ class PaymentApi {
         '/eblood-connect/visitor/blood-bag/initiate-purchase',
         body: body,
       );
-      if (!res.success || res.data is! Map) {
-        return PaymentInitiateResult.error(
-          res.message ?? 'Échec de l\'initiation du paiement.',
-        );
+      final payload = initiatePayload(res);
+      if (payload == null) {
+        return PaymentInitiateResult.error(initiateErrorMessage(res));
       }
       return _parseInitiateData(
-        Map<String, dynamic>.from(res.data as Map),
+        payload,
         fallbackAmountCents: 0,
         fallbackCurrency: 'USD',
       );
@@ -189,13 +220,12 @@ class PaymentApi {
         '/eblood-connect/cart/initiate-lokotro-payment',
         body: body,
       );
-      if (!res.success || res.data is! Map) {
-        return PaymentInitiateResult.error(
-          res.message ?? 'Échec de l\'initiation du paiement.',
-        );
+      final payload = initiatePayload(res);
+      if (payload == null) {
+        return PaymentInitiateResult.error(initiateErrorMessage(res));
       }
       return _parseInitiateData(
-        Map<String, dynamic>.from(res.data as Map),
+        payload,
         fallbackAmountCents: 0,
         fallbackCurrency: 'USD',
       );
@@ -268,6 +298,45 @@ class PaymentApi {
       return PaymentStatusResult.fromJson(data);
     } catch (e) {
       debugPrint('💥 PaymentApi.getStatus error: $e');
+      return PaymentStatusResult.error('Erreur: $e');
+    }
+  }
+
+  /// POST /api/v1/payments/confirm-collect
+  /// After the lokotro_pay SDK reports success, hand the SDK's transactionId
+  /// to the backend so it can VERIFY the payment with the gateway
+  /// server-to-server and move the intent out of PENDING. Card payments
+  /// never fire the gateway webhook, so without this call the backend would
+  /// never learn the payment succeeded.
+  static Future<PaymentStatusResult> confirmCollect({
+    required String customerReference,
+    required String gatewayTransactionId,
+  }) async {
+    try {
+      final res = await postWithDio(
+        '/payments/confirm-collect',
+        body: {
+          'customer_reference': customerReference,
+          'gateway_transaction_id': gatewayTransactionId,
+        },
+      );
+      // The endpoint answers FLAT (no {success,data} envelope) — same as
+      // /initiate/payment. Fall back to raw when data is absent.
+      Map<String, dynamic>? payload;
+      if (res.data is Map) {
+        payload = Map<String, dynamic>.from(res.data as Map);
+      } else if (res.raw is Map &&
+          (res.raw as Map)['customer_reference'] != null) {
+        payload = Map<String, dynamic>.from(res.raw as Map);
+      }
+      if (payload == null) {
+        return PaymentStatusResult.error(
+          res.message ?? 'Échec de la confirmation du paiement.',
+        );
+      }
+      return PaymentStatusResult.fromJson(payload);
+    } catch (e) {
+      debugPrint('💥 PaymentApi.confirmCollect error: $e');
       return PaymentStatusResult.error('Erreur: $e');
     }
   }

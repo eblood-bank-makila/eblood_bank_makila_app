@@ -50,6 +50,14 @@ class TodayAddressRequestItem {
   final String? phoneNumber;
   final String? createdAt;
 
+  // The purchased deliverable — present on new-flow (payment-intent)
+  // items so the sheet can re-show the address without another payment.
+  final String? address;
+  final String? townName;
+  final String? latitude;
+  final String? longitude;
+  final String? bloodBagId;
+
   const TodayAddressRequestItem({
     required this.id,
     required this.identifier,
@@ -60,21 +68,52 @@ class TodayAddressRequestItem {
     this.bloodBankName,
     this.phoneNumber,
     this.createdAt,
+    this.address,
+    this.townName,
+    this.latitude,
+    this.longitude,
+    this.bloodBagId,
   });
+
+  static double _toDouble(dynamic value) {
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0.0;
+    return 0.0;
+  }
 
   factory TodayAddressRequestItem.fromJson(Map<String, dynamic> json) {
     return TodayAddressRequestItem(
       id: json['id']?.toString() ?? '',
       identifier: json['identifier']?.toString() ?? '',
       status: json['status']?.toString() ?? 'unknown',
-      totalAmount: (json['total_amount'] is num) ? (json['total_amount'] as num).toDouble() : 0.0,
-      totalAmountMerged: (json['total_amount_merged'] is num) ? (json['total_amount_merged'] as num).toDouble() : 0.0,
+      totalAmount: _toDouble(json['total_amount']),
+      totalAmountMerged: _toDouble(json['total_amount_merged']),
       bloodBankId: json['blood_bank_id']?.toString(),
       bloodBankName: json['blood_bank_name']?.toString(),
       phoneNumber: json['phone_number']?.toString(),
       createdAt: json['created_at']?.toString(),
+      address: json['address']?.toString(),
+      townName: json['town_name']?.toString(),
+      latitude: json['latitude']?.toString(),
+      longitude: json['longitude']?.toString(),
+      bloodBagId: json['blood_bag_id']?.toString(),
     );
   }
+
+  /// Best displayable location line: street address, else town, else
+  /// coordinates.
+  String? get displayAddress {
+    if (address != null && address!.trim().isNotEmpty) return address!.trim();
+    if (townName != null && townName!.trim().isNotEmpty) return townName!.trim();
+    final lat = latitude?.trim() ?? '';
+    final lng = longitude?.trim() ?? '';
+    if (lat.isNotEmpty && lng.isNotEmpty) return '$lat, $lng';
+    return null;
+  }
+
+  bool get hasCoordinates =>
+      (latitude?.trim().isNotEmpty ?? false) &&
+      (longitude?.trim().isNotEmpty ?? false);
 
   String get statusDisplay => status.replaceAll('_', ' ').split(' ').map((w) => w.isNotEmpty ? '${w[0].toUpperCase()}${w.substring(1)}' : '').join(' ');
 }
@@ -130,9 +169,13 @@ class RecentActivityNotifier extends StateNotifier<RecentActivityState> {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      // Sprint 13b — migrated from /eblood-connect/my-recent-activity to the
-      // dedicated activity-log module (kebab-case verb-noun convention).
-      final response = await getWithDio('/activity-log/list-recent');
+      // Back on /eblood-connect/my-recent-activity: the activity-log module
+      // this briefly pointed at requires a user_id query param and reads a
+      // collection nothing ever writes, so this provider could never
+      // return data. my-recent-activity is public, org-scoped for staff
+      // AND payer-scoped for visitors (address purchases come from
+      // ops_payment_intent and carry the purchased address).
+      final response = await getWithDio('/eblood-connect/my-recent-activity');
 
       if (response.success && response.data != null) {
         final data = response.data as Map<String, dynamic>;

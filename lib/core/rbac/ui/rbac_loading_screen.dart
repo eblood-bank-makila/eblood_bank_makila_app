@@ -27,7 +27,14 @@ class _AppProgress {
 }
 
 class RbacLoadingScreen extends ConsumerStatefulWidget {
-  const RbacLoadingScreen({super.key});
+  const RbacLoadingScreen({super.key, this.next = '/app/MainApp'});
+
+  /// Where to go once the RBAC apps/menus have loaded.
+  ///
+  /// Defaults to the dashboard so existing callers (login, OTP registration)
+  /// keep their behaviour. The splash passes `/welcome` so a signed-in user
+  /// lands on the blood-search page with RBAC already warm.
+  final String next;
 
   @override
   ConsumerState<RbacLoadingScreen> createState() => _RbacLoadingScreenState();
@@ -131,7 +138,7 @@ class _RbacLoadingScreenState extends ConsumerState<RbacLoadingScreen>
 
       if (mounted && !_hasNavigated) {
         _hasNavigated = true;
-        context.go('/app/MainApp');
+        context.go(widget.next);
       }
     } catch (e) {
       debugPrint('[RBAC Loading] Error: $e');
@@ -203,7 +210,7 @@ class _RbacLoadingScreenState extends ConsumerState<RbacLoadingScreen>
     if (rbacState.isLoaded && !_hasNavigated && _phase == _Phase.ready) {
       _hasNavigated = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) context.go('/app/MainApp');
+        if (mounted) context.go(widget.next);
       });
     }
 

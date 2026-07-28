@@ -38,6 +38,20 @@ class EbloodAuthHelper {
         .toSet();
   }
 
+  /// Mongo ObjectIds are exactly 24 hex characters.
+  static final RegExp _objectIdPattern = RegExp(r'^[0-9a-fA-F]{24}$');
+
+  /// Whether [value] is a well-formed ObjectId we can safely send back.
+  ///
+  /// The backend renders a missing id with `f"{None}"` — the literal string
+  /// `"None"` — and a user with no organisation (every visitor) therefore
+  /// carries `sys_organization_id: "None"`. Sending that back as an
+  /// ObjectId made the payments API reject the whole request with a 422, so
+  /// anything that isn't a real id is dropped here rather than at each
+  /// call site.
+  static bool _isObjectId(Object? value) =>
+      value != null && _objectIdPattern.hasMatch(value.toString());
+
   /// All sys_organization_ids the user belongs to via their profiles.
   /// Backend's coolbox + payments endpoints want the full set so the
   /// access-gate can verify any of them against the delivery's parties.
@@ -50,7 +64,7 @@ class EbloodAuthHelper {
       if (entry is! Map) continue;
       final candidate =
           entry['sys_organization_id'] ?? entry['organization_id'] ?? entry['org_id'];
-      if (candidate != null && candidate.toString().isNotEmpty) {
+      if (_isObjectId(candidate)) {
         ids.add(candidate.toString());
       }
     }
@@ -59,7 +73,7 @@ class EbloodAuthHelper {
       final data = _storage.read('user_data');
       if (data is Map) {
         final candidate = data['sys_organization_id'] ?? data['organization_id'];
-        if (candidate != null && candidate.toString().isNotEmpty) {
+        if (_isObjectId(candidate)) {
           ids.add(candidate.toString());
         }
       }

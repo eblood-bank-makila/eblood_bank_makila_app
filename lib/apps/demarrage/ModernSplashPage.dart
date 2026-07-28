@@ -151,17 +151,22 @@ class _ModernSplashPageState extends ConsumerState<ModernSplashPage>
             await _clearAllTokens(authProvider);
             if (mounted) context.go('/welcome');
           } else {
-            // Try loading RBAC from local cache for instant navigation
+            // A signed-in user still lands on the blood-search / QR page: it
+            // greets them by name and offers a "Home" button for anyone who
+            // wants the dashboard. RBAC is warmed FIRST either way (from cache,
+            // or through the loading screen), because that Home button jumps
+            // straight to /app/MainApp and would otherwise arrive with no menus.
             final hasCachedApps = await ref.read(rbacProvider.notifier).loadFromCache();
             if (hasCachedApps && mounted) {
-              debugPrint('🚀 ModernSplash: Cache hit → /app/MainApp (background refresh)');
-              context.go('/app/MainApp');
+              debugPrint('🚀 ModernSplash: Cache hit → /welcome (background refresh)');
+              context.go('/welcome');
               // Refresh from API in background
               ref.read(rbacProvider.notifier).refreshInBackground();
             } else if (mounted) {
-              // No cache — go through loading screen (API fetch blocking)
-              debugPrint('🚀 ModernSplash: No cache → /rbac-loading');
-              context.go('/rbac-loading');
+              // No cache — go through loading screen (API fetch blocking),
+              // then on to /welcome instead of the dashboard.
+              debugPrint('🚀 ModernSplash: No cache → /rbac-loading → /welcome');
+              context.go('/rbac-loading?next=/welcome');
             }
           }
         }

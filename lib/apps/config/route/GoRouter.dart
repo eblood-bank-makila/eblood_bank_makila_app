@@ -87,8 +87,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       // RBAC loading screen (intermediate screen after login)
       GoRoute(
         path: '/rbac-loading',
-        pageBuilder: (context, state) =>
-            const MaterialPage(child: RbacLoadingScreen()),
+        // `next` lets the caller choose where to land once RBAC has loaded;
+        // it defaults to the dashboard so existing links keep working.
+        pageBuilder: (context, state) => MaterialPage(
+          child: RbacLoadingScreen(
+            next: state.uri.queryParameters['next'] ?? '/app/MainApp',
+          ),
+        ),
       ),
 
       // Modern Splash Screen (shows first for all users)

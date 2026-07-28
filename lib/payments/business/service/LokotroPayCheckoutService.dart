@@ -116,6 +116,13 @@ class LokotroPayCheckoutService {
             }
           },
           onError: (error) {
+            debugPrint(
+              '💥 LokotroPayCheckout onError: code=${error.errorCode?.code} '
+              'title="${error.title}" message="${error.message}" '
+              'customerRef=${error.customerReference} '
+              'systemRef=${error.systemReference} '
+              'amount=${error.amount} currency=${error.currency}',
+            );
             resolve(
               LokotroPayCheckoutResult.error(
                 customerReference: error.customerReference
@@ -125,9 +132,13 @@ class LokotroPayCheckoutService {
                 title: error.title,
               ),
             );
-            if (Navigator.of(innerContext).canPop()) {
-              Navigator.of(innerContext).pop();
-            }
+            // Deliberately do NOT pop here. The SDK routes to its own error
+            // screen, which carries the detailed reason (e.g. "Failed to
+            // initialize payment: <cause>"); the callback's `message` is
+            // sometimes empty. Popping made a failing checkout look like it
+            // opened and closed instantly with no explanation at all. The
+            // user can dismiss the SDK screen with back when they're done
+            // reading it.
           },
         ),
       ),

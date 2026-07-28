@@ -13,6 +13,36 @@ class VisitorRegistrationServiceImpl implements IVisitorRegistrationService {
 
   VisitorRegistrationServiceImpl();
 
+  /// Persist the visitor's identity alongside their token.
+  ///
+  /// The QR/blood-search flow bootstraps its own visitor session here rather
+  /// than through `AuthApi`, and it used to store ONLY the token. But
+  /// `EbloodAuthHelper.currentUserId()` reads `user_data.id`, so it stayed
+  /// empty for visitors and `PaymentApi` refused every payment with
+  /// "Non connecté: impossible d'initier le paiement." — even though the
+  /// visitor held a perfectly valid token.
+  ///
+  /// Both bootstrap responses (create-visitor and check-existing) are built
+  /// by the backend's `_complete_visitor_login` and carry the same
+  /// {user, user_profils} block, so store it exactly the way
+  /// `AuthApi.createVisitor` does.
+  Future<void> persistVisitorIdentity(Map<String, dynamic> responseData) async {
+    try {
+      final user = responseData['user'];
+      if (user != null) {
+        await _storage.write('user_data', user);
+      }
+      // Always write a List so consumers are safe from null casts.
+      final dynamic profilesRaw = responseData['user_profils'];
+      await _storage.write(
+        'user_profiles',
+        profilesRaw is List ? profilesRaw : <dynamic>[],
+      );
+    } catch (e) {
+      print('⚠️ Could not persist visitor identity: $e');
+    }
+  }
+
   /// Check if visitor is already saved locally
   Future<bool> hasLocalVisitor() async {
     try {
@@ -157,6 +187,10 @@ class VisitorRegistrationServiceImpl implements IVisitorRegistrationService {
             print('✅ Token saved to both GetStorage and FlutterSecureStorage');
           }
 
+          // Store the identity too — without it the visitor is authenticated
+          // but has no resolvable user id, and payments are refused.
+          await persistVisitorIdentity(responseData);
+
           // Check if user has a real phone number (not fake)
           final user = responseData['user'];
           print('👤 User data from backend: ${user != null ? "exists" : "null"}');
@@ -289,6 +323,10 @@ class VisitorRegistrationServiceImpl implements IVisitorRegistrationService {
             await _secureStorage.write(key: 'auth_token', value: token);
             print('✅ Token saved to both GetStorage and FlutterSecureStorage');
           }
+
+          // Store the identity too — without it the visitor is authenticated
+          // but has no resolvable user id, and payments are refused.
+          await persistVisitorIdentity(responseData);
 
           // New visitor always needs phone verification
           final result = <String, dynamic>{

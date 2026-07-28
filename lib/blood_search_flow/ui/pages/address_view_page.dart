@@ -11,6 +11,7 @@ import 'package:iconsax/iconsax.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../providers/search_flow_provider.dart';
+import '../../domain/entities/search_flow_state.dart';
 import '../../../apps/config/theme/ColorPages.dart';
 import '../widgets/search_flow_app_bar.dart';
 
@@ -20,7 +21,7 @@ class AddressViewPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(searchFlowProvider);
-    final hospital = state.identifiedHospital;
+    final hospital = _AddressTarget.from(state);
 
     if (hospital == null) {
       return Scaffold(
@@ -438,6 +439,60 @@ class _InfoRow extends StatelessWidget {
           ),
       ],
     );
+  }
+}
+
+/// What the buyer actually paid to see. An address_access purchase unlocks
+/// the BLOOD BANK holding the selected bag (state.selectedResult) — not the
+/// hospital identified via QR, which the user already knew. The identified
+/// hospital only backfills fields the search result doesn't carry (phone)
+/// and serves as a last-resort fallback when the result is gone.
+class _AddressTarget {
+  final String name;
+  final String code;
+  final String? address;
+  final String? phone;
+  final double? latitude;
+  final double? longitude;
+
+  const _AddressTarget({
+    required this.name,
+    required this.code,
+    this.address,
+    this.phone,
+    this.latitude,
+    this.longitude,
+  });
+
+  static _AddressTarget? from(SearchFlowState state) {
+    final result = state.selectedResult;
+    final hospital = state.identifiedHospital;
+
+    if (result != null) {
+      return _AddressTarget(
+        name: result.bloodBankName.isNotEmpty
+            ? result.bloodBankName
+            : (hospital?.name ?? ''),
+        code: '',
+        address: result.address ?? hospital?.address,
+        // The search result carries no blood-bank phone; showing the QR
+        // hospital's phone here would point the buyer at the wrong place.
+        phone: null,
+        latitude: result.latitude,
+        longitude: result.longitude,
+      );
+    }
+    if (hospital != null) {
+      return _AddressTarget(
+        name: hospital.name,
+        code: hospital.code,
+        address: hospital.address,
+        phone: hospital.phone,
+        latitude: hospital.latitude,
+        longitude: hospital.longitude,
+      );
+    }
+    return null;
   }
 }
 

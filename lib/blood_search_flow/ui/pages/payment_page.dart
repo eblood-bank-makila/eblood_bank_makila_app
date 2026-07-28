@@ -525,8 +525,13 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
         // (a user-cancelled checkout is silent).
         if (result.outcome == LokotroPayCheckoutOutcome.error) {
           setState(() {
-            _errorMessage =
-                result.message ?? 'Payment failed. Please try again.';
+            // `??` alone is not enough: the SDK can report an error whose
+            // message is an EMPTY string, which rendered as a blank red
+            // banner with no explanation. Treat empty as missing.
+            final sdkMessage = (result.message ?? '').trim();
+            _errorMessage = sdkMessage.isNotEmpty
+                ? sdkMessage
+                : 'Payment failed. Please try again.';
           });
         }
         return;
@@ -538,6 +543,29 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
             result.customerReference,
             transactionId: result.transactionId,
           );
+
+      // Server-side verification: card payments never fire the gateway
+      // webhook, so the backend intent stays PENDING until we hand it the
+      // SDK's transactionId and it re-checks the transaction with the
+      // gateway. Best-effort — the money is already collected, so a
+      // confirm failure must never block the user's reveal screen (the
+      // backend can still be reconciled later).
+      final txId = (result.transactionId ?? '').trim();
+      if (txId.isNotEmpty) {
+        try {
+          final confirmed = await PaymentApi.confirmCollect(
+            customerReference: result.customerReference,
+            gatewayTransactionId: txId,
+          );
+          debugPrint(
+            '✅ confirm-collect: ${result.customerReference} → ${confirmed.state}',
+          );
+        } catch (e) {
+          debugPrint('⚠️ confirm-collect failed (non-blocking): $e');
+        }
+      }
+
+      if (!mounted) return;
       _afterCollected(isDelivery);
     } catch (e) {
       setState(() {
@@ -550,16 +578,29 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
     }
   }
 
-  /// Post-collection: refresh recent activity (auto-open the right tab) and
-  /// return to the blood-search welcome page. Address reveal / delivery
-  /// tracking then proceeds from the updated flow state.
+  /// Post-collection navigation.
+  ///
+  /// Address purchase → the reveal screen (what the user just PAID for);
+  /// pushReplacement keeps the results page underneath and — critically —
+  /// does NOT pass through the welcome page, whose initState resetFlow()
+  /// would wipe selectedResult before the reveal could render it.
+  ///
+  /// Delivery → back to the welcome page with the activity sheet
+  /// auto-opened on the deliveries tab, which now lists the order.
   void _afterCollected(bool isDelivery) {
     if (!mounted) return;
-    // Tab 0 = pending deliveries, Tab 1 = address requests
-    ref.read(recentActivityProvider.notifier).fetchRecentActivity(
-          autoOpenTab: isDelivery ? 0 : 1,
-        );
-    context.go('/blood-search');
+    if (isDelivery) {
+      // Tab 0 = pending deliveries
+      ref.read(recentActivityProvider.notifier).fetchRecentActivity(
+            autoOpenTab: 0,
+          );
+      context.go('/blood-search');
+    } else {
+      // Refresh the feed so the purchase shows up on the welcome page
+      // later, but land the user on the address they just bought.
+      ref.read(recentActivityProvider.notifier).fetchRecentActivity();
+      context.pushReplacement('/blood-search/address-view');
+    }
   }
 
   Future<String?> _showMobileMoneyPhoneBottomSheet() async {

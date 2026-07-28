@@ -2,10 +2,12 @@
 /// Shows pending deliveries and today's succeeded address requests in 2 tabs
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:get/get.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../providers/recent_activity_provider.dart';
 import '../../../apps/config/theme/ColorPages.dart';
@@ -474,6 +476,7 @@ class _AddressRequestCard extends StatelessWidget {
     switch (status.toLowerCase()) {
       case 'completed':
       case 'approved':
+      case 'succeeded':
         return Colors.green;
       case 'processing':
         return Colors.orange;
@@ -482,9 +485,56 @@ class _AddressRequestCard extends StatelessWidget {
     }
   }
 
+  void _copyAddress(BuildContext context) {
+    final text = item.displayAddress;
+    if (text == null) return;
+    Clipboard.setData(ClipboardData(text: text));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'copied_to_clipboard'.tr.isEmpty
+              ? 'Copied to clipboard'
+              : 'copied_to_clipboard'.tr,
+          style: GoogleFonts.ubuntu(),
+        ),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  Future<void> _openInMaps() async {
+    final Uri uri;
+    if (item.hasCoordinates) {
+      uri = Uri.parse(
+        'https://www.google.com/maps/search/?api=1&query=${item.latitude},${item.longitude}',
+      );
+    } else if (item.displayAddress != null) {
+      final query = Uri.encodeComponent(item.displayAddress!);
+      uri = Uri.parse('https://www.google.com/maps/search/?api=1&query=$query');
+    } else {
+      return;
+    }
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  Future<void> _callPhone() async {
+    final phone = item.phoneNumber;
+    if (phone == null || phone.isEmpty) return;
+    final uri = Uri(scheme: 'tel', path: phone);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final color = _statusColor(item.status);
+    final address = item.displayAddress;
+    final hasPhone = item.phoneNumber != null && item.phoneNumber!.isNotEmpty;
+    final canMap = item.hasCoordinates || address != null;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -500,77 +550,188 @@ class _AddressRequestCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Icon
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(Iconsax.location, color: color, size: 22),
-          ),
-          const SizedBox(width: 14),
-          // Info
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.bloodBankName ?? item.identifier,
-                  style: GoogleFonts.ubuntu(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey.shade800,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+          Row(
+            children: [
+              // Icon
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                const SizedBox(height: 4),
-                Row(
+                child: Icon(Iconsax.location, color: color, size: 22),
+              ),
+              const SizedBox(width: 14),
+              // Info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: color.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(6),
+                    Text(
+                      item.bloodBankName ?? item.identifier,
+                      style: GoogleFonts.ubuntu(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey.shade800,
                       ),
-                      child: Text(
-                        item.statusDisplay,
-                        style: GoogleFonts.ubuntu(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: color,
-                        ),
-                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    if (item.createdAt != null) ...[
-                      const SizedBox(width: 8),
-                      Text(
-                        _formatDate(item.createdAt!),
-                        style: GoogleFonts.ubuntu(
-                          fontSize: 11,
-                          color: Colors.grey.shade500,
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: color.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            item.statusDisplay,
+                            style: GoogleFonts.ubuntu(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: color,
+                            ),
+                          ),
                         ),
-                      ),
-                    ],
+                        if (item.createdAt != null) ...[
+                          const SizedBox(width: 8),
+                          Text(
+                            _formatDate(item.createdAt!),
+                            style: GoogleFonts.ubuntu(
+                              fontSize: 11,
+                              color: Colors.grey.shade500,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                   ],
                 ),
+              ),
+              // Amount
+              Text(
+                '\$${item.totalAmountMerged.toStringAsFixed(2)}',
+                style: GoogleFonts.ubuntu(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: ColorPages.COLOR_PRINCIPAL,
+                ),
+              ),
+            ],
+          ),
+
+          // The address the user paid for — shown right on the card so a
+          // successful purchase stays accessible from the welcome screen.
+          if (address != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Iconsax.map_1, size: 16, color: Colors.grey.shade600),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      address,
+                      style: GoogleFonts.ubuntu(
+                        fontSize: 13,
+                        color: Colors.grey.shade800,
+                      ),
+                    ),
+                  ),
+                  InkWell(
+                    onTap: () => _copyAddress(context),
+                    child: Icon(Iconsax.copy, size: 16, color: Colors.grey.shade500),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          if (canMap || hasPhone) ...[
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                if (canMap)
+                  Expanded(
+                    child: _CardAction(
+                      icon: Iconsax.map,
+                      label: 'open_in_maps'.tr.isEmpty
+                          ? 'Open in Maps'
+                          : 'open_in_maps'.tr,
+                      color: Colors.blue,
+                      onTap: _openInMaps,
+                    ),
+                  ),
+                if (canMap && hasPhone) const SizedBox(width: 10),
+                if (hasPhone)
+                  Expanded(
+                    child: _CardAction(
+                      icon: Iconsax.call,
+                      label: 'call'.tr.isEmpty ? 'Call' : 'call'.tr,
+                      color: Colors.green,
+                      onTap: _callPhone,
+                    ),
+                  ),
               ],
             ),
-          ),
-          // Amount
-          Text(
-            '\$${item.totalAmountMerged.toStringAsFixed(2)}',
-            style: GoogleFonts.ubuntu(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: ColorPages.COLOR_PRINCIPAL,
-            ),
-          ),
+          ],
         ],
+      ),
+    );
+  }
+}
+
+class _CardAction extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _CardAction({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: color.withOpacity(0.08),
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: color, size: 16),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: GoogleFonts.ubuntu(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

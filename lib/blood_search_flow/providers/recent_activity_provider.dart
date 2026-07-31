@@ -195,7 +195,13 @@ class RecentActivityNotifier extends StateNotifier<RecentActivityState> {
           autoOpenTab: autoOpenTab,
         );
       } else {
-        state = state.copyWith(isLoading: false);
+        // A failed fetch used to collapse into the same state as "no
+        // activity" — the FAB just vanished with no trace. Keep the error
+        // so the UI can tell "nothing happened" from "couldn't ask".
+        state = state.copyWith(
+          isLoading: false,
+          error: response.message ?? 'Failed to load recent activity',
+        );
       }
     } catch (e) {
       print('RecentActivityProvider.fetchRecentActivity error: $e');

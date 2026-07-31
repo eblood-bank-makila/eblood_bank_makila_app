@@ -102,18 +102,57 @@ class LokotroPayCheckoutService {
           configs: configs,
           paymentBody: paymentBody,
           onResponse: (response) {
+            // Full payload dump — /payments/confirm-collect needs the
+            // gateway's transaction id, and at least one live payment came
+            // back with transactionId == null (intent stuck PENDING, so it
+            // never appears in my-recent-activity). Log everything so we can
+            // see which field the gateway actually populates.
+            debugPrint(
+              '📦 LokotroPayCheckout onResponse: '
+              'status=${response.paymentStatus.name} '
+              'apiCode=${response.apiResponseCode.code} '
+              'transactionId=${response.transactionId} '
+              'systemRef=${response.systemRef} '
+              'identifier=${response.identifier} '
+              'customerReference=${response.customerReference} '
+              'customRef=${response.customRef} '
+              'amount=${response.amount} ${response.currency} '
+              'message="${response.message}"',
+            );
+            // transaction_id/payment_id may be absent while system_ref is
+            // set (the SDK model parses system_ref ?? payment_id into
+            // systemRef, with '-' as its missing marker). The backend
+            // re-verifies whatever id we send against the gateway before
+            // touching the intent, so a wrong fallback only fails the
+            // non-blocking confirm — same as sending nothing.
+            String? sdkTransactionId = response.transactionId?.trim();
+            if (sdkTransactionId == null || sdkTransactionId.isEmpty) {
+              final systemRef = response.systemRef.trim();
+              if (systemRef.isNotEmpty && systemRef != '-') {
+                sdkTransactionId = systemRef;
+              } else {
+                final identifier = response.identifier?.trim() ?? '';
+                sdkTransactionId = identifier.isNotEmpty ? identifier : null;
+              }
+            }
             resolve(
               LokotroPayCheckoutResult.success(
                 customerReference: response.customerReference
                     ?? fallbackCustomerReference,
-                transactionId: response.transactionId,
+                transactionId: sdkTransactionId,
                 status: response.paymentStatus.name,
                 message: response.message,
               ),
             );
-            if (Navigator.of(innerContext).canPop()) {
-              Navigator.of(innerContext).pop();
-            }
+            // Deliberately do NOT pop here — the SDK closes the checkout
+            // itself on every success path (success screen auto-redirect,
+            // Continue, Close all call onResponse and then pop). Popping
+            // here too made it a DOUBLE pop: ours removed the checkout,
+            // the SDK's removed the payment page beneath it, and the user
+            // saw the search screen flash before the reveal navigation.
+            // (onResponse can also fire early from the SDK's message
+            // stream while its success screen is still showing; popping on
+            // that call cut the success screen off entirely.)
           },
           onError: (error) {
             debugPrint(

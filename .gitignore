@@ -47,3 +47,4 @@ app.*.map.json
 android/key.properties
 **/*.jks
 android/build/
+pubspec_overrides.yaml

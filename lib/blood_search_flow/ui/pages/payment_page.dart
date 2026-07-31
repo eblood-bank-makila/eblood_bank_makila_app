@@ -1,6 +1,8 @@
 /// Payment Page
 /// Handles payment for address viewing or delivery
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -547,22 +549,37 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
       // Server-side verification: card payments never fire the gateway
       // webhook, so the backend intent stays PENDING until we hand it the
       // SDK's transactionId and it re-checks the transaction with the
-      // gateway. Best-effort — the money is already collected, so a
-      // confirm failure must never block the user's reveal screen (the
-      // backend can still be reconciled later).
+      // gateway. Best-effort AND non-blocking: awaiting it here kept the
+      // stale payment page on screen for ~1s between the checkout closing
+      // and the reveal navigation. Navigate first, confirm in the
+      // background, and refresh the activity feed once the intent has
+      // actually flipped to SUCCEEDED so the FAB picks it up.
       final txId = (result.transactionId ?? '').trim();
       if (txId.isNotEmpty) {
-        try {
-          final confirmed = await PaymentApi.confirmCollect(
+        unawaited(
+          PaymentApi.confirmCollect(
             customerReference: result.customerReference,
             gatewayTransactionId: txId,
-          );
-          debugPrint(
-            '✅ confirm-collect: ${result.customerReference} → ${confirmed.state}',
-          );
-        } catch (e) {
-          debugPrint('⚠️ confirm-collect failed (non-blocking): $e');
-        }
+          ).then((confirmed) {
+            debugPrint(
+              '✅ confirm-collect: ${result.customerReference} → ${confirmed.state}',
+            );
+            if (mounted) {
+              ref.read(recentActivityProvider.notifier).fetchRecentActivity();
+            }
+          }).catchError((e) {
+            debugPrint('⚠️ confirm-collect failed (non-blocking): $e');
+          }),
+        );
+      } else {
+        // Without a transaction id the backend can't re-verify the payment
+        // with the gateway, the intent stays PENDING forever and the
+        // purchase never shows up in my-recent-activity. Don't fail the
+        // reveal (money IS collected), but never skip this silently again.
+        debugPrint(
+          '🚨 confirm-collect SKIPPED for ${result.customerReference}: '
+          'SDK returned no transaction id — intent will stay PENDING',
+        );
       }
 
       if (!mounted) return;

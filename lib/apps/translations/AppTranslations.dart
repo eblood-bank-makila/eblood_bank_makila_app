@@ -6,6 +6,8 @@ class AppTranslations extends Translations {
   Map<String, Map<String, String>> get keys => {
     // French translations
     'fr_FR': {
+      'no_map_app': 'Aucune application de cartes trouvée sur cet appareil',
+      'address_not_available': 'Adresse non disponible',
       // Registration Success Page
       'registration_successful': 'Inscription Réussie !',
       'account_created_successfully':
@@ -1955,6 +1957,8 @@ class AppTranslations extends Translations {
 
     // English translations
     'en_US': {
+      'no_map_app': 'No map application found on this device',
+      'address_not_available': 'Address not available',
       // Registration Success Page
       'registration_successful': 'Registration Successful!',
       'account_created_successfully':
@@ -3708,6 +3712,8 @@ class AppTranslations extends Translations {
 
     // Spanish translations
     'es_ES': {
+      'no_map_app': 'No se encontró ninguna aplicación de mapas en este dispositivo',
+      'address_not_available': 'Dirección no disponible',
       // Payment Messages
       'payment_successful': 'Pago Exitoso',
       'payment_failed': 'Pago Fallido',
@@ -4830,6 +4836,8 @@ class AppTranslations extends Translations {
 
     // Lingala translations
     'ln_CD': {
+      'no_map_app': 'Application ya karte ezali te na esaleli oyo',
+      'address_not_available': 'Adresi ezali te',
       // Payment Messages
       'payment_successful': 'Kofuta Elongi',
       'payment_failed': 'Kofuta Ebungaki',
@@ -5877,6 +5885,8 @@ class AppTranslations extends Translations {
 
     // Russian translations
     'ru_RU': {
+      'no_map_app': 'На этом устройстве не найдено приложение карт',
+      'address_not_available': 'Адрес недоступен',
       // Payment Messages
       'payment_successful': 'Оплата успешна',
       'payment_failed': 'Оплата не удалась',

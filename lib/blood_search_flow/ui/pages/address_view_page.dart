@@ -176,8 +176,12 @@ class AddressViewPage extends ConsumerWidget {
                   _InfoRow(
                     icon: Iconsax.location,
                     label: 'address'.tr.isEmpty ? 'Address' : 'address'.tr,
-                    value: hospital.address ?? 'Address not available',
-                    onCopy: () => _copyToClipboard(context, hospital.address ?? ''),
+                    value: (hospital.address?.trim().isNotEmpty ?? false)
+                        ? hospital.address!.trim()
+                        : ('address_not_available'.tr.isEmpty
+                            ? 'Address not available'
+                            : 'address_not_available'.tr),
+                    onCopy: () => _copyToClipboard(context, hospital.address?.trim() ?? ''),
                   ),
 
                   const SizedBox(height: 16),
@@ -220,11 +224,25 @@ class AddressViewPage extends ConsumerWidget {
                     icon: Iconsax.map,
                     label: 'open_in_maps'.tr.isEmpty ? 'Open in Maps' : 'open_in_maps'.tr,
                     color: Colors.blue,
-                    onTap: () => _openInMaps(hospital),
+                    onTap: () => _openInMaps(context, hospital),
                   ),
                 ),
-                const SizedBox(width: 12),
-                if (hospital.phone != null && hospital.phone!.isNotEmpty)
+                // Directions need real coordinates; see _openDirections.
+                if (hospital.latitude != null && hospital.longitude != null) ...[
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _ActionButton(
+                      icon: Iconsax.routing,
+                      label: 'get_directions'.tr.isEmpty
+                          ? 'Directions'
+                          : 'get_directions'.tr,
+                      color: Colors.deepPurple,
+                      onTap: () => _openDirections(context, hospital),
+                    ),
+                  ),
+                ],
+                if (hospital.phone != null && hospital.phone!.isNotEmpty) ...[
+                  const SizedBox(width: 12),
                   Expanded(
                     child: _ActionButton(
                       icon: Iconsax.call,
@@ -233,6 +251,7 @@ class AddressViewPage extends ConsumerWidget {
                       onTap: () => _callPhone(hospital.phone!),
                     ),
                   ),
+                ],
               ],
             ),
 
@@ -354,22 +373,86 @@ class AddressViewPage extends ConsumerWidget {
     }
   }
 
-  Future<void> _openInMaps(hospital) async {
-    if (hospital.latitude != null && hospital.longitude != null) {
-      final uri = Uri.parse(
-        'https://www.google.com/maps/search/?api=1&query=${hospital.latitude},${hospital.longitude}',
-      );
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      }
-    } else {
-      // Open with address search
-      final query = Uri.encodeComponent(hospital.address);
-      final uri = Uri.parse('https://www.google.com/maps/search/?api=1&query=$query');
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
+  /// Try each handler in turn and report if none took it.
+  ///
+  /// The previous version called a single https maps URL behind canLaunchUrl
+  /// and did nothing at all when that returned false — the button looked dead.
+  /// On targetSdk 36 canLaunchUrl consults the `<queries>` manifest block, so an
+  /// undeclared scheme fails silently; geo: is now declared alongside https.
+  Future<bool> _tryLaunch(List<String> candidates) async {
+    for (final url in candidates) {
+      final uri = Uri.parse(url);
+      try {
+        if (await canLaunchUrl(uri)) {
+          if (await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+            return true;
+          }
+        }
+      } catch (_) {
+        // Try the next candidate rather than aborting the chain.
       }
     }
+    return false;
+  }
+
+  void _reportNoMapApp(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'no_map_app'.tr.isEmpty
+              ? 'No map application found on this device'
+              : 'no_map_app'.tr,
+          style: GoogleFonts.ubuntu(),
+        ),
+        duration: const Duration(seconds: 3),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    );
+  }
+
+  /// Show the blood bank pinned on a map.
+  Future<void> _openInMaps(BuildContext context, _AddressTarget hospital) async {
+    final label = Uri.encodeComponent(hospital.name);
+    final candidates = <String>[];
+
+    if (hospital.latitude != null && hospital.longitude != null) {
+      final lat = hospital.latitude!;
+      final lng = hospital.longitude!;
+      candidates.addAll([
+        'https://www.google.com/maps/search/?api=1&query=$lat,$lng',
+        'geo:$lat,$lng?q=$lat,$lng($label)',
+        'geo:$lat,$lng',
+      ]);
+    }
+    final address = hospital.address?.trim() ?? '';
+    if (address.isNotEmpty) {
+      final q = Uri.encodeComponent(address);
+      candidates.add('https://www.google.com/maps/search/?api=1&query=$q');
+      candidates.add('geo:0,0?q=$q');
+    }
+
+    if (candidates.isEmpty || !await _tryLaunch(candidates)) {
+      if (context.mounted) _reportNoMapApp(context);
+    }
+  }
+
+  /// Turn-by-turn navigation from wherever the buyer is now.
+  ///
+  /// Coordinates only: routing to a free-text address as vague as "limete"
+  /// sends people to the wrong place, so this button is hidden without them.
+  Future<void> _openDirections(BuildContext context, _AddressTarget hospital) async {
+    if (hospital.latitude == null || hospital.longitude == null) return;
+    final lat = hospital.latitude!;
+    final lng = hospital.longitude!;
+
+    final launched = await _tryLaunch([
+      // Starts navigation directly in Google Maps when installed.
+      'google.navigation:q=$lat,$lng&mode=d',
+      'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng&travelmode=driving',
+      'geo:$lat,$lng?q=$lat,$lng',
+    ]);
+    if (!launched && context.mounted) _reportNoMapApp(context);
   }
 }
 

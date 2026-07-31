@@ -53,6 +53,13 @@
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="https" />
         </intent>
+        <!-- Required for the geo: fallback when no browser/maps handles https.
+             Without this, canLaunchUrl("geo:...") returns false on Android 11+
+             and the maps buttons silently do nothing. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="geo" />
+        </intent>
         <!-- Required for url_launcher to open tel: links -->
         <intent>
             <action android:name="android.intent.action.DIAL" />

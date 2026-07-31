@@ -1353,7 +1353,8 @@ class _DonorRegistrationPageState extends ConsumerState<DonorRegistrationPage> {
     } catch (e) {
       setState(() {
         _isSubmitting = false;
-        _errorMessage = 'error_with_message'.trParams({'message': e.toString()});
+        // Same param name as the other call sites — the translation uses @error.
+        _errorMessage = 'error_with_message'.trParams({'error': e.toString()});
       });
     }
   }

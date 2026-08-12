@@ -70,6 +70,19 @@ class UtilisateurLocalServiceImpl implements UtilisateurLocalService {
       await box.remove('pending_login_email');
       await box.remove('pending_login_phone');
 
+      // Visitor bootstrap identity — without these the welcome page's
+      // _loadUserInfo falls back auth_token → visitor_token and keeps
+      // showing the visitor bar after logout. Safe to wipe: the visitor
+      // account is device-bound, so entering the blood-search flow again
+      // re-links the SAME account via /auth/visitor/check-existing (phone
+      // already verified server-side, no OTP re-ask).
+      await box.remove('visitor_token');
+      await box.remove('is_visitor');
+      await box.remove('visitor_phone');
+      await box.remove('visitor_phone_verified');
+      await box.remove('visitor_can_pay_on_delivery');
+      await box.remove('user_data');
+
       // Keep remember_me and first-launch/language settings intact
     } catch (e) {
       // Non-fatal: continue clearing secure storage

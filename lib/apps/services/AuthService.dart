@@ -958,6 +958,17 @@ class AuthService {
         await storage.remove('user_data');
         await storage.remove('user_profiles');
         await storage.remove('account_type');
+        // Visitor bootstrap identity — without these the welcome page's
+        // _loadUserInfo falls back auth_token → visitor_token and keeps
+        // showing the visitor bar after logout. Safe to wipe: the visitor
+        // account is device-bound, so the blood-search flow re-links the
+        // SAME account via /auth/visitor/check-existing (phone already
+        // verified server-side, no OTP re-ask).
+        await storage.remove('visitor_token');
+        await storage.remove('is_visitor');
+        await storage.remove('visitor_phone');
+        await storage.remove('visitor_phone_verified');
+        await storage.remove('visitor_can_pay_on_delivery');
         debugPrint('🔐 [Logout] GetStorage cleared (kept auth_token)');
       } catch (e) {
         debugPrint('⚠️ [Logout] GetStorage clear failed: $e');

@@ -1217,10 +1217,10 @@ packages:
     dependency: "direct main"
     description:
       name: lokotro_pay
-      sha256: d023c123b88b8f3a9b67b80ca1fd08429b3cde8f1401815b3f8b15bb4cea50bc
+      sha256: "53ab4a37967c8928b173bea566128c77c4c46a69ba632291f2addfad80889afe"
       url: "https://pub.dev"
     source: hosted
-    version: "3.2.3"
+    version: "3.2.4"
   lottie:
     dependency: "direct main"
     description:

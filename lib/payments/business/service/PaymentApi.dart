@@ -35,6 +35,21 @@ class PaymentApi {
     return null;
   }
 
+  /// Same flat-envelope tolerance as [initiatePayload] for the
+  /// purchase-quote endpoints — their sentinel key is `total`, not
+  /// `customer_reference`.
+  @visibleForTesting
+  static Map<String, dynamic>? quotePayload(IApiResponse res) {
+    if (res.data is Map) {
+      return Map<String, dynamic>.from(res.data as Map);
+    }
+    final raw = res.raw;
+    if (raw is Map && raw['total'] != null) {
+      return Map<String, dynamic>.from(raw);
+    }
+    return null;
+  }
+
   /// `??` does not fire on an empty string, and [IApiResponse] uses `''` —
   /// not null — when the body carries no `message`. That produced an error
   /// banner with no text at all, so treat blank as missing.
@@ -151,18 +166,27 @@ class PaymentApi {
 
   /// POST /api/v1/eblood-connect/visitor/blood-bag/purchase-quote
   ///
-  /// Read-only price breakdown (bag + eBlood fee + 10% platform fee) so the
-  /// app can show the visitor the exact total BEFORE checkout. Guaranteed
-  /// equal to what [initiateVisitorDeliveryPurchase] charges (same backend
-  /// pricing helpers). Returns null on failure (caller falls back to the
-  /// bag price for display).
+  /// Read-only price breakdown (bag + eBlood fee + 10% platform fee + km
+  /// delivery fee) so the app can show the visitor the exact total BEFORE
+  /// checkout. Guaranteed equal to what [initiateVisitorDeliveryPurchase]
+  /// charges (same backend pricing helpers) — but ONLY when [hospitalId] is
+  /// sent: without the destination hospital the backend cannot price the km
+  /// leg and the quote may undershoot the charge. Returns null on failure
+  /// (caller falls back to the bag price for display).
+  ///
+  /// The endpoint answers FLAT (no `{success,data}` envelope), so parse via
+  /// [quotePayload] — the `res.success`/`res.data` pair is always false/null
+  /// for this shape.
   static Future<VisitorPurchaseQuote?> getVisitorDeliveryQuote({
     required String bloodBagId,
+    String? hospitalId,
     String? transactionalCurrencyId,
   }) async {
     try {
       final body = <String, dynamic>{
         'blood_bag_id': bloodBagId,
+        if (hospitalId != null && hospitalId.isNotEmpty)
+          'hospital_id': hospitalId,
         if (transactionalCurrencyId != null && transactionalCurrencyId.isNotEmpty)
           'transactional_currency_id': transactionalCurrencyId,
       };
@@ -170,12 +194,42 @@ class PaymentApi {
         '/eblood-connect/visitor/blood-bag/purchase-quote',
         body: body,
       );
-      if (!res.success || res.data is! Map) return null;
-      return VisitorPurchaseQuote.fromJson(
-        Map<String, dynamic>.from(res.data as Map),
-      );
+      final payload = quotePayload(res);
+      if (payload == null) return null;
+      return VisitorPurchaseQuote.fromJson(payload);
     } catch (e) {
       debugPrint('💥 PaymentApi.getVisitorDeliveryQuote error: $e');
+      return null;
+    }
+  }
+
+  /// POST /api/v1/eblood-connect/cart/purchase-quote
+  ///
+  /// Read-only price breakdown for a hospital CART checkout — bag subtotal +
+  /// eBlood fee + platform fee + km delivery fee. Same money formula as
+  /// [initiateCartPurchase], so quote == charge. Same flat response shape as
+  /// the visitor quote (field names are identical), hence the shared
+  /// [VisitorPurchaseQuote] model. Returns null on failure (callers fall
+  /// back to the client-computed cart total for display).
+  static Future<VisitorPurchaseQuote?> getCartPurchaseQuote({
+    required String cartId,
+    String? transactionalCurrencyId,
+  }) async {
+    try {
+      final body = <String, dynamic>{
+        'cart_id': cartId,
+        if (transactionalCurrencyId != null && transactionalCurrencyId.isNotEmpty)
+          'transactional_currency_id': transactionalCurrencyId,
+      };
+      final res = await postWithDio(
+        '/eblood-connect/cart/purchase-quote',
+        body: body,
+      );
+      final payload = quotePayload(res);
+      if (payload == null) return null;
+      return VisitorPurchaseQuote.fromJson(payload);
+    } catch (e) {
+      debugPrint('💥 PaymentApi.getCartPurchaseQuote error: $e');
       return null;
     }
   }
@@ -404,13 +458,23 @@ class PaymentApi {
   }
 }
 
-/// Read-only price breakdown for a visitor delivery purchase — what the
-/// backend `/visitor/blood-bag/purchase-quote` returns. `total` is exactly
-/// what the purchase will charge (bag + eBlood fee + platform fee).
+/// Read-only price breakdown for a purchase — what the backend
+/// `/visitor/blood-bag/purchase-quote` and `/cart/purchase-quote` return
+/// (identical field names). `total` is exactly what the purchase will
+/// charge (bag + eBlood fee + platform fee + km delivery fee).
 class VisitorPurchaseQuote {
   final double bagPrice;
   final double ebloodFee;
   final double platformFee;
+
+  /// Km-based delivery fee (blood bank → hospital distance brackets).
+  /// 0 when no ladder is configured.
+  final double kmFee;
+
+  /// Blood bank → hospital distance in km; null when either side has no
+  /// known coordinates. Render the fee row without the distance in that
+  /// case rather than assuming both fields always travel together.
+  final double? distanceKm;
   final double total;
   final String? currency;
 
@@ -418,6 +482,8 @@ class VisitorPurchaseQuote {
     required this.bagPrice,
     required this.ebloodFee,
     required this.platformFee,
+    this.kmFee = 0.0,
+    this.distanceKm,
     required this.total,
     this.currency,
   });
@@ -428,6 +494,9 @@ class VisitorPurchaseQuote {
       bagPrice: d(json['bag_price']),
       ebloodFee: d(json['eblood_fee']),
       platformFee: d(json['platform_fee']),
+      kmFee: d(json['km_fee']),
+      distanceKm:
+          (json['distance_km'] is num) ? (json['distance_km'] as num).toDouble() : null,
       total: d(json['total']),
       currency: json['currency']?.toString(),
     );

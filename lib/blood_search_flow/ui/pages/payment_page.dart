@@ -129,11 +129,17 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
   /// view-address option (its 10% fee is computed accurately client-side).
   Future<void> _maybeFetchDeliveryQuote() async {
     if (_selectedOption != PaymentOption.delivery) return;
-    final selected = ref.read(searchFlowProvider).selectedResult;
+    final state = ref.read(searchFlowProvider);
+    final selected = state.selectedResult;
     if (selected == null || selected.id.isEmpty) return;
     setState(() => _quoteLoading = true);
-    final quote =
-        await PaymentApi.getVisitorDeliveryQuote(bloodBagId: selected.id);
+    // The km delivery fee is priced on the blood bank → hospital distance, so
+    // the quote MUST know the destination hospital — without it the backend
+    // omits the km leg and the quote undershoots the charge.
+    final quote = await PaymentApi.getVisitorDeliveryQuote(
+      bloodBagId: selected.id,
+      hospitalId: state.identifiedHospital?.id,
+    );
     if (!mounted) return;
     setState(() {
       _deliveryQuote = quote;
@@ -323,6 +329,22 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
                       value:
                           '$_currencySymbol${(_deliveryQuote!.ebloodFee + _deliveryQuote!.platformFee).toStringAsFixed(2)}',
                     ),
+                    // Km delivery fee (blood bank → hospital distance). Only
+                    // rendered when the ladder actually priced one; the
+                    // distance-less label covers a fee with no known distance.
+                    if (_deliveryQuote!.kmFee > 0) ...[
+                      const SizedBox(height: 6),
+                      _QuoteLine(
+                        label: _deliveryQuote!.distanceKm != null
+                            ? 'km_delivery_fee_with_distance'.trParams({
+                                'distance': _deliveryQuote!.distanceKm!
+                                    .toStringAsFixed(1),
+                              })
+                            : 'km_delivery_fee'.tr,
+                        value:
+                            '$_currencySymbol${_deliveryQuote!.kmFee.toStringAsFixed(2)}',
+                      ),
+                    ],
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       child: Divider(height: 1, color: Colors.grey.shade300),

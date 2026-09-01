@@ -136,6 +136,13 @@ class DeviceInfoInterceptor extends Interceptor {
       }
     }
     options.headers['mobile_device_infos'] = deviceInfo;
+    // Dash-named twin: the production edge (Caddy) silently DROPS header
+    // names containing underscores, so `mobile_device_infos` never reached
+    // the backend from released builds and every device's visitor identity
+    // degraded to the shared user-agent hash. The backend reads BOTH
+    // spellings; this one is the one that actually survives the edge.
+    options.headers['mobile-device-infos'] =
+        options.headers['mobile_device_infos'];
     // debugPrint('DeviceInfoInterceptor - Headers: ${options.headers}');
     super.onRequest(options, handler);
   }

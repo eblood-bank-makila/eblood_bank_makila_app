@@ -80,6 +80,15 @@ class _OpsSuccessScreenState extends State<OpsSuccessScreen> {
           if (data['eblood_fee'] != null) {
             totals['platform_fees'.tr] = data['eblood_fee'].toString();
           }
+          // Km delivery fee (blood bank → hospital distance). The request
+          // payload carries km_fee (0 when no fee) but no distance, so the
+          // distance-less label is used. Only rendered when a fee was priced.
+          final kmFeeRaw = data['km_fee'];
+          final kmFeeNum =
+              kmFeeRaw is num ? kmFeeRaw : num.tryParse(kmFeeRaw?.toString() ?? '');
+          if (kmFeeNum != null && kmFeeNum > 0) {
+            totals['km_delivery_fee'.tr] = kmFeeRaw.toString();
+          }
           if (data['total_amount_merged'] != null) {
             totals['total'.tr] = data['total_amount_merged'].toString();
           }

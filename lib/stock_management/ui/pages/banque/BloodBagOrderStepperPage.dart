@@ -68,6 +68,13 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
   bool _isCreatingCart = false;
   bool _isProcessingPayment = false;
 
+  // Server-authoritative quote for the cart (bags + eBlood fee + platform
+  // fee + km delivery fee). Fetched once the cart exists so the confirm
+  // step shows the exact amount /cart/initiate-lokotro-payment will charge.
+  // Null (quote failed) falls back to the client-computed total.
+  VisitorPurchaseQuote? _purchaseQuote;
+  bool _isLoadingQuote = false;
+
   // Step 4: Payment processing data
   String? _systemRef;
   String? _phoneNumber;
@@ -1161,6 +1168,10 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
           _isCreatingCart = false;
         });
       }
+
+      // Cart exists — fetch the server quote (includes the km delivery fee
+      // the client cannot compute) for the confirmation summary.
+      _fetchPurchaseQuote();
     } catch (e, stackTrace) {
       debugPrint('❌ Error creating cart: $e');
       debugPrint('Stack trace: $stackTrace');
@@ -1169,6 +1180,25 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
         _isCreatingCart = false;
       });
     }
+  }
+
+  /// Fetch the server-side price breakdown for the cart. Must run while the
+  /// cart is still ACTIVE (initiate-lokotro-payment checks it out), i.e.
+  /// right after creation on the confirmation step.
+  Future<void> _fetchPurchaseQuote() async {
+    final cartId = _cartId;
+    if (cartId == null || cartId.isEmpty) return;
+    if (!mounted) return;
+    setState(() => _isLoadingQuote = true);
+    final quote = await PaymentApi.getCartPurchaseQuote(cartId: cartId);
+    debugPrint(quote != null
+        ? '💰 Cart quote: total=${quote.total} km_fee=${quote.kmFee} distance=${quote.distanceKm}'
+        : '⚠️ Cart quote unavailable — falling back to client total');
+    if (!mounted) return;
+    setState(() {
+      _purchaseQuote = quote;
+      _isLoadingQuote = false;
+    });
   }
 
   /// Build empty state
@@ -1621,6 +1651,39 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
               value: '$currencySymbol${_filteredBloodBags.isNotEmpty ? _filteredBloodBags.first.price : 0}',
             ),
 
+            // Server-side fees — only once the quote has loaded. The km row
+            // only shows when the distance ladder actually priced a fee.
+            if (_purchaseQuote != null) ...[
+              const SizedBox(height: 12),
+              _buildSummaryRow(
+                icon: Iconsax.wallet_3,
+                label: 'eblood_fee_label'.tr,
+                value:
+                    '$currencySymbol${_purchaseQuote!.ebloodFee.toStringAsFixed(2)}',
+              ),
+              const SizedBox(height: 12),
+              _buildSummaryRow(
+                icon: Iconsax.wallet,
+                label: 'service_fees'.tr,
+                value:
+                    '$currencySymbol${_purchaseQuote!.platformFee.toStringAsFixed(2)}',
+              ),
+              if (_purchaseQuote!.kmFee > 0) ...[
+                const SizedBox(height: 12),
+                _buildSummaryRow(
+                  icon: Iconsax.routing,
+                  label: _purchaseQuote!.distanceKm != null
+                      ? 'km_delivery_fee_with_distance'.trParams({
+                          'distance':
+                              _purchaseQuote!.distanceKm!.toStringAsFixed(1),
+                        })
+                      : 'km_delivery_fee'.tr,
+                  value:
+                      '$currencySymbol${_purchaseQuote!.kmFee.toStringAsFixed(2)}',
+                ),
+              ],
+            ],
+
             const SizedBox(height: 20),
 
             // Divider
@@ -1628,7 +1691,8 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
 
             const SizedBox(height: 20),
 
-            // Total
+            // Total — prefer the server quote (it includes the fees above);
+            // fall back to the client-computed bag subtotal when it failed.
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -1640,14 +1704,25 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
                     color: Colors.black87,
                   ),
                 ),
-                Text(
-                  '$currencySymbol$totalPrice',
-                  style: GoogleFonts.ubuntu(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: ColorPages.COLOR_PRINCIPAL,
-                  ),
-                ),
+                _isLoadingQuote
+                    ? SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: ColorPages.COLOR_PRINCIPAL,
+                        ),
+                      )
+                    : Text(
+                        _purchaseQuote != null
+                            ? '$currencySymbol${_purchaseQuote!.total.toStringAsFixed(2)}'
+                            : '$currencySymbol$totalPrice',
+                        style: GoogleFonts.ubuntu(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: ColorPages.COLOR_PRINCIPAL,
+                        ),
+                      ),
               ],
             ),
           ],
@@ -1719,6 +1794,10 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
   Widget _buildSinglePaymentButton() {
     final totalPrice = _selectedQuantity * (_filteredBloodBags.isNotEmpty ? _filteredBloodBags.first.price : 0);
     final currencySymbol = _filteredBloodBags.isNotEmpty ? (_filteredBloodBags.first.currencySymbol ?? '\$') : '\$';
+    // Prefer the server quote total (bags + fees + km) over the bag subtotal.
+    final displayTotal = _purchaseQuote != null
+        ? _purchaseQuote!.total.toStringAsFixed(2)
+        : '$totalPrice';
 
     return FadeInUp(
       duration: const Duration(milliseconds: 400),
@@ -1748,7 +1827,7 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
               Icon(Iconsax.wallet, color: Colors.white, size: 24),
             const SizedBox(width: 12),
             Text(
-              _isProcessingPayment ? 'processing'.tr : 'pay_amount'.trParams({'amount': '$currencySymbol$totalPrice'}),
+              _isProcessingPayment ? 'processing'.tr : 'pay_amount'.trParams({'amount': '$currencySymbol$displayTotal'}),
               style: GoogleFonts.ubuntu(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -1766,6 +1845,12 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
     final totalPrice = _selectedQuantity * (_filteredBloodBags.isNotEmpty ? _filteredBloodBags.first.price : 0);
     final cartCurrency = _filteredBloodBags.isNotEmpty ? (_filteredBloodBags.first.currencyCode ?? 'usd') : 'usd';
     final currencySymbol = _filteredBloodBags.isNotEmpty ? (_filteredBloodBags.first.currencySymbol ?? '\$') : '\$';
+    // Prefer the server quote total (bags + fees + km); the converted label
+    // applies the exchange rate to it so both buttons describe one amount.
+    final num payableTotal = _purchaseQuote?.total ?? totalPrice;
+    final double convertedTotal = _purchaseQuote != null
+        ? _purchaseQuote!.total * convertedOption.exchangedValue
+        : convertedOption.convertedAmount;
 
     return FadeInUp(
       duration: const Duration(milliseconds: 400),
@@ -1814,7 +1899,7 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
               // Original currency button
               Expanded(
                 child: _buildPaymentButton(
-                  label: 'pay_amount'.trParams({'amount': '$currencySymbol${totalPrice.toStringAsFixed(0)}'}),
+                  label: 'pay_amount'.trParams({'amount': '$currencySymbol${payableTotal.toStringAsFixed(0)}'}),
                   subtitle: '${cartCurrency.toUpperCase()} (${'original'.tr})',
                   onPressed: () => _processPaymentWithCurrency(null),
                   isPrimary: true,
@@ -1826,7 +1911,7 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
               // Converted currency button
               Expanded(
                 child: _buildPaymentButton(
-                  label: 'pay_amount'.trParams({'amount': '${convertedOption.convertedAmount.toStringAsFixed(0)} ${convertedOption.currencyToCode.toUpperCase()}'}),
+                  label: 'pay_amount'.trParams({'amount': '${convertedTotal.toStringAsFixed(0)} ${convertedOption.currencyToCode.toUpperCase()}'}),
                   subtitle: '${convertedOption.currencyToCode.toUpperCase()} (${'converted'.tr})',
                   onPressed: () => _processPaymentWithCurrency(convertedOption.currencyTo),
                   isPrimary: false,

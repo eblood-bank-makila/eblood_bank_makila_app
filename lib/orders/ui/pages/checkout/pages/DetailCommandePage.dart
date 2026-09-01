@@ -51,6 +51,11 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
   String? _requestType;
   String? _urgencyLevel;
 
+  // Server-authoritative quote for the cart (bags + eBlood fee + platform
+  // fee + km delivery fee) — what /cart/initiate-lokotro-payment will
+  // actually charge. Null (quote failed) falls back to the client total.
+  VisitorPurchaseQuote? _cartQuote;
+  bool _isQuoteLoading = false;
 
   String apiResponseMessage = "";
   String apiResponseMessageTitle = "";
@@ -91,6 +96,28 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
 
     // Initialize currency exchange data
     _initializeCurrencyExchange();
+
+    // Fetch the server-side price breakdown (includes the km delivery fee
+    // the client cannot compute) for the cart being checked out.
+    _fetchCartQuote();
+  }
+
+  /// widget.paiement IS the cart document (DatumModel.id == cart `_id`), so
+  /// the quote endpoint can price it directly. Must run before payment —
+  /// initiate-lokotro-payment flips the cart out of ACTIVE.
+  Future<void> _fetchCartQuote() async {
+    final cartId = widget.paiement.id;
+    if (cartId.isEmpty) return;
+    setState(() => _isQuoteLoading = true);
+    final quote = await PaymentApi.getCartPurchaseQuote(cartId: cartId);
+    debugPrint(quote != null
+        ? '💰 Cart quote: total=${quote.total} km_fee=${quote.kmFee} distance=${quote.distanceKm}'
+        : '⚠️ Cart quote unavailable — falling back to client total');
+    if (!mounted) return;
+    setState(() {
+      _cartQuote = quote;
+      _isQuoteLoading = false;
+    });
   }
 
   void _initializeCurrencyExchange() {
@@ -217,7 +244,12 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
           orElse: () => exchanges.first,
         );
 
-        final convertedAmount = convertedOption.convertedAmount;
+        // Prefer the server quote total (bags + fees + km delivery fee) for
+        // both labels; the converted one applies the exchange rate to it.
+        final num payableTotal = _cartQuote?.total ?? totalPrice;
+        final convertedAmount = _cartQuote != null
+            ? _cartQuote!.total * convertedOption.exchangedValue
+            : convertedOption.convertedAmount;
 
         debugPrint('💱 Currency conversion:');
         debugPrint('💱 Cart currency: $cartCurrency');
@@ -274,7 +306,7 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
                 // Blood request currency button (from cart)
                 Expanded(
                   child: _buildPaymentButton(
-                    label: 'Payer $cartCurrency ${totalPrice.toStringAsFixed(2)}',
+                    label: 'Payer $cartCurrency ${payableTotal.toStringAsFixed(2)}',
                     subtitle: '${cartCurrency.toUpperCase()} (Original)',
                     onPressed: () => _processPaymentWithCurrency(null), // null = cart currency default
                     isPrimary: true,
@@ -671,26 +703,34 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
       ),
       child: Column(
         children: [
-          // Price breakdown
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Prix des poches',
-                style: GoogleFonts.ubuntu(
-                  fontSize: 16,
-                  color: Colors.grey.shade700,
-                ),
-              ),
-              Text(
-                '$currency ${totalPrice.toStringAsFixed(2)}',
-                style: GoogleFonts.ubuntu(
-                  fontSize: 16,
-                  color: Colors.grey.shade700,
-                ),
+          // Price breakdown — server quote when available (it alone knows
+          // the km delivery fee), client cart total otherwise.
+          _buildPriceRow(
+            'Prix des poches',
+            '$currency ${(_cartQuote?.bagPrice ?? totalPrice).toStringAsFixed(2)}',
+          ),
+
+          if (_cartQuote != null) ...[
+            const SizedBox(height: 12),
+            _buildPriceRow(
+              'Frais eBlood',
+              '$currency ${_cartQuote!.ebloodFee.toStringAsFixed(2)}',
+            ),
+            const SizedBox(height: 12),
+            _buildPriceRow(
+              'Frais de service',
+              '$currency ${_cartQuote!.platformFee.toStringAsFixed(2)}',
+            ),
+            if (_cartQuote!.kmFee > 0) ...[
+              const SizedBox(height: 12),
+              _buildPriceRow(
+                _cartQuote!.distanceKm != null
+                    ? 'Frais de distance (${_cartQuote!.distanceKm!.toStringAsFixed(1)} km)'
+                    : 'Frais de distance',
+                '$currency ${_cartQuote!.kmFee.toStringAsFixed(2)}',
               ),
             ],
-          ),
+          ],
 
           const SizedBox(height: 12),
 
@@ -728,19 +768,48 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
                   color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Text(
-                  '$currency ${totalPrice.toStringAsFixed(2)}',
-                  style: GoogleFonts.ubuntu(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: ColorPages.COLOR_PRINCIPAL,
-                  ),
-                ),
+                child: _isQuoteLoading
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Text(
+                        '$currency ${(_cartQuote?.total ?? totalPrice).toStringAsFixed(2)}',
+                        style: GoogleFonts.ubuntu(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: ColorPages.COLOR_PRINCIPAL,
+                        ),
+                      ),
               ),
             ],
           ),
         ],
       ),
+    );
+  }
+
+  /// One label/value line of the price summary card.
+  Widget _buildPriceRow(String label, String value) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.ubuntu(
+            fontSize: 16,
+            color: Colors.grey.shade700,
+          ),
+        ),
+        Text(
+          value,
+          style: GoogleFonts.ubuntu(
+            fontSize: 16,
+            color: Colors.grey.shade700,
+          ),
+        ),
+      ],
     );
   }
 
@@ -1050,7 +1119,7 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
                   const Icon(Iconsax.card, size: 20),
                   const SizedBox(width: 12),
                   Text(
-                    'Payer $currency ${totalPrice.toStringAsFixed(2)}',
+                    'Payer $currency ${(_cartQuote?.total ?? totalPrice).toStringAsFixed(2)}',
                     style: GoogleFonts.ubuntu(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -1348,22 +1417,24 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
     });
 
     try {
-      // Sprint 15 — call /payments/initiate/payment directly. The
-      // legacy `ajouterPaiment` controller goes through the same
-      // PaymentApi under the hood but its PaiementResponseModel strips
-      // the lokotro fields (app_key, notify_url, merchant) we need to
-      // launch the SDK widget — so we go around it.
-      final amountCentsToCharge =
-          (widget.paiement.totalPrice * 100).round();
-      final cartCurrencyCode = widget.paiement.currency;
-
-      debugPrint("💳 POST /payments/initiate/payment — currency $cartCurrencyCode, $amountCentsToCharge cents");
-      final initiate = await PaymentApi.initiate(
-        purpose: 'delivery',
-        entityId: widget.paiement.id,
-        amountCents: amountCentsToCharge,
-        currency: cartCurrencyCode,
-        description: _requestReason,
+      // Km-pricing — go through /eblood-connect/cart/initiate-lokotro-payment
+      // (same call as BloodBagOrderStepperPage._submitPayment). The old
+      // /payments/initiate/payment path CLIENT-declared
+      // `totalPrice * 100` cents, which underpays now that the backend
+      // adds a km delivery fee: here the backend materializes the cart
+      // into a blood request and computes bags + eblood_fee + platform
+      // fee + km fee server-side — the app never declares what a cart
+      // costs. Response shape is identical (full lokotro widget config).
+      debugPrint("💳 POST /eblood-connect/cart/initiate-lokotro-payment — cart ${widget.paiement.id}");
+      final initiate = await PaymentApi.initiateCartPurchase(
+        cartId: widget.paiement.id,
+        phoneNumber: phoneNumber,
+        transactionalCurrencyId: currencyId,
+        requestFor: _requestFor,
+        patientId: _patientId,
+        requestType: _requestType,
+        urgencyLevel: _urgencyLevel,
+        requestReason: _requestReason,
       );
 
       if (!initiate.isSuccess || initiate.customerReference == null) {

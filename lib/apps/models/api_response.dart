@@ -100,10 +100,17 @@ class IApiResponse {
                 ? int.tryParse(responseData['page'])
                 : responseData['page'])
             : 0,
+        // `total` is an int for paginated envelopes, but FLAT bodies (e.g.
+        // the purchase-quote endpoints) reuse the key for a MONEY amount —
+        // a double. A bare dynamic→int? assignment throws a TypeError for
+        // those, which made fromData blow up on perfectly good responses
+        // (the caller then saw success:false with a null raw). Coerce nums.
         total: responseData.containsKey('total') && responseData['total'] != null
             ? (responseData['total'] is String
                 ? int.tryParse(responseData['total'])
-                : responseData['total'])
+                : (responseData['total'] is num
+                    ? (responseData['total'] as num).toInt()
+                    : null))
             : 0,
         accessToken: responseData.containsKey('access_token') &&
                 responseData['access_token'] != null

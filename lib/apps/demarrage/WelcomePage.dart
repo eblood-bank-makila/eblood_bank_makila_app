@@ -529,6 +529,7 @@ class WelcomePage extends ConsumerWidget {
       final userCredential = await authService.signInWithGoogle();
 
       if (userCredential == null) {
+        // Genuine cancel — the account picker was dismissed. Nothing to say.
         if (context.mounted) Navigator.of(context).pop();
         return;
       }
@@ -594,6 +595,14 @@ class WelcomePage extends ConsumerWidget {
             _showErrorDialog(context, 'login_error'.tr, message);
           }
         }
+      }
+    } on GoogleSignInFailure catch (e) {
+      // Google never reached the backend. Show why instead of closing the
+      // spinner on a blank screen, which used to make a misconfigured signing
+      // certificate look exactly like a cancelled sign-in.
+      if (context.mounted) {
+        Navigator.of(context).pop();
+        _showErrorDialog(context, 'login_error'.tr, e.message);
       }
     } catch (e) {
       if (context.mounted) {

@@ -389,6 +389,13 @@ class RegisterWelcomePage extends ConsumerWidget {
           }
         });
       }
+    } on GoogleSignInFailure catch (e) {
+      // Registration via Google used to fail completely silently here: a null
+      // credential skipped the `if` and the screen never moved. Surface the
+      // real reason so a configuration problem is reportable.
+      if (context.mounted) {
+        _showErrorDialog(context, 'login_error'.tr, e.message);
+      }
     } catch (e) {
       if (context.mounted) {
         _showErrorDialog(context, 'connection_error'.tr,

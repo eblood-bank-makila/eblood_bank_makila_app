@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "747927280653-1d83n2habie6p2uhh6vtnj4or2l2mm1e.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.ebloodbank.makila.grpe.apps.eblood_bank_mak_app",
+            "certificate_hash": "b7e51b8612bce0e622c74026894666a00ba16be6"
+          }
+        },
+        {
           "client_id": "747927280653-j5gotb1qe2ld0riu1v65fut2qleoi68v.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {

@@ -712,6 +712,14 @@ class AppTranslations extends Translations {
 
       // BloodBagOrderStepperPage translations
       'blood_bank_addresses': 'Adresses des banques',
+      // Hospital wizard mirrors the visitor (welcome-QR) flow
+      'select_blood_bag': 'Choisir une poche',
+      'address_access_fee': 'Frais d\'accès à l\'adresse',
+      'address_fee_explainer': '10% du prix de la poche',
+      'payment_cancelled': 'Paiement annulé',
+      'bag_expires_in_days': 'Expire dans @days jours',
+      'hospital_not_identified': 'Hôpital introuvable — impossible de lancer la commande',
+      'payment_error': 'Erreur lors du paiement',
       'bank': 'Banque',
       'payment': 'Paiement',
       'bank_available_singular': '@count banque disponible',
@@ -2882,6 +2890,14 @@ class AppTranslations extends Translations {
 
       // BloodBagOrderStepperPage translations
       'blood_bank_addresses': 'Blood Bank Addresses',
+      // Hospital wizard mirrors the visitor (welcome-QR) flow
+      'select_blood_bag': 'Choose a blood bag',
+      'address_access_fee': 'Address access fee',
+      'address_fee_explainer': '10% of the bag price',
+      'payment_cancelled': 'Payment cancelled',
+      'bag_expires_in_days': 'Expires in @days days',
+      'hospital_not_identified': 'Hospital not found — cannot start the order',
+      'payment_error': 'Payment error',
       'bank': 'Bank',
       'payment': 'Payment',
       'bank_available_singular': '@count bank available',
@@ -5065,6 +5081,17 @@ class AppTranslations extends Translations {
 
       // BloodBagOrderStepperPage translations
       'blood_bank_addresses': 'Direcciones de Bancos de Sangre',
+      // Hospital wizard mirrors the visitor (welcome-QR) flow
+      'select_blood_bag': 'Elegir una bolsa',
+      'address_access_fee': 'Tarifa de acceso a la dirección',
+      'address_fee_explainer': '10% del precio de la bolsa',
+      'payment_cancelled': 'Pago cancelado',
+      'bag_expires_in_days': 'Expira en @days días',
+      'hospital_not_identified': 'Hospital no encontrado — no se puede iniciar el pedido',
+      'payment_error': 'Error en el pago',
+      'back': 'Atrás',
+      'payment_method': 'Método de pago',
+      'card_payment': 'Pago con tarjeta',
       'bank': 'Banco',
       'payment': 'Pago',
       'bank_available_singular': '@count banco disponible',
@@ -5767,6 +5794,17 @@ class AppTranslations extends Translations {
 
       // BloodBagOrderStepperPage translations
       'blood_bank_addresses': 'Ba adresse ya ba banque ya makila',
+      // Hospital wizard mirrors the visitor (welcome-QR) flow
+      'select_blood_bag': 'Pona poche moko',
+      'address_access_fee': 'Mbongo ya kozwa adresse',
+      'address_fee_explainer': '10% ya ntalo ya poche',
+      'payment_cancelled': 'Kofuta ekatani',
+      'bag_expires_in_days': 'Ekosila na mikolo @days',
+      'hospital_not_identified': 'Lopitalo ezwami te — likoki ya kobanda commande te',
+      'payment_error': 'Libunga na kofuta',
+      'back': 'Zonga',
+      'payment_method': 'Lolenge ya kofuta',
+      'card_payment': 'Kofuta na carte',
       'bank': 'Banque',
       'payment': 'Kofuta',
       'bank_available_singular': 'Banque @count ezali',
@@ -7210,6 +7248,16 @@ class AppTranslations extends Translations {
 
       // BloodBagOrderStepperPage translations
       'blood_bank_addresses': 'Адреса банков крови',
+      // Hospital wizard mirrors the visitor (welcome-QR) flow
+      'select_blood_bag': 'Выберите пакет крови',
+      'address_access_fee': 'Плата за доступ к адресу',
+      'address_fee_explainer': '10% от цены пакета',
+      'payment_cancelled': 'Платёж отменён',
+      'bag_expires_in_days': 'Истекает через @days дн.',
+      'hospital_not_identified': 'Больница не найдена — невозможно начать заказ',
+      'payment_error': 'Ошибка оплаты',
+      'payment_method': 'Способ оплаты',
+      'card_payment': 'Оплата картой',
       'bank': 'Банк',
       'payment': 'Оплата',
       'bank_available_singular': '@count банк доступен',

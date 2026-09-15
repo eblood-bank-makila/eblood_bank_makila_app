@@ -512,9 +512,13 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
                         ElevatedButton(
                           onPressed: () async {
                             Navigator.pop(dialogContext);
+                            // TODO(Task 6): this dialog predates payout-number
+                            // selection — it still submits with no target
+                            // number. Task 6 redesigns it to let the user
+                            // pick one of `ewalletProvider`'s validatedNumbers.
                             final ok = await ref
                                 .read(ewalletProvider.notifier)
-                                .withdraw(amount: amt);
+                                .withdraw(amount: amt, payoutNumberId: '');
                             // `mounted` here is the page State's — still mounted after the
                             // dialog pops — so it is safe to read the provider and show the
                             // toast via the captured (page) messenger.

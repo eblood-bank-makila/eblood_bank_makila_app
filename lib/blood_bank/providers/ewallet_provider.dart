@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:eblood_bank_mak_app/apps/models/api_response.dart';
 import 'package:eblood_bank_mak_app/blood_bank/business/models/ewallet_models.dart';
 import 'package:eblood_bank_mak_app/blood_bank/business/models/payout_number_model.dart';
 import 'package:eblood_bank_mak_app/blood_bank/business/models/cash_out_model.dart';
@@ -35,12 +36,14 @@ class EWalletState {
   List<PayoutNumberModel> get validatedNumbers =>
       payoutNumbers.where((n) => n.isValidated).toList();
 
-  /// Copy with the given overrides. `error` is sticky by default (kept as-is
-  /// when omitted); pass `clearError: true` to reset it to null — a plain
-  /// nullable `error` param can't distinguish "leave alone" from "clear".
+  /// Copy with the given overrides. `error` and `selected` are sticky by
+  /// default (kept as-is when omitted); pass `clearError: true` /
+  /// `clearSelected: true` to reset either to null — a plain nullable param
+  /// can't distinguish "leave alone" from "clear" on its own.
   EWalletState copyWith({
     List<EWalletModel>? wallets,
     EWalletModel? selected,
+    bool clearSelected = false,
     List<EWalletHistoryModel>? history,
     List<PayoutNumberModel>? payoutNumbers,
     List<CashOutModel>? cashOuts,
@@ -52,7 +55,7 @@ class EWalletState {
   }) {
     return EWalletState(
       wallets: wallets ?? this.wallets,
-      selected: selected ?? this.selected,
+      selected: clearSelected ? null : (selected ?? this.selected),
       history: history ?? this.history,
       payoutNumbers: payoutNumbers ?? this.payoutNumbers,
       cashOuts: cashOuts ?? this.cashOuts,
@@ -72,89 +75,82 @@ class EWalletController extends StateNotifier<EWalletState> {
   EWalletController(this._service) : super(const EWalletState());
 
   /// Load the caller's org wallets, select the first, then load its history.
+  /// Built via `copyWith` (not the old positional constructor) so that
+  /// `payoutNumbers`/`cashOuts`/`isLoadingNumbers` — populated independently,
+  /// e.g. from a payout-numbers settings screen — survive this routine
+  /// reload instead of silently resetting to their defaults.
   Future<void> loadWallets() async {
-    state = EWalletState(
-      wallets: state.wallets,
-      selected: state.selected,
-      history: state.history,
-      isLoading: true,
-      isSubmitting: state.isSubmitting,
-      error: null,
-    );
+    state = state.copyWith(isLoading: true, clearError: true);
     try {
       final wallets = await _service.getMyWallets();
       final selected = wallets.isNotEmpty ? wallets.first : null;
-      state = EWalletState(
+      state = state.copyWith(
         wallets: wallets,
         selected: selected,
+        clearSelected: selected == null,
         history: const [],
         isLoading: false,
         isSubmitting: false,
-        error: null,
+        clearError: true,
       );
       if (selected != null) {
         await loadHistory(selected.id);
       }
     } catch (e) {
-      state = EWalletState(
-        wallets: state.wallets,
-        selected: state.selected,
-        history: state.history,
-        isLoading: false,
-        isSubmitting: false,
-        error: e.toString(),
-      );
+      state = state.copyWith(isLoading: false, isSubmitting: false, error: e.toString());
     }
   }
 
   Future<void> loadHistory(String walletId) async {
     try {
       final pageData = await _service.getHistory(opsEwalletId: walletId);
-      state = EWalletState(
-        wallets: state.wallets,
-        selected: state.selected,
-        history: pageData.items,
-        isLoading: false,
-        isSubmitting: state.isSubmitting,
-        error: null,
-      );
+      state = state.copyWith(history: pageData.items, isLoading: false, clearError: true);
     } catch (e) {
-      state = EWalletState(
-        wallets: state.wallets,
-        selected: state.selected,
-        history: state.history,
-        isLoading: false,
-        isSubmitting: state.isSubmitting,
-        error: e.toString(),
-      );
+      state = state.copyWith(isLoading: false, error: e.toString());
+    }
+  }
+
+  /// Runs one submit-style action: flips `isSubmitting`, calls [call], then
+  /// either clears the error and runs [onSuccess] or records
+  /// `res.message ?? defaultError`. Centralizes the isSubmitting/error
+  /// bookkeeping that `savePayoutNumber`, `disablePayoutNumber`,
+  /// `deletePayoutNumber`, `withdraw` and `updateSettings` all repeated
+  /// verbatim — behaviour is unchanged from the inlined versions.
+  Future<bool> _runAction(
+    Future<IApiResponse> Function() call, {
+    required String defaultError,
+    Future<void> Function()? onSuccess,
+  }) async {
+    state = state.copyWith(isSubmitting: true, clearError: true);
+    try {
+      final res = await call();
+      if (res.success) {
+        state = state.copyWith(isSubmitting: false, clearError: true);
+        if (onSuccess != null) await onSuccess();
+        return true;
+      }
+      state = state.copyWith(isSubmitting: false, error: res.message ?? defaultError);
+      return false;
+    } catch (e) {
+      state = state.copyWith(isSubmitting: false, error: e.toString());
+      return false;
     }
   }
 
   /// Submit a withdrawal against a validated payout number, for the selected
   /// wallet. Returns true on success and reloads the wallet (for its fresh
   /// balance) and the cash-outs list (so the new request shows up).
-  Future<bool> withdraw({required double amount, required String payoutNumberId}) async {
+  Future<bool> withdraw({required double amount, required String payoutNumberId}) {
     final wallet = state.selected;
-    if (wallet == null) return false;
-    state = state.copyWith(isSubmitting: true, clearError: true);
-    try {
-      final res = await _service.submitWithdrawal(
-        opsEwalletId: wallet.id,
-        amount: amount,
-        payoutNumberId: payoutNumberId,
-      );
-      if (res.success) {
-        state = state.copyWith(isSubmitting: false, clearError: true);
+    if (wallet == null) return Future.value(false);
+    return _runAction(
+      () => _service.submitWithdrawal(opsEwalletId: wallet.id, amount: amount, payoutNumberId: payoutNumberId),
+      defaultError: 'Withdrawal failed',
+      onSuccess: () async {
         await loadWallets();
         await loadCashOuts();
-        return true;
-      }
-      state = state.copyWith(isSubmitting: false, error: res.message ?? 'Withdrawal failed');
-      return false;
-    } catch (e) {
-      state = state.copyWith(isSubmitting: false, error: e.toString());
-      return false;
-    }
+      },
+    );
   }
 
   // ──────────────────────────────────────────────────
@@ -174,61 +170,26 @@ class EWalletController extends StateNotifier<EWalletState> {
 
   /// Create (when [id] is null) or update an existing payout number, then
   /// reload the list. Returns true on success.
-  Future<bool> savePayoutNumber({String? id, required Map<String, dynamic> payload}) async {
-    state = state.copyWith(isSubmitting: true, clearError: true);
-    try {
-      final res = id == null
-          ? await _service.createPayoutNumber(payload)
-          : await _service.updatePayoutNumber(id, payload);
-      if (res.success) {
-        state = state.copyWith(isSubmitting: false, clearError: true);
-        await loadPayoutNumbers();
-        return true;
-      }
-      state = state.copyWith(isSubmitting: false, error: res.message ?? 'Failed to save payout number');
-      return false;
-    } catch (e) {
-      state = state.copyWith(isSubmitting: false, error: e.toString());
-      return false;
-    }
-  }
+  Future<bool> savePayoutNumber({String? id, required Map<String, dynamic> payload}) => _runAction(
+        () => id == null ? _service.createPayoutNumber(payload) : _service.updatePayoutNumber(id, payload),
+        defaultError: 'Failed to save payout number',
+        onSuccess: loadPayoutNumbers,
+      );
 
   /// Disable a payout number (PUT `validation_status: 'disabled'`), then
   /// reload the list. Returns true on success.
-  Future<bool> disablePayoutNumber(String id) async {
-    state = state.copyWith(isSubmitting: true, clearError: true);
-    try {
-      final res = await _service.updatePayoutNumber(id, {'validation_status': 'disabled'});
-      if (res.success) {
-        state = state.copyWith(isSubmitting: false, clearError: true);
-        await loadPayoutNumbers();
-        return true;
-      }
-      state = state.copyWith(isSubmitting: false, error: res.message ?? 'Failed to disable payout number');
-      return false;
-    } catch (e) {
-      state = state.copyWith(isSubmitting: false, error: e.toString());
-      return false;
-    }
-  }
+  Future<bool> disablePayoutNumber(String id) => _runAction(
+        () => _service.updatePayoutNumber(id, {'validation_status': 'disabled'}),
+        defaultError: 'Failed to disable payout number',
+        onSuccess: loadPayoutNumbers,
+      );
 
   /// Delete a payout number, then reload the list. Returns true on success.
-  Future<bool> deletePayoutNumber(String id) async {
-    state = state.copyWith(isSubmitting: true, clearError: true);
-    try {
-      final res = await _service.deletePayoutNumber(id);
-      if (res.success) {
-        state = state.copyWith(isSubmitting: false, clearError: true);
-        await loadPayoutNumbers();
-        return true;
-      }
-      state = state.copyWith(isSubmitting: false, error: res.message ?? 'Failed to delete payout number');
-      return false;
-    } catch (e) {
-      state = state.copyWith(isSubmitting: false, error: e.toString());
-      return false;
-    }
-  }
+  Future<bool> deletePayoutNumber(String id) => _runAction(
+        () => _service.deletePayoutNumber(id),
+        defaultError: 'Failed to delete payout number',
+        onSuccess: loadPayoutNumbers,
+      );
 
   // ──────────────────────────────────────────────────
   // Cash-outs (withdrawal / auto-checkout history)
@@ -248,52 +209,26 @@ class EWalletController extends StateNotifier<EWalletState> {
 
   /// Update the settings (notification email / mobile-money phone / auto-reception)
   /// for the selected wallet. Only the non-null fields are sent so each settings
-  /// section can save independently. Returns true on success.
+  /// section can save independently. Returns true on success. Built via
+  /// `copyWith` (through `_runAction`) so `payoutNumbers`/`cashOuts` survive
+  /// this reload too — same flags and error handling as before.
   Future<bool> updateSettings({
     String? authEmail,
     String? authPhoneNumber,
     bool? autoCashOut,
-  }) async {
+  }) {
     final wallet = state.selected;
-    if (wallet == null) return false;
-    state = EWalletState(
-      wallets: state.wallets,
-      selected: state.selected,
-      history: state.history,
-      isLoading: state.isLoading,
-      isSubmitting: true,
-      error: null,
-    );
-    try {
-      final res = await _service.updateSettings(
+    if (wallet == null) return Future.value(false);
+    return _runAction(
+      () => _service.updateSettings(
         opsEwalletId: wallet.id,
         authEmail: authEmail,
         authPhoneNumber: authPhoneNumber,
         autoCashOut: autoCashOut,
-      );
-      state = EWalletState(
-        wallets: state.wallets,
-        selected: state.selected,
-        history: state.history,
-        isLoading: state.isLoading,
-        isSubmitting: false,
-        error: res.success ? null : (res.message ?? 'Update failed'),
-      );
-      if (res.success) {
-        await loadWallets();
-      }
-      return res.success;
-    } catch (e) {
-      state = EWalletState(
-        wallets: state.wallets,
-        selected: state.selected,
-        history: state.history,
-        isLoading: state.isLoading,
-        isSubmitting: false,
-        error: e.toString(),
-      );
-      return false;
-    }
+      ),
+      defaultError: 'Update failed',
+      onSuccess: loadWallets,
+    );
   }
 }
 

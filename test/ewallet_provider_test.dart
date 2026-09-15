@@ -18,10 +18,12 @@ class FakeEwalletService extends EwalletService {
     IApiResponse? updateResponse,
     IApiResponse? deleteResponse,
     IApiResponse? withdrawResponse,
+    IApiResponse? updateSettingsResponse,
   })  : createResponse = createResponse ?? IApiResponse(success: true),
         updateResponse = updateResponse ?? IApiResponse(success: true),
         deleteResponse = deleteResponse ?? IApiResponse(success: true),
-        withdrawResponse = withdrawResponse ?? IApiResponse(success: true);
+        withdrawResponse = withdrawResponse ?? IApiResponse(success: true),
+        updateSettingsResponse = updateSettingsResponse ?? IApiResponse(success: true);
 
   List<EWalletModel> wallets;
   List<PayoutNumberModel> payoutNumbers;
@@ -30,6 +32,7 @@ class FakeEwalletService extends EwalletService {
   final IApiResponse updateResponse;
   final IApiResponse deleteResponse;
   final IApiResponse withdrawResponse;
+  final IApiResponse updateSettingsResponse;
 
   int getMyWalletsCallCount = 0;
   int getCashOutsCallCount = 0;
@@ -96,6 +99,15 @@ class FakeEwalletService extends EwalletService {
     lastWithdrawPayoutNumberId = payoutNumberId;
     return withdrawResponse;
   }
+
+  @override
+  Future<IApiResponse> updateSettings({
+    required String opsEwalletId,
+    String? authEmail,
+    String? authPhoneNumber,
+    bool? autoCashOut,
+  }) async =>
+      updateSettingsResponse;
 }
 
 EWalletModel _wallet({String id = 'w1'}) => EWalletModel(
@@ -203,6 +215,56 @@ void main() {
       expect(ok, false);
       expect(controller.state.error, 'boom');
       expect(controller.state.isSubmitting, false);
+    });
+  });
+
+  group('EWalletController preserves payoutNumbers/cashOuts across routine reloads', () {
+    test('loadWallets keeps payoutNumbers already loaded', () async {
+      final wallet = _wallet(id: 'w1');
+      final fake = FakeEwalletService(wallets: [wallet], payoutNumbers: [_payoutNumber()]);
+      final controller = EWalletController(fake);
+
+      await controller.loadPayoutNumbers();
+      expect(controller.state.payoutNumbers.length, 1);
+
+      await controller.loadWallets();
+
+      expect(controller.state.selected?.id, 'w1');
+      expect(controller.state.payoutNumbers.length, 1);
+      expect(controller.state.payoutNumbers.single.id, 'p1');
+    });
+
+    test('loadHistory keeps cashOuts already loaded', () async {
+      final wallet = _wallet(id: 'w1');
+      final fake = FakeEwalletService(wallets: [wallet], cashOuts: [_cashOut()]);
+      final controller = EWalletController(fake);
+
+      await controller.loadWallets();
+      await controller.loadCashOuts();
+      expect(controller.state.cashOuts.length, 1);
+
+      await controller.loadHistory('w1');
+
+      expect(controller.state.cashOuts.length, 1);
+      expect(controller.state.cashOuts.single.id, 'c1');
+    });
+
+    test('a successful updateSettings keeps payoutNumbers', () async {
+      final wallet = _wallet(id: 'w1');
+      final fake = FakeEwalletService(wallets: [wallet], payoutNumbers: [_payoutNumber()]);
+      final controller = EWalletController(fake);
+
+      await controller.loadWallets();
+      await controller.loadPayoutNumbers();
+      expect(controller.state.payoutNumbers.length, 1);
+
+      final ok = await controller.updateSettings(authEmail: 'a@b.com');
+
+      expect(ok, true);
+      // updateSettings reloads wallets internally (loadWallets) — this is
+      // the exact reload the stale-state fix targets.
+      expect(controller.state.payoutNumbers.length, 1);
+      expect(controller.state.payoutNumbers.single.id, 'p1');
     });
   });
 }

@@ -1378,8 +1378,9 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
   }
 
   /// Open the add (no [initial]) / edit bottom sheet. The sheet only closes
-  /// on a successful save; the success toast is shown here, the failure one
-  /// from inside `onSubmit` (both through the captured page messenger).
+  /// on a successful save; the success toast is shown here (captured page
+  /// messenger), while a failure is rendered inline by the sheet itself via
+  /// `readError` — a page snackbar would sit behind the modal.
   Future<void> _openPayoutNumberSheet({PayoutNumberModel? initial}) async {
     final messenger = ScaffoldMessenger.of(context);
     final notifier = ref.read(ewalletProvider.notifier);

@@ -9,8 +9,23 @@ import '../../../core/rbac/services/rbac_guard.dart';
 import '../../providers/ewallet_provider.dart';
 import '../../business/models/ewallet_models.dart';
 import '../../business/models/payout_number_model.dart';
+import '../../business/models/cash_out_model.dart';
 import '../widgets/payout_number_sheet.dart';
 
+/// Pure gating for the withdrawal confirm button: the amount must be positive
+/// and covered by the balance (`insufficient_balance`), and one validated
+/// cash-out number must be selected (`select_payout_number`). Returns the
+/// translation key of the failing rule, or null when the withdrawal may be
+/// submitted.
+String? validateWithdrawal({
+  required double amount,
+  required double balance,
+  required PayoutNumberModel? number,
+}) {
+  if (amount <= 0 || amount > balance) return 'insufficient_balance';
+  if (number == null) return 'select_payout_number';
+  return null;
+}
 
 class WalletManagementPage extends ConsumerStatefulWidget {
   final int initialTabIndex;
@@ -143,8 +158,8 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
   }
 
   /// Shared rounded status pill (icon + label), with an optional rejection
-  /// reason line underneath. Used by the settings badges and the
-  /// payout-number tiles.
+  /// reason line underneath. Used by the settings badges, the payout-number
+  /// tiles and the cash-out chips.
   Widget _statusPill({
     required Color color,
     required IconData icon,
@@ -187,9 +202,13 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
 
   @override
   Widget build(BuildContext context) {
-    // React to wallet load/changes to hydrate the settings tab from persisted values.
+    // React to wallet load/changes to hydrate the settings tab from persisted values,
+    // and (re)load the cash-outs of the newly selected wallet.
     ref.listen<EWalletState>(ewalletProvider, (previous, next) {
       _hydrateSettingsFromWallet(next.selected);
+      if (previous?.selected?.id != next.selected?.id) {
+        ref.read(ewalletProvider.notifier).loadCashOuts();
+      }
     });
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
@@ -330,9 +349,21 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
 
           // Transaction history
           _buildTransactionHistory(),
+          const SizedBox(height: 24),
+
+          // Cash-outs (withdrawal history)
+          _buildCashOutsSection(),
         ],
       ),
     );
+  }
+
+  /// Currency label of a wallet (symbol, else code, else USD) — same rule as
+  /// the wallet card.
+  String _currencyOf(EWalletModel? wallet) {
+    if (wallet == null) return 'USD';
+    if (wallet.currencySymbol.isNotEmpty) return wallet.currencySymbol;
+    return wallet.currencyCode.isNotEmpty ? wallet.currencyCode : 'USD';
   }
 
   Widget _buildWalletCard() {
@@ -508,53 +539,8 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
                     ));
                     return;
                   }
-                  // Show confirmation dialog
-                  showDialog(
-                    context: context,
-                    builder: (dialogContext) => AlertDialog(
-                      title: Text('confirm_withdrawal'.tr),
-                      content: Text('confirm_withdrawal_message'.tr),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(dialogContext),
-                          child: Text('cancel'.tr),
-                        ),
-                        ElevatedButton(
-                          onPressed: () async {
-                            Navigator.pop(dialogContext);
-                            // TODO(Task 6): this dialog predates payout-number
-                            // selection — it still submits with no target
-                            // number. Task 6 redesigns it to let the user
-                            // pick one of `ewalletProvider`'s validatedNumbers.
-                            final ok = await ref
-                                .read(ewalletProvider.notifier)
-                                .withdraw(amount: amt, payoutNumberId: '');
-                            // `mounted` here is the page State's — still mounted after the
-                            // dialog pops — so it is safe to read the provider and show the
-                            // toast via the captured (page) messenger.
-                            if (!mounted) return;
-                            final err = ref.read(ewalletProvider).error;
-                            messenger.showSnackBar(
-                              SnackBar(
-                                content: Text(ok
-                                    ? 'withdrawal_initiated_successfully'.tr
-                                    : ((err != null && err.isNotEmpty)
-                                        ? err
-                                        : 'withdrawal_failed'.tr)),
-                                backgroundColor: ok ? Colors.green : Colors.red,
-                              ),
-                            );
-                            if (ok) _withdrawAmountController.clear();
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
-                            foregroundColor: Colors.white,
-                          ),
-                          child: Text('confirm'.tr),
-                        ),
-                      ],
-                    ),
-                  );
+                  // Confirm + pick the validated cash-out number to send to.
+                  _showWithdrawDialog(messenger: messenger, amount: amt);
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green,
@@ -577,6 +563,272 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
         ),
       ),
     );
+  }
+
+  /// Phone + holder label of a payout number, for the withdrawal dropdown.
+  String _payoutNumberLabel(PayoutNumberModel n) =>
+      n.holderName.isEmpty ? n.phoneNumber : '${n.phoneNumber} · ${n.holderName}';
+
+  /// Confirmation dialog for a withdrawal of [amount] (already checked
+  /// against the balance by the caller): the user picks one of the validated
+  /// cash-out numbers (highest priority preselected). With none validated the
+  /// dropdown is replaced by an explanatory text and confirm stays disabled.
+  /// [messenger] is the page messenger captured before any await — the dialog
+  /// context is gone by the time the withdraw call answers.
+  Future<void> _showWithdrawDialog({
+    required ScaffoldMessengerState messenger,
+    required double amount,
+  }) async {
+    final walletState = ref.read(ewalletProvider);
+    final validated = [...walletState.validatedNumbers]..sort((a, b) => a.priority.compareTo(b.priority));
+    final balance = walletState.balance;
+    final currency = _currencyOf(walletState.selected);
+    PayoutNumberModel? selected = validated.isEmpty ? null : validated.first;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) {
+          final gate = validateWithdrawal(amount: amount, balance: balance, number: selected);
+          return AlertDialog(
+            title: Text('confirm_withdrawal'.tr),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('confirm_withdrawal_message'.tr),
+                const SizedBox(height: 8),
+                Text(
+                  '${'amount'.tr}: ${_formatAmount(amount)} $currency',
+                  style: GoogleFonts.ubuntu(fontWeight: FontWeight.w700, color: Colors.grey.shade800),
+                ),
+                const SizedBox(height: 16),
+                if (validated.isEmpty)
+                  Text(
+                    'no_validated_payout_number'.tr,
+                    style: GoogleFonts.ubuntu(fontSize: 13, color: Colors.orange.shade800),
+                  )
+                else
+                  DropdownButtonFormField<PayoutNumberModel>(
+                    initialValue: selected,
+                    isExpanded: true,
+                    decoration: InputDecoration(
+                      labelText: 'select_payout_number'.tr,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    items: validated
+                        .map((n) => DropdownMenuItem<PayoutNumberModel>(
+                              value: n,
+                              child: Text(_payoutNumberLabel(n), overflow: TextOverflow.ellipsis),
+                            ))
+                        .toList(),
+                    onChanged: (n) => setDialogState(() => selected = n),
+                  ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: Text('cancel'.tr),
+              ),
+              ElevatedButton(
+                onPressed: gate != null
+                    ? null
+                    : () async {
+                        final number = selected!;
+                        Navigator.pop(dialogContext);
+                        final ok = await ref
+                            .read(ewalletProvider.notifier)
+                            .withdraw(amount: amount, payoutNumberId: number.id);
+                        // `mounted` is the page State's — still mounted after the dialog
+                        // pops — so the provider read and the captured messenger are safe.
+                        if (!mounted) return;
+                        final err = ref.read(ewalletProvider).error;
+                        messenger.showSnackBar(
+                          SnackBar(
+                            content: Text(ok
+                                ? 'withdrawal_submitted'.tr
+                                : ((err != null && err.isNotEmpty) ? err : 'withdrawal_failed'.tr)),
+                            backgroundColor: ok ? Colors.green : Colors.red,
+                          ),
+                        );
+                        if (ok) _withdrawAmountController.clear();
+                      },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                ),
+                child: Text('confirm'.tr),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  // ──────────────────────────────────────────────────
+  // Cash-outs (withdrawal history) — wallet tab
+  // ──────────────────────────────────────────────────
+
+  Widget _buildCashOutsSection() {
+    final walletState = ref.watch(ewalletProvider);
+    final cashOuts = walletState.cashOuts;
+    final currency = _currencyOf(walletState.selected);
+    return FadeInUp(
+      delay: const Duration(milliseconds: 700),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'cash_outs_title'.tr,
+                  style: GoogleFonts.ubuntu(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey.shade800,
+                  ),
+                ),
+              ),
+              // The wallet tab has no pull-to-refresh, so the list refreshes from here.
+              IconButton(
+                tooltip: 'refresh'.tr,
+                icon: const Icon(Iconsax.refresh, color: Colors.green, size: 20),
+                onPressed: walletState.selected == null
+                    ? null
+                    : () => ref.read(ewalletProvider.notifier).loadCashOuts(),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: cashOuts.isEmpty
+                ? Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Text(
+                      'no_cash_outs'.tr,
+                      style: GoogleFonts.ubuntu(fontSize: 14, color: Colors.grey.shade600),
+                    ),
+                  )
+                : ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: cashOuts.length,
+                    separatorBuilder: (context, index) => const Divider(height: 1),
+                    itemBuilder: (context, index) => _buildCashOutTile(cashOuts[index], currency),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCashOutTile(CashOutModel c, String currency) {
+    final status = c.status.toLowerCase();
+    final color = _cashOutStatusColor(status);
+    final isFailure = status == 'failed' || status == 'rejected';
+    final createdAt = c.createdAt == null ? null : DateTime.tryParse(c.createdAt!);
+    final when = createdAt == null ? '' : ' · ${_formatDate(createdAt.toLocal())}';
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(Iconsax.money_send, color: color),
+      ),
+      title: Row(
+        children: [
+          Flexible(
+            child: Text(
+              '-${_formatAmount(c.amount)} $currency',
+              style: GoogleFonts.ubuntu(fontWeight: FontWeight.w700, color: color),
+            ),
+          ),
+          if (c.isAutoCheckout) ...[
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: Colors.blue.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                'auto'.tr,
+                style: GoogleFonts.ubuntu(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.blue),
+              ),
+            ),
+          ],
+        ],
+      ),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '${c.phoneNumber}$when',
+            style: GoogleFonts.ubuntu(fontSize: 12, color: Colors.grey.shade600),
+          ),
+          const SizedBox(height: 6),
+          _cashOutStatusChip(status),
+          if (isFailure && (c.failureReason?.isNotEmpty ?? false))
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                c.failureReason!,
+                style: GoogleFonts.ubuntu(fontSize: 12, color: Colors.red.shade700),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// pending / processing amber, withdrawn green, failed / rejected red,
+  /// anything else grey.
+  Color _cashOutStatusColor(String status) {
+    switch (status) {
+      case 'pending':
+      case 'processing':
+        return Colors.orange;
+      case 'withdrawn':
+        return Colors.green;
+      case 'failed':
+      case 'rejected':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  Widget _cashOutStatusChip(String status) {
+    final color = _cashOutStatusColor(status);
+    switch (status) {
+      case 'pending':
+        return _statusPill(color: color, icon: Iconsax.clock, label: 'cash_out_status_pending'.tr);
+      case 'processing':
+        return _statusPill(color: color, icon: Iconsax.clock, label: 'cash_out_status_processing'.tr);
+      case 'withdrawn':
+        return _statusPill(color: color, icon: Iconsax.tick_circle, label: 'cash_out_status_withdrawn'.tr);
+      case 'failed':
+        return _statusPill(color: color, icon: Iconsax.close_circle, label: 'cash_out_status_failed'.tr);
+      case 'rejected':
+        return _statusPill(color: color, icon: Iconsax.close_circle, label: 'cash_out_status_rejected'.tr);
+      default:
+        return _statusPill(color: color, icon: Iconsax.info_circle, label: status);
+    }
   }
 
   Widget _buildTransactionHistory() {

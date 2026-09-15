@@ -129,7 +129,10 @@ class EWalletController extends StateNotifier<EWalletState> {
         if (onSuccess != null) await onSuccess();
         return true;
       }
-      state = state.copyWith(isSubmitting: false, error: res.message ?? defaultError);
+      state = state.copyWith(
+        isSubmitting: false,
+        error: (res.message?.isNotEmpty == true) ? res.message! : defaultError,
+      );
       return false;
     } catch (e) {
       state = state.copyWith(isSubmitting: false, error: e.toString());

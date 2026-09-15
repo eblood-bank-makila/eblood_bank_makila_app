@@ -392,7 +392,7 @@ class _IncomingDeliveryWidgetState extends ConsumerState<IncomingDeliveryWidget>
           verificationCode: code,
         );
 
-    if (success) {
+    if (success && mounted) {
       // Settlement just ran on the backend — refresh so a BB/CNTS user
       // opening the wallet next sees the release credit without a manual
       // refresh.

@@ -462,6 +462,7 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
   }
 
   Widget _buildWithdrawSection() {
+    final isSubmitting = ref.watch(ewalletProvider).isSubmitting;
     return FadeInUp(
       delay: const Duration(milliseconds: 500),
       child: Container(
@@ -504,59 +505,71 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {
-                  // Capture the messenger from the *page* context up-front. The dialog
-                  // builder below shadows `context` with its own (dialog) context, which is
-                  // torn down the instant Navigator.pop runs — reusing it for the post-await
-                  // snackbar silently dropped every success/error toast.
-                  final messenger = ScaffoldMessenger.of(context);
-                  final walletState = ref.read(ewalletProvider);
-                  final amt = double.tryParse(
-                        _withdrawAmountController.text.trim().replaceAll(',', '.'),
-                      ) ??
-                      0;
-                  // Validate everything BEFORE opening the confirm dialog so a withdrawal that
-                  // cannot possibly succeed (invalid amount, no wallet, or more than the
-                  // available balance) never gets sent to the backend.
-                  if (amt <= 0) {
-                    messenger.showSnackBar(SnackBar(
-                      content: Text('enter_valid_amount'.tr),
-                      backgroundColor: Colors.red,
-                    ));
-                    return;
-                  }
-                  if (walletState.selected == null) {
-                    messenger.showSnackBar(SnackBar(
-                      content: Text('no_wallet_available'.tr),
-                      backgroundColor: Colors.red,
-                    ));
-                    return;
-                  }
-                  if (amt > walletState.balance) {
-                    messenger.showSnackBar(SnackBar(
-                      content: Text('insufficient_balance'.tr),
-                      backgroundColor: Colors.red,
-                    ));
-                    return;
-                  }
-                  // Confirm + pick the validated cash-out number to send to.
-                  _showWithdrawDialog(messenger: messenger, amount: amt);
-                },
+                onPressed: isSubmitting
+                    ? null
+                    : () {
+                        // Capture the messenger from the *page* context up-front. The dialog
+                        // builder below shadows `context` with its own (dialog) context, which is
+                        // torn down the instant Navigator.pop runs — reusing it for the post-await
+                        // snackbar silently dropped every success/error toast.
+                        final messenger = ScaffoldMessenger.of(context);
+                        final walletState = ref.read(ewalletProvider);
+                        final amt = double.tryParse(
+                              _withdrawAmountController.text.trim().replaceAll(',', '.'),
+                            ) ??
+                            0;
+                        // Validate everything BEFORE opening the confirm dialog so a withdrawal that
+                        // cannot possibly succeed (invalid amount, no wallet, or more than the
+                        // available balance) never gets sent to the backend.
+                        if (amt <= 0) {
+                          messenger.showSnackBar(SnackBar(
+                            content: Text('enter_valid_amount'.tr),
+                            backgroundColor: Colors.red,
+                          ));
+                          return;
+                        }
+                        if (walletState.selected == null) {
+                          messenger.showSnackBar(SnackBar(
+                            content: Text('no_wallet_available'.tr),
+                            backgroundColor: Colors.red,
+                          ));
+                          return;
+                        }
+                        if (amt > walletState.balance) {
+                          messenger.showSnackBar(SnackBar(
+                            content: Text('insufficient_balance'.tr),
+                            backgroundColor: Colors.red,
+                          ));
+                          return;
+                        }
+                        // Confirm + pick the validated cash-out number to send to.
+                        _showWithdrawDialog(messenger: messenger, amount: amt);
+                      },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green,
                   foregroundColor: Colors.white,
+                  disabledBackgroundColor: Colors.green.withValues(alpha: 0.5),
                   padding: const EdgeInsets.all(16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: Text(
-                  'withdraw'.tr,
-                  style: GoogleFonts.ubuntu(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+                child: isSubmitting
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : Text(
+                        'withdraw'.tr,
+                        style: GoogleFonts.ubuntu(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
               ),
             ),
           ],
@@ -1381,10 +1394,10 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
         initial: initial,
         readError: () => ref.read(ewalletProvider).error,
         onSubmit: (payload) async {
-          final ok = await notifier.savePayoutNumber(id: initial?.id, payload: payload);
-          if (!mounted) return ok;
-          if (!ok) _showMutationResult(messenger, false, 'payout_number_saved');
-          return ok;
+          // The sheet renders a failed save's error inline (readError) and stays open —
+          // a page-level snackbar here would show up behind the still-open modal, so only
+          // the success toast (below, after the sheet pops) is shown for this flow.
+          return notifier.savePayoutNumber(id: initial?.id, payload: payload);
         },
       ),
     );

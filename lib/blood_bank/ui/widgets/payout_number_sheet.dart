@@ -42,7 +42,11 @@ String? validatePayoutForm({
   required String cap,
   required String priority,
 }) {
-  if (!_phoneRe.hasMatch(phone.trim())) return 'enter_valid_phone';
+  // The backend strips spaces/dashes from the phone before storing it, so validate
+  // against the same sanitized form (otherwise a nicely-formatted number like
+  // "+243 99 885 7000" fails the digits-only regex here).
+  final sanitizedPhone = phone.replaceAll(RegExp(r'[\s-]'), '');
+  if (!_phoneRe.hasMatch(sanitizedPhone)) return 'enter_valid_phone';
   final capValue = double.tryParse(cap.trim().replaceAll(',', '.'));
   if (capValue == null || capValue <= 0) return 'enter_valid_daily_cap';
   final priorityValue = int.tryParse(priority.trim());
@@ -130,7 +134,7 @@ class _PayoutNumberSheetState extends State<PayoutNumberSheet> {
       return;
     }
     final payload = <String, dynamic>{
-      'phone_number': _phoneController.text.trim(),
+      'phone_number': _phoneController.text.replaceAll(RegExp(r'[\s-]'), ''),
       'holder_name': _holderController.text.trim(),
       'operator_hint': _operator,
       'max_amount_per_day': double.parse(_capController.text.trim().replaceAll(',', '.')),

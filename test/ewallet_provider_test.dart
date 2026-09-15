@@ -216,6 +216,49 @@ void main() {
       expect(controller.state.error, 'boom');
       expect(controller.state.isSubmitting, false);
     });
+
+    test('savePayoutNumber with id calls update with that id and the payload', () async {
+      final fake = FakeEwalletService(payoutNumbers: [_payoutNumber(id: 'n1')]);
+      final controller = EWalletController(fake);
+      final payload = {'phone_number': '+243900000001', 'priority': 2};
+
+      final ok = await controller.savePayoutNumber(id: 'n1', payload: payload);
+
+      expect(ok, true);
+      expect(fake.lastUpdateId, 'n1');
+      expect(fake.lastUpdatePayload, payload);
+      expect(fake.lastCreatePayload, isNull);
+      expect(controller.state.isSubmitting, false);
+      expect(controller.state.error, isNull);
+    });
+
+    test('disablePayoutNumber sends exactly {validation_status: disabled}', () async {
+      final fake = FakeEwalletService(payoutNumbers: [_payoutNumber(id: 'n1')]);
+      final controller = EWalletController(fake);
+
+      final ok = await controller.disablePayoutNumber('n1');
+
+      expect(ok, true);
+      expect(fake.lastUpdateId, 'n1');
+      expect(fake.lastUpdatePayload, {'validation_status': 'disabled'});
+      expect(controller.state.isSubmitting, false);
+      expect(controller.state.error, isNull);
+    });
+
+    test('deletePayoutNumber records the id and reloads the list', () async {
+      final fake = FakeEwalletService(payoutNumbers: [_payoutNumber(id: 'n2')]);
+      final controller = EWalletController(fake);
+
+      final ok = await controller.deletePayoutNumber('n1');
+
+      expect(ok, true);
+      expect(fake.lastDeleteId, 'n1');
+      // Reloaded from the (post-delete) fake list.
+      expect(controller.state.payoutNumbers.length, 1);
+      expect(controller.state.payoutNumbers.single.id, 'n2');
+      expect(controller.state.isSubmitting, false);
+      expect(controller.state.error, isNull);
+    });
   });
 
   group('EWalletController preserves payoutNumbers/cashOuts across routine reloads', () {

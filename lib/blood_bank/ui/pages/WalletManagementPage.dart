@@ -8,6 +8,8 @@ import '../../../apps/config/utils/LocaleHelper.dart';
 import '../../../core/rbac/services/rbac_guard.dart';
 import '../../providers/ewallet_provider.dart';
 import '../../business/models/ewallet_models.dart';
+import '../../business/models/payout_number_model.dart';
+import '../widgets/payout_number_sheet.dart';
 
 
 class WalletManagementPage extends ConsumerStatefulWidget {
@@ -53,7 +55,6 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
 
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
-  final TextEditingController _withdrawalPhoneController = TextEditingController();
   final TextEditingController _withdrawAmountController = TextEditingController();
   bool _autoReception = false;
   // Tracks which wallet's settings have been loaded into the fields, so we hydrate
@@ -81,10 +82,13 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
     // Settings fields are hydrated from the loaded wallet (see _hydrateSettingsFromWallet),
     // not hardcoded — so they reflect what is actually persisted on the backend.
 
-    // Load the authenticated org's wallet(s) + history once the first frame is scheduled.
+    // Load the authenticated org's wallet(s) + history, and its cash-out (payout)
+    // numbers, once the first frame is scheduled.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        ref.read(ewalletProvider.notifier).loadWallets();
+        final notifier = ref.read(ewalletProvider.notifier);
+        notifier.loadWallets();
+        notifier.loadPayoutNumbers();
       }
     });
   }
@@ -94,7 +98,6 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
     _tabController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
-    _withdrawalPhoneController.dispose();
     _withdrawAmountController.dispose();
     super.dispose();
   }
@@ -111,7 +114,6 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
         (s.isPending || s.isRejected) && s.pendingValue != null ? s.pendingValue! : validated;
     _emailController.text = fieldValue(wallet.emailStatus, wallet.authEmail);
     _phoneController.text = fieldValue(wallet.phoneStatus, wallet.authPhoneNumber);
-    _withdrawalPhoneController.text = fieldValue(wallet.withdrawalPhoneStatus, wallet.withdrawalPhoneNumber);
     final aco = wallet.autoCashOutStatus;
     final autoVal = (aco.isPending || aco.isRejected) && aco.pendingValue != null
         ? aco.pendingValue == 'true'
@@ -126,24 +128,32 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
   /// A small status pill for a setting's validation state (pending / rejected / validated).
   Widget _settingStatusBadge(EWalletSettingStatus s) {
     if (s.isNotSet) return const SizedBox.shrink();
-    late final Color color;
-    late final IconData icon;
-    late final String label;
     if (s.isPending) {
-      color = Colors.orange;
-      icon = Iconsax.clock;
-      label = 'status_pending_validation'.tr;
-    } else if (s.isRejected) {
-      color = Colors.red;
-      icon = Iconsax.close_circle;
-      label = 'status_rejected'.tr;
-    } else {
-      color = Colors.green;
-      icon = Iconsax.tick_circle;
-      label = 'status_validated'.tr;
+      return _statusPill(color: Colors.orange, icon: Iconsax.clock, label: 'status_pending_validation'.tr);
     }
+    if (s.isRejected) {
+      return _statusPill(
+        color: Colors.red,
+        icon: Iconsax.close_circle,
+        label: 'status_rejected'.tr,
+        rejectionReason: s.rejectionReason,
+      );
+    }
+    return _statusPill(color: Colors.green, icon: Iconsax.tick_circle, label: 'status_validated'.tr);
+  }
+
+  /// Shared rounded status pill (icon + label), with an optional rejection
+  /// reason line underneath. Used by the settings badges and the
+  /// payout-number tiles.
+  Widget _statusPill({
+    required Color color,
+    required IconData icon,
+    required String label,
+    String? rejectionReason,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -163,11 +173,11 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
             ],
           ),
         ),
-        if (s.isRejected && (s.rejectionReason?.isNotEmpty ?? false))
+        if (rejectionReason != null && rejectionReason.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 6),
             child: Text(
-              '${'rejection_reason'.tr}: ${s.rejectionReason}',
+              '${'rejection_reason'.tr}: $rejectionReason',
               style: GoogleFonts.ubuntu(fontSize: 12, color: Colors.red.shade700),
             ),
           ),
@@ -690,8 +700,8 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
           _buildMobilePaymentSection(),
           const SizedBox(height: 24),
 
-          // Withdrawal payout phone
-          _buildWithdrawalPhoneSection(),
+          // Cash-out (payout) numbers
+          _buildPayoutNumbersSection(),
           const SizedBox(height: 24),
 
           // Auto reception settings
@@ -931,8 +941,13 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
     );
   }
 
-  Widget _buildWithdrawalPhoneSection() {
-    final status = ref.watch(ewalletProvider).selected?.withdrawalPhoneStatus ?? const EWalletSettingStatus();
+  // ──────────────────────────────────────────────────
+  // Cash-out (payout) numbers — settings tab
+  // ──────────────────────────────────────────────────
+
+  Widget _buildPayoutNumbersSection() {
+    final walletState = ref.watch(ewalletProvider);
+    final numbers = walletState.payoutNumbers;
     return FadeInUp(
       delay: const Duration(milliseconds: 550),
       child: Container(
@@ -955,99 +970,210 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
               children: [
                 const Icon(Iconsax.money_send, color: Colors.green),
                 const SizedBox(width: 10),
-                Text(
-                  'withdrawal_phone'.tr,
-                  style: GoogleFonts.ubuntu(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey.shade800,
+                Expanded(
+                  child: Text(
+                    'payout_numbers_title'.tr,
+                    style: GoogleFonts.ubuntu(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade800,
+                    ),
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: walletState.isSubmitting ? null : () => _openPayoutNumberSheet(),
+                  style: TextButton.styleFrom(foregroundColor: Colors.green),
+                  icon: const Icon(Iconsax.add, size: 18),
+                  label: Text(
+                    'add_payout_number'.tr,
+                    style: GoogleFonts.ubuntu(fontSize: 13, fontWeight: FontWeight.w600),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            Text(
-              'withdrawal_phone_description'.tr,
-              style: GoogleFonts.ubuntu(
-                fontSize: 14,
-                color: Colors.grey.shade600,
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _withdrawalPhoneController,
-              decoration: InputDecoration(
-                labelText: 'phone_number'.tr,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                suffixIcon: const Icon(Icons.phone),
-              ),
-              keyboardType: TextInputType.phone,
-            ),
-            if (!status.isNotSet) ...[
-              const SizedBox(height: 12),
-              _settingStatusBadge(status),
-            ],
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () async {
-                  final messenger = ScaffoldMessenger.of(context);
-                  final phone = _withdrawalPhoneController.text.trim();
-                  if (phone.isEmpty) {
-                    messenger.showSnackBar(SnackBar(
-                      content: Text('enter_valid_phone'.tr),
-                      backgroundColor: Colors.red,
-                    ));
-                    return;
-                  }
-                  if (ref.read(ewalletProvider).selected == null) {
-                    messenger.showSnackBar(SnackBar(
-                      content: Text('no_wallet_available'.tr),
-                      backgroundColor: Colors.red,
-                    ));
-                    return;
-                  }
-                  final ok = await ref
-                      .read(ewalletProvider.notifier)
-                      // TODO(Task 5): `withdrawal_phone_number` is retired
-                      // backend-side; this call currently submits nothing
-                      // until the page is redesigned around payout numbers.
-                      .updateSettings();
-                  if (!mounted) return;
-                  final err = ref.read(ewalletProvider).error;
-                  messenger.showSnackBar(SnackBar(
-                    content: Text(ok
-                        ? 'settings_submitted_for_validation'.tr
-                        : ((err != null && err.isNotEmpty)
-                            ? err
-                            : 'settings_save_failed'.tr)),
-                    backgroundColor: ok ? Colors.green : Colors.red,
-                  ));
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.all(16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
+            const SizedBox(height: 8),
+            if (walletState.isLoadingNumbers && numbers.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 24),
+                child: Center(child: CircularProgressIndicator(color: Colors.green)),
+              )
+            else if (numbers.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
                 child: Text(
-                  'submit_for_validation'.tr,
-                  style: GoogleFonts.ubuntu(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  'no_payout_numbers'.tr,
+                  style: GoogleFonts.ubuntu(fontSize: 14, color: Colors.grey.shade600),
                 ),
+              )
+            else
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: numbers.length,
+                separatorBuilder: (context, index) => const Divider(height: 1),
+                itemBuilder: (context, index) => _buildPayoutNumberTile(numbers[index]),
               ),
-            ),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildPayoutNumberTile(PayoutNumberModel n) {
+    final isDisabled = n.validationStatus == PayoutNumberStatus.disabled;
+    final color = isDisabled ? Colors.grey : Colors.green;
+    final meta = <String>[
+      if (n.holderName.isNotEmpty) n.holderName,
+      if (n.operatorHint != null && n.operatorHint!.isNotEmpty) payoutOperatorLabel(n.operatorHint!),
+      '${'priority'.tr} ${n.priority}',
+    ];
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(Iconsax.mobile, color: color),
+      ),
+      title: Text(
+        n.phoneNumber,
+        style: GoogleFonts.ubuntu(
+          fontWeight: FontWeight.w600,
+          color: isDisabled ? Colors.grey : Colors.grey.shade800,
+        ),
+      ),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            meta.join(' · '),
+            style: GoogleFonts.ubuntu(fontSize: 12, color: Colors.grey.shade600),
+          ),
+          const SizedBox(height: 6),
+          _payoutStatusBadge(n),
+        ],
+      ),
+      trailing: PopupMenuButton<String>(
+        icon: const Icon(Icons.more_vert),
+        onSelected: (action) {
+          switch (action) {
+            case 'edit':
+              _openPayoutNumberSheet(initial: n);
+              break;
+            case 'disable':
+              _disablePayoutNumber(n);
+              break;
+            case 'delete':
+              _confirmDeletePayoutNumber(n);
+              break;
+          }
+        },
+        itemBuilder: (context) => [
+          PopupMenuItem(value: 'edit', child: Text('edit'.tr)),
+          if (!isDisabled) PopupMenuItem(value: 'disable', child: Text('disable'.tr)),
+          PopupMenuItem(
+            value: 'delete',
+            child: Text('delete'.tr, style: const TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Validation pill for one payout number: pending amber, validated green,
+  /// rejected red (+ reason), disabled grey.
+  Widget _payoutStatusBadge(PayoutNumberModel n) {
+    switch (n.validationStatus) {
+      case PayoutNumberStatus.validated:
+        return _statusPill(color: Colors.green, icon: Iconsax.tick_circle, label: 'payout_status_validated'.tr);
+      case PayoutNumberStatus.rejected:
+        return _statusPill(
+          color: Colors.red,
+          icon: Iconsax.close_circle,
+          label: 'payout_status_rejected'.tr,
+          rejectionReason: n.rejectionReason,
+        );
+      case PayoutNumberStatus.disabled:
+        return _statusPill(color: Colors.grey, icon: Icons.block, label: 'payout_status_disabled'.tr);
+      case PayoutNumberStatus.pendingValidation:
+        return _statusPill(color: Colors.orange, icon: Iconsax.clock, label: 'payout_status_pending'.tr);
+    }
+  }
+
+  /// Snackbar for the outcome of one provider mutation, via a messenger that
+  /// was captured before the awaited call (see `_buildWithdrawSection`).
+  void _showMutationResult(ScaffoldMessengerState messenger, bool ok, String successKey) {
+    final err = ref.read(ewalletProvider).error;
+    messenger.showSnackBar(SnackBar(
+      content: Text(ok ? successKey.tr : ((err != null && err.isNotEmpty) ? err : 'error'.tr)),
+      backgroundColor: ok ? Colors.green : Colors.red,
+    ));
+  }
+
+  /// Open the add (no [initial]) / edit bottom sheet. The sheet only closes
+  /// on a successful save; the success toast is shown here, the failure one
+  /// from inside `onSubmit` (both through the captured page messenger).
+  Future<void> _openPayoutNumberSheet({PayoutNumberModel? initial}) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final notifier = ref.read(ewalletProvider.notifier);
+    final saved = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) => PayoutNumberSheet(
+        initial: initial,
+        readError: () => ref.read(ewalletProvider).error,
+        onSubmit: (payload) async {
+          final ok = await notifier.savePayoutNumber(id: initial?.id, payload: payload);
+          if (!mounted) return ok;
+          if (!ok) _showMutationResult(messenger, false, 'payout_number_saved');
+          return ok;
+        },
+      ),
+    );
+    if (!mounted || saved != true) return;
+    _showMutationResult(messenger, true, 'payout_number_saved');
+  }
+
+  Future<void> _disablePayoutNumber(PayoutNumberModel n) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final ok = await ref.read(ewalletProvider.notifier).disablePayoutNumber(n.id);
+    if (!mounted) return;
+    _showMutationResult(messenger, ok, 'payout_number_disabled');
+  }
+
+  Future<void> _confirmDeletePayoutNumber(PayoutNumberModel n) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('delete'.tr),
+        content: Text('${'confirm_delete_payout_number'.tr}\n${n.phoneNumber}'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text('cancel'.tr),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: Text('delete'.tr),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final ok = await ref.read(ewalletProvider.notifier).deletePayoutNumber(n.id);
+    if (!mounted) return;
+    _showMutationResult(messenger, ok, 'payout_number_deleted');
   }
 
   Widget _buildAutoReceptionSection() {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:iconsax/iconsax.dart';
 
 // ──────────────────────────────────────────────────
@@ -239,7 +240,36 @@ enum EWalletOperationOrigin {
   payment,
   paymentHoldReleased,
   paymentHoldRefunded,
+  // Settlement escrow ledger flags (blood-request payment held/released,
+  // fee splits, delivery pricing, refunds, and cash-out debit/refund).
+  bloodRequestPaymentHold,
+  bloodRequestEscrowRelease,
+  bloodBagSale,
+  cntsCommission,
+  platformFlatFee,
+  platformPercentFee,
+  kmDeliveryFee,
+  bloodRequestRefund,
+  cashOutDebit,
+  cashOutRefund,
 }
+
+/// Local (client-side) translation key for the settlement ledger flags above,
+/// used by `EWalletHistoryModel.title` before falling back to the backend
+/// label. Returns null for origins the backend already labels well enough
+/// (or that predate the settlement escrow ledger).
+const Map<EWalletOperationOrigin, String> _walletOriginLocalKeys = {
+  EWalletOperationOrigin.bloodRequestPaymentHold: 'wallet_origin_blood_request_payment_hold',
+  EWalletOperationOrigin.bloodRequestEscrowRelease: 'wallet_origin_blood_request_escrow_release',
+  EWalletOperationOrigin.bloodBagSale: 'wallet_origin_blood_bag_sale',
+  EWalletOperationOrigin.cntsCommission: 'wallet_origin_cnts_commission',
+  EWalletOperationOrigin.platformFlatFee: 'wallet_origin_platform_flat_fee',
+  EWalletOperationOrigin.platformPercentFee: 'wallet_origin_platform_percent_fee',
+  EWalletOperationOrigin.kmDeliveryFee: 'wallet_origin_km_delivery_fee',
+  EWalletOperationOrigin.bloodRequestRefund: 'wallet_origin_blood_request_refund',
+  EWalletOperationOrigin.cashOutDebit: 'wallet_origin_cash_out_debit',
+  EWalletOperationOrigin.cashOutRefund: 'wallet_origin_cash_out_refund',
+};
 
 class StatusColor {
   final Color textColor;
@@ -324,7 +354,13 @@ class EWalletHistoryModel {
     return '$sign$currencySymbol${amount.toStringAsFixed(2)}';
   }
 
+  /// Local translation key for the settlement ledger flags (see
+  /// `_walletOriginLocalKeys`); null for origins without a dedicated key.
+  String? get localOriginKey => _walletOriginLocalKeys[operationOrigin];
+
   String get title {
+    final k = localOriginKey;
+    if (k != null) return k.tr;
     if (operationOriginLabel.isNotEmpty) return operationOriginLabel;
     if (movementTypeLabel.isNotEmpty) return movementTypeLabel;
     return isCredit ? 'Credit' : 'Debit';
@@ -332,6 +368,11 @@ class EWalletHistoryModel {
 
   IconData get icon {
     switch (operationOrigin) {
+      case EWalletOperationOrigin.bloodRequestPaymentHold:
+        return Iconsax.lock;
+      case EWalletOperationOrigin.bloodRequestEscrowRelease:
+        return Iconsax.unlock;
+      case EWalletOperationOrigin.cashOutDebit:
       case EWalletOperationOrigin.ewalletWithdrawal:
       case EWalletOperationOrigin.ewalletCashOut:
         return Iconsax.money_send;
@@ -419,6 +460,26 @@ class EWalletHistoryModel {
         operationOrigin = EWalletOperationOrigin.paymentHoldReleased;
       case 'payment_hold_refunded':
         operationOrigin = EWalletOperationOrigin.paymentHoldRefunded;
+      case 'blood_request_payment_hold':
+        operationOrigin = EWalletOperationOrigin.bloodRequestPaymentHold;
+      case 'blood_request_escrow_release':
+        operationOrigin = EWalletOperationOrigin.bloodRequestEscrowRelease;
+      case 'blood_bag_sale':
+        operationOrigin = EWalletOperationOrigin.bloodBagSale;
+      case 'cnts_commission':
+        operationOrigin = EWalletOperationOrigin.cntsCommission;
+      case 'platform_flat_fee':
+        operationOrigin = EWalletOperationOrigin.platformFlatFee;
+      case 'platform_percent_fee':
+        operationOrigin = EWalletOperationOrigin.platformPercentFee;
+      case 'km_delivery_fee':
+        operationOrigin = EWalletOperationOrigin.kmDeliveryFee;
+      case 'blood_request_refund':
+        operationOrigin = EWalletOperationOrigin.bloodRequestRefund;
+      case 'cash_out_debit':
+        operationOrigin = EWalletOperationOrigin.cashOutDebit;
+      case 'cash_out_refund':
+        operationOrigin = EWalletOperationOrigin.cashOutRefund;
       default:
         operationOrigin = EWalletOperationOrigin.none;
     }

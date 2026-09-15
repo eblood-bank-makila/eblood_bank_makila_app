@@ -5,6 +5,9 @@ import '../../../orders/ui/framework/blood_request/BloodRequestNetworkServiceImp
 import '../service/DeliveryApiService.dart';
 import '../model/DeliveryModels.dart';
 
+// Backend enum: manual | qr_scan. 'code' was silently 400-ing every hospital confirmation (spec 2026-09-14 §1).
+const kDeliveryConfirmationMethodManual = 'manual';
+
 // API Service Provider
 final deliveryApiServiceProvider = Provider<DeliveryApiService>((ref) {
   return DeliveryApiService();
@@ -640,7 +643,7 @@ class IncomingDeliveriesController extends StateNotifier<List<IncomingDelivery>>
         final settlementRes = await service.confirmDelivery(
           bloodRequestId,
           verificationCode,
-          'code',
+          kDeliveryConfirmationMethodManual,
         );
         if (!settlementRes.success) {
           return false;

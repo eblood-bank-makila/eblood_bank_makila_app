@@ -64,6 +64,9 @@ class ApiConfig {
   static const String ewalletHistory = '/eblood-connect/ewallet/history';
   static const String ewalletWithdraw = '/eblood-connect/ewallet/withdraw';
   static const String ewalletUpdateSettings = '/eblood-connect/ewallet/settings';
+  static const String ewalletPayoutNumbers = '/eblood-connect/ewallet/payout-numbers';
+  static String ewalletPayoutNumber(String id) => '$ewalletPayoutNumbers/$id';
+  static const String ewalletCashOuts = '/eblood-connect/ewallet/cash-outs';
 
   // Sprint 17 — IoT coolbox access gate. The legacy URL was
   // /eblood-connect/blood-requests/deliveries/request-coolbox-password

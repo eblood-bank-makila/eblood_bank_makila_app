@@ -90,7 +90,12 @@ class EWalletController extends StateNotifier<EWalletState> {
   }
 
   /// Submit a withdrawal for the selected wallet. Returns true on success.
-  Future<bool> withdraw({required double amount, String? phoneNumber}) async {
+  //
+  // TODO(Task 4): `payoutNumberId` is a placeholder threaded through so this
+  // still compiles against the new `submitWithdrawal` signature — it is not
+  // yet wired to a real payout-number selection UI. `phoneNumber` is unused
+  // now that withdrawals are number-based; Task 4 finishes the provider.
+  Future<bool> withdraw({required double amount, String? phoneNumber, String payoutNumberId = ''}) async {
     final wallet = state.selected;
     if (wallet == null) return false;
     state = EWalletState(
@@ -102,7 +107,7 @@ class EWalletController extends StateNotifier<EWalletState> {
       error: null,
     );
     try {
-      final res = await _service.submitWithdrawal(opsEwalletId: wallet.id, amount: amount, phoneNumber: phoneNumber);
+      final res = await _service.submitWithdrawal(opsEwalletId: wallet.id, amount: amount, payoutNumberId: payoutNumberId);
       state = EWalletState(
         wallets: state.wallets,
         selected: state.selected,
@@ -135,7 +140,6 @@ class EWalletController extends StateNotifier<EWalletState> {
     String? authEmail,
     String? authPhoneNumber,
     bool? autoCashOut,
-    String? withdrawalPhoneNumber,
   }) async {
     final wallet = state.selected;
     if (wallet == null) return false;
@@ -153,7 +157,6 @@ class EWalletController extends StateNotifier<EWalletState> {
         authEmail: authEmail,
         authPhoneNumber: authPhoneNumber,
         autoCashOut: autoCashOut,
-        withdrawalPhoneNumber: withdrawalPhoneNumber,
       );
       state = EWalletState(
         wallets: state.wallets,

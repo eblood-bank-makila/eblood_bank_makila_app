@@ -1008,7 +1008,10 @@ class _WalletManagementPageState extends ConsumerState<WalletManagementPage>
                   }
                   final ok = await ref
                       .read(ewalletProvider.notifier)
-                      .updateSettings(withdrawalPhoneNumber: phone);
+                      // TODO(Task 5): `withdrawal_phone_number` is retired
+                      // backend-side; this call currently submits nothing
+                      // until the page is redesigned around payout numbers.
+                      .updateSettings();
                   if (!mounted) return;
                   final err = ref.read(ewalletProvider).error;
                   messenger.showSnackBar(SnackBar(

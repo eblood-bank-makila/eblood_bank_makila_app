@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:get/get.dart';
 import '../../../apps/config/theme/ColorPages.dart';
+import '../../../blood_bank/providers/ewallet_provider.dart';
 import '../../business/interactors/DeliveryController.dart';
 import '../../business/model/DeliveryModels.dart';
 import '../pages/HospitalDeliveryTrackingPage.dart';
@@ -390,6 +391,13 @@ class _IncomingDeliveryWidgetState extends ConsumerState<IncomingDeliveryWidget>
           bloodRequestId: delivery.bloodRequestId,
           verificationCode: code,
         );
+
+    if (success) {
+      // Settlement just ran on the backend — refresh so a BB/CNTS user
+      // opening the wallet next sees the release credit without a manual
+      // refresh.
+      ref.invalidate(ewalletProvider);
+    }
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(

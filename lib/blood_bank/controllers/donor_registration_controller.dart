@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:eblood_bank_mak_app/apps/models/registration_origin.dart';
 import '../business/service/BloodDonorApiService.dart';
 
 // Model for donor data
@@ -20,6 +21,11 @@ class DonorData {
   final String? username;
   final String? password;
 
+  /// The API validates this payload with BloodBankDonorRegistrationRequest,
+  /// where `registration_origin` is required. A donor enrolled at the counter
+  /// by blood-bank staff is a plain `registration`.
+  final ERegistrationOrigin registrationOrigin;
+
   DonorData({
     required this.firstName,
     required this.lastName,
@@ -35,6 +41,7 @@ class DonorData {
     this.createAccount = false,
     this.username,
     this.password,
+    this.registrationOrigin = ERegistrationOrigin.registration,
   });
 
   // Convert to JSON for API submission
@@ -46,6 +53,13 @@ class DonorData {
       'gender': gender,
       'blood_type': bloodType,
       'date_of_birth': dateOfBirth,
+      // Required by the API schema — omitting it fails validation with
+      // "Registration origin: Ce champ est obligatoire.".
+      'registration_origin': registrationOrigin.value,
+      // Also required, so they are always sent: the form leaves them optional
+      // and an empty string is what the API expects for "not provided".
+      'emergency_contact_name': emergencyContactName,
+      'emergency_contact_phone': emergencyContactPhone,
     };
 
     if (email.isNotEmpty) {
@@ -54,14 +68,6 @@ class DonorData {
     
     if (address.isNotEmpty) {
       data['address'] = address;
-    }
-    
-    if (emergencyContactName.isNotEmpty) {
-      data['emergency_contact_name'] = emergencyContactName;
-    }
-    
-    if (emergencyContactPhone.isNotEmpty) {
-      data['emergency_contact_phone'] = emergencyContactPhone;
     }
 
     if (createAccount && username != null && password != null) {

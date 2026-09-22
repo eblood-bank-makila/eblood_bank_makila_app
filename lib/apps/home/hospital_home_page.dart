@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:eblood_bank_mak_app/apps/home/widgets/quick_action_grid.dart';
 import 'package:get/get.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../core/rbac/providers/rbac_provider.dart';
@@ -445,14 +446,11 @@ class _HospitalHomePageState extends ConsumerState<HospitalHomePage> {
           ),
         ),
         const SizedBox(height: 16),
-        GridView.count(
-          crossAxisCount: 2,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-          childAspectRatio: 1.3,
-          children: [
+        // Same intrinsic-height grid as the customer home: the cards are as
+        // tall as their content instead of a fixed aspect ratio, so a wrapped
+        // title or a larger system font scale cannot overflow the tile.
+        QuickActionGrid(
+          cards: [
             _buildActionCard(
               title: 'requests'.tr,
               subtitle: 'manage_requests'.tr,

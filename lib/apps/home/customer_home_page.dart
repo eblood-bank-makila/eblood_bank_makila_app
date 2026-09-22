@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:eblood_bank_mak_app/apps/home/widgets/quick_action_grid.dart';
 import 'package:get/get.dart';
 import '../config/theme/ColorPages.dart';
 import '../connect/announcements/announcements_service.dart';
@@ -778,7 +779,7 @@ class _CustomerHomePageState extends ConsumerState<CustomerHomePage> with Widget
 
     // Become Donor (only if user is not a donor)
     if (!_isDonor) {
-      cards.add(_buildActionCard(
+      cards.add(QuickActionCard(
         title: 'become_donor'.tr,
         subtitle: 'blood_donor'.tr,
         icon: Iconsax.heart_add,
@@ -791,7 +792,7 @@ class _CustomerHomePageState extends ConsumerState<CustomerHomePage> with Widget
     }
 
     // Top Donors
-    cards.add(_buildActionCard(
+    cards.add(QuickActionCard(
       title: 'top_donors'.tr,
       subtitle: 'donors'.tr,
       icon: Iconsax.crown,
@@ -806,7 +807,7 @@ class _CustomerHomePageState extends ConsumerState<CustomerHomePage> with Widget
     // the user has the cust_home_delivery_dashboard sub_menu flag, which
     // requires the MOBILE_APP_DELIVERY_PERSON_PROFILE extra profile.
     if (canDeliveryDash) {
-      cards.add(_buildActionCard(
+      cards.add(QuickActionCard(
         title: 'delivery_dashboard'.tr,
         subtitle: 'dashboard'.tr,
         icon: Iconsax.truck,
@@ -820,7 +821,7 @@ class _CustomerHomePageState extends ConsumerState<CustomerHomePage> with Widget
     }
 
     // Find Blood
-    cards.add(_buildActionCard(
+    cards.add(QuickActionCard(
       title: 'find_blood'.tr,
       subtitle: 'search'.tr,
       icon: Iconsax.search_normal_1,
@@ -835,7 +836,7 @@ class _CustomerHomePageState extends ConsumerState<CustomerHomePage> with Widget
 
 
     // Nearby Blood Banks (customer-specific, no cart features)
-    cards.add(_buildActionCard(
+    cards.add(QuickActionCard(
       title: 'nearby_blood_banks'.tr,
       subtitle: 'medical_network'.tr,
       icon: Iconsax.hospital,
@@ -848,7 +849,7 @@ class _CustomerHomePageState extends ConsumerState<CustomerHomePage> with Widget
 
     // Donor-only actions
     if (_isDonor) {
-      cards.add(_buildActionCard(
+      cards.add(QuickActionCard(
         title: 'my_blood_donor_profile'.tr,
         subtitle: 'blood_donor'.tr,
         icon: Iconsax.profile_circle,
@@ -858,7 +859,7 @@ class _CustomerHomePageState extends ConsumerState<CustomerHomePage> with Widget
           MaterialPageRoute(builder: (_) => const MyBloodDonorProfilePage()),
         ),
       ));
-      cards.add(_buildActionCard(
+      cards.add(QuickActionCard(
         title: 'donation_history'.tr,
         subtitle: 'my_donations'.tr,
         icon: Iconsax.activity,
@@ -870,79 +871,7 @@ class _CustomerHomePageState extends ConsumerState<CustomerHomePage> with Widget
       ));
     }
 
-    return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 2,
-      crossAxisSpacing: 12,
-      mainAxisSpacing: 12,
-      childAspectRatio: 1.25,
-      children: cards,
-    );
-  }
-
-  Widget _buildActionCard({
-    required String title,
-    String? subtitle,
-    required IconData icon,
-    required Color color,
-    required VoidCallback onTap,
-    bool locked = false,
-  }) {
-    // Mirror BloodBankHomePage's locked-card pattern: disable tap, dim
-    // the icon colour, and wrap the whole card in Opacity.
-    final effectiveColor = locked ? Colors.grey.shade400 : color;
-    return Opacity(
-      opacity: locked ? 0.5 : 1.0,
-      child: InkWell(
-        onTap: locked ? null : onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: effectiveColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, color: effectiveColor, size: 22),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.ubuntu(fontSize: 14, fontWeight: FontWeight.w700),
-              ),
-              if (subtitle != null) ...[
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.ubuntu(fontSize: 12, color: Colors.grey.shade600),
-                ),
-              ]
-            ],
-          ),
-        ),
-      ),
-    );
+    return QuickActionGrid(cards: cards);
   }
 
 }

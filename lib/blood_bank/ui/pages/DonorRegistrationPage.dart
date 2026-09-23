@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:intl/intl.dart';
 import 'package:get/get.dart';
+import '../../../apps/utils/password_rules.dart';
 import '../../../core/rbac/services/rbac_guard.dart';
 import '../../controllers/donor_registration_controller.dart';
 
@@ -539,15 +540,10 @@ class _DonorRegistrationPageState extends ConsumerState<DonorRegistrationPage> {
                   prefixIcon: const Icon(Iconsax.lock),
                 ),
                 validator: (value) {
-                  if (_needsAccount) {
-                    if (value == null || value.isEmpty) {
-                      return 'password_required'.tr;
-                    }
-                    if (value.length < 8) {
-                      return 'password_min_8_chars'.tr;
-                    }
-                  }
-                  return null;
+                  if (!_needsAccount) return null;
+                  // Same rules the API enforces, so a weak password is an
+                  // inline field error instead of a server round-trip.
+                  return passwordRuleKey(value)?.tr;
                 },
               ),
             ],

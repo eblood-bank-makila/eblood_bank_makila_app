@@ -125,19 +125,12 @@ class DonorRegistrationController extends StateNotifier<AsyncValue<void>> {
       state = AsyncValue.error(e, stackTrace);
       
       // Format a user-friendly error message
-      String errorMessage;
-      if (e is Exception) {
-        errorMessage = e.toString().replaceAll('Exception: ', '');
-      } else {
-        errorMessage = 'Une erreur inattendue est survenue. Veuillez réessayer.';
-      }
-      
       debugPrint('Registration error: $e');
       debugPrint('Stack trace: $stackTrace');
-      
+
       return {
         'success': false,
-        'message': 'Erreur lors de l\'inscription: $errorMessage'
+        'message': userFacingError(e),
       };
     }
   }
@@ -196,8 +189,22 @@ class DonorRegistrationController extends StateNotifier<AsyncValue<void>> {
       }
     } catch (e) {
       debugPrint('Error registering donor: $e');
+      if (e is Exception) rethrow;   // keep the backend message as is (e.g. the 409 structure gate)
       throw Exception('Failed to register donor: $e');
     }
+  }
+
+  /// The message shown on the registration screen. A backend refusal (the 409
+  /// structure gate, a validation error…) travels as `Exception(<message>)`;
+  /// older wrappers prefixed "Failed to register donor: Exception: " — strip
+  /// every layer so the user reads the server's sentence once, as is.
+  static String userFacingError(Object e) {
+    if (e is! Exception) return 'Une erreur inattendue est survenue. Veuillez réessayer.';
+    var msg = e.toString();
+    for (var i = 0; i < 4; i++) {
+      msg = msg.replaceFirst(RegExp(r'^(Exception: |Failed to register donor: )'), '');
+    }
+    return msg.trim().isEmpty ? 'Une erreur inattendue est survenue. Veuillez réessayer.' : msg.trim();
   }
   
   // Step 2: Upload donor photo

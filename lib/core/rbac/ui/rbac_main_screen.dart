@@ -10,6 +10,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:eblood_bank_mak_app/apps/services/AuthService.dart';
+import 'package:eblood_bank_mak_app/blood_bank/ui/widgets/structure_validation_banner.dart';
 import '../providers/rbac_provider.dart';
 import '../rbac_screen_registry.dart';
 import '../models/rbac_models.dart';
@@ -155,9 +156,19 @@ class _RbacMainScreenState extends ConsumerState<RbacMainScreen> {
     return RbacAccountTypeScope(
       accountType: accountType,
       child: Scaffold(
-        body: IndexedStack(
-          index: _currentIndex,
-          children: screens,
+        body: Column(
+          children: [
+            // eBlood validation of the org's structure (pending / refused / not
+            // linked) — pinned above every tab for BB, CNTS and hospital
+            // accounts; renders nothing for customers or once validated.
+            const StructureValidationBanner(requireStructureAccount: true, padStatusBar: true),
+            Expanded(
+              child: IndexedStack(
+                index: _currentIndex,
+                children: screens,
+              ),
+            ),
+          ],
         ),
         bottomNavigationBar: _buildBottomNav(filteredApps),
       ),

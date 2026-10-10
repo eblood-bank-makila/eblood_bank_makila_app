@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:eblood_bank_mak_app/blood_bank/ui/widgets/structure_validation_banner.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:image_picker/image_picker.dart';
@@ -109,7 +110,12 @@ class _DonorRegistrationPageState extends ConsumerState<DonorRegistrationPage> {
           ? _buildLoadingState()
           : _submissionSuccessful
               ? _buildSuccessState()
-              : _buildRegistrationStep(),
+              : Column(
+                  children: [
+                    const StructureValidationBanner(),
+                    Expanded(child: _buildRegistrationStep()),
+                  ],
+                ),
       bottomNavigationBar: _buildBottomNavigation(),
     );
   }
@@ -1300,6 +1306,7 @@ class _DonorRegistrationPageState extends ConsumerState<DonorRegistrationPage> {
   }
 
   Future<void> _submitDonorRegistration() async {
+    if (StructureValidationGate.blockIfUnverified(context, ref)) return;
     setState(() {
       _isSubmitting = true;
       _errorMessage = '';

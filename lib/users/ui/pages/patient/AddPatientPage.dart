@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:eblood_bank_mak_app/blood_bank/ui/widgets/structure_validation_banner.dart';
 import 'package:get/get.dart';
 
 import '../../../../apps/config/theme/ColorPages.dart';
@@ -61,6 +62,7 @@ class _AddPatientPageState extends ConsumerState<AddPatientPage> {
   Future<void> _submit() async {
     try {
     if (!_formKey.currentState!.validate()) return;
+    if (StructureValidationGate.blockIfUnverified(context, ref)) return;
     setState(() => _submitting = true);
 
     final payload = {
@@ -118,6 +120,7 @@ class _AddPatientPageState extends ConsumerState<AddPatientPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const StructureValidationBanner(margin: EdgeInsets.only(bottom: 12)),
               TextFormField(
                 controller: _firstNameCtrl,
                 decoration: InputDecoration(labelText: 'first_name'.tr),

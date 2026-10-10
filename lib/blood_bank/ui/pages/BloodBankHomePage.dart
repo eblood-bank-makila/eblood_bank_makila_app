@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:eblood_bank_mak_app/blood_bank/providers/structure_validation_provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:animate_do/animate_do.dart';
@@ -40,6 +41,7 @@ class _BloodBankHomePageState extends ConsumerState<BloodBankHomePage> {
     setState(() {
       _isRefreshing = true;
     });
+    ref.invalidate(myStructureProvider);   // re-read the eBlood validation state on every refresh
 
     try {
       await Future.wait([

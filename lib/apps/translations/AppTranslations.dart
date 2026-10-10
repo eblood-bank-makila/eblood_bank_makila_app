@@ -6,6 +6,16 @@ class AppTranslations extends Translations {
   Map<String, Map<String, String>> get keys => {
     // French translations
     'fr_FR': {
+      // Structure validation by eBlood (addendum 2026-10-10)
+      'structure_pending_validation_title': 'En attente de validation par eBlood',
+      'structure_pending_validation_body': 'Votre structure n\'a pas encore été validée par eBlood. Vous ne pouvez pas encore ajouter de stock, enregistrer des donneurs ou des patients, ni commander des poches.',
+      'structure_rejected_title': 'Validation refusée par eBlood',
+      'structure_rejected_body': 'Votre structure n\'a pas été validée. Corrigez les informations signalées puis contactez eBlood.',
+      'structure_not_linked_title': 'Aucune structure rattachée',
+      'structure_not_linked_body': 'Aucune structure de santé n\'est rattachée à votre compte eBlood. Contactez le support (support@eblood.app).',
+      'structure_validation_reason': 'Motif',
+      'structure_validation_contact': 'Contact : support@eblood.app',
+      'structure_unverified_badge': 'Non vérifiée',
       // Missing-key sweep 2026-07-31 (raw keys were showing on screen)
       'accept_before_timeout': 'Acceptez avant l\'expiration du délai',
       'accept_delivery': 'Accepter la livraison',
@@ -2139,6 +2149,16 @@ class AppTranslations extends Translations {
 
     // English translations
     'en_US': {
+      // Structure validation by eBlood (addendum 2026-10-10)
+      'structure_pending_validation_title': 'Awaiting validation by eBlood',
+      'structure_pending_validation_body': 'Your structure has not been validated by eBlood yet. Until then you cannot add stock, register donors or patients, or order bags.',
+      'structure_rejected_title': 'Validation refused by eBlood',
+      'structure_rejected_body': 'Your structure was not validated. Fix the reported information, then contact eBlood.',
+      'structure_not_linked_title': 'No structure linked',
+      'structure_not_linked_body': 'No health structure is linked to your eBlood account. Contact support (support@eblood.app).',
+      'structure_validation_reason': 'Reason',
+      'structure_validation_contact': 'Contact: support@eblood.app',
+      'structure_unverified_badge': 'Unverified',
       // Missing-key sweep 2026-07-31 (raw keys were showing on screen)
       'accept_before_timeout': 'Accept before the timeout expires',
       'accept_delivery': 'Accept delivery',
@@ -4140,6 +4160,16 @@ class AppTranslations extends Translations {
 
     // Spanish translations
     'es_ES': {
+      // Structure validation by eBlood (addendum 2026-10-10)
+      'structure_pending_validation_title': 'Pendiente de validación por eBlood',
+      'structure_pending_validation_body': 'Su estructura aún no ha sido validada por eBlood. Hasta entonces no puede añadir stock, registrar donantes o pacientes, ni pedir bolsas.',
+      'structure_rejected_title': 'Validación rechazada por eBlood',
+      'structure_rejected_body': 'Su estructura no fue validada. Corrija la información indicada y contacte con eBlood.',
+      'structure_not_linked_title': 'Ninguna estructura vinculada',
+      'structure_not_linked_body': 'Ninguna estructura de salud está vinculada a su cuenta eBlood. Contacte con el soporte (support@eblood.app).',
+      'structure_validation_reason': 'Motivo',
+      'structure_validation_contact': 'Contacto: support@eblood.app',
+      'structure_unverified_badge': 'No verificada',
       // Missing-key sweep 2026-07-31 (raw keys were showing on screen)
       'accept_before_timeout': 'Acepte antes de que expire el tiempo',
       'accept_delivery': 'Aceptar la entrega',
@@ -5429,6 +5459,16 @@ class AppTranslations extends Translations {
 
     // Lingala translations
     'ln_CD': {
+      // Structure validation by eBlood (addendum 2026-10-10)
+      'structure_pending_validation_title': 'Ezali kozela bondimi ya eBlood',
+      'structure_pending_validation_body': 'Ndako na bino endimami naino te na eBlood. Bokoki naino te kobakisa makila, kokoma bapesi makila to bakoni, to kosomba.',
+      'structure_rejected_title': 'eBlood eboyi bondimi',
+      'structure_rejected_body': 'Ndako na bino endimami te. Bobongisa makambo oyo etalisami mpe bobenga eBlood.',
+      'structure_not_linked_title': 'Ndako moko te ekangami',
+      'structure_not_linked_body': 'Ndako ya bokolongono moko te ekangami na kompi na bino ya eBlood. Bobenga lisalisi (support@eblood.app).',
+      'structure_validation_reason': 'Ntina',
+      'structure_validation_contact': 'Bobenga : support@eblood.app',
+      'structure_unverified_badge': 'Endimami te',
       // Missing-key sweep 2026-07-31 (raw keys were showing on screen)
       'accept_before_timeout': 'Ndima liboso tango esila',
       'accept_delivery': 'Ndima kokomisa',
@@ -6644,6 +6684,16 @@ class AppTranslations extends Translations {
 
     // Russian translations
     'ru_RU': {
+      // Structure validation by eBlood (addendum 2026-10-10)
+      'structure_pending_validation_title': 'Ожидает подтверждения eBlood',
+      'structure_pending_validation_body': 'Ваша структура ещё не подтверждена eBlood. До этого вы не можете добавлять запасы, регистрировать доноров или пациентов и заказывать пакеты.',
+      'structure_rejected_title': 'Подтверждение отклонено eBlood',
+      'structure_rejected_body': 'Ваша структура не была подтверждена. Исправьте указанные данные и свяжитесь с eBlood.',
+      'structure_not_linked_title': 'Структура не привязана',
+      'structure_not_linked_body': 'К вашей учётной записи eBlood не привязана ни одна медицинская структура. Обратитесь в поддержку (support@eblood.app).',
+      'structure_validation_reason': 'Причина',
+      'structure_validation_contact': 'Контакт: support@eblood.app',
+      'structure_unverified_badge': 'Не подтверждена',
       // Missing-key sweep 2026-07-31 (raw keys were showing on screen)
       'accept_before_timeout': 'Примите до истечения времени',
       'accept_delivery': 'Принять доставку',

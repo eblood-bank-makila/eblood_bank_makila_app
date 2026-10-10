@@ -18,6 +18,7 @@ import 'package:eblood_bank_mak_app/stock_management/ui/pages/banque/BloodBankAd
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:eblood_bank_mak_app/blood_bank/ui/widgets/structure_validation_banner.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -225,6 +226,7 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
       ),
       body: Column(
         children: [
+          const StructureValidationBanner(margin: EdgeInsets.fromLTRB(16, 8, 16, 0)),
           // Stepper header
           _buildStepperHeader(),
 
@@ -1616,6 +1618,7 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
   Future<void> _startPayment() async {
     final bag = _selectedBloodBag;
     if (bag == null || _isProcessingPayment) return;
+    if (StructureValidationGate.blockIfUnverified(context, ref)) return;
 
     // Checkout-level RBAC gate. The page's entry guard checks the
     // broader "order" flag; the final checkout requires a stricter

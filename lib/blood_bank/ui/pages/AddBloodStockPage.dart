@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:eblood_bank_mak_app/blood_bank/ui/widgets/structure_validation_banner.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:animate_do/animate_do.dart';
@@ -477,7 +478,12 @@ class _AddBloodStockPageState extends ConsumerState<AddBloodStockPage> {
       appBar: _buildAppBar(),
       body: _isLoading
           ? const Center(child: ModernSpinnerWidget())
-          : _buildBody(),
+          : Column(
+              children: [
+                const StructureValidationBanner(),
+                Expanded(child: _buildBody()),
+              ],
+            ),
     );
   }
 
@@ -1246,6 +1252,9 @@ class _AddBloodStockPageState extends ConsumerState<AddBloodStockPage> {
     if (!_formKey.currentState!.validate()) {
       return;
     }
+    // Same rule as the backend write gate (409): an unvalidated structure
+    // cannot add stock. Unknown state → let the server decide.
+    if (StructureValidationGate.blockIfUnverified(context, ref)) return;
 
     setState(() {
       _isLoading = true;

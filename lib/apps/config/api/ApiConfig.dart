@@ -23,6 +23,8 @@ class ApiConfig {
   /// API endpoints for blood bank operations
   static const String bloodStock = '/eblood/inventory/items/list';
   static const String bloodStockCreate = '/eblood/inventory/items/create';
+  /// Own structure + eBlood (MAIN) validation status; 404 = no structure linked.
+  static const String myStructure = '/eblood/health-structures/mine';
   static const String bloodRequests = '/eblood/requests';
   static const String bloodBankStats = '/eblood/stats/blood-inventory';
   static const String bloodTypeAvailability = '/eblood/availability';

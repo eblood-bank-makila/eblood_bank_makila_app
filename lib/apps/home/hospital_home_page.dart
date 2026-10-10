@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:eblood_bank_mak_app/blood_bank/providers/structure_validation_provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:eblood_bank_mak_app/apps/home/widgets/quick_action_grid.dart';
 import 'package:get/get.dart';
@@ -57,6 +58,7 @@ class _HospitalHomePageState extends ConsumerState<HospitalHomePage> {
 
   Future<void> _loadDashboardData() async {
     setState(() => _loading = true);
+    ref.invalidate(myStructureProvider);   // re-read the eBlood validation state on every refresh
     try {
       final data = await HospitalDashboardService().fetchDashboard();
       if (!mounted) return;

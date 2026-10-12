@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:geolocator/geolocator.dart';
-import '../../core/widgets/network_status_widget.dart';
 import '../widgets/CustomTextField.dart';
 import '../widgets/CustomDropdown.dart';
 import '../../core/widgets/location_bottom_sheet_select.dart';

@@ -3,7 +3,8 @@ import '../network/network_manager.dart';
 
 /// Enhanced NetworkStatusWidget with:
 /// - Debounced backend state changes (handled in NetworkManager)
-/// - Optional space preservation to avoid layout jumps
+/// - Overlay banner that only takes room while offline (pushes the pages'
+///   top inset down; `preserveSpace` is kept for API compatibility, unused)
 /// - Smooth fade animation
 /// - Retry button with progress indicator
 class NetworkStatusWidget extends StatefulWidget {
@@ -28,7 +29,8 @@ class NetworkStatusWidget extends StatefulWidget {
   State<NetworkStatusWidget> createState() => _NetworkStatusWidgetState();
 }
 
-class _NetworkStatusWidgetState extends State<NetworkStatusWidget> with SingleTickerProviderStateMixin {
+class _NetworkStatusWidgetState extends State<NetworkStatusWidget>
+    with SingleTickerProviderStateMixin {
   late bool _isBackendAvailable;
   late final Stream<bool> _backendStream;
   late final AnimationController _controller;
@@ -43,7 +45,10 @@ class _NetworkStatusWidgetState extends State<NetworkStatusWidget> with SingleTi
     _isBackendAvailable = manager.isBackendAvailable;
     _backendStream = manager.backendStatus;
 
-    _controller = AnimationController(vsync: this, duration: widget.fadeDuration);
+    _controller = AnimationController(
+      vsync: this,
+      duration: widget.fadeDuration,
+    );
     _fade = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
     if (!_isBackendAvailable) _controller.forward();
   }
@@ -86,31 +91,42 @@ class _NetworkStatusWidgetState extends State<NetworkStatusWidget> with SingleTi
           child = AbsorbPointer(child: child);
         }
 
-        final banner = FadeTransition(
-          opacity: _fade,
-          child: !_isBackendAvailable
-              ? _OfflineBanner(
-                  message: widget.offlineMessage ?? 'backend_unavailable',
-                  retrying: _isRetrying,
-                  onRetry: _retry,
-                )
-              : const SizedBox.shrink(),
-        );
-
-        return Column(
-          children: [
-            if (widget.preserveSpace)
-              SizedBox(
-                height: _bannerHeight,
-                child: Stack(children: [Positioned.fill(child: banner)]),
-              )
-            else
-              SizeTransition(
-                sizeFactor: _fade,
-                axisAlignment: -1.0,
-                child: SizedBox(height: _bannerHeight, child: banner),
+        // The app keeps the whole screen (edge-to-edge, Android 15+). Nothing is
+        // reserved while online; when offline the banner sits under the status
+        // bar and the pages' top inset grows by its height, so every SafeArea /
+        // AppBar moves down below it instead of being covered.
+        final media = MediaQuery.of(context);
+        final statusBar = media.padding.top;
+        if (!_isBackendAvailable) {
+          child = MediaQuery(
+            data: media.copyWith(
+              padding: media.padding.copyWith(top: statusBar + _bannerHeight),
+              viewPadding: media.viewPadding.copyWith(
+                top: media.viewPadding.top + _bannerHeight,
               ),
-            Expanded(child: child),
+            ),
+            child: child,
+          );
+        }
+
+        return Stack(
+          children: [
+            Positioned.fill(child: child),
+            if (!_isBackendAvailable)
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                height: statusBar + _bannerHeight,
+                child: FadeTransition(
+                  opacity: _fade,
+                  child: _OfflineBanner(
+                    message: widget.offlineMessage ?? 'backend_unavailable',
+                    retrying: _isRetrying,
+                    onRetry: _retry,
+                  ),
+                ),
+              ),
           ],
         );
       },
@@ -141,7 +157,7 @@ class _OfflineBanner extends StatelessWidget {
             color: Colors.black.withOpacity(.15),
             blurRadius: 4,
             offset: const Offset(0, 2),
-          )
+          ),
         ],
       ),
       child: SafeArea(
@@ -198,10 +214,10 @@ extension NetworkStatusExtension on Widget {
     bool preserveSpace = true,
     VoidCallback? onRetry,
   }) => NetworkStatusWidget(
-        child: this,
-        offlineMessage: offlineMessage,
-        absorbPointerWhenOffline: absorbPointerWhenOffline,
-        preserveSpace: preserveSpace,
-        onRetry: onRetry,
-      );
+    child: this,
+    offlineMessage: offlineMessage,
+    absorbPointerWhenOffline: absorbPointerWhenOffline,
+    preserveSpace: preserveSpace,
+    onRetry: onRetry,
+  );
 }

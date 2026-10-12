@@ -4,8 +4,6 @@ import 'package:get/get.dart';
 // Removed unused UI imports
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/network/network_manager.dart';
-import '../../core/widgets/network_status_widget.dart';
 import '../config/theme/ColorPages.dart';
 import 'HealthStructureEmailVerificationPage.dart';
 import '../widgets/CustomTextField.dart';
@@ -137,7 +135,6 @@ class _HealthStructureRegistrationStepperPageState
   void initState() {
     super.initState();
     _fetchLocationData();
-    NetworkManager().initialize(skipInitialCheck: true);
 
     _structurePhoneController.addListener(() {
       if (_structurePhoneController.text.isNotEmpty &&
@@ -207,7 +204,6 @@ class _HealthStructureRegistrationStepperPageState
         _locationData = response.data;
         _isLoadingLocations = false;
       });
-      NetworkManager().markBackendAsAvailable();
     } catch (e) {
       setState(() {
         _locationError = 'Failed to load location data: $e';

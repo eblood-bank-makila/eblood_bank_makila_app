@@ -33,7 +33,6 @@ import 'package:path_provider/path_provider.dart';
 import 'package:flutter/services.dart';
 import 'orders/ui/framework/panier/PanierServiceNetworkImpl.dart';
 import 'stock_management/ui/framework/recherche/RechercheListeServiceNetworkImpl.dart';
-import 'core/network/network_manager.dart';
 import 'core/services/app_initialization_service.dart';
 import 'core/rbac/data/rbac_local_storage.dart';
 import 'orders/dead_hand/dead_hand_service.dart';
@@ -154,13 +153,6 @@ void main() async {
     debugPrint("⚠️ API initialization failed (non-fatal): $e");
   }
 
-  // Initialize NetworkManager for real-time connectivity monitoring without blocking startup
-  try {
-    await NetworkManager().initialize(skipInitialCheck: true);
-    print("✅ NetworkManager initialized with connectivity monitoring");
-  } catch (e) {
-    print("⚠️ NetworkManager initialization failed: $e");
-  }
 
   // Module utilisateur service implementations
   // Initialize AuthApi and storage first

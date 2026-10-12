@@ -8,7 +8,6 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'translations/AppTranslations.dart';
 import 'services/LanguageService.dart';
 
-import 'package:eblood_bank_mak_app/core/widgets/network_status_widget.dart';
 
 // Fallback delegate for unsupported locales (like Lingala)
 class FallbackLocalizationsDelegate extends LocalizationsDelegate<MaterialLocalizations> {
@@ -55,18 +54,12 @@ class MonApplication extends ConsumerWidget {
 
       // Wrap app to close keyboard when tapping outside inputs
       builder: (context, child) {
-        final base = GestureDetector(
+        return GestureDetector(
           behavior: HitTestBehavior.translucent,
           onTap: () {
             FocusManager.instance.primaryFocus?.unfocus();
           },
           child: child ?? const SizedBox.shrink(),
-        );
-        return NetworkStatusWidget(
-          child: base,
-          offlineMessage: 'backend_unavailable'.tr,
-          preserveSpace: true,
-          absorbPointerWhenOffline: false,
         );
       },
 

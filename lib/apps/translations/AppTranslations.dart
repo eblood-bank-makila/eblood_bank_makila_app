@@ -1352,7 +1352,6 @@ class AppTranslations extends Translations {
       'network_error': 'Erreur de réseau',
       'server_error': 'Erreur du serveur',
       'timeout_error': 'Délai d\'attente dépassé',
-      'backend_unavailable': 'Hors ligne — serveur indisponible',
 
       // Validation messages
       'field_required': 'Ce champ est obligatoire',
@@ -3348,7 +3347,6 @@ class AppTranslations extends Translations {
       'network_error': 'Network Error',
       'server_error': 'Server Error',
       'timeout_error': 'Timeout Error',
-      'backend_unavailable': 'Offline — backend unreachable',
 
       // Validation messages
       'field_required': 'This field is required',

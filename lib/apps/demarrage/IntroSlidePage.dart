@@ -105,7 +105,9 @@ class _IntroSlidePageState extends ConsumerState<IntroSlidePage> {
       final firstLaunchService = ref.read(firstLaunchServiceProvider.notifier);
       print('🚀 IntroSlides: Marquage du premier lancement comme terminé');
       await firstLaunchService.markFirstLaunchComplete();
-      print('🚀 IntroSlides: Premier lancement marqué terminé, navigation vers la page d\'accueil');
+      print(
+        '🚀 IntroSlides: Premier lancement marqué terminé, navigation vers la page d\'accueil',
+      );
 
       if (mounted) {
         context.go('/welcome');
@@ -139,131 +141,137 @@ class _IntroSlidePageState extends ConsumerState<IntroSlidePage> {
                   // Add some top spacing for the top bar
                   const SizedBox(height: 80),
 
-              // PageView with slides
-              Expanded(
-                flex: 4,
-                child: PageView.builder(
-                  controller: _pageController,
-                  onPageChanged: (index) {
-                    setState(() {
-                      _currentPage = index;
-                    });
-                  },
-                  itemCount: _slides.length,
-                  itemBuilder: (context, index) {
-                    return _buildSlide(_slides[index], index);
-                  },
-                ),
-              ),
+                  // PageView with slides
+                  // Slides take whatever height is left once the controls and the
+                  // sponsor footer (natural height) are laid out — no fixed split,
+                  // so short screens (e.g. Galaxy A07, 384×853 dp) never clip them.
+                  Expanded(
+                    child: PageView.builder(
+                      controller: _pageController,
+                      onPageChanged: (index) {
+                        setState(() {
+                          _currentPage = index;
+                        });
+                      },
+                      itemCount: _slides.length,
+                      itemBuilder: (context, index) {
+                        return _buildSlide(_slides[index], index);
+                      },
+                    ),
+                  ),
 
-              // Page indicators and navigation
-              Expanded(
-                flex: 1,
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Dots indicator
-                      FadeInUp(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: List.generate(
-                            _slides.length,
-                            (index) => AnimatedContainer(
-                              duration: const Duration(milliseconds: 300),
-                              margin: const EdgeInsets.symmetric(horizontal: 4),
-                              width: _currentPage == index ? 24 : 8,
-                              height: 8,
-                              decoration: BoxDecoration(
-                                color: _currentPage == index
-                                    ? Colors.white
-                                    : Colors.white.withValues(alpha: 0.4),
-                                borderRadius: BorderRadius.circular(4),
+                  // Page indicators and navigation
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Dots indicator
+                        FadeInUp(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: List.generate(
+                              _slides.length,
+                              (index) => AnimatedContainer(
+                                duration: const Duration(milliseconds: 300),
+                                margin: const EdgeInsets.symmetric(
+                                  horizontal: 4,
+                                ),
+                                width: _currentPage == index ? 24 : 8,
+                                height: 8,
+                                decoration: BoxDecoration(
+                                  color: _currentPage == index
+                                      ? Colors.white
+                                      : Colors.white.withValues(alpha: 0.4),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
 
-                      const SizedBox(height: 20),
+                        const SizedBox(height: 20),
 
-                      // Navigation buttons
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            // Previous button
-                            FadeInLeft(
-                              child: _currentPage > 0
-                                  ? TextButton.icon(
-                                      onPressed: _previousPage,
-                                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                                      label: Text(
-                                        'previous'.tr,
-                                        style: GoogleFonts.ubuntu(
+                        // Navigation buttons
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              // Previous button
+                              FadeInLeft(
+                                child: _currentPage > 0
+                                    ? TextButton.icon(
+                                        onPressed: _previousPage,
+                                        icon: const Icon(
+                                          Icons.arrow_back,
                                           color: Colors.white,
-                                          fontWeight: FontWeight.w500,
+                                        ),
+                                        label: Text(
+                                          'previous'.tr,
+                                          style: GoogleFonts.ubuntu(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      )
+                                    : const SizedBox(width: 100),
+                              ),
+
+                              // Next/Get Started button
+                              FadeInRight(
+                                child: ElevatedButton(
+                                  onPressed: _nextPage,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.white,
+                                    foregroundColor:
+                                        _slides[_currentPage].color,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 24,
+                                      vertical: 12,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(25),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        _currentPage == _slides.length - 1
+                                            ? 'get_started'.tr
+                                            : 'next'.tr,
+                                        style: GoogleFonts.ubuntu(
+                                          fontWeight: FontWeight.w600,
                                         ),
                                       ),
-                                    )
-                                  : const SizedBox(width: 100),
-                            ),
-
-                            // Next/Get Started button
-                            FadeInRight(
-                              child: ElevatedButton(
-                                onPressed: _nextPage,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.white,
-                                  foregroundColor: _slides[_currentPage].color,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 24,
-                                    vertical: 12,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(25),
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      _currentPage == _slides.length - 1
-                                          ? 'get_started'.tr
-                                          : 'next'.tr,
-                                      style: GoogleFonts.ubuntu(
-                                        fontWeight: FontWeight.w600,
+                                      const SizedBox(width: 8),
+                                      Icon(
+                                        _currentPage == _slides.length - 1
+                                            ? Icons.check
+                                            : Icons.arrow_forward,
                                       ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Icon(
-                                      _currentPage == _slides.length - 1
-                                          ? Icons.check
-                                          : Icons.arrow_forward,
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
 
-                      const SizedBox(height: 12),
+                        const SizedBox(height: 12),
 
-                      // Sponsor footer
-                      SponsorFooter(
-                        labelStyle: GoogleFonts.ubuntu(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.white.withValues(alpha: 0.8),
+                        // Sponsor footer
+                        SponsorFooter(
+                          labelStyle: GoogleFonts.ubuntu(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white.withValues(alpha: 0.8),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ),
                 ],
               ),
 
@@ -335,82 +343,81 @@ class _IntroSlidePageState extends ConsumerState<IntroSlidePage> {
   }
 
   Widget _buildSlide(OnboardingSlide slide, int index) {
-    return Padding(
-      padding: const EdgeInsets.all(40.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Icon
-          FadeInDown(
-            delay: Duration(milliseconds: 200 * index),
-            child: Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: 0.2),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.3),
-                  width: 2,
+    // Centered while it fits, scrollable when the screen is too short.
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Icon
+            FadeInDown(
+              delay: Duration(milliseconds: 200 * index),
+              child: Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withValues(alpha: 0.2),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.3),
+                    width: 2,
+                  ),
                 ),
-              ),
-              child: Icon(
-                slide.icon,
-                size: 60,
-                color: Colors.white,
+                child: Icon(slide.icon, size: 60, color: Colors.white),
               ),
             ),
-          ),
 
-          const SizedBox(height: 40),
+            const SizedBox(height: 40),
 
-          // Title
-          FadeInUp(
-            delay: Duration(milliseconds: 400 + (200 * index)),
-            child: Text(
-              slide.title,
-              style: GoogleFonts.ubuntu(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-                height: 1.2,
+            // Title
+            FadeInUp(
+              delay: Duration(milliseconds: 400 + (200 * index)),
+              child: Text(
+                slide.title,
+                style: GoogleFonts.ubuntu(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  height: 1.2,
+                ),
+                textAlign: TextAlign.center,
               ),
-              textAlign: TextAlign.center,
             ),
-          ),
 
-          const SizedBox(height: 16),
+            const SizedBox(height: 16),
 
-          // Subtitle
-          FadeInUp(
-            delay: Duration(milliseconds: 600 + (200 * index)),
-            child: Text(
-              slide.subtitle,
-              style: GoogleFonts.ubuntu(
-                fontSize: 18,
-                fontWeight: FontWeight.w500,
-                color: Colors.white.withValues(alpha: 0.9),
+            // Subtitle
+            FadeInUp(
+              delay: Duration(milliseconds: 600 + (200 * index)),
+              child: Text(
+                slide.subtitle,
+                style: GoogleFonts.ubuntu(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.white.withValues(alpha: 0.9),
+                ),
+                textAlign: TextAlign.center,
               ),
-              textAlign: TextAlign.center,
             ),
-          ),
 
-          const SizedBox(height: 24),
+            const SizedBox(height: 24),
 
-          // Description
-          FadeInUp(
-            delay: Duration(milliseconds: 800 + (200 * index)),
-            child: Text(
-              slide.description,
-              style: GoogleFonts.ubuntu(
-                fontSize: 16,
-                color: Colors.white.withValues(alpha: 0.8),
-                height: 1.5,
+            // Description
+            FadeInUp(
+              delay: Duration(milliseconds: 800 + (200 * index)),
+              child: Text(
+                slide.description,
+                style: GoogleFonts.ubuntu(
+                  fontSize: 16,
+                  color: Colors.white.withValues(alpha: 0.8),
+                  height: 1.5,
+                ),
+                textAlign: TextAlign.center,
               ),
-              textAlign: TextAlign.center,
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -36,6 +36,7 @@ import 'stock_management/ui/framework/recherche/RechercheListeServiceNetworkImpl
 import 'core/services/app_initialization_service.dart';
 import 'core/rbac/data/rbac_local_storage.dart';
 import 'orders/dead_hand/dead_hand_service.dart';
+import 'delivery/business/service/courier_presence_service.dart';
 
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -192,6 +193,9 @@ void main() async {
   var paiementInteractor =
       Paiementinteractor.build(paiementNetworkImpl, utilisateurLocalImpl);
   // module paiement
+
+  // Courier "En ligne" heartbeat. After dotenv: it calls the API at once.
+  CourierPresenceService.instance.attach();
 
   runApp(ProviderScope(
     child: MonApplication(),

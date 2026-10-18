@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:lokotro_pay/lokotro_pay.dart';
 
 import 'PaymentApi.dart';
+import 'eblood_lokotro_theme.dart';
 
 /// Sprint 15 — wraps the lokotro_pay SDK so callers don't have to know
 /// about LokotroPayConfigs / LokotroPaymentBody / Navigator-push
@@ -100,6 +101,7 @@ class LokotroPayCheckoutService {
         builder: (innerContext) => LokotroPayCheckout(
           title: title,
           configs: configs,
+          themeConfig: ebloodLokotroTheme,
           paymentBody: paymentBody,
           onResponse: (response) {
             // Full payload dump — /payments/confirm-collect needs the

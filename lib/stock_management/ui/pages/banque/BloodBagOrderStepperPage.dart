@@ -72,6 +72,10 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
   bool _isLoading = false;
   String? _errorMessage;
 
+  // Price of widget.bloodType bags per bank id, shown on the bank cards.
+  // Null while loading; a bank missing from the map shows no price.
+  Map<String, BankBagPrice>? _bankPrices;
+
   // Bags of the selected bank matching widget.bloodType (from search-simple).
   List<PocheModel> _bloodBags = [];
   PocheModel? _selectedBloodBag;
@@ -109,6 +113,19 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
     );
     // Resolve the hospital early so the confirm step can quote the km leg.
     _resolveHospitalId();
+    _loadBankPrices();
+  }
+
+  /// Real per-bank prices for the bank step (search-simple rows).
+  Future<void> _loadBankPrices() async {
+    Map<String, BankBagPrice> prices;
+    try {
+      prices = await HospitalBagPurchaseFlow.fetchBankPrices(bloodType: widget.bloodType);
+    } catch (e) {
+      debugPrint('⚠️ Bank prices unavailable: $e');
+      prices = const {};
+    }
+    if (mounted) setState(() => _bankPrices = prices);
   }
 
   /// Hospital of the logged-in staff, from GET /health-structures/mine
@@ -426,8 +443,7 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
         ? '${(distance * 1000).toInt()} m'
         : '${distance.toStringAsFixed(1)} km';
 
-    // Estimate price (default $10 per bag)
-    final pricePerBag = 10.0;
+    final price = _bankPrices?[bank.id];
 
     return FadeInUp(
       duration: const Duration(milliseconds: 300),
@@ -489,7 +505,7 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          'distance_from_you'.trParams({'distance': distanceText}),
+                          'distance_away_from_you'.trParams({'distance': distanceText}),
                           style: GoogleFonts.ubuntu(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
@@ -499,26 +515,28 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
                       ],
                     ),
 
-                    const SizedBox(height: 8),
+                    if (price != null) ...[
+                      const SizedBox(height: 8),
 
-                    // Price
-                    Row(
-                      children: [
-                        Icon(
-                          Iconsax.dollar_circle,
-                          size: 16,
-                          color: Colors.green,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          'price_per_bag'.trParams({'price': '\$${pricePerBag.toStringAsFixed(0)}'}),
-                          style: GoogleFonts.ubuntu(
-                            fontSize: 13,
-                            color: Colors.grey.shade700,
+                      // Price (lowest – highest of this blood type at the bank)
+                      Row(
+                        children: [
+                          Icon(
+                            Iconsax.dollar_circle,
+                            size: 16,
+                            color: Colors.green,
                           ),
-                        ),
-                      ],
-                    ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'price_per_bag'.trParams({'price': price.label}),
+                            style: GoogleFonts.ubuntu(
+                              fontSize: 13,
+                              color: Colors.grey.shade700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),

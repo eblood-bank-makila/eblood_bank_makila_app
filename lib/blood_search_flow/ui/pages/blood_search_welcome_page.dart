@@ -15,11 +15,15 @@ import '../../providers/search_flow_provider.dart';
 import '../../providers/recent_activity_provider.dart';
 import '../../data/services/visitor_registration_service_impl.dart';
 import '../../../apps/config/theme/ColorPages.dart';
+import '../../../core/rbac/providers/rbac_provider.dart';
 import '../../../core/services/session_user_store.dart';
 import '../widgets/recent_activity_bottom_sheet.dart';
 
 class BloodSearchWelcomePage extends ConsumerStatefulWidget {
   const BloodSearchWelcomePage({super.key});
+
+  static const dashboardButtonKey = Key('welcome-dashboard-button');
+  static const activityButtonKey = Key('welcome-activity-button');
 
   @override
   ConsumerState<BloodSearchWelcomePage> createState() => _BloodSearchWelcomePageState();
@@ -186,6 +190,18 @@ class _BloodSearchWelcomePageState extends ConsumerState<BloodSearchWelcomePage>
       default:
         return type.isNotEmpty ? type : 'User';
     }
+  }
+
+  /// A signed-in hospital, blood bank, CNTS, customer… has a dashboard to go
+  /// back to; a visitor or guest does not.
+  bool get _hasDashboard =>
+      _isLoggedIn && _accountType.isNotEmpty && _accountType != 'visitor';
+
+  /// The splash loads RBAC before landing here. If it is not loaded, the
+  /// loading screen fetches it and then opens the dashboard, instead of the
+  /// RBAC guard bouncing an empty dashboard with access_denied.
+  void _openDashboard() {
+    context.go(ref.read(rbacProvider).isLoaded ? '/app/MainApp' : '/rbac-loading');
   }
 
   /// Check autoOpenTab and show bottom sheet automatically
@@ -355,21 +371,10 @@ class _BloodSearchWelcomePageState extends ConsumerState<BloodSearchWelcomePage>
     );
 
     return Scaffold(
-      floatingActionButton: activityState.hasActivity
-          ? FloatingActionButton.extended(
-              onPressed: () => showRecentActivityBottomSheet(context),
-              backgroundColor: Colors.white,
-              foregroundColor: ColorPages.COLOR_PRINCIPAL,
-              elevation: 6,
-              icon: const Icon(Iconsax.activity, size: 22),
-              label: Text(
-                'my_activity'.tr.isEmpty ? 'My Activity' : 'my_activity'.tr,
-                style: GoogleFonts.ubuntu(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            )
+      // Accounts with a dashboard get this button above their user bar
+      // instead: floating, it covered the bar's dashboard button.
+      floatingActionButton: activityState.hasActivity && !_hasDashboard
+          ? _buildActivityButton()
           : null,
       body: Container(
         width: double.infinity,
@@ -666,7 +671,7 @@ class _BloodSearchWelcomePageState extends ConsumerState<BloodSearchWelcomePage>
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 child: _isLoggedIn
-                    ? Container(
+                    ? _withInlineActivity(hasActivity: activityState.hasActivity, bar: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.15),
@@ -724,30 +729,33 @@ class _BloodSearchWelcomePageState extends ConsumerState<BloodSearchWelcomePage>
                               ),
                             ),
                             const SizedBox(width: 8),
-                            // Go to Home button
-                            ElevatedButton.icon(
-                              onPressed: () => context.go('/app/MainApp'),
-                              icon: const Icon(Iconsax.home_2, size: 18),
-                              label: Text(
-                                'home'.tr.isEmpty ? 'Home' : 'home'.tr,
-                                style: GoogleFonts.ubuntu(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
+                            if (_hasDashboard)
+                              _buildDashboardButton()
+                            else
+                              // Go to Home button
+                              ElevatedButton.icon(
+                                onPressed: () => context.go('/app/MainApp'),
+                                icon: const Icon(Iconsax.home_2, size: 18),
+                                label: Text(
+                                  'home'.tr.isEmpty ? 'Home' : 'home'.tr,
+                                  style: GoogleFonts.ubuntu(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.white,
+                                  foregroundColor: ColorPages.COLOR_PRINCIPAL,
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  elevation: 0,
                                 ),
                               ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.white,
-                                foregroundColor: ColorPages.COLOR_PRINCIPAL,
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                elevation: 0,
-                              ),
-                            ),
                           ],
                         ),
-                      )
+                      ))
                     : Row(
                         children: [
                           Expanded(
@@ -787,6 +795,63 @@ class _BloodSearchWelcomePageState extends ConsumerState<BloodSearchWelcomePage>
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  /// Accounts with a dashboard: the activity button sits above the user bar,
+  /// so it can never cover the bar's dashboard button.
+  Widget _withInlineActivity({required bool hasActivity, required Widget bar}) {
+    if (!_hasDashboard || !hasActivity) return bar;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        _buildActivityButton(),
+        const SizedBox(height: 12),
+        bar,
+      ],
+    );
+  }
+
+  Widget _buildActivityButton() {
+    return FloatingActionButton.extended(
+      key: BloodSearchWelcomePage.activityButtonKey,
+      onPressed: () => showRecentActivityBottomSheet(context),
+      backgroundColor: Colors.white,
+      foregroundColor: ColorPages.COLOR_PRINCIPAL,
+      elevation: 6,
+      icon: const Icon(Iconsax.activity, size: 22),
+      label: Text(
+        'my_activity'.tr.isEmpty ? 'My Activity' : 'my_activity'.tr,
+        style: GoogleFonts.ubuntu(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDashboardButton() {
+    return ElevatedButton.icon(
+      key: BloodSearchWelcomePage.dashboardButtonKey,
+      onPressed: _openDashboard,
+      icon: const Icon(Iconsax.element_3, size: 18),
+      label: Text(
+        'my_dashboard'.tr,
+        style: GoogleFonts.ubuntu(
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.white,
+        foregroundColor: ColorPages.COLOR_PRINCIPAL,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        elevation: 0,
       ),
     );
   }

@@ -1,8 +1,6 @@
 import 'dart:async';
 
 import 'package:animate_do/animate_do.dart';
-import 'package:eblood_bank_mak_app/apps/config/api/dio_client.dart';
-import 'package:eblood_bank_mak_app/apps/config/api/ApiConfig.dart';
 import 'package:eblood_bank_mak_app/apps/config/theme/ColorPages.dart';
 import 'package:eblood_bank_mak_app/apps/widgets/AppSpinner.dart';
 import 'package:eblood_bank_mak_app/core/rbac/providers/rbac_provider.dart';
@@ -18,9 +16,9 @@ import 'package:eblood_bank_mak_app/stock_management/ui/pages/banque/BloodBankAd
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:eblood_bank_mak_app/blood_bank/data/services/structure_validation_service.dart';
 import 'package:eblood_bank_mak_app/blood_bank/ui/widgets/structure_validation_banner.dart';
 import 'package:get/get.dart';
-import 'package:get_storage/get_storage.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 
@@ -75,8 +73,8 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
   List<PocheModel> _bloodBags = [];
   PocheModel? _selectedBloodBag;
 
-  // Logged-in hospital (destination of the delivery), resolved from the
-  // stored profiles → /eblood/hospitals/list. Null until resolved.
+  // Logged-in hospital (destination of the delivery), resolved from
+  // /health-structures/mine. Null until resolved.
   String? _hospitalId;
 
   // Server-authoritative delivery quote (bag + eBlood fee + platform fee +
@@ -110,65 +108,14 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
     _resolveHospitalId();
   }
 
-  /// Hospital of the logged-in staff: stored profile org → hospitals/list.
-  /// Cached in [_hospitalId]; returns the cached value on later calls.
+  /// Hospital of the logged-in staff, from GET /health-structures/mine
+  /// (resolved server-side from the token). Cached in [_hospitalId].
   Future<String?> _resolveHospitalId() async {
     if (_hospitalId != null && _hospitalId!.isNotEmpty) return _hospitalId;
-    try {
-      final storage = GetStorage();
-      final dynamic storedProfiles = storage.read('user_profiles') ?? storage.read('user_profils');
-
-      String? sysOrgId;
-      if (storedProfiles is List) {
-        for (final p in storedProfiles) {
-          if (p is Map) {
-            final candidate = (p['sys_organization_id'] ?? p['organization_id'] ?? p['org_id'])?.toString();
-            if (candidate != null && candidate.isNotEmpty) {
-              sysOrgId = candidate;
-              break;
-            }
-          }
-        }
-      } else if (storedProfiles is Map) {
-        sysOrgId = (storedProfiles['sys_organization_id'] ?? storedProfiles['organization_id'])?.toString();
-      }
-
-      if (sysOrgId == null || sysOrgId.isEmpty) {
-        final userData = storage.read('user_data');
-        if (userData is Map) {
-          sysOrgId = (userData['sys_organization_id'] ?? userData['organization_id'])?.toString();
-        }
-      }
-
-      if (sysOrgId == null || sysOrgId.isEmpty) return null;
-
-      // Fetch hospital by organization ID
-      final res = await getWithDio(
-        ApiConfig.hospitalsList,
-        queryParams: {
-          'filter__sys_organization_id': sysOrgId,
-          'limit': 1,
-          'page': 0,
-        },
-      );
-
-      if (res.success) {
-        final data = res.data;
-        if (data is Map && data['data'] is List && (data['data'] as List).isNotEmpty) {
-          final hospital = (data['data'] as List).first;
-          final id = (hospital['_id'] ?? hospital['id'])?.toString();
-          debugPrint("🏥 Got hospital ID from user profile: $id");
-          if (id != null && id.isNotEmpty && mounted) {
-            setState(() => _hospitalId = id);
-          }
-          return id;
-        }
-      }
-      return null;
-    } catch (e) {
-      debugPrint("Error getting hospital ID from profiles: $e");
-      return null;
-    }
+    final id = await StructureValidationService().getMyStructureId();
+    debugPrint("🏥 Hospital structure of the logged-in user: $id");
+    if (id != null && mounted) setState(() => _hospitalId = id);
+    return id;
   }
 
   /// Get filtered blood banks that have the selected blood type

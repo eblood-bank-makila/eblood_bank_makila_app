@@ -98,8 +98,11 @@ class CourierPresenceService with WidgetsBindingObserver {
 
   Future<void> _call(bool online) async {
     try {
-      if (await send(online) == 404) {
-        debugPrint('[presence] no courier record for this account, stopping');
+      final code = await send(online);
+      // 404: no courier record. 403: courier not activated (or suspended) in
+      // the console. Either way stop until the next login re-evaluates.
+      if (code == 404 || code == 403) {
+        debugPrint('[presence] $code for this account, stopping');
         _noCourierRecord = true;
         _timer?.cancel();
         _timer = null;

@@ -3,6 +3,7 @@ import 'package:eblood_bank_mak_app/users/ui/pages/profil/admin/ProfileUsersPage
 import 'package:eblood_bank_mak_app/users/ui/pages/roles/org_roles_page.dart';
 import 'package:eblood_bank_mak_app/users/ui/pages/profil/admin/ProfileUserDevicesPage.dart';
 import 'package:eblood_bank_mak_app/apps/autres/AproposPage.dart';
+import 'package:eblood_bank_mak_app/apps/widgets/location/location_access_tile.dart';
 import 'package:eblood_bank_mak_app/apps/autres/ParametrePage.dart';
 import 'package:eblood_bank_mak_app/apps/autres/AidePage.dart';
 import 'package:eblood_bank_mak_app/apps/autres/ContactezNousPage.dart';
@@ -303,6 +304,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           ),
 
           _buildLanguageListTile(),
+
+          // Phone location state + shortcut to the setting that fixes it
+          const LocationAccessTile(),
 
           const SizedBox(height: 32),
 

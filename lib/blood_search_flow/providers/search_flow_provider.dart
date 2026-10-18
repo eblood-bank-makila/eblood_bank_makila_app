@@ -32,6 +32,9 @@ final searchFlowProvider =
         visitorService: VisitorRegistrationServiceImpl(),
         paymentService: PaymentServiceImpl(),
         authService: AuthServiceImpl(),
+        // Fresh read: the cache is device-wide, the structure is per account.
+        loadOwnHealthStructure: () =>
+            healthStructureService.getMyHealthStructure(forceRefresh: true),
       );
     });
 
@@ -59,6 +62,10 @@ class SearchFlowNotifier extends StateNotifier<SearchFlowState> {
   final IPaymentService paymentService;
   final IAuthService authService;
 
+  /// The logged-in organisation's own health structure
+  /// (GET /eblood/hospital-structure/my-health-structure).
+  final Future<Map<String, dynamic>?> Function()? loadOwnHealthStructure;
+
   String? _visitorSessionId;
   String? _appSignature;
 
@@ -74,6 +81,7 @@ class SearchFlowNotifier extends StateNotifier<SearchFlowState> {
     required this.visitorService,
     required this.paymentService,
     required this.authService,
+    this.loadOwnHealthStructure,
   }) : super(const SearchFlowState()) {
     // Load persisted city after a short delay to ensure GetStorage is ready
     Future.delayed(const Duration(milliseconds: 50), () {
@@ -329,31 +337,10 @@ class SearchFlowNotifier extends StateNotifier<SearchFlowState> {
     await storage.write('selected_city_id', city.id);
     await storage.write('selected_city_name', city.name);
 
-    // Auto-identify the hospital (they ARE the hospital)
-    double? hsLatitude;
-    double? hsLongitude;
-    String hsIdentifier = '';
-    String hsName = entityName;
-    String hsId = entityId;
-    try {
-      final cachedHS = storage.read('cached_health_structure');
-      if (cachedHS is Map) {
-        hsLatitude = double.tryParse((cachedHS['latitude'] ?? '').toString());
-        hsLongitude = double.tryParse((cachedHS['longitude'] ?? '').toString());
-        hsIdentifier = (cachedHS['identifier'] ?? '').toString();
-        if (hsName.isEmpty) hsName = (cachedHS['name'] ?? '').toString();
-        if (hsId.isEmpty) hsId = (cachedHS['id'] ?? cachedHS['_id'] ?? '').toString();
-      }
-    } catch (_) {}
-
-    final autoHospital = IdentifiedHospital(
-      id: hsId,
-      code: hsIdentifier.isNotEmpty ? hsIdentifier : (storage.read('user_identifier') ?? '').toString(),
-      name: hsName.isNotEmpty ? hsName : 'My Hospital',
-      latitude: hsLatitude,
-      longitude: hsLongitude,
-      method: HospitalIdentificationMethod.loggedInAccount,
-    );
+    // Auto-identify the hospital (they ARE the hospital). The destination is
+    // the hospital's own structure, NOT the city entity picked above: the
+    // purchase endpoints look the id up as a sys_health_structure.
+    final autoHospital = await _resolveOwnHospital();
 
     state = state.copyWith(
       selectedCity: city,
@@ -361,7 +348,23 @@ class SearchFlowNotifier extends StateNotifier<SearchFlowState> {
       currentStep: SearchFlowStep.bloodTypeInput,
       qrScannedFirst: false,
     );
-    print('🏥 Hospital: auto-selected city "${city.name}" & auto-identified hospital "${autoHospital.name}" (lat:$hsLatitude, lng:$hsLongitude) — skipping to blood type');
+    print('🏥 Hospital: auto-selected city "${city.name}" & auto-identified hospital "${autoHospital?.name}" (${autoHospital?.id}) — skipping to blood type');
+  }
+
+  /// The logged-in hospital's own structure, as the server resolves it from
+  /// the token. Null when unknown: the payment step then refuses instead of
+  /// charging a guessed destination (`cached_health_structure` is not a safe
+  /// fallback — not every logout clears it).
+  Future<IdentifiedHospital?> _resolveOwnHospital() async {
+    try {
+      return IdentifiedHospital.ownHospital(
+        await loadOwnHealthStructure?.call(),
+        fallbackCode: (GetStorage().read('user_identifier') ?? '').toString(),
+      );
+    } catch (e) {
+      print('⚠️ Own health structure unavailable: $e');
+      return null;
+    }
   }
 
   /// Set selected city
@@ -497,25 +500,11 @@ class SearchFlowNotifier extends StateNotifier<SearchFlowState> {
     final accountType = (storage.read('account_type') ?? '').toString().toLowerCase();
     final isLoggedIn = (storage.read('auth_token') ?? '').toString().isNotEmpty;
 
-    // --- Hospital account: auto-identify as themselves and skip to payment ---
+    // --- Hospital account: skip to payment ---
+    // startHospitalSearch identified the hospital as itself (or a deep link
+    // named one). If that failed, beginPayment refuses: user_entity_id is the
+    // organisation's city, never a hospital to deliver to.
     if (accountType == 'hospital') {
-      if (!state.hasHospitalIdentified) {
-        final entityId = (storage.read('user_entity_id') ?? '').toString();
-        final entityName = (storage.read('user_entity_name') ?? '').toString();
-        final identifier = (storage.read('user_identifier') ?? '').toString();
-
-        if (entityId.isNotEmpty) {
-          state = state.copyWith(
-            identifiedHospital: IdentifiedHospital(
-              id: entityId,
-              code: identifier,
-              name: entityName.isNotEmpty ? entityName : 'My Hospital',
-              method: HospitalIdentificationMethod.loggedInAccount,
-            ),
-          );
-          print('🏥 Auto-identified hospital from logged-in account: $entityName ($entityId)');
-        }
-      }
       // Hospital is already authenticated — go straight to payment
       state = state.copyWith(
         selectedPaymentOption: option,

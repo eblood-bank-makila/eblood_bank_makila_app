@@ -113,6 +113,30 @@ class IdentifiedHospital {
     );
   }
 
+  /// The logged-in hospital as the flow's delivery destination, from
+  /// GET /eblood/hospital-structure/my-health-structure (or its
+  /// `cached_health_structure` copy). The id is the hospital's
+  /// sys_health_structure — what the purchase endpoints look up. The login's
+  /// `user_entity_id` is the organisation's location entity, never a
+  /// hospital. Null when [structure] has no id.
+  static IdentifiedHospital? ownHospital(Map? structure, {String fallbackCode = ''}) {
+    if (structure == null) return null;
+    final id = (structure['id'] ?? structure['_id'] ?? '').toString();
+    if (id.isEmpty) return null;
+    final identifier = (structure['identifier'] ?? '').toString();
+    final name = (structure['name'] ?? '').toString();
+    return IdentifiedHospital(
+      id: id,
+      code: identifier.isNotEmpty ? identifier : fallbackCode,
+      name: name.isNotEmpty ? name : 'My Hospital',
+      address: structure['address']?.toString(),
+      phone: structure['phone_number']?.toString(),
+      latitude: double.tryParse((structure['latitude'] ?? '').toString()),
+      longitude: double.tryParse((structure['longitude'] ?? '').toString()),
+      method: HospitalIdentificationMethod.loggedInAccount,
+    );
+  }
+
   Map<String, dynamic> toJson() => {
     'id': id,
     'code': code,
@@ -327,10 +351,15 @@ class BloodSearchResult {
     }
 
     return BloodSearchResult(
+      // The BAG id: search-simple puts it in blood_bag_info._id (and at the
+      // top level since apps_api added it). Never fall back to the blood
+      // bank's id — the purchase calls sent it as blood_bag_id and 404'd
+      // "Blood bag not found".
       id:
+          bloodInfo['_id']?.toString() ??
+          bloodInfo['id']?.toString() ??
           json['id']?.toString() ??
           json['_id']?.toString() ??
-          bloodBank['_id']?.toString() ??
           '',
       bloodBankId:
           bloodBank['_id']?.toString() ?? bloodBank['id']?.toString() ?? '',

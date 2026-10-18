@@ -195,6 +195,21 @@ void main() {
     expect(h.calls, [true]);
   });
 
+  test('403 (courier not activated, or suspended) stops pinging', () async {
+    await GetStorage().write('user_profiles', _courierProfiles);
+    final h = _Harness()..status = 403;
+    h.service.attach();
+    await pumpEventQueue();
+
+    expect(h.calls, [true]);
+    expect(h.timer!.cancelled, isTrue);
+
+    h.service.didChangeAppLifecycleState(AppLifecycleState.paused);
+    h.service.didChangeAppLifecycleState(AppLifecycleState.resumed);
+    await pumpEventQueue();
+    expect(h.calls, [true]);
+  });
+
   test('a new login after a 404 tries again', () async {
     await GetStorage().write('user_profiles', _courierProfiles);
     final h = _Harness()..status = 404;

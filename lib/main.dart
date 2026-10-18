@@ -77,24 +77,23 @@ void main() async {
 
   // Sprint M — dead-hand auto-broadcast handler. Only delivery-person
   // accounts subscribe to the broadcast topic + render the ringing
-  // alert; other profiles get a silent no-op. The user_id is read at
-  // message-receipt time (not now) so a session profile-switch keeps
-  // working without a re-attach.
-  if (DeadHandService.isDeliveryPersonProfile()) {
-    await DeadHandService.attach(
-      navigatorKey: navigatorKey,
-      getCurrentUserId: () async {
-        try {
-          final userData = GetStorage().read('user_data');
-          if (userData is Map) {
-            final id = userData['id']?.toString();
-            return (id == null || id.isEmpty) ? null : id;
-          }
-        } catch (_) {/* fall through */}
-        return null;
-      },
-    );
-  }
+  // alert; other profiles get a silent no-op. It follows the session:
+  // a courier logging in later attaches, a logout detaches. The user_id
+  // is read at message-receipt time (not now) so a session
+  // profile-switch keeps working without a re-attach.
+  DeadHandService.watchSession(
+    navigatorKey: navigatorKey,
+    getCurrentUserId: () async {
+      try {
+        final userData = GetStorage().read('user_data');
+        if (userData is Map) {
+          final id = userData['id']?.toString();
+          return (id == null || id.isEmpty) ? null : id;
+        }
+      } catch (_) {/* fall through */}
+      return null;
+    },
+  );
 
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,

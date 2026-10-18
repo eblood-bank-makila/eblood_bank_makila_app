@@ -15,7 +15,11 @@
 ///      is shown via a snackbar.
 ///
 /// The service is idempotent on attach — calling it twice is safe.
+/// `watchSession` attaches on every courier login and detaches (topic
+/// unsubscribed, listeners cancelled) on logout or a non-courier login.
 library;
+
+import 'dart:async';
 
 import 'package:eblood_bank_mak_app/apps/config/api/dio_client.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -31,6 +35,31 @@ class DeadHandService {
 
   static bool _attached = false;
   static bool _alertVisible = false;
+  static final List<StreamSubscription<RemoteMessage>> _subscriptions = [];
+
+  /// Subscribes (true) or unsubscribes (false) the courier topic.
+  /// Swapped in tests, where Firebase is not initialised.
+  @visibleForTesting
+  static Future<void> Function(bool subscribe) setTopic = (subscribe) =>
+      subscribe
+          ? FirebaseMessaging.instance.subscribeToTopic(_fcmTopic)
+          : FirebaseMessaging.instance.unsubscribeFromTopic(_fcmTopic);
+
+  /// Attaches whenever a courier is logged in and detaches otherwise, at
+  /// once and on every session change. Every login path writes
+  /// `user_profiles` and every logout removes it, so this one listener
+  /// follows the session. Returns the listener's disposer.
+  static VoidCallback watchSession({
+    required GlobalKey<NavigatorState> navigatorKey,
+    required Future<String?> Function() getCurrentUserId,
+  }) {
+    void sync() => isDeliveryPersonProfile()
+        ? attach(navigatorKey: navigatorKey, getCurrentUserId: getCurrentUserId)
+        : detach();
+    final dispose = GetStorage().listenKey('user_profiles', (_) => sync());
+    sync();
+    return dispose;
+  }
 
   /// Idempotent: safe to call from multiple bootstrap paths.
   ///
@@ -47,25 +76,44 @@ class DeadHandService {
     if (_attached) return;
     _attached = true;
 
+    // Listen before the topic await so a detach() during it cancels these.
+    _subscriptions.addAll([
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        _handleIncoming(message, navigatorKey, getCurrentUserId);
+      }),
+      // App was opened from a tap on a dead-hand notification — same
+      // flow as the live one.
+      FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+        _handleIncoming(message, navigatorKey, getCurrentUserId);
+      }),
+    ]);
+
     // Topic subscription is best-effort — failure means the courier
     // simply won't receive broadcasts, which is recoverable on next
-    // app open.
+    // app open or login.
     try {
-      await FirebaseMessaging.instance.subscribeToTopic(_fcmTopic);
+      await setTopic(true);
       debugPrint('[dead-hand] subscribed to topic: $_fcmTopic');
     } catch (e) {
       debugPrint('[dead-hand] topic subscribe failed: $e');
     }
+  }
 
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      _handleIncoming(message, navigatorKey, getCurrentUserId);
-    });
-
-    // App was opened from a tap on a dead-hand notification — same
-    // flow as the live one.
-    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      _handleIncoming(message, navigatorKey, getCurrentUserId);
-    });
+  /// Idempotent. Stops alerts on this device: on a shared phone the next
+  /// account must not ring for courier broadcasts.
+  static Future<void> detach() async {
+    if (!_attached) return;
+    _attached = false;
+    for (final s in _subscriptions) {
+      s.cancel();
+    }
+    _subscriptions.clear();
+    try {
+      await setTopic(false);
+      debugPrint('[dead-hand] unsubscribed from topic: $_fcmTopic');
+    } catch (e) {
+      debugPrint('[dead-hand] topic unsubscribe failed: $e');
+    }
   }
 
   /// Quick guard so non-delivery-person logins don't waste cycles

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lokotro_pay/constants/lokotro_pay_colors.dart';
+import 'package:lokotro_pay/lokotro_pay.dart';
 
 import 'package:eblood_bank_mak_app/apps/config/theme/ColorPages.dart';
 import 'package:eblood_bank_mak_app/payments/business/service/eblood_lokotro_theme.dart';
@@ -26,6 +26,12 @@ void main() {
     expect(scheme.secondary, Colors.red.shade700, reason: 'the loader spinner uses secondary');
     expect(scheme.tertiary, Colors.red.shade300);
     expect(scheme.surface, Colors.white);
+    // Status colours (lokotro_pay >= 3.4.0): green success, not Lokotro's turquoise.
+    final status = resolved.extension<LokotroPayStatusColors>()!;
+    expect(status.success, Colors.green.shade600);
+    expect(status.warning, Colors.orange.shade700);
+    expect(status.info, Colors.blue.shade600);
+    expect(scheme.error, Colors.red.shade900);
     for (final c in [scheme.primary, scheme.secondary, scheme.tertiary]) {
       expect(c, isNot(LokotroPayColors.primary));
       expect(c, isNot(LokotroPayColors.secondary));

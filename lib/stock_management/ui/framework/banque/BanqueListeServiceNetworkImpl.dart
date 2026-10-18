@@ -4,19 +4,24 @@ import 'package:flutter/material.dart';
 import 'package:eblood_bank_mak_app/apps/config/api/dio_client.dart';
 import 'package:eblood_bank_mak_app/stock_management/business/service/banque/BanqueListeNetworkService.dart';
 import 'package:eblood_bank_mak_app/core/services/location_tracking_service.dart';
+import 'package:eblood_bank_mak_app/core/services/location_access.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class BanqueListeNetworkServiceImpl implements BanqueListeNetworkService {
   String baseURL;
+  final Future<Map<String, double>?> Function() _locate;
 
-  BanqueListeNetworkServiceImpl(this.baseURL);
+  BanqueListeNetworkServiceImpl(this.baseURL, {Future<Map<String, double>?> Function()? locate})
+      : _locate = locate ?? LocationTrackingService().getKnownLocationForApi;
 
+  /// Throws [LocationUnavailableException] when the phone's position is
+  /// unknown: a search around a made-up point would report "no bank" while
+  /// banks near the user have stock.
   @override
   Future<List<BanqueModele>?> recuperationListeBanque(String token) async {
     try {
-      // Get current GPS location from LocationTrackingService
-      final locationService = LocationTrackingService();
-      final location = await locationService.getLocationForApi();
+      final location = await _locate();
+      if (location == null) throw const LocationUnavailableException();
 
       final latitude = location['latitude']!;
       final longitude = location['longitude']!;
@@ -108,6 +113,8 @@ class BanqueListeNetworkServiceImpl implements BanqueListeNetworkService {
       });
 
       return responseFinal;
+    } on LocationUnavailableException {
+      rethrow;
     } catch (e) {
       debugPrint("❌ Error fetching blood banks: $e");
       return <BanqueModele>[];

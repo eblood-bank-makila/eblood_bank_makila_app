@@ -1,3 +1,4 @@
+import 'package:eblood_bank_mak_app/core/services/location_access.dart';
 import 'package:eblood_bank_mak_app/stock_management/business/interactor/GestionStockInteractor.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -19,7 +20,9 @@ class BanqueCtrl extends _$BanqueCtrl {
     try {
       var usecase = ref.watch(gestionstockInteractorProvider).banquelisteusecase;
       var res = await usecase.run();
-      state = state.copyWith(banques: res, isLoading: false);
+      state = state.copyWith(banques: res, isLoading: false, locationUnavailable: false);
+    } on LocationUnavailableException {
+      state = state.copyWith(banques: const [], isLoading: false, locationUnavailable: true);
     } catch (e) {
       // Handle error and set loading to false
       state = state.copyWith(isLoading: false);

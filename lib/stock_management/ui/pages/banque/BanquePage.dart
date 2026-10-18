@@ -2,6 +2,7 @@
 import 'package:animate_do/animate_do.dart';
 import 'package:eblood_bank_mak_app/apps/widgets/AppSpinner.dart';
 import 'package:eblood_bank_mak_app/apps/widgets/advertisement/AdvertisementCarousel.dart';
+import 'package:eblood_bank_mak_app/apps/widgets/location/location_needed_card.dart';
 import 'package:eblood_bank_mak_app/core/rbac/providers/rbac_provider.dart';
 import 'package:eblood_bank_mak_app/core/rbac/services/rbac_guard.dart';
 import 'package:eblood_bank_mak_app/stock_management/ui/pages/banque/BanqueCtrl.dart';
@@ -344,6 +345,10 @@ class _BanquepageState extends ConsumerState<Banquepage> {
   Widget _buildBanksList(dynamic state) {
     if (state.isLoading) {
       return _buildModernLoading();
+    }
+
+    if (state.locationUnavailable) {
+      return LocationNeededCard(onRetry: _fetchBanqueList);
     }
 
     if (state.banques.isEmpty) {

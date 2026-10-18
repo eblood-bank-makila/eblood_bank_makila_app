@@ -397,9 +397,10 @@ class LocationTrackingService {
     }
   }
   
-  /// Get location for API calls (with fallback) - DEPRECATED: Use getCachedLocationSync instead
-  @Deprecated('Use getCachedLocationSync for non-blocking access')
-  Future<Map<String, double>> getLocationForApi() async {
+  /// The phone's real position (fresh when permitted, else the last one saved),
+  /// or null when none is known. "Nearby" searches must use this rather than
+  /// [getLocationForApi], whose Kigali fallback finds nothing in Kinshasa.
+  Future<Map<String, double>?> getKnownLocationForApi() async {
     try {
       // Try to get fresh location if permission is granted
       final hasPermission = await _hasLocationPermission();
@@ -412,30 +413,33 @@ class LocationTrackingService {
           };
         }
       }
-      
-      // Use saved location if available
-      if (_currentPosition != null) {
-        debugPrint('📍 Using saved location for API');
-        return {
-          'latitude': _currentPosition!.latitude,
-          'longitude': _currentPosition!.longitude,
-        };
-      }
-      
-      // Fallback to default location (Kigali, Rwanda)
-      debugPrint('⚠️ No location available, using default (Kigali)');
-      return {
-        'latitude': -1.9441,
-        'longitude': 30.0619,
-      };
     } catch (e) {
       debugPrint('❌ Error getting location for API: $e');
-      // Return default location
+    }
+
+    // Use saved location if available
+    if (_currentPosition != null) {
+      debugPrint('📍 Using saved location for API');
       return {
-        'latitude': -1.9441,
-        'longitude': 30.0619,
+        'latitude': _currentPosition!.latitude,
+        'longitude': _currentPosition!.longitude,
       };
     }
+    return null;
+  }
+
+  /// Get location for API calls (with fallback) - DEPRECATED: Use getCachedLocationSync instead
+  @Deprecated('Use getCachedLocationSync for non-blocking access')
+  Future<Map<String, double>> getLocationForApi() async {
+    final known = await getKnownLocationForApi();
+    if (known != null) return known;
+
+    // Fallback to default location (Kigali, Rwanda)
+    debugPrint('⚠️ No location available, using default (Kigali)');
+    return {
+      'latitude': -1.9441,
+      'longitude': 30.0619,
+    };
   }
   
   /// Get cached location synchronously (non-blocking)

@@ -21,6 +21,17 @@ class StructureValidationService {
     }
   }
 
+  /// Id of the logged-in org's own structure (an order's delivery destination,
+  /// the hospital a delivery is received by), or null when unknown. The
+  /// server resolves it from the token; /eblood/hospitals/list cannot — it has
+  /// no organization filter and returns an arbitrary structure.
+  Future<String?> getMyStructureId() async => structureIdOf(await getMyStructure());
+
+  static String? structureIdOf(StructureValidationModel? structure) {
+    if (structure == null || structure.isNotLinked || structure.id.isEmpty) return null;
+    return structure.id;
+  }
+
   @visibleForTesting
   static StructureValidationModel? fromApiResponse(IApiResponse res) {
     if (res.success) return StructureValidationModel.fromBackendJson(res.data);

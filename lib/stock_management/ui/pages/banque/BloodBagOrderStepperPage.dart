@@ -49,6 +49,9 @@ class BloodBagOrderStepperPage extends ConsumerStatefulWidget {
   final List<BanqueModele> bloodBanks;
   final bool isViewAddressMode; // true for "voir l'adresse", false for "commander en ligne"
 
+  /// The current step's content (bank list, bag list, confirm + "Payer").
+  static const stepContentKey = Key('order-stepper-step-content');
+
   const BloodBagOrderStepperPage({
     Key? key,
     required this.bloodType,
@@ -171,17 +174,24 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
         ),
         centerTitle: true,
       ),
-      body: Column(
-        children: [
-          const StructureValidationBanner(margin: EdgeInsets.fromLTRB(16, 8, 16, 0)),
-          // Stepper header
-          _buildStepperHeader(),
+      // Edge-to-edge: keep the "Payer" button above the navigation bar / taskbar.
+      body: SafeArea(
+        top: false,
+        child: Column(
+          children: [
+            const StructureValidationBanner(margin: EdgeInsets.fromLTRB(16, 8, 16, 0)),
+            // Stepper header
+            _buildStepperHeader(),
 
-          // Content
-          Expanded(
-            child: _buildStepContent(),
-          ),
-        ],
+            // Content
+            Expanded(
+              child: KeyedSubtree(
+                key: BloodBagOrderStepperPage.stepContentKey,
+                child: _buildStepContent(),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

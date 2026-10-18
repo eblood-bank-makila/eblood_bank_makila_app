@@ -87,9 +87,7 @@ class HospitalBagPurchaseFlow {
   }
 
   /// All available bags of [bloodType] held by [bloodBankId], via the
-  /// whitelisted `search-simple` route (paged until the reported total is
-  /// reached, since it searches across every bank and only the backend
-  /// caps at 100 per page).
+  /// whitelisted `search-simple` route.
   static Future<List<PocheModel>> fetchBankBags({
     required String bloodBankId,
     required String bloodType,
@@ -98,9 +96,32 @@ class HospitalBagPurchaseFlow {
     double? hospitalLatitude,
     double? hospitalLongitude,
   }) async {
-    final bags = <PocheModel>[];
+    final rows = await fetchTypeRows(
+      bloodType: bloodType,
+      userLatitude: userLatitude,
+      userLongitude: userLongitude,
+      hospitalLatitude: hospitalLatitude,
+      hospitalLongitude: hospitalLongitude,
+    );
+    return filterBankBags(rows, bloodBankId: bloodBankId, bloodType: bloodType);
+  }
+
+  /// Price of [bloodType] bags per bank (keyed by blood-bank id), from the
+  /// same `search-simple` rows — what the bank step of the wizard shows.
+  static Future<Map<String, BankBagPrice>> fetchBankPrices({required String bloodType}) async =>
+      bankPricesFromRows(await fetchTypeRows(bloodType: bloodType), bloodType: bloodType);
+
+  /// Every `search-simple` row for [bloodType], across all banks (paged until
+  /// the reported total is reached; the backend caps at 100 per page).
+  static Future<List<dynamic>> fetchTypeRows({
+    required String bloodType,
+    double? userLatitude,
+    double? userLongitude,
+    double? hospitalLatitude,
+    double? hospitalLongitude,
+  }) async {
+    final all = <dynamic>[];
     var page = 0;
-    var fetched = 0;
     int? total;
     while (page < _maxSearchPages) {
       final queryParams = <String, dynamic>{
@@ -129,15 +150,43 @@ class HospitalBagPurchaseFlow {
       }
       final rows = rowsFromResponse(response.data);
       total ??= totalFromResponse(response.data);
-      bags.addAll(
-        filterBankBags(rows, bloodBankId: bloodBankId, bloodType: bloodType),
-      );
-      fetched += rows.length;
+      all.addAll(rows);
       if (rows.isEmpty || rows.length < searchPageSize) break;
-      if (total != null && fetched >= total) break;
+      if (total != null && all.length >= total) break;
       page++;
     }
-    return bags;
+    return all;
+  }
+
+  /// Lowest / highest price of the [bloodType] rows of each bank. Reads the
+  /// raw rows because [PocheModel] keeps neither the bank id nor cents.
+  static Map<String, BankBagPrice> bankPricesFromRows(List<dynamic> rows, {required String bloodType}) {
+    final wanted = bloodType.trim().toUpperCase();
+    final prices = <String, BankBagPrice>{};
+    for (final row in rows) {
+      if (row is! Map) continue;
+      final bank = row['blood_bank_info'];
+      final bankId = bank is Map ? (bank['_id'] ?? bank['id'])?.toString() : null;
+      final price = row['price'];
+      if (bankId == null || bankId.isEmpty || price is! num) continue;
+      final info = row['blood_bag_info'];
+      if (info is! Map) continue;
+      final type = info['blood_type_info'], rhesus = info['blood_rhesus_info'];
+      final fullType = '${type is Map ? type['blood_type_name'] ?? '' : ''}'
+              '${rhesus is Map ? rhesus['blood_rheusus_name'] ?? '' : ''}'
+          .toUpperCase();
+      if (fullType != wanted) continue;
+      final value = price.toDouble();
+      final known = prices[bankId];
+      prices[bankId] = known == null
+          ? BankBagPrice(min: value, max: value, currencySymbol: row['currency_symbol']?.toString() ?? r'$')
+          : BankBagPrice(
+              min: value < known.min ? value : known.min,
+              max: value > known.max ? value : known.max,
+              currencySymbol: known.currencySymbol,
+            );
+    }
+    return prices;
   }
 
   /// Address-access fee = 10% of the bag price, in cents — the visitor
@@ -161,4 +210,19 @@ class HospitalBagPurchaseFlow {
     if (!digits.startsWith('243')) digits = '243$digits';
     return '+$digits';
   }
+}
+
+/// Price of one blood type at one bank, as the bank card shows it.
+class BankBagPrice {
+  const BankBagPrice({required this.min, required this.max, required this.currencySymbol});
+
+  final double min;
+  final double max;
+  final String currencySymbol;
+
+  /// `$1`, `$1.50`, or `$1 – $3` when the bank's bags differ in price.
+  String get label => min == max ? _format(min) : '${_format(min)} – ${_format(max)}';
+
+  String _format(double value) =>
+      '$currencySymbol${value == value.roundToDouble() ? value.toStringAsFixed(0) : value.toStringAsFixed(2)}';
 }

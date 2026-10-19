@@ -108,6 +108,7 @@ class DeliveryCallService {
       _closed = null;
       await _silence(call.deliveryId);
     }
+    debugPrint('[delivery-call] ${call.deliveryId}: ${result?.outcome}');
     switch (result?.outcome) {
       case DeliveryCallOutcome.accepted:
         _snack(navigator, result?.message);

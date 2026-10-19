@@ -56,6 +56,12 @@
 # =============================================================
 -keep class com.dexterous.** { *; }
 -dontwarn com.dexterous.**
+# Its notification cache is read through Gson TypeTokens: without the generic
+# signatures every cancel() throws in release ("TypeToken must be created with
+# a type argument"). Rules from Gson's android-proguard-example.
+-keepattributes Signature
+-keep,allowobfuscation,allowshrinking class com.google.gson.reflect.TypeToken
+-keep,allowobfuscation,allowshrinking class * extends com.google.gson.reflect.TypeToken
 
 # =============================================================
 # AndroidX lifecycle (used by several plugins via reflection)

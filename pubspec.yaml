@@ -78,6 +78,7 @@ dependencies:
   json_annotation: ^4.8.1
   lokotro_pay: ^3.4.0
   font_awesome_flutter: ^11.0.0
+  flutter_ringtone_player: ^4.0.0+4
 
 dev_dependencies:
   flutter_test:

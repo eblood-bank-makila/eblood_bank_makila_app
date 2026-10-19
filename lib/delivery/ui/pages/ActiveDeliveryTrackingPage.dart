@@ -29,6 +29,7 @@ class _ActiveDeliveryTrackingPageState
     extends ConsumerState<ActiveDeliveryTrackingPage> {
   Timer? _locationTimer;
   bool _isUpdatingPhase = false;
+  bool _loading = true; // first fetch (opened right after accepting a call)
 
   @override
   void initState() {
@@ -40,6 +41,9 @@ class _ActiveDeliveryTrackingPageState
       'flutter_apps_eblood_bank_cust_delivery_active_tracking',
     );
     _startLocationTracking();
+    ref.read(pendingDeliveryRequestProvider.notifier).loadActiveDelivery().whenComplete(() {
+      if (mounted) setState(() => _loading = false);
+    });
   }
 
   @override
@@ -82,7 +86,7 @@ class _ActiveDeliveryTrackingPageState
     if (activeDelivery == null) {
       return Scaffold(
         appBar: AppBar(title: Text('delivery_tracking'.tr)),
-        body: Center(child: Text('no_active_delivery'.tr)),
+        body: Center(child: _loading ? const CircularProgressIndicator() : Text('no_active_delivery'.tr)),
       );
     }
 

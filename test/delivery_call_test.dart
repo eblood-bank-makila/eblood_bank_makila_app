@@ -42,7 +42,7 @@ class _Fakes {
     ring: (call, _) async => rung.add(call.deliveryId),
     silence: (id) async => silenced.add(id),
     isCourier: () => courier,
-    openActiveDelivery: (_) => opened++,
+    openActiveDelivery: (_, __) => opened++,
   );
 }
 

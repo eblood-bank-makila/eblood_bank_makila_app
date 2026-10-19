@@ -10,7 +10,7 @@ import 'package:flutter/material.dart';
 
 import '../../blood_search_flow/data/services/visitor_fcm_registration_service.dart';
 import '../business/service/DeliveryApiService.dart';
-import '../ui/pages/DeliveryPersonHomePage.dart';
+import '../ui/pages/ActiveDeliveryTrackingPage.dart';
 import 'courier_profile.dart';
 import 'delivery_call_notifications.dart';
 import 'delivery_call_payload.dart';
@@ -23,13 +23,13 @@ class DeliveryCallService {
     Future<void> Function(DeliveryCallPayload call, Map<String, dynamic> data)? ring,
     Future<void> Function(String deliveryId)? silence,
     bool Function()? isCourier,
-    void Function(NavigatorState navigator)? openActiveDelivery,
+    void Function(NavigatorState navigator, String deliveryId)? openActiveDelivery,
   })  : _accept = accept ?? _apiAccept,
         _reject = reject ?? _apiReject,
         _ring = ring ?? ringDeliveryCall,
         _silence = silence ?? silenceDeliveryCall,
         _isCourier = isCourier ?? isActivatedCourier,
-        _openActiveDelivery = openActiveDelivery ?? _pushCourierHome;
+        _openActiveDelivery = openActiveDelivery ?? _pushActiveDelivery;
 
   static final instance = DeliveryCallService();
 
@@ -38,7 +38,7 @@ class DeliveryCallService {
   final Future<void> Function(DeliveryCallPayload, Map<String, dynamic>) _ring;
   final Future<void> Function(String) _silence;
   final bool Function() _isCourier;
-  final void Function(NavigatorState) _openActiveDelivery;
+  final void Function(NavigatorState, String) _openActiveDelivery;
 
   GlobalKey<NavigatorState>? _navigatorKey;
   String? _showing; // delivery id of the call on screen
@@ -53,8 +53,8 @@ class DeliveryCallService {
     await DeliveryApiService().rejectDeliveryRequest(id, reason: 'ignored_from_call');
   }
 
-  static void _pushCourierHome(NavigatorState navigator) =>
-      navigator.push(MaterialPageRoute(builder: (_) => const DeliveryPersonHomePage()));
+  static void _pushActiveDelivery(NavigatorState navigator, String deliveryId) =>
+      navigator.push(MaterialPageRoute(builder: (_) => ActiveDeliveryTrackingPage(deliveryId: deliveryId)));
 
   /// Idempotent. Listens to foreground pushes and to taps on the ringing
   /// notification (app in background or killed).
@@ -111,7 +111,7 @@ class DeliveryCallService {
     switch (result?.outcome) {
       case DeliveryCallOutcome.accepted:
         _snack(navigator, result?.message);
-        _openActiveDelivery(navigator);
+        _openActiveDelivery(navigator, call.deliveryId);
       case DeliveryCallOutcome.declined:
         unawaited(_reject(call.deliveryId));
       case DeliveryCallOutcome.closedRemotely:

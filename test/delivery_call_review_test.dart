@@ -41,7 +41,7 @@ void main() {
       ring: (call, _) async => rung.add(call.deliveryId),
       silence: (_) async {},
       isCourier: () => true,
-      openActiveDelivery: (_) {},
+      openActiveDelivery: (_, __) {},
     )..bindNavigator(key);
     await tester.pumpWidget(MaterialApp(navigatorKey: key, home: const Scaffold()));
 
@@ -94,7 +94,7 @@ void main() {
       ring: (call, _) async => rung.add(call.deliveryId),
       silence: (_) async {},
       isCourier: () => true,
-      openActiveDelivery: (_) {},
+      openActiveDelivery: (_, __) {},
     )..bindNavigator(GlobalKey<NavigatorState>()); // never mounted
     await service.handle(_call('d9'));
     expect(rung, ['d9']);

@@ -77,4 +77,26 @@ void main() {
       }
     });
   });
+
+  // Device test 2026-10-19: FCM accepted the call but the A07 showed nothing:
+  // main.navigatorKey was never given to GoRouter, so currentState was null
+  // and handle() returned before ringing.
+  test('the router runs on the app navigator key the call screen uses', () {
+    final src = File('lib/apps/config/route/GoRouter.dart').readAsStringSync();
+    expect(src.contains('navigatorKey: app_main.navigatorKey'), isTrue);
+  });
+
+  test('without a navigator the phone still rings', () async {
+    final rung = <String>[];
+    final service = DeliveryCallService(
+      accept: (_) async => null,
+      reject: (_) async {},
+      ring: (call, _) async => rung.add(call.deliveryId),
+      silence: (_) async {},
+      isCourier: () => true,
+      openActiveDelivery: (_) {},
+    )..bindNavigator(GlobalKey<NavigatorState>()); // never mounted
+    await service.handle(_call('d9'));
+    expect(rung, ['d9']);
+  });
 }

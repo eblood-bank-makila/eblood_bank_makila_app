@@ -39,6 +39,7 @@ import 'package:eblood_bank_mak_app/apps/services/FirebaseAuthService.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:eblood_bank_mak_app/main.dart' as app_main;
 import '../../../stock_management/business/model/banque/BanqueModele.dart';
 
 final goRouterProvider = Provider<GoRouter>((ref) {
@@ -48,6 +49,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
   final firebaseAuthService = ref.read(firebaseAuthServiceProvider);
 
   return GoRouter(
+    // The app-wide navigator key: the courier call screen, the error
+    // navigation service, etc. push through it. It was never attached, so
+    // their currentState was always null.
+    navigatorKey: app_main.navigatorKey,
     initialLocation: '/splash',
     redirect: (context, state) async {
       // Only perform expensive checks for specific routes to avoid rebuild loops

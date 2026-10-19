@@ -86,8 +86,12 @@ class DeliveryCallService {
     }
     final call = DeliveryCallPayload.tryParse(data);
     if (call == null || !_isCourier() || call.timeLeft() == Duration.zero) return;
+    if (_showing != null) return; // one call at a time
     final navigator = _navigatorKey?.currentState;
-    if (navigator == null || _showing != null) return; // one call at a time
+    if (navigator == null) {
+      await _ring(call, data); // no screen to show yet: ring; the tap opens it
+      return;
+    }
     // Claim the screen BEFORE any await: two pushes landing together must
     // not stack two call screens.
     _showing = call.deliveryId;

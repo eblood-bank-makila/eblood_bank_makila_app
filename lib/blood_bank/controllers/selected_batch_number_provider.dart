@@ -5,5 +5,5 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// A plain, top-level (non-autoDispose) [StateProvider] is kept alive for the
 /// lifetime of the [ProviderScope]: the selection survives navigation and every
 /// re-open of the add-blood-stock page during the session, and resets to null
-/// only on app restart. Mirrors the existing `deliveryPersonIdProvider` pattern.
+/// only on app restart. Same StateProvider pattern as the other session-scoped selections.
 final selectedBatchNumberProvider = StateProvider<String?>((ref) => null);

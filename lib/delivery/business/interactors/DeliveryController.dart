@@ -338,16 +338,15 @@ class PendingDeliveryRequestState {
 // Pending Delivery Request Controller
 class PendingDeliveryRequestController extends StateNotifier<PendingDeliveryRequestState> {
   final DeliveryApiService _apiService;
-  final String deliveryPersonId;
 
-  PendingDeliveryRequestController(this._apiService, this.deliveryPersonId)
+  PendingDeliveryRequestController(this._apiService)
       : super(PendingDeliveryRequestState());
 
   /// Load pending delivery requests
   Future<void> loadPendingRequests() async {
     state = state.copyWith(isLoading: true, error: null);
 
-    final response = await _apiService.getPendingDeliveryRequests(deliveryPersonId);
+    final response = await _apiService.getPendingDeliveryRequests();
 
     if (response.success && response.data != null) {
       // Filter out expired requests
@@ -366,7 +365,7 @@ class PendingDeliveryRequestController extends StateNotifier<PendingDeliveryRequ
 
   /// Load active delivery
   Future<void> loadActiveDelivery() async {
-    final response = await _apiService.getActiveDelivery(deliveryPersonId);
+    final response = await _apiService.getActiveDelivery();
 
     if (response.success) {
       state = state.copyWith(
@@ -380,7 +379,7 @@ class PendingDeliveryRequestController extends StateNotifier<PendingDeliveryRequ
   Future<bool> acceptDelivery(String deliveryId) async {
     state = state.copyWith(isAccepting: true, error: null);
 
-    final response = await _apiService.acceptDeliveryRequest(deliveryId, deliveryPersonId);
+    final response = await _apiService.acceptDeliveryRequest(deliveryId);
 
     if (response.success) {
       // Remove from pending requests
@@ -411,7 +410,6 @@ class PendingDeliveryRequestController extends StateNotifier<PendingDeliveryRequ
 
     final response = await _apiService.rejectDeliveryRequest(
       deliveryId,
-      deliveryPersonId,
       reason: reason,
     );
 
@@ -441,7 +439,6 @@ class PendingDeliveryRequestController extends StateNotifier<PendingDeliveryRequ
 
     final response = await _apiService.updateDeliveryPhase(
       state.activeDelivery!.id,
-      deliveryPersonId,
       phase,
       location: location,
     );
@@ -458,7 +455,6 @@ class PendingDeliveryRequestController extends StateNotifier<PendingDeliveryRequ
   /// Update location
   Future<bool> updateLocation(double lat, double lng, {double? accuracy}) async {
     final response = await _apiService.updateDeliveryPersonLocation(
-      deliveryPersonId,
       lat,
       lng,
       accuracy: accuracy,
@@ -494,14 +490,10 @@ class PendingDeliveryRequestController extends StateNotifier<PendingDeliveryRequ
   }
 }
 
-// Provider for delivery person ID (should be set from auth)
-final deliveryPersonIdProvider = StateProvider<String?>((ref) => null);
-
 // Pending Delivery Request Provider
 final pendingDeliveryRequestProvider = StateNotifierProvider<PendingDeliveryRequestController, PendingDeliveryRequestState>((ref) {
   final apiService = ref.watch(deliveryApiServiceProvider);
-  final deliveryPersonId = ref.watch(deliveryPersonIdProvider) ?? '';
-  return PendingDeliveryRequestController(apiService, deliveryPersonId);
+  return PendingDeliveryRequestController(apiService);
 });
 
 // Computed providers for pending requests

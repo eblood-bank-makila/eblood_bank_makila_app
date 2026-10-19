@@ -404,10 +404,10 @@ class PendingDeliveryRequest {
       hospitalLng: json['hospital']?['location']?['lng']?.toDouble(),
       priority: json['priority'] ?? 'normal',
       broadcastedAt: json['assignment_broadcasted_at'] != null
-          ? DateTime.parse(json['assignment_broadcasted_at'])
+          ? parseServerTime(json['assignment_broadcasted_at'].toString())
           : DateTime.now(),
       timeoutAt: json['assignment_timeout_at'] != null
-          ? DateTime.parse(json['assignment_timeout_at'])
+          ? parseServerTime(json['assignment_timeout_at'].toString())
           : DateTime.now().add(const Duration(minutes: 5)),
       distanceKm: json['distance_km']?.toDouble(),
       estimatedMinutes: json['estimated_minutes'],
@@ -748,4 +748,12 @@ class OutgoingDelivery {
   /// confirmed as soon as a courier is assigned.
   bool get canConfirmPickup => !isPickupConfirmed &&
       (assignmentStatus == 'accepted' || assignmentStatus == 'picked_up');
+}
+
+/// The backend stores naive UTC and serialises it without a zone; read as
+/// local time it was off by the device's offset (a live 5-min call looked
+/// expired in Kinshasa / Lubumbashi). No zone → UTC.
+DateTime parseServerTime(String raw) {
+  final hasZone = RegExp(r'(Z|[+-]\d{2}:?\d{2})$').hasMatch(raw.trim());
+  return DateTime.parse(hasZone ? raw.trim() : '${raw.trim()}Z');
 }

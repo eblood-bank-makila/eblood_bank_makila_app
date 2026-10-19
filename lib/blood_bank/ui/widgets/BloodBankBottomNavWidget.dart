@@ -26,11 +26,6 @@ class BloodBankBottomNavWidget extends ConsumerStatefulWidget {
   ConsumerState<BloodBankBottomNavWidget> createState() => _BloodBankBottomNavWidgetState();
 }
 
-@pragma('vm:entry-point')
-Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  print('Handling a background message for blood bank: ${message.messageId}');
-}
-
 class _BloodBankBottomNavWidgetState extends ConsumerState<BloodBankBottomNavWidget> {
   int _currentIndex = 0;
 
@@ -88,8 +83,6 @@ class _BloodBankBottomNavWidgetState extends ConsumerState<BloodBankBottomNavWid
         ref: ref,
       );
       await bloodRequestNotificationService.initialize();
-
-      FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
       print('✅ FCM initialized for Blood Bank');
     } catch (e) {

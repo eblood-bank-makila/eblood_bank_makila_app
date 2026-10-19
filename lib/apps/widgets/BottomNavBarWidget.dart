@@ -23,15 +23,6 @@ import '../../stock_management/ui/pages/recherchePoche/RecherchePochePage.dart';
 import '../../orders/ui/pages/panier/PanierPage.dart';
 import 'package:get/get.dart';
 
-@pragma('vm:entry-point')
-Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  // await Firebase.initializeApp();
-
-  // If you're going to use other Firebase services in the background, such as Firestore,
-  // make sure you call `initializeApp` before using other Firebase services.
-  print('Handling a background message ${message.messageId}');
-}
-
 class HospitalBottomNavBarWidget extends ConsumerStatefulWidget {
   const HospitalBottomNavBarWidget({super.key});
 
@@ -92,7 +83,6 @@ class _HospitalBottomNavBarWidgetState extends ConsumerState<HospitalBottomNavBa
     final pushNotificationService =
         PushNotificationService(firebaseMessaging, utilisateurLocalImpl);
     pushNotificationService.initialise();
-    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   }
 
   @override

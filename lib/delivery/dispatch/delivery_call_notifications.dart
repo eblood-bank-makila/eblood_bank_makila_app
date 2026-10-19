@@ -11,6 +11,9 @@ import 'dart:typed_data';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:get_storage/get_storage.dart';
+
+import 'courier_profile.dart';
 
 import 'delivery_call_payload.dart';
 
@@ -92,16 +95,48 @@ Future<void> silenceDeliveryCall(String deliveryId) async {
   await _plugin.cancel(notificationIdFor(deliveryId));
 }
 
+/// Ring a call only for an activated courier on this phone (a logged-out
+/// or switched account must stay quiet); a close always silences.
+Future<void> handleDeliveryCallData(
+  Map<String, dynamic> data, {
+  required Future<bool> Function() isCourier,
+  required Future<void> Function(DeliveryCallPayload call, Map<String, dynamic> data) ring,
+  required Future<void> Function(String deliveryId) silence,
+}) async {
+  final closed = DeliveryCallClosed.tryParse(data);
+  if (closed != null) return silence(closed.deliveryId);
+  final call = DeliveryCallPayload.tryParse(data);
+  if (call != null && await isCourier()) return ring(call, data);
+}
+
 /// Background isolate entry (registered in main.dart): ring or silence.
 @pragma('vm:entry-point')
 Future<void> deliveryCallBackgroundHandler(RemoteMessage message) async {
   try {
-    final data = Map<String, dynamic>.from(message.data);
-    final call = DeliveryCallPayload.tryParse(data);
-    if (call != null) return ringDeliveryCall(call, data);
-    final closed = DeliveryCallClosed.tryParse(data);
-    if (closed != null) return silenceDeliveryCall(closed.deliveryId);
+    await handleDeliveryCallData(
+      Map<String, dynamic>.from(message.data),
+      isCourier: () async {
+        await GetStorage.init(); // fresh isolate: storage not loaded yet
+        return isActivatedCourier();
+      },
+      ring: ringDeliveryCall,
+      silence: silenceDeliveryCall,
+    );
   } catch (e) {
     debugPrint('[delivery-call] background handling failed: $e');
+  }
+}
+
+/// Payload of the call notification that cold-started the app, if any
+/// (flutter_local_notifications does not deliver that tap to the callback).
+Future<Map<String, dynamic>?> deliveryCallLaunchPayload() async {
+  try {
+    await _ensureReady();
+    final details = await _plugin.getNotificationAppLaunchDetails();
+    final raw = details?.didNotificationLaunchApp == true ? details?.notificationResponse?.payload : null;
+    if (raw == null || raw.isEmpty) return null;
+    return Map<String, dynamic>.from(jsonDecode(raw) as Map);
+  } catch (_) {
+    return null;
   }
 }

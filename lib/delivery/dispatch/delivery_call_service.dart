@@ -67,8 +67,10 @@ class DeliveryCallService {
       if (_isCourier()) VisitorFcmRegistrationService().registerCurrentDevice(topic: 'courier');
     });
     await initDeliveryCallNotifications(handle);
-    final initial = await FirebaseMessaging.instance.getInitialMessage();
-    if (initial != null) handle(initial.data);
+    // Cold start from a tap on the ringing notification (data-only pushes
+    // never come back through getInitialMessage).
+    final launched = await deliveryCallLaunchPayload();
+    if (launched != null) handle(launched);
   }
 
   @visibleForTesting
@@ -86,9 +88,11 @@ class DeliveryCallService {
     if (call == null || !_isCourier() || call.timeLeft() == Duration.zero) return;
     final navigator = _navigatorKey?.currentState;
     if (navigator == null || _showing != null) return; // one call at a time
-    await _ring(call, data);
+    // Claim the screen BEFORE any await: two pushes landing together must
+    // not stack two call screens.
     _showing = call.deliveryId;
     _closed = ValueNotifier<String?>(null);
+    await _ring(call, data);
     DeliveryCallResult? result;
     try {
       result = await navigator.push<DeliveryCallResult>(MaterialPageRoute(

@@ -1,4 +1,7 @@
 
+import 'dart:async';
+
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:eblood_bank_mak_app/users/business/interactors/UtilisateurInteractor.dart';
 import 'package:eblood_bank_mak_app/users/ui/framework/AuthApiAdapter.dart';
 import 'package:eblood_bank_mak_app/apps/config/theme/ColorPages.dart';
@@ -35,7 +38,8 @@ import 'orders/ui/framework/panier/PanierServiceNetworkImpl.dart';
 import 'stock_management/ui/framework/recherche/RechercheListeServiceNetworkImpl.dart';
 import 'core/services/app_initialization_service.dart';
 import 'core/rbac/data/rbac_local_storage.dart';
-import 'orders/dead_hand/dead_hand_service.dart';
+import 'delivery/dispatch/delivery_call_notifications.dart';
+import 'delivery/dispatch/delivery_call_service.dart';
 import 'delivery/business/service/courier_presence_service.dart';
 
 
@@ -76,26 +80,11 @@ void main() async {
     }
   }
 
-  // Sprint M — dead-hand auto-broadcast handler. Only delivery-person
-  // accounts subscribe to the broadcast topic + render the ringing
-  // alert; other profiles get a silent no-op. The user_id is read at
-  // message-receipt time (not now) so a session profile-switch keeps
-  // working without a re-attach.
-  if (DeadHandService.isDeliveryPersonProfile()) {
-    await DeadHandService.attach(
-      navigatorKey: navigatorKey,
-      getCurrentUserId: () async {
-        try {
-          final userData = GetStorage().read('user_data');
-          if (userData is Map) {
-            final id = userData['id']?.toString();
-            return (id == null || id.isEmpty) ? null : id;
-          }
-        } catch (_) {/* fall through */}
-        return null;
-      },
-    );
-  }
+  // Courier calls (Yango-style): the background isolate rings an insistent
+  // notification for `delivery_call` pushes and silences it on
+  // `delivery_call_closed`. (Replaces the Sprint-M dead-hand, which the
+  // backend no longer fires.)
+  FirebaseMessaging.onBackgroundMessage(deliveryCallBackgroundHandler);
 
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
@@ -196,6 +185,7 @@ void main() async {
 
   // Courier "En ligne" heartbeat. After dotenv: it calls the API at once.
   CourierPresenceService.instance.attach();
+  unawaited(DeliveryCallService.instance.attach(navigatorKey));
 
   runApp(ProviderScope(
     child: MonApplication(),

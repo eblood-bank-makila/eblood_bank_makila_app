@@ -36,7 +36,9 @@ class VisitorFcmRegistrationService {
   ///
   /// Returns `true` if the token was sent and the backend responded
   /// success; `false` otherwise. Never throws.
-  Future<bool> registerCurrentDevice() async {
+  /// [topic] only labels which flow registered the token ('visitor',
+  /// 'courier'); delivery is per user, not per topic.
+  Future<bool> registerCurrentDevice({String topic = 'visitor'}) async {
     try {
       final token = await FirebaseMessaging.instance.getToken();
       if (token == null || token.isEmpty) {
@@ -55,7 +57,7 @@ class VisitorFcmRegistrationService {
       final body = <String, dynamic>{
         'platform': platform,
         'fcm_token': token,
-        'fcm_topic': 'visitor',
+        'fcm_topic': topic,
       };
 
       final response = await postWithDio(

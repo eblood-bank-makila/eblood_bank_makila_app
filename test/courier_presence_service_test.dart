@@ -48,6 +48,9 @@ const _customerProfiles = [
 /// Records every presence call and drives the injected periodic timer.
 class _Harness {
   final calls = <bool>[];
+  final bodies = <Map<String, dynamic>>[];
+  Map<String, double>? position;
+  int tokenRegistrations = 0;
   int status = 200;
   Completer<int?>? hold;
   Duration? interval;
@@ -55,8 +58,11 @@ class _Harness {
   _FakeTimer? timer;
 
   late final service = CourierPresenceService(
-    send: (online) async {
-      calls.add(online);
+    locate: () async => position,
+    registerToken: () async => tokenRegistrations++,
+    send: (body) async {
+      calls.add(body['online'] as bool);
+      bodies.add(body);
       return hold != null ? hold!.future : status;
     },
     periodic: (every, callback) {
@@ -141,8 +147,10 @@ void main() {
     expect(h.timer!.cancelled, isTrue);
   });
 
-  test('pause sends offline; resume pings again and restarts the timer',
+  test('pause stops pinging WITHOUT going offline; resume pings again',
       () async {
+    // Yango-style: an on-duty courier whose screen fell asleep must still
+    // be rung by the dispatch, so only logout says "offline".
     await GetStorage().write('user_profiles', _courierProfiles);
     final h = _Harness();
     h.service.attach();
@@ -151,17 +159,16 @@ void main() {
 
     h.service.didChangeAppLifecycleState(AppLifecycleState.paused);
     await pumpEventQueue();
-    expect(h.calls, [true, false]);
+    expect(h.calls, [true]);
     expect(firstTimer.cancelled, isTrue);
 
-    // A second background event must not send offline again.
     h.service.didChangeAppLifecycleState(AppLifecycleState.detached);
     await pumpEventQueue();
-    expect(h.calls, [true, false]);
+    expect(h.calls, [true]);
 
     h.service.didChangeAppLifecycleState(AppLifecycleState.resumed);
     await pumpEventQueue();
-    expect(h.calls, [true, false, true]);
+    expect(h.calls, [true, true]);
     expect(h.timer, isNot(same(firstTimer)));
     expect(h.timer!.isActive, isTrue);
   });
@@ -247,7 +254,7 @@ void main() {
     h.service.attach();
     await pumpEventQueue();
 
-    h.service.didChangeAppLifecycleState(AppLifecycleState.paused);
+    await GetStorage().remove('user_profiles'); // logout
     await pumpEventQueue();
     expect(h.calls, [true]);
 
@@ -265,8 +272,8 @@ void main() {
     void Function(Timer)? onTick;
     final timer = _FakeTimer();
     final service = CourierPresenceService(
-      send: (online) async {
-        calls.add(online);
+      send: (body) async {
+        calls.add(body['online'] as bool);
         if (fail) throw const SocketException('offline');
         return 200;
       },
@@ -283,5 +290,54 @@ void main() {
     await pumpEventQueue();
 
     expect(calls, [true, true]);
+  });
+
+  test('online pings carry the position when known; offline never does', () async {
+    await GetStorage().write('user_profiles', _courierProfiles);
+    final h = _Harness()..position = {'lat': -4.32, 'lng': 15.31, 'accuracy': 9};
+    h.service.attach();
+    await pumpEventQueue();
+    expect(h.bodies.single, {'online': true, 'lat': -4.32, 'lng': 15.31, 'accuracy': 9});
+
+    await GetStorage().remove('user_profiles');
+    await pumpEventQueue();
+    expect(h.bodies.last, {'online': false});
+  });
+
+  test('no position: the ping still goes, without coordinates', () async {
+    await GetStorage().write('user_profiles', _courierProfiles);
+    final h = _Harness();
+    h.service.attach();
+    await pumpEventQueue();
+    expect(h.bodies.single, {'online': true});
+  });
+
+  test('the push token is registered once per courier login', () async {
+    final h = _Harness();
+    h.service.attach();
+    await pumpEventQueue();
+    expect(h.tokenRegistrations, 0); // not a courier yet
+
+    await GetStorage().write('user_profiles', _courierProfiles);
+    await pumpEventQueue();
+    await h.tick();
+    h.service.didChangeAppLifecycleState(AppLifecycleState.resumed);
+    await pumpEventQueue();
+    expect(h.tokenRegistrations, 1);
+
+    await GetStorage().remove('user_profiles');
+    await GetStorage().write('user_profiles', _courierProfiles);
+    await pumpEventQueue();
+    expect(h.tokenRegistrations, 2);
+  });
+
+  test('a courier profile disabled by the server never pings', () async {
+    await GetStorage().write('user_profiles', [
+      {'profil': 'mobile_app_delivery_person_profil', 'enabled': false},
+    ]);
+    final h = _Harness();
+    h.service.attach();
+    await pumpEventQueue();
+    expect(h.calls, isEmpty);
   });
 }

@@ -271,17 +271,15 @@ class DeliveryApiService {
 
   // ============================================================================
   // DELIVERY ASSIGNMENT API (Yango-style)
+  // The server takes the courier from the token: no courier id is sent.
   // ============================================================================
 
   /// Get pending delivery requests for a delivery person
-  Future<ApiResponse<List<PendingDeliveryRequest>>> getPendingDeliveryRequests(String deliveryPersonId) async {
+  Future<ApiResponse<List<PendingDeliveryRequest>>> getPendingDeliveryRequests() async {
     try {
       final headers = await _getHeaders();
       final response = await http.get(
-        Uri.parse(ApiConfig.buildUrlWithParams(
-          '/eblood-connect/delivery-assignment/pending-requests',
-          {'delivery_person_id': deliveryPersonId},
-        )),
+        Uri.parse(ApiConfig.buildUrl('/eblood-connect/delivery-assignment/pending-requests')),
         headers: headers,
       );
 
@@ -301,14 +299,11 @@ class DeliveryApiService {
   }
 
   /// Get active delivery for a delivery person
-  Future<ApiResponse<ActiveDelivery?>> getActiveDelivery(String deliveryPersonId) async {
+  Future<ApiResponse<ActiveDelivery?>> getActiveDelivery() async {
     try {
       final headers = await _getHeaders();
       final response = await http.get(
-        Uri.parse(ApiConfig.buildUrlWithParams(
-          '/eblood-connect/delivery-assignment/active-delivery',
-          {'delivery_person_id': deliveryPersonId},
-        )),
+        Uri.parse(ApiConfig.buildUrl('/eblood-connect/delivery-assignment/active-delivery')),
         headers: headers,
       );
 
@@ -327,15 +322,13 @@ class DeliveryApiService {
   }
 
   /// Accept a delivery request
-  Future<ApiResponse<bool>> acceptDeliveryRequest(String deliveryId, String deliveryPersonId) async {
+  Future<ApiResponse<bool>> acceptDeliveryRequest(String deliveryId) async {
     try {
       final headers = await _getHeaders();
       final response = await http.post(
         Uri.parse(ApiConfig.buildUrl('/eblood-connect/delivery-assignment/$deliveryId/accept')),
         headers: headers,
-        body: json.encode({
-          'delivery_person_id': deliveryPersonId,
-        }),
+        body: json.encode({}),
       );
 
       if (response.statusCode == 200) {
@@ -350,14 +343,13 @@ class DeliveryApiService {
   }
 
   /// Reject a delivery request
-  Future<ApiResponse<bool>> rejectDeliveryRequest(String deliveryId, String deliveryPersonId, {String? reason}) async {
+  Future<ApiResponse<bool>> rejectDeliveryRequest(String deliveryId, {String? reason}) async {
     try {
       final headers = await _getHeaders();
       final response = await http.post(
         Uri.parse(ApiConfig.buildUrl('/eblood-connect/delivery-assignment/$deliveryId/reject')),
         headers: headers,
         body: json.encode({
-          'delivery_person_id': deliveryPersonId,
           'reason': reason,
         }),
       );
@@ -373,14 +365,13 @@ class DeliveryApiService {
   }
 
   /// Update delivery phase
-  Future<ApiResponse<bool>> updateDeliveryPhase(String deliveryId, String deliveryPersonId, String phase, {LocationInfo? location}) async {
+  Future<ApiResponse<bool>> updateDeliveryPhase(String deliveryId, String phase, {LocationInfo? location}) async {
     try {
       final headers = await _getHeaders();
       final response = await http.put(
         Uri.parse(ApiConfig.buildUrl('/eblood-connect/delivery-assignment/$deliveryId/phase')),
         headers: headers,
         body: json.encode({
-          'delivery_person_id': deliveryPersonId,
           'phase': phase,
           if (location != null) 'location': location.toJson(),
         }),
@@ -397,14 +388,11 @@ class DeliveryApiService {
   }
 
   /// Update delivery person location
-  Future<ApiResponse<bool>> updateDeliveryPersonLocation(String deliveryPersonId, double lat, double lng, {double? accuracy}) async {
+  Future<ApiResponse<bool>> updateDeliveryPersonLocation(double lat, double lng, {double? accuracy}) async {
     try {
       final headers = await _getHeaders();
       final response = await http.put(
-        Uri.parse(ApiConfig.buildUrlWithParams(
-          '/eblood-connect/delivery-assignment/update-location',
-          {'delivery_person_id': deliveryPersonId},
-        )),
+        Uri.parse(ApiConfig.buildUrl('/eblood-connect/delivery-assignment/update-location')),
         headers: headers,
         body: json.encode({
           'lat': lat,

@@ -186,6 +186,15 @@ void main() {
       expect(d.isAtHospital, isTrue);
     });
 
+    test('the blood request id (which the reception confirm checks the code against) has a fallback key', () {
+      expect(IncomingDelivery.fromJson({'id': 'd1', 'ops_blood_request_id': 'br9'}).bloodRequestId, 'br9');
+      expect(
+        IncomingDelivery.fromJson({'id': 'd1', 'blood_request_id': 'br1', 'ops_blood_request_id': 'br9'}).bloodRequestId,
+        'br1',
+      );
+      expect(IncomingDelivery.fromJson({'id': 'd1'}).bloodRequestId, '');
+    });
+
     test('falls back to status when the phase is absent', () {
       expect(IncomingDelivery.fromJson({'id': 'd1', 'status': 'in_transit'}).status, 'in_transit');
     });

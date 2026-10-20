@@ -17,6 +17,15 @@ Future<void> confirmReception(
   // The reception confirm is code-gated: the courier presents the
   // verification code at the door, the receiving structure types it here.
   // Backend-side it triggers the seller wallet settlement.
+  if (bloodRequestId.isEmpty) {
+    // The code is checked against the blood request: without its id nothing could verify it.
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text('confirm_missing_request'.tr),
+      backgroundColor: Colors.red,
+      behavior: SnackBarBehavior.floating,
+    ));
+    return;
+  }
   final codeController = TextEditingController();
   final code = await showDialog<String>(
     context: context,

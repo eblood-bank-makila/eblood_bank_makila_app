@@ -265,7 +265,6 @@ class AppTranslations extends Translations {
           'Scannez le QR code pour vérifier les informations du stock',
       'scan_qr_to_validate_request':
           'Scannez le QR code pour valider la demande de sang',
-      'delivered': 'Livrées',
       'no_pending_requests': 'Aucune demande en attente',
       'no_in_progress_deliveries': 'Aucune livraison en cours',
       'no_delivered_requests': 'Aucune demande livrée',
@@ -2510,7 +2509,6 @@ class AppTranslations extends Translations {
       'scan_qr_to_verify_stock': 'Scan QR code to verify stock information',
       'scan_qr_to_validate_request':
           'Scan QR code to validate the blood request',
-      'delivered': 'Delivered',
       'no_pending_requests': 'No pending requests',
       'no_in_progress_deliveries': 'No deliveries in progress',
       'no_delivered_requests': 'No delivered requests',
@@ -5624,6 +5622,8 @@ class AppTranslations extends Translations {
       'delivery_in_progress_bar': 'Entrega en curso · @eta',
       'delivery_bar_subtitle': 'Hacia @stop · ubicación compartida',
       'confirm_delivery': 'Confirmar la entrega',
+      'picked_up': 'Recogida',
+      'in_progress': 'En curso',
     },
 
     // Lingala translations
@@ -6908,6 +6908,8 @@ class AppTranslations extends Translations {
       'delivery_in_progress_bar': 'Kokomisa ezali kosalema · @eta',
       'delivery_bar_subtitle': 'Na nzela ya @stop · esika ezali kokabolama',
       'confirm_delivery': 'Ndima kokomisa',
+      'picked_up': 'Ezwami',
+      'in_progress': 'Ezali kosalema',
     },
 
     // Russian translations
@@ -8304,6 +8306,8 @@ class AppTranslations extends Translations {
       'delivery_in_progress_bar': 'Доставка в процессе · @eta',
       'delivery_bar_subtitle': 'В пути: @stop · позиция передаётся',
       'confirm_delivery': 'Подтвердить доставку',
+      'picked_up': 'Получена',
+      'in_progress': 'В процессе',
     },
   };
 }

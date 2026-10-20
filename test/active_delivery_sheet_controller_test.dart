@@ -455,6 +455,16 @@ void main() {
   });
 
   group('session change', () {
+    var signIns = 0;
+
+    // Signed in as every login leaves it: the user (with its id), then the profiles.
+    Future<void> signIn(String userId) async {
+      await GetStorage().write('user_data', {'id': userId});
+      await GetStorage().write('user_profiles', <dynamic>[]);
+    }
+
+    setUp(() => signIn('user-${++signIns}'));
+
     Future<void> minimized(WidgetTester t, _Tracking tracking) async {
       await _app(t, tracking);
       await _open(t, DeliverySheetRole.courier, tracking);
@@ -467,12 +477,26 @@ void main() {
       final tracking = _Tracking();
       await minimized(t, tracking);
 
-      await t.runAsync(() => GetStorage().write('user_profiles', <dynamic>[]));
+      await t.runAsync(() => signIn('someone-else'));
       await _settle(t);
       expect(_bar, findsNothing);
       expect(_controller.courierDeliveryId, isNull);
       expect(_controller.showBar, isFalse);
       expect(find.byType(SnackBar), findsNothing);
+    });
+
+    testWidgets('a same-user profile refresh keeps the delivery and its bar', (t) async {
+      final tracking = _Tracking();
+      await minimized(t, tracking);
+
+      // AuthApi.getUserProfile rewrites the profiles mid-session, then the user.
+      await t.runAsync(() async {
+        await GetStorage().write('user_profiles', <dynamic>[]);
+        await GetStorage().write('user_data', {'id': 'user-$signIns'});
+      });
+      await _settle(t);
+      expect(_bar, findsOneWidget);
+      expect(_controller.courierDeliveryId, 'd1');
     });
 
     testWidgets('a logout closes the courier sheet that is up', (t) async {

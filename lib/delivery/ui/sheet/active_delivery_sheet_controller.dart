@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 
+import '../../../core/services/session_identity.dart';
 import '../../../main.dart' show navigatorKey;
 import '../../business/model/delivery_tracking.dart';
 import 'delivery_sheet.dart';
@@ -29,7 +30,7 @@ class ActiveDeliverySheetController extends ChangeNotifier {
 
   /// The delivery whose end message was last shown: the sheet and the bar can both report the same end.
   String? _endedId;
-  bool _watchingSession = false;
+  SessionIdentity? _session;
 
   /// The courier's delivery in progress, while there is one.
   String? get courierDeliveryId => _courierId;
@@ -119,13 +120,14 @@ class ActiveDeliverySheetController extends ChangeNotifier {
     }
   }
 
-  /// Every login path writes `user_profiles` and every logout removes it: a
-  /// change means another session, to which this one's sheet and bar do not belong
-  /// (they would poll without its token, or with the next user's).
+  /// Another user signing in, or a logout, is another session, to which this
+  /// one's sheet and bar do not belong (they would poll without its token, or
+  /// with the next user's). A same-user profile refresh keeps them.
   void _watchSession() {
-    if (_watchingSession) return;
-    _watchingSession = true;
+    if (_session != null) return;
+    final session = _session = SessionIdentity();
     GetStorage().listenKey('user_profiles', (_) {
+      if (!session.changed()) return;
       _popSheet();
       _courierId = null;
       _minimized = false;

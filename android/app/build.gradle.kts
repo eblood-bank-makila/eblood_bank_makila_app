@@ -15,7 +15,7 @@ val keystoreProperties = Properties().apply {
 }
 
 // Google Maps key lives in android/local.properties (git-ignored); a missing key
-// still builds (the map just renders blank until MAPS_API_KEY is added).
+// still builds (the map just renders blank until MAPS_API_KEY is added; release builds warn).
 val mapsApiKey = Properties().apply {
     val f = rootProject.file("local.properties")
     if (f.exists()) load(FileInputStream(f))
@@ -33,6 +33,10 @@ val isReleaseBuild = gradle.startParameter.taskNames.any { it.contains("Release"
 val versionCodeOverride = (project.findProperty("versionCodeOverride") as? String)?.toIntOrNull()
 val autoVersionCode = (System.currentTimeMillis() / 60_000L).toInt()
 // -----------------------------------------------------------------------------
+
+if (isReleaseBuild && mapsApiKey.isNullOrBlank()) {
+    logger.warn("WARNING: MAPS_API_KEY is missing from android/local.properties: the delivery map will render blank in this release build.")
+}
 
 android {
     namespace = "com.ebloodbank.makila.grpe.apps.eblood_bank_mak_app"

@@ -26,6 +26,11 @@ void main() {
     expect(gradle, contains('manifestPlaceholders'));
   });
 
+  test('a release build without MAPS_API_KEY warns (the map would render blank)', () {
+    final gradle = File('android/app/build.gradle.kts').readAsStringSync();
+    expect(gradle, matches(RegExp(r'if \(isReleaseBuild && mapsApiKey\.isNullOrBlank\(\)\) \{\s*logger\.warn\(')));
+  });
+
   test('google_maps_flutter is a dependency', () {
     expect(File('pubspec.yaml').readAsStringSync(), contains('google_maps_flutter:'));
   });

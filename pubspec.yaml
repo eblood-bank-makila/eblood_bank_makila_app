@@ -81,10 +81,10 @@ dependencies:
   flutter_ringtone_player: ^4.0.0+4
   google_maps_flutter: ^2.18.1
 
-# android-maps-utils >=4.1.0 (google_maps_flutter_android >=2.19.2) drags in kotlin-stdlib 2.3 and
-# >=2.19.8 compiles Kotlin Pigeon code: both break the Kotlin 2.1.0 plugin pinned in
-# android/settings.gradle.kts. 2.19.1 is the newest release (maps-utils 4.0.0, Java-only) that
-# builds. Drop this override when that Kotlin Gradle plugin is bumped to >= 2.3.
+# shortcut: google_maps_flutter_android is held at 2.19.1, the newest release that builds with the
+# Kotlin 2.1.0 plugin pinned in android/settings.gradle.kts (>=2.19.2 pulls android-maps-utils
+# >=4.1.0 and kotlin-stdlib 2.3; >=2.19.8 compiles Kotlin Pigeon code), drop it once that
+# Kotlin Gradle plugin is bumped to >= 2.3.
 dependency_overrides:
   google_maps_flutter_android: 2.19.1
 

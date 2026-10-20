@@ -1,5 +1,6 @@
 /// Live tracking of one delivery: polls the tracking read while somebody listens
-/// (the delivery sheet), so nothing runs once it is closed.
+/// (the delivery sheet, or the courier's minimized bar), so nothing runs once
+/// both are closed.
 library;
 
 import 'dart:async';

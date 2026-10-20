@@ -4,11 +4,15 @@
 library;
 
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
+import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
+import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 import 'package:eblood_bank_mak_app/apps/translations/AppTranslations.dart';
 import 'package:eblood_bank_mak_app/delivery/business/interactors/delivery_tracking_provider.dart';
@@ -35,6 +39,18 @@ DeliveryTracking _tracking(String phase, {int? eta = 480}) => DeliveryTracking(
       etaToHospitalSeconds: 900,
       bloodSummary: '1 × AB-',
     );
+
+class _TempPathProvider extends PathProviderPlatform with MockPlatformInterfaceMixin {
+  _TempPathProvider(this.path);
+  final String path;
+
+  @override
+  Future<String?> getApplicationDocumentsPath() async => path;
+  @override
+  Future<String?> getApplicationSupportPath() async => path;
+  @override
+  Future<String?> getTemporaryPath() async => path;
+}
 
 final _controller = ActiveDeliverySheetController.instance;
 final _sheet = find.byType(DeliverySheet);
@@ -96,6 +112,19 @@ Future<void> _open(WidgetTester t, DeliverySheetRole role, _Tracking tracking, {
 }
 
 void main() {
+  late Directory tempDir;
+
+  setUpAll(() async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    tempDir = await Directory.systemTemp.createTemp('eblood_delivery_sheet_test');
+    PathProviderPlatform.instance = _TempPathProvider(tempDir.path);
+    await GetStorage.init();
+  });
+
+  tearDownAll(() {
+    if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+  });
+
   setUp(() => _controller.mapBuilder = (_, __) => const SizedBox.expand());
 
   tearDown(() {
@@ -328,6 +357,145 @@ void main() {
       expect(_bar, findsNothing);
       expect(_controller.courierDeliveryId, isNull);
       expect(find.byType(SnackBar), findsNothing);
+    });
+  });
+
+  group('under a dialog', () {
+    Future<void> dialog(WidgetTester t) async {
+      unawaited(showDialog<void>(
+        context: navigatorKey.currentContext!,
+        builder: (_) => const AlertDialog(content: Text('dialog')),
+      ));
+      await _settle(t);
+      expect(find.text('dialog'), findsOneWidget);
+    }
+
+    /// The dialog is still the top route: one pop closes it and leaves the page.
+    Future<void> expectDialogIntact(WidgetTester t) async {
+      expect(find.text('dialog'), findsOneWidget);
+      navigatorKey.currentState!.pop();
+      await _settle(t);
+      expect(find.text('dialog'), findsNothing);
+      expect(find.byKey(const Key('page')), findsOneWidget);
+    }
+
+    testWidgets('closeFor removes the sheet, not the dialog above it, and still says why', (t) async {
+      final tracking = _Tracking();
+      await _app(t, tracking);
+      await _open(t, DeliverySheetRole.courier, tracking);
+      await dialog(t);
+
+      _controller.closeFor('d1', message: 'Livraison réassignée');
+      await _settle(t);
+      expect(_sheet, findsNothing);
+      expect(find.text('Livraison réassignée'), findsOneWidget);
+      await expectDialogIntact(t);
+    });
+
+    testWidgets('minimize removes the sheet, not the dialog above it', (t) async {
+      final tracking = _Tracking();
+      await _app(t, tracking);
+      await _open(t, DeliverySheetRole.courier, tracking);
+      await dialog(t);
+
+      _controller.minimize();
+      await _settle(t);
+      expect(_sheet, findsNothing);
+      expect(_bar, findsOneWidget);
+      await expectDialogIntact(t);
+    });
+  });
+
+  group('closed from outside', () {
+    testWidgets('a courier sheet popped by someone else leaves the bar to reopen it', (t) async {
+      final tracking = _Tracking();
+      await _app(t, tracking);
+      await _open(t, DeliverySheetRole.courier, tracking);
+
+      navigatorKey.currentState!.pop();
+      await _settle(t);
+      expect(_sheet, findsNothing);
+      expect(_controller.courierDeliveryId, 'd1');
+      expect(_bar, findsOneWidget);
+
+      await t.tap(_bar);
+      await _settle(t);
+      expect(_sheet, findsOneWidget);
+    });
+
+    testWidgets('a follower sheet swiped away leaves no bar', (t) async {
+      final tracking = _Tracking();
+      await _app(t, tracking);
+      await _open(t, DeliverySheetRole.buyer, tracking);
+
+      navigatorKey.currentState!.pop();
+      await _settle(t);
+      expect(_bar, findsNothing);
+      expect(_controller.courierDeliveryId, isNull);
+    });
+  });
+
+  group('end message', () {
+    testWidgets('is shown once per delivery, until the delivery is opened again', (t) async {
+      final tracking = _Tracking();
+      await _app(t, tracking);
+      await _open(t, DeliverySheetRole.courier, tracking);
+
+      _controller.closeFor('d1', message: 'one'); // the sheet and the bar can both report the end
+      _controller.closeFor('d1', message: 'two');
+      await _settle(t);
+      expect(find.text('one'), findsOneWidget);
+      expect(find.text('two'), findsNothing);
+
+      await _open(t, DeliverySheetRole.courier, tracking);
+      _controller.closeFor('d1', message: 'three');
+      await _settle(t);
+      expect(find.text('three'), findsOneWidget);
+    });
+  });
+
+  group('session change', () {
+    Future<void> minimized(WidgetTester t, _Tracking tracking) async {
+      await _app(t, tracking);
+      await _open(t, DeliverySheetRole.courier, tracking);
+      await t.tap(find.byKey(const Key('sheet-minimize')));
+      await _settle(t);
+      expect(_bar, findsOneWidget);
+    }
+
+    testWidgets('a new login clears the minimized delivery and its bar, without a message', (t) async {
+      final tracking = _Tracking();
+      await minimized(t, tracking);
+
+      await t.runAsync(() => GetStorage().write('user_profiles', <dynamic>[]));
+      await _settle(t);
+      expect(_bar, findsNothing);
+      expect(_controller.courierDeliveryId, isNull);
+      expect(_controller.showBar, isFalse);
+      expect(find.byType(SnackBar), findsNothing);
+    });
+
+    testWidgets('a logout closes the courier sheet that is up', (t) async {
+      final tracking = _Tracking();
+      await _app(t, tracking);
+      await _open(t, DeliverySheetRole.courier, tracking);
+
+      await t.runAsync(() => GetStorage().remove('user_profiles'));
+      await _settle(t);
+      expect(_sheet, findsNothing);
+      expect(_bar, findsNothing);
+      expect(_controller.courierDeliveryId, isNull);
+      expect(find.byType(SnackBar), findsNothing);
+    });
+
+    testWidgets('a logout closes a follower sheet too', (t) async {
+      final tracking = _Tracking();
+      await _app(t, tracking);
+      await _open(t, DeliverySheetRole.buyer, tracking);
+
+      await t.runAsync(() => GetStorage().remove('user_profiles'));
+      await _settle(t);
+      expect(_sheet, findsNothing);
     });
   });
 }

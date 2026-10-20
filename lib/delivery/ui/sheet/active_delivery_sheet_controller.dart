@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 
 import '../../../main.dart' show navigatorKey;
 import '../../business/model/delivery_tracking.dart';
@@ -26,6 +27,10 @@ class ActiveDeliverySheetController extends ChangeNotifier {
   bool _minimized = false;
   _Open? _open;
 
+  /// The delivery whose end message was last shown: the sheet and the bar can both report the same end.
+  String? _endedId;
+  bool _watchingSession = false;
+
   /// The courier's delivery in progress, while there is one.
   String? get courierDeliveryId => _courierId;
   bool get minimized => _minimized;
@@ -41,6 +46,8 @@ class ActiveDeliverySheetController extends ChangeNotifier {
   Future<void> open(NavigatorState navigator, String deliveryId, DeliverySheetRole role) async {
     final shown = _open;
     if (shown != null && shown.id == deliveryId && shown.role == role) return;
+    _watchSession();
+    if (_endedId == deliveryId) _endedId = null;
     // One sheet at a time. The courier's must stay reachable, so it shrinks to the bar.
     if (shown != null) shown.role == DeliverySheetRole.courier ? minimize() : _popSheet();
 
@@ -79,7 +86,14 @@ class ActiveDeliverySheetController extends ChangeNotifier {
         return courier ? PopScope(canPop: false, child: content) : content;
       },
     );
-    if (identical(_open, sheet)) _open = null; // dragged or tapped away
+    if (identical(_open, sheet)) {
+      // Dragged, tapped away or popped by someone else, not by this controller.
+      _open = null;
+      if (courier && _courierId == deliveryId) {
+        _minimized = true; // the delivery goes on: the bar is the way back
+        notifyListeners();
+      }
+    }
   }
 
   /// Shrinks the courier's sheet to the bar; the delivery stays current.
@@ -99,7 +113,25 @@ class ActiveDeliverySheetController extends ChangeNotifier {
       _minimized = false;
     }
     notifyListeners();
-    if (message != null) _snack(message);
+    if (message != null) {
+      if (_endedId != deliveryId) _snack(message);
+      _endedId = deliveryId;
+    }
+  }
+
+  /// Every login path writes `user_profiles` and every logout removes it: a
+  /// change means another session, to which this one's sheet and bar do not belong
+  /// (they would poll without its token, or with the next user's).
+  void _watchSession() {
+    if (_watchingSession) return;
+    _watchingSession = true;
+    GetStorage().listenKey('user_profiles', (_) {
+      _popSheet();
+      _courierId = null;
+      _minimized = false;
+      _endedId = null;
+      notifyListeners();
+    });
   }
 
   void _popSheet() {

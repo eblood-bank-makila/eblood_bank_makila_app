@@ -5,10 +5,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:get/get.dart';
 import '../../../apps/config/theme/ColorPages.dart';
-import '../../../blood_bank/providers/ewallet_provider.dart';
 import '../../business/interactors/DeliveryController.dart';
 import '../../business/model/DeliveryModels.dart';
 import '../pages/HospitalDeliveryTrackingPage.dart';
+import '../sheet/confirm_reception_dialog.dart';
 
 /// Widget showing incoming delivery for hospital (floating card on home screen)
 class IncomingDeliveryWidget extends ConsumerStatefulWidget {
@@ -319,98 +319,12 @@ class _IncomingDeliveryWidgetState extends ConsumerState<IncomingDeliveryWidget>
     );
   }
 
-  Future<void> _confirmDelivery(IncomingDelivery delivery) async {
-    // The reception confirm is code-gated: the courier presents the
-    // verification code at the door, the receiving structure types it here.
-    // Backend-side it triggers the seller wallet settlement.
-    final codeController = TextEditingController();
-    final code = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('confirm_delivery'.tr),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('confirm_delivery_message'.tr),
-            const SizedBox(height: 16),
-            TextField(
-              controller: codeController,
-              keyboardType: TextInputType.number,
-              maxLength: 6,
-              textAlign: TextAlign.center,
-              style: GoogleFonts.ubuntu(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 6,
-              ),
-              decoration: InputDecoration(
-                counterText: '',
-                hintText: '______',
-                labelText: 'Code de confirmation du livreur',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('cancel'.tr),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, codeController.text.trim()),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-            ),
-            child: Text('confirm'.tr),
-          ),
-        ],
-      ),
-    );
-
-    if (code == null) return;
-    if (code.isEmpty) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Veuillez entrer le code présenté par le livreur'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-      return;
-    }
-
-    final success = await ref
-        .read(incomingDeliveriesProvider.notifier)
-        .confirmDelivery(
-          delivery.id,
-          bloodRequestId: delivery.bloodRequestId,
-          verificationCode: code,
-        );
-
-    if (success && mounted) {
-      // Settlement just ran on the backend — refresh so a BB/CNTS user
-      // opening the wallet next sees the release credit without a manual
-      // refresh.
-      ref.invalidate(ewalletProvider);
-    }
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(success
-              ? 'delivery_confirmed'.tr
-              : 'Code invalide ou confirmation impossible'),
-          backgroundColor: success ? Colors.green : Colors.red,
-          behavior: SnackBarBehavior.floating,
-        ),
+  Future<void> _confirmDelivery(IncomingDelivery delivery) => confirmReception(
+        context,
+        ref,
+        deliveryId: delivery.id,
+        bloodRequestId: delivery.bloodRequestId,
       );
-    }
-  }
 
   Color _getStatusColor(String status) {
     switch (status) {

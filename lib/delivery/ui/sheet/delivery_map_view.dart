@@ -1,0 +1,114 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+
+import '../../business/model/delivery_tracking.dart';
+
+const _routeColor = Color(0xFF1A73E8);
+const _kinshasa = LatLng(-4.325, 15.322);
+
+LatLng? _latLng(double? lat, double? lng) => lat == null || lng == null ? null : LatLng(lat, lng);
+
+/// Everything the camera must show: the known pins, then the active route.
+List<LatLng> trackingPoints(DeliveryTracking t) => [
+      ?_latLng(t.bloodBank.lat, t.bloodBank.lng),
+      ?_latLng(t.hospital.lat, t.hospital.lng),
+      ?_latLng(t.courierPosition?.lat, t.courierPosition?.lng),
+      for (final p in t.currentLeg?.points ?? const <LatLngPoint>[]) LatLng(p.lat, p.lng),
+    ];
+
+/// The live map of the delivery sheet: the active leg's road route (dashed when
+/// it is only a straight-line estimate), bank / hospital / courier pins, and a
+/// recenter button. Fits everything in view once the map is ready.
+class DeliveryMapView extends StatefulWidget {
+  const DeliveryMapView({super.key, required this.tracking});
+
+  final DeliveryTracking tracking;
+
+  @override
+  State<DeliveryMapView> createState() => _DeliveryMapViewState();
+}
+
+class _DeliveryMapViewState extends State<DeliveryMapView> {
+  GoogleMapController? _controller;
+
+  Future<void> _fit() async {
+    final c = _controller;
+    final pts = trackingPoints(widget.tracking);
+    if (c == null || pts.isEmpty) return;
+    if (pts.length == 1) return c.animateCamera(CameraUpdate.newLatLngZoom(pts.first, 15));
+    final lats = pts.map((p) => p.latitude), lngs = pts.map((p) => p.longitude);
+    final bounds = LatLngBounds(
+      southwest: LatLng(lats.reduce((a, b) => a < b ? a : b), lngs.reduce((a, b) => a < b ? a : b)),
+      northeast: LatLng(lats.reduce((a, b) => a > b ? a : b), lngs.reduce((a, b) => a > b ? a : b)),
+    );
+    try {
+      await c.animateCamera(CameraUpdate.newLatLngBounds(bounds, 48));
+    } catch (_) {
+      // Android refuses bounds while the map has no size yet; centre instead.
+      await c.animateCamera(CameraUpdate.newLatLngZoom(bounds.southwest, 13));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = widget.tracking;
+    final leg = t.currentLeg;
+    final pts = trackingPoints(t);
+    Marker pin(String id, LatLng at, double hue, String? title) => Marker(
+          markerId: MarkerId(id),
+          position: at,
+          icon: BitmapDescriptor.defaultMarkerWithHue(hue),
+          infoWindow: InfoWindow(title: title),
+        );
+    final bank = _latLng(t.bloodBank.lat, t.bloodBank.lng);
+    final hospital = _latLng(t.hospital.lat, t.hospital.lng);
+    final courier = _latLng(t.courierPosition?.lat, t.courierPosition?.lng);
+
+    return Stack(
+      children: [
+        GoogleMap(
+          initialCameraPosition: CameraPosition(target: pts.isEmpty ? _kinshasa : pts.first, zoom: 13),
+          // The sheet must not steal the pan / zoom gestures.
+          gestureRecognizers: {Factory<OneSequenceGestureRecognizer>(EagerGestureRecognizer.new)},
+          myLocationButtonEnabled: false,
+          zoomControlsEnabled: false,
+          mapToolbarEnabled: false,
+          markers: {
+            if (bank != null) pin('bank', bank, BitmapDescriptor.hueRed, t.bloodBank.name),
+            if (hospital != null) pin('hospital', hospital, BitmapDescriptor.hueRose, t.hospital.name),
+            if (courier != null) pin('courier', courier, BitmapDescriptor.hueAzure, t.courierName),
+          },
+          polylines: {
+            if (leg != null && leg.points.length > 1)
+              Polyline(
+                polylineId: const PolylineId('route'),
+                points: [for (final p in leg.points) LatLng(p.lat, p.lng)],
+                color: _routeColor,
+                width: 6,
+                patterns: leg.approximate ? [PatternItem.dash(20), PatternItem.gap(12)] : const [],
+              ),
+          },
+          onMapCreated: (c) {
+            _controller = c;
+            WidgetsBinding.instance.addPostFrameCallback((_) => _fit());
+          },
+        ),
+        Positioned(
+          top: 10,
+          right: 10,
+          child: FloatingActionButton.small(
+            heroTag: null,
+            backgroundColor: Colors.white,
+            foregroundColor: Colors.black87,
+            tooltip: 'map_recenter'.tr,
+            onPressed: _fit,
+            child: const Icon(Icons.my_location),
+          ),
+        ),
+      ],
+    );
+  }
+}

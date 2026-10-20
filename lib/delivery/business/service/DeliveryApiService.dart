@@ -380,7 +380,13 @@ class DeliveryApiService {
       if (response.statusCode == 200) {
         return ApiResponse.success(true);
       } else {
-        return ApiResponse.error('Failed to update delivery phase');
+        // The 409s carry a message the courier must read (« … pas encore remise »).
+        String message = 'Failed to update delivery phase';
+        try {
+          final body = json.decode(response.body);
+          message = (body['message'] ?? body['detail'])?.toString() ?? message;
+        } catch (_) {}
+        return ApiResponse.error(message, statusCode: response.statusCode);
       }
     } catch (e) {
       return ApiResponse.error('Network error: $e');

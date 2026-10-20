@@ -4,6 +4,7 @@ library;
 
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../model/delivery_tracking.dart';
@@ -20,11 +21,13 @@ class DeliveryTrackingClosed implements Exception {
 
 /// Fetches now, then every [every]. A failed tick (500, network) is skipped and the
 /// last value stays; a 403 errors with [DeliveryTrackingClosed] and closes; a
-/// `cancelled` phase is emitted, then the stream closes. A slow fetch never overlaps the next.
+/// `cancelled` phase is emitted, then the stream closes. A slow fetch never overlaps the next,
+/// and one that takes longer than [timeout] counts as a failed tick (a stalled socket must not freeze the polling).
 Stream<DeliveryTracking> pollDeliveryTracking(
   String deliveryId, {
   required Future<ApiResponse<Map<String, dynamic>>> Function(String) fetch,
   Duration every = const Duration(seconds: 10),
+  Duration timeout = const Duration(seconds: 8),
 }) {
   late final StreamController<DeliveryTracking> out;
   Timer? timer;
@@ -39,7 +42,7 @@ Stream<DeliveryTracking> pollDeliveryTracking(
     if (busy) return;
     busy = true;
     try {
-      final res = await fetch(deliveryId);
+      final res = await fetch(deliveryId).timeout(timeout);
       if (out.isClosed) return;
       if (res.statusCode == 403) {
         out.addError(const DeliveryTrackingClosed(forbidden: true));
@@ -49,8 +52,9 @@ Stream<DeliveryTracking> pollDeliveryTracking(
         out.add(tracking);
         if (tracking.isCancelled) stop();
       }
-    } catch (_) {
+    } catch (e) {
       // Skip this tick; the next one retries.
+      if (kDebugMode) debugPrint('[tracking] tick failed: $e');
     } finally {
       busy = false;
     }

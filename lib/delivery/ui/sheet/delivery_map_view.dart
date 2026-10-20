@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -8,6 +10,44 @@ import '../../business/model/delivery_tracking.dart';
 
 const _routeColor = Color(0xFF1A73E8);
 const _kinshasa = LatLng(-4.325, 15.322);
+
+/// One look per place, shared by the map markers and the sheet's stop cards.
+typedef StopLook = ({IconData icon, Color color});
+const bankLook = (icon: Icons.bloodtype, color: Color(0xFFD0021B));
+const hospitalLook = (icon: Icons.local_hospital, color: Color(0xFF00897B));
+const courierLook = (icon: Icons.two_wheeler, color: Color(0xFF1D1D1F));
+
+/// A round badge with the place's icon, white-ringed so it reads on any tile; [pin] adds the point
+/// that marks the exact spot (bank, hospital). The courier's badge has none: it sits on its position.
+Future<BitmapDescriptor> markerIcon(StopLook look, double pixelRatio, {required bool pin}) async {
+  const size = 40.0, tip = 10.0;
+  final recorder = ui.PictureRecorder();
+  final canvas = Canvas(recorder)..scale(pixelRatio);
+  const center = Offset(size / 2, size / 2);
+  if (pin) {
+    canvas.drawPath(
+      Path()
+        ..moveTo(size / 2 - 8, size - 8)
+        ..lineTo(size / 2, size + tip)
+        ..lineTo(size / 2 + 8, size - 8)
+        ..close(),
+      Paint()..color = look.color,
+    );
+  }
+  canvas.drawCircle(center, size / 2, Paint()..color = Colors.white);
+  canvas.drawCircle(center, size / 2 - 3, Paint()..color = look.color);
+  final glyph = TextPainter(
+    textDirection: TextDirection.ltr,
+    text: TextSpan(
+      text: String.fromCharCode(look.icon.codePoint),
+      style: TextStyle(fontSize: 22, fontFamily: look.icon.fontFamily, package: look.icon.fontPackage, color: Colors.white),
+    ),
+  )..layout();
+  glyph.paint(canvas, center - Offset(glyph.width / 2, glyph.height / 2));
+  final image = await recorder.endRecording().toImage((size * pixelRatio).ceil(), ((pin ? size + tip : size) * pixelRatio).ceil());
+  final png = await image.toByteData(format: ui.ImageByteFormat.png);
+  return BitmapDescriptor.bytes(png!.buffer.asUint8List(), imagePixelRatio: pixelRatio);
+}
 
 LatLng? _latLng(double? lat, double? lng) => lat == null || lng == null ? null : LatLng(lat, lng);
 
@@ -34,6 +74,24 @@ class DeliveryMapView extends StatefulWidget {
 
 class _DeliveryMapViewState extends State<DeliveryMapView> {
   GoogleMapController? _controller;
+  // bank, hospital, courier; the default pins show until they are drawn.
+  List<BitmapDescriptor>? _icons;
+  bool _drawing = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_drawing) return;
+    _drawing = true;
+    final ratio = MediaQuery.devicePixelRatioOf(context);
+    Future.wait([
+      markerIcon(bankLook, ratio, pin: true),
+      markerIcon(hospitalLook, ratio, pin: true),
+      markerIcon(courierLook, ratio, pin: false),
+    ]).then((icons) {
+      if (mounted) setState(() => _icons = icons);
+    }, onError: (Object e) => debugPrint('[delivery-map] marker icons: $e'));
+  }
 
   @override
   void didUpdateWidget(DeliveryMapView oldWidget) {
@@ -72,10 +130,13 @@ class _DeliveryMapViewState extends State<DeliveryMapView> {
     final t = widget.tracking;
     final leg = t.currentLeg;
     final pts = trackingPoints(t);
-    Marker pin(String id, LatLng at, double hue, String? title) => Marker(
+    final icons = _icons;
+    Marker pin(String id, LatLng at, int look, double hue, String? title) => Marker(
           markerId: MarkerId(id),
           position: at,
-          icon: BitmapDescriptor.defaultMarkerWithHue(hue),
+          icon: icons?[look] ?? BitmapDescriptor.defaultMarkerWithHue(hue),
+          // The courier's badge is centred on its position; the pins point at theirs.
+          anchor: icons != null && id == 'courier' ? const Offset(0.5, 0.5) : const Offset(0.5, 1),
           infoWindow: InfoWindow(title: title),
         );
     final bank = _latLng(t.bloodBank.lat, t.bloodBank.lng);
@@ -92,9 +153,9 @@ class _DeliveryMapViewState extends State<DeliveryMapView> {
           zoomControlsEnabled: false,
           mapToolbarEnabled: false,
           markers: {
-            if (bank != null) pin('bank', bank, BitmapDescriptor.hueRed, t.bloodBank.name),
-            if (hospital != null) pin('hospital', hospital, BitmapDescriptor.hueAzure, t.hospital.name),
-            if (courier != null) pin('courier', courier, BitmapDescriptor.hueOrange, t.courierName),
+            if (bank != null) pin('bank', bank, 0, BitmapDescriptor.hueRed, t.bloodBank.name),
+            if (hospital != null) pin('hospital', hospital, 1, BitmapDescriptor.hueCyan, t.hospital.name),
+            if (courier != null) pin('courier', courier, 2, BitmapDescriptor.hueViolet, t.courierName),
           },
           polylines: {
             if (leg != null && leg.points.length > 1)

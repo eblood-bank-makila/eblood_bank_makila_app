@@ -374,8 +374,9 @@ class _DeliverySheetState extends ConsumerState<DeliverySheet> {
     final action = _action(context, t);
 
     return [
-      SizedBox(
-        height: 235,
+      Expanded(
+        // The map takes 3/5 of the room, down to about the first stop card; the ETA, steps and cards scroll below it.
+        flex: 3,
         child: Stack(
           children: [
             Positioned.fill(child: (widget.mapBuilder ?? (_, t) => DeliveryMapView(tracking: t))(context, t)),
@@ -399,6 +400,7 @@ class _DeliverySheetState extends ConsumerState<DeliverySheet> {
         ),
       ),
       Expanded(
+        flex: 2,
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
           children: [
@@ -434,12 +436,12 @@ class _DeliverySheetState extends ConsumerState<DeliverySheet> {
     if (_courier) {
       return toBank
           ? [
-              _StopCard(icon: Icons.bloodtype, title: t.bloodBank.name, subtitle: join([t.bloodBank.address, t.bloodSummary]),
+              _StopCard(look: bankLook, title: t.bloodBank.name, subtitle: join([t.bloodBank.address, t.bloodSummary]),
                   phone: t.bloodBank.phone, callKey: const Key('call-bank')),
-              _StopCard(icon: Icons.local_hospital, title: t.hospital.name, subtitle: t.hospital.address),
+              _StopCard(look: hospitalLook, title: t.hospital.name, subtitle: t.hospital.address),
             ]
           : [
-              _StopCard(icon: Icons.local_hospital, title: t.hospital.name, subtitle: join([t.hospital.address, t.bloodSummary]),
+              _StopCard(look: hospitalLook, title: t.hospital.name, subtitle: join([t.hospital.address, t.bloodSummary]),
                   phone: t.hospital.phone, callKey: const Key('call-hospital')),
             ];
     }
@@ -447,7 +449,7 @@ class _DeliverySheetState extends ConsumerState<DeliverySheet> {
     return [
       if (!_noCourier(t))
         _StopCard(
-          icon: Icons.two_wheeler,
+          look: courierLook,
           title: t.courierName,
           subtitle: 'courier_on_moto'.tr,
           phone: t.courierPhone,
@@ -595,9 +597,10 @@ class _StepBar extends StatelessWidget {
 }
 
 class _StopCard extends StatelessWidget {
-  const _StopCard({required this.icon, required this.title, this.subtitle, this.phone, this.callKey});
+  const _StopCard({required this.look, required this.title, this.subtitle, this.phone, this.callKey});
 
-  final IconData icon;
+  /// The same icon and colour as the place's map marker.
+  final StopLook look;
   final String? title, subtitle, phone;
   final Key? callKey;
 
@@ -616,8 +619,8 @@ class _StopCard extends StatelessWidget {
           Container(
             width: 38,
             height: 38,
-            decoration: BoxDecoration(color: const Color(0xFFFFE3E5), borderRadius: BorderRadius.circular(10)),
-            child: Icon(icon, color: _red, size: 20),
+            decoration: BoxDecoration(color: look.color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
+            child: Icon(look.icon, color: look.color, size: 20),
           ),
           const SizedBox(width: 10),
           Expanded(

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -6,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import 'package:eblood_bank_mak_app/apps/translations/AppTranslations.dart';
 import 'package:eblood_bank_mak_app/delivery/business/interactors/DeliveryController.dart';
@@ -122,6 +124,12 @@ Future<void> _show(
 }
 
 final _code = find.byKey(const Key('handover-code'));
+
+/// Width and height from a PNG's IHDR chunk.
+(int, int) _pngSize(Uint8List png) {
+  final b = ByteData.sublistView(png);
+  return (b.getUint32(16), b.getUint32(20));
+}
 final _knob = find.byKey(const Key('slide-knob'));
 const _genericError = 'Erreur lors de la mise à jour du statut';
 
@@ -167,6 +175,34 @@ void _ignoringGoogleFonts(String description, Future<void> Function(WidgetTester
 }
 
 void main() {
+  group('places look the same on the map and in the cards', () {
+    testWidgets('the bank and hospital cards carry their marker icon and colour', (t) async {
+      await _show(t, _tracking('en_route_to_blood_bank'), DeliverySheetRole.courier);
+      Icon icon(IconData data) => t.widget<Icon>(find.byIcon(data));
+      expect(icon(bankLook.icon).color, bankLook.color);
+      expect(icon(hospitalLook.icon).color, hospitalLook.color);
+      expect(bankLook.color, isNot(hospitalLook.color));
+    });
+
+    testWidgets('a follower sees the courier card in the courier marker look', (t) async {
+      await _show(t, _tracking('en_route_to_hospital', pickupConfirmed: true), DeliverySheetRole.buyer);
+      expect(t.widget<Icon>(find.byIcon(courierLook.icon)).color, courierLook.color);
+    });
+
+    testWidgets('markers: pins for bank and hospital, a round badge for the courier', (t) async {
+      final sizes = await t.runAsync(() async => [
+            for (final (look, pin) in [(bankLook, true), (hospitalLook, true), (courierLook, false)])
+              (await markerIcon(look, 2, pin: pin) as BytesMapBitmap).byteData.length,
+          ]);
+      expect(sizes, everyElement(greaterThan(0)));
+      final pin = await t.runAsync(() => markerIcon(bankLook, 2, pin: true)) as BytesMapBitmap;
+      final badge = await t.runAsync(() => markerIcon(courierLook, 2, pin: false)) as BytesMapBitmap;
+      expect(pin.imagePixelRatio, 2);
+      expect(_pngSize(pin.byteData), (80, 100)); // 40 dp wide, 10 dp of point under the badge
+      expect(_pngSize(badge.byteData), (80, 80));
+    });
+  });
+
   group('courier', () {
     testWidgets('heading to the bank: the arrival slide, no handover code', (t) async {
       await _show(t, _tracking('en_route_to_blood_bank'), DeliverySheetRole.courier);

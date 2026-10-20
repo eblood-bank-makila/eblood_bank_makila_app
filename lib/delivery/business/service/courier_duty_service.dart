@@ -15,13 +15,14 @@ import 'package:eblood_bank_mak_app/delivery/business/service/courier_presence_s
 import 'package:eblood_bank_mak_app/delivery/dispatch/courier_profile.dart';
 import 'package:eblood_bank_mak_app/delivery/ui/sheet/active_delivery_sheet_controller.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart' show AppLifecycleState, WidgetsBinding, WidgetsBindingObserver;
 import 'package:geolocator/geolocator.dart';
 import 'package:get_storage/get_storage.dart';
 
 /// [at]: when the platform took the fix (null: unknown, taken as its arrival).
 typedef DutyFix = ({double lat, double lng, double accuracy, DateTime? at});
 
-class CourierDutyService extends ChangeNotifier {
+class CourierDutyService extends ChangeNotifier with WidgetsBindingObserver {
   CourierDutyService({
     required this.sendPresence,
     required this.sendDeliveryLocation,
@@ -34,6 +35,7 @@ class CourierDutyService extends ChangeNotifier {
     this.suspendOtherTracking = _nothing,
     this.resumeOtherTracking = _nothing,
     this.resumeDelivery = _noDelivery,
+    this.pingPresence = _noPing,
   }) {
     final session = SessionIdentity(storage);
     _unlisten = storage.listenKey('user_profiles', (_) {
@@ -58,6 +60,7 @@ class CourierDutyService extends ChangeNotifier {
     suspendOtherTracking: () => LocationTrackingService().suspend(),
     resumeOtherTracking: () => LocationTrackingService().resume(),
     resumeDelivery: _resumeActiveDelivery,
+    pingPresence: () => CourierPresenceService.instance.pingOnline(),
   );
 
   /// The duty stream: one fix every 15 s, moving or not, so presence always
@@ -104,6 +107,10 @@ class CourierDutyService extends ChangeNotifier {
   /// its positions go out again.
   final Future<void> Function() resumeDelivery;
 
+  /// The first fix on duty asks presence to ping with it: through its queue, so
+  /// a slow « online » can never land after the « offline » of going off duty.
+  final Future<void> Function() pingPresence;
+
   late final VoidCallback _unlisten;
   bool _onDuty = false;
   bool _ownsStream = false;
@@ -115,6 +122,7 @@ class CourierDutyService extends ChangeNotifier {
   bool _sending = false;
   bool _pingOnFix = false;
   bool _locationProblem = false;
+  bool _retrying = false;
 
   bool get onDuty => _onDuty;
 
@@ -131,6 +139,7 @@ class CourierDutyService extends ChangeNotifier {
 
   static void _nothing() {}
   static Future<void> _noDelivery() async {}
+  static Future<void> _noPing() async {}
 
   static Stream<DutyFix> _positions() => Geolocator.getPositionStream(locationSettings: locationSettings)
       .map((p) => (lat: p.latitude, lng: p.longitude, accuracy: p.accuracy, at: p.timestamp));
@@ -199,6 +208,7 @@ class CourierDutyService extends ChangeNotifier {
     suspendOtherTracking(); // its listener must be gone before ours subscribes
     _resubscribed = false;
     _pingOnFix = true; // presence learns where the courier is without waiting for its next minute
+    WidgetsBinding.instance.addObserver(this);
     _listen();
   }
 
@@ -214,6 +224,31 @@ class CourierDutyService extends ChangeNotifier {
       },
       onDone: _onDone,
     );
+  }
+
+  /// geolocator_android's LocationManagerClient (phones without Google services)
+  /// removes its updates when location is switched off and never ends the Dart
+  /// stream, so once location is back the old subscription stays dead. Cancel it
+  /// (the plugin drops its cached stream with its last listener), then subscribe
+  /// anew. Only while the location problem is up; the app resuming and the
+  /// warning's action call it.
+  Future<void> retryLocation() async {
+    if (!_ownsStream || !_locationProblem || _retrying) return;
+    _retrying = true;
+    final dead = _subscription;
+    _subscription = null;
+    try {
+      await dead?.cancel();
+    } catch (e) {
+      debugPrint('[duty] cancelling the dead position stream: $e');
+    }
+    _retrying = false;
+    if (_ownsStream && _subscription == null) _listen();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) unawaited(retryLocation());
   }
 
   /// The stream ended by itself: one new subscription, then off duty rather
@@ -238,6 +273,7 @@ class CourierDutyService extends ChangeNotifier {
     _locationProblem = false;
     if (!_ownsStream) return;
     _ownsStream = false;
+    WidgetsBinding.instance.removeObserver(this);
     // The plugin drops its cached stream once its last listener has cancelled:
     // the app's own tracking then gets a fresh one with its own settings.
     unawaited((subscription?.cancel() ?? Future<void>.value()).whenComplete(resumeOtherTracking));
@@ -261,10 +297,9 @@ class CourierDutyService extends ChangeNotifier {
     if (previousAt != null && at != null && !at.isAfter(previousAt)) return;
     _fix = fix;
     _fixAt = now;
-    final fresh = freshFix!;
     if (_pingOnFix) {
       _pingOnFix = false;
-      unawaited(_send({'online': true, ...fresh}));
+      unawaited(pingPresence().catchError((Object e) => debugPrint('[duty] first-fix ping failed: $e')));
     }
     if (!hasActiveDelivery() || _sending) return;
     final last = _deliverySentAt;

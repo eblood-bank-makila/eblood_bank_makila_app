@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -7,7 +9,7 @@ import '../../business/service/courier_duty_service.dart';
 /// « En service / Hors service » for the courier's dashboard header. Disabled
 /// while a change is on its way; a refusal shows why in a SnackBar, with a way
 /// to the settings when location is what is missing. On duty with the phone's
-/// location off, the label says so and opens the settings.
+/// location off, the label says so, subscribes the position stream anew and opens the settings.
 class DutySwitch extends StatefulWidget {
   DutySwitch({super.key, CourierDutyService? duty, Future<void> Function()? fixLocation})
       : duty = duty ?? CourierDutyService.instance,
@@ -67,7 +69,11 @@ class _DutySwitchState extends State<DutySwitch> {
             if (duty.onDuty && duty.locationProblem)
               TextButton(
                 key: const Key('duty-location-off'),
-                onPressed: () => widget.fixLocation(),
+                onPressed: () {
+                  // Location may be back already (quick settings): the stream is dead until resubscribed.
+                  unawaited(duty.retryLocation());
+                  unawaited(widget.fixLocation());
+                },
                 style: TextButton.styleFrom(foregroundColor: Colors.orange.shade800, visualDensity: VisualDensity.compact),
                 child: Text('duty_location_off'.tr),
               )

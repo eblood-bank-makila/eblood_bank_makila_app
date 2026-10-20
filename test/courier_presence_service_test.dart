@@ -314,6 +314,41 @@ void main() {
     expect(h.calls, [true, false]);
   });
 
+  test("the duty's first-fix ping is queued like a tick: a slow one cannot land after the offline", () async {
+    await GetStorage().write('user_profiles', _courierProfiles);
+    final h = _Harness()..position = {'lat': -4.32, 'lng': 15.31, 'accuracy': 9};
+    h.service.attach();
+    await pumpEventQueue();
+    expect(h.calls, [true]);
+
+    h.hold = Completer<int?>();
+    unawaited(h.service.pingOnline());
+    await pumpEventQueue();
+    expect(h.calls, [true, true]);
+    expect(h.bodies.last, {'online': true, 'lat': -4.32, 'lng': 15.31, 'accuracy': 9});
+
+    h.onDuty.value = false; // off duty while the ping is still on its way
+    await pumpEventQueue();
+    expect(h.calls, [true, true]); // the offline waits
+
+    final inFlight = h.hold!;
+    h.hold = null;
+    inFlight.complete(200);
+    await pumpEventQueue();
+    expect(h.calls, [true, true, false]);
+  });
+
+  test('a first-fix ping while another call is in flight is dropped, like a tick', () async {
+    await GetStorage().write('user_profiles', _courierProfiles);
+    final h = _Harness()..hold = Completer<int?>();
+    h.service.attach();
+    await pumpEventQueue();
+
+    await h.service.pingOnline();
+
+    expect(h.calls, [true]);
+  });
+
   test('a failing call is swallowed and the next tick still pings', () async {
     await GetStorage().write('user_profiles', _courierProfiles);
     var fail = true;

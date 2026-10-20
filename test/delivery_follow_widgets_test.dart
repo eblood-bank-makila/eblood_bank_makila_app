@@ -6,6 +6,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
@@ -103,11 +104,36 @@ Future<void> _settle(WidgetTester t) async {
 
 DeliverySheet _openedSheet(WidgetTester t) => t.widget<DeliverySheet>(find.byType(DeliverySheet));
 
+/// Register the SDK's Roboto under every family GoogleFonts.ubuntu asks for
+/// (`Ubuntu_regular`, `Ubuntu_500`, ...), as test/welcome_dashboard_access_test.dart does.
+Future<void> _loadUbuntuStandIn() async {
+  final root = Platform.environment['FLUTTER_ROOT'];
+  final font = File('$root/bin/cache/artifacts/material_fonts/Roboto-Medium.ttf');
+  if (root == null || !font.existsSync()) return;
+  final bytes = ByteData.view(font.readAsBytesSync().buffer);
+  for (final family in ['Ubuntu_300', 'Ubuntu_regular', 'Ubuntu_500', 'Ubuntu_700']) {
+    await (FontLoader(family)..addFont(Future.value(bytes))).load();
+  }
+}
+
+/// google_fonts reports every font it cannot find through debugPrint (the stand-in
+/// above gives the text a real font, but not the name google_fonts looks up).
+bool _isFontNoise(String? message) =>
+    message != null &&
+    (message.contains('google_fonts') ||
+        message.contains('GoogleFonts') ||
+        message.contains('wrong with your test') ||
+        message.contains("If troubleshooting doesn't solve"));
+
 /// The cards style their text with GoogleFonts.ubuntu, which a test host can
 /// neither fetch nor find bundled: drop exactly that error.
 void _cardTest(String description, Future<void> Function(WidgetTester t) body) {
   testWidgets(description, (t) async {
     GoogleFonts.config.allowRuntimeFetching = false;
+    final realDebugPrint = debugPrint; // a test must leave debugPrint as it found it
+    debugPrint = (message, {wrapWidth}) {
+      if (!_isFontNoise(message)) realDebugPrint(message, wrapWidth: wrapWidth);
+    };
     final done = Completer<void>();
     runZonedGuarded(() async {
       await body(t);
@@ -116,7 +142,11 @@ void _cardTest(String description, Future<void> Function(WidgetTester t) body) {
       if ('$error'.contains('GoogleFonts.config.allowRuntimeFetching is false')) return;
       if (!done.isCompleted) done.completeError(error, stack);
     });
-    await done.future;
+    try {
+      await done.future;
+    } finally {
+      debugPrint = realDebugPrint;
+    }
   });
 }
 
@@ -130,6 +160,8 @@ void main() {
 
   setUpAll(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
+    GoogleFonts.config.allowRuntimeFetching = false; // no network in tests
+    await _loadUbuntuStandIn();
     // The controller watches the session in GetStorage once it opens a sheet.
     tempDir = await Directory.systemTemp.createTemp('eblood_follow_cards_test');
     PathProviderPlatform.instance = _TempPathProvider(tempDir.path);
@@ -212,6 +244,58 @@ void main() {
       await _settle(t);
       expect(_openedSheet(t).role, DeliverySheetRole.seller);
       expect(_openedSheet(t).deliveryId, 'd1');
+    });
+  });
+
+  group('seller list on a small box', () {
+    // Four handovers do not fit in half the screen: the last ones scroll.
+    final many = [
+      for (final id in ['o1', 'o2', 'o3', 'd1'])
+        OutgoingDelivery.fromJson(_withCourier(id, phase: 'en_route_to_blood_bank', assignment: 'accepted')),
+    ];
+    var pageTaps = 0;
+
+    Future<void> pumpOverPage(WidgetTester t) async {
+      pageTaps = 0;
+      await _pump(
+        t,
+        // The page under the floating cards takes every tap that does not land on a card.
+        SizedBox(
+          height: 1200,
+          child: Stack(
+            children: [
+              Positioned.fill(child: GestureDetector(behavior: HitTestBehavior.opaque, onTap: () => pageTaps++)),
+              const Align(alignment: Alignment.topCenter, child: OutgoingDeliveryWidget()),
+            ],
+          ),
+        ),
+        [outgoingDeliveriesProvider.overrideWith((ref) => _FakeOutgoing(many))],
+      );
+    }
+
+    _cardTest('cards past the box are clipped, not painted over the page', (t) async {
+      await pumpOverPage(t);
+      final box = t.getRect(find.byType(SingleChildScrollView).last);
+      expect(t.getRect(_follow.last).top, greaterThan(box.bottom), reason: 'the last card overflows the box');
+      // A paint assertion is impractical in a widget test: pin the clip itself.
+      final scroll = t.widget<SingleChildScrollView>(find.byType(SingleChildScrollView).last);
+      expect(scroll.clipBehavior, isNot(Clip.none));
+      expect(scroll.clipBehavior, isNot(Clip.antiAliasWithSaveLayer));
+
+      await t.tapAt(t.getCenter(_follow.last));
+      await _settle(t);
+      expect(pageTaps, 1, reason: 'a tap outside the box lands on the page');
+      expect(find.byType(DeliverySheet), findsNothing);
+    });
+
+    _cardTest('and scrolling brings the last card into reach', (t) async {
+      await pumpOverPage(t);
+      await t.drag(find.byType(SingleChildScrollView).last, const Offset(0, -700));
+      await t.pumpAndSettle();
+      await t.tap(_follow.last);
+      await _settle(t);
+      expect(_openedSheet(t).deliveryId, 'd1');
+      expect(_openedSheet(t).role, DeliverySheetRole.seller);
     });
   });
 

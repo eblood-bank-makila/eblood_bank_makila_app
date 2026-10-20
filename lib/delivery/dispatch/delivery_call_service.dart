@@ -9,9 +9,12 @@ import 'dart:async';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get/get.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../blood_search_flow/data/services/visitor_fcm_registration_service.dart';
+import '../business/interactors/DeliveryController.dart';
 import '../business/service/DeliveryApiService.dart';
 import '../ui/sheet/active_delivery_sheet_controller.dart';
 import '../ui/sheet/delivery_sheet.dart';
@@ -72,6 +75,9 @@ class DeliveryCallService {
 
   /// Idempotent. Listens to foreground pushes and to taps on the ringing
   /// notification (app in background or killed).
+  // Taps on the notifications PushNotificationService re-shows locally also land in
+  // handle(fromTap: true): FlutterLocalNotificationsPlugin is a singleton and the
+  // callback registered below is the app's only onDidReceiveNotificationResponse.
   Future<void> attach(GlobalKey<NavigatorState> navigatorKey) async {
     if (_navigatorKey != null) return;
     _navigatorKey = navigatorKey;
@@ -93,13 +99,45 @@ class DeliveryCallService {
   @visibleForTesting
   void bindNavigator(GlobalKey<NavigatorState> navigatorKey) => _navigatorKey = navigatorKey;
 
-  /// The navigator, waiting for it when a notification tap cold-started the
-  /// app: attach() runs before runApp, so the screen appears a few frames later.
+  /// Routes that hand over to another one by themselves (`context.go`), which
+  /// removes whatever was pushed over them, a delivery sheet included.
+  static const _handingOver = {'/splash', '/rbac-loading', '/intro'};
+
+  /// The app has a navigator and the router has left the start-up routes.
+  bool _routerSettled() {
+    final context = _navigatorKey?.currentContext;
+    if (context == null) return false;
+    final location = GoRouter.maybeOf(context)?.routerDelegate.currentConfiguration.uri.path;
+    return !_handingOver.contains(location);
+  }
+
+  /// The navigator; with [wait] (a tap that cold-started the app) it waits, up
+  /// to 20 s, for the navigator and for the splash to hand over: attach() runs
+  /// before runApp and the splash takes 3 s plus the auth check.
   Future<NavigatorState?> _navigator({required bool wait}) async {
-    for (var i = 0; wait && _navigatorKey != null && _navigatorKey!.currentState == null && i < 50; i++) {
+    var waited = false;
+    for (var i = 0; wait && _navigatorKey != null && !_routerSettled() && i < 200; i++) {
+      waited = true;
       await Future<void>.delayed(const Duration(milliseconds: 100));
     }
+    // The router reports its new location before it rebuilds its pages, and that
+    // rebuild removes what was pushed over the old page: let it happen first.
+    if (waited) await WidgetsBinding.instance.endOfFrame;
     return _navigatorKey?.currentState;
+  }
+
+  /// A progress push moved a delivery on: reload the home cards of the side it
+  /// was sent to (a courier that accepts turns « En attente d'un livreur » into a name).
+  void _refreshCards({required bool seller}) {
+    final context = _navigatorKey?.currentContext;
+    final scope = context?.getElementForInheritedWidgetOfExactType<UncontrolledProviderScope>()?.widget;
+    final container = (scope as UncontrolledProviderScope?)?.container;
+    if (container == null) return;
+    if (seller) {
+      unawaited(container.read(outgoingDeliveriesProvider.notifier).loadOutgoingDeliveries());
+    } else {
+      unawaited(container.read(incomingDeliveriesProvider.notifier).loadIncomingDeliveries());
+    }
   }
 
   /// Entry point for every push / notification tap carrying delivery data.
@@ -126,6 +164,7 @@ class DeliveryCallService {
     }
     final progress = DeliveryProgress.tryParse(data);
     if (progress != null) {
+      _refreshCards(seller: progress.isSeller);
       if (!fromTap) return;
       final navigator = await _navigator(wait: true);
       if (navigator != null) {

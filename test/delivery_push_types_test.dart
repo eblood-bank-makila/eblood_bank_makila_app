@@ -5,8 +5,11 @@ library;
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:eblood_bank_mak_app/delivery/business/interactors/DeliveryController.dart';
+import 'package:eblood_bank_mak_app/delivery/business/service/DeliveryApiService.dart';
 import 'package:eblood_bank_mak_app/delivery/dispatch/delivery_call_notifications.dart';
 import 'package:eblood_bank_mak_app/delivery/dispatch/delivery_call_payload.dart';
 import 'package:eblood_bank_mak_app/delivery/dispatch/delivery_call_service.dart';
@@ -39,6 +42,23 @@ class _Fakes {
     openSheet: (_, id, role) => sheets.add((id, role)),
     closeSheet: (id, {message}) => closed.add((id, message)),
   );
+}
+
+/// Counts the reloads the home cards would do.
+class _CountingIncoming extends IncomingDeliveriesController {
+  _CountingIncoming(this.loads) : super(DeliveryApiService(), 'h1', 'u1');
+  final List<String> loads;
+
+  @override
+  Future<void> loadIncomingDeliveries() async => loads.add('incoming');
+}
+
+class _CountingOutgoing extends OutgoingDeliveriesController {
+  _CountingOutgoing(this.loads) : super(DeliveryApiService());
+  final List<String> loads;
+
+  @override
+  Future<void> loadOutgoingDeliveries() async => loads.add('outgoing');
 }
 
 Future<_Fakes> _app(WidgetTester tester, {bool withNavigator = true}) async {
@@ -147,6 +167,29 @@ void main() {
         ('d3', DeliverySheetRole.buyer),
       ]);
       expect(f.opened, isEmpty);
+    });
+
+    testWidgets('a push, tapped or not, reloads the home cards of the side it was sent to', (tester) async {
+      final loads = <String>[];
+      final key = GlobalKey<NavigatorState>();
+      final f = _Fakes()..service.bindNavigator(key);
+      await tester.pumpWidget(ProviderScope(
+        overrides: [
+          incomingDeliveriesProvider.overrideWith((ref) => _CountingIncoming(loads)),
+          outgoingDeliveriesProvider.overrideWith((ref) => _CountingOutgoing(loads)),
+        ],
+        child: MaterialApp(navigatorKey: key, home: const Scaffold()),
+      ));
+
+      await f.service.handle(_progress(audience: 'seller'));
+      expect(loads, ['outgoing']);
+      await f.service.handle(_progress(audience: 'buyer'));
+      expect(loads, ['outgoing', 'incoming']);
+      expect(f.sheets, isEmpty, reason: 'a push seen in the foreground opens nothing');
+
+      await f.service.handle(_progress(audience: 'seller'), fromTap: true);
+      expect(loads, ['outgoing', 'incoming', 'outgoing']);
+      expect(f.sheets, [('d1', DeliverySheetRole.seller)]);
     });
 
     testWidgets('a cold start tap waits for the app to build its screen', (tester) async {

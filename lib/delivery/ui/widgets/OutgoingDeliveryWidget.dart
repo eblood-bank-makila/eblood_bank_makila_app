@@ -50,11 +50,12 @@ class _OutgoingDeliveryWidgetState
       ...outgoingDeliveries.where((d) => !d.canConfirmPickup),
     ];
 
-    // Floating over the page: many deliveries scroll instead of covering it.
+    // Floating over the page: many deliveries scroll (and are clipped to this box)
+    // instead of painting over it; the padding keeps the top card's shadow inside.
     return ConstrainedBox(
       constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.5),
       child: SingleChildScrollView(
-        clipBehavior: Clip.none,
+        padding: const EdgeInsets.only(top: 8),
         child: FadeInUp(
           child: Column(
             mainAxisSize: MainAxisSize.min,

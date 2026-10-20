@@ -14,6 +14,13 @@ val keystoreProperties = Properties().apply {
     if (f.exists()) load(FileInputStream(f))
 }
 
+// Google Maps key lives in android/local.properties (git-ignored); a missing key
+// still builds (the map just renders blank until MAPS_API_KEY is added).
+val mapsApiKey = Properties().apply {
+    val f = rootProject.file("local.properties")
+    if (f.exists()) load(FileInputStream(f))
+}.getProperty("MAPS_API_KEY")
+
 // --- Auto-incrementing versionCode -------------------------------------------
 // Release builds (bundleRelease / assembleRelease) get a unique, monotonically
 // increasing code = whole minutes since the Unix epoch (~29.6M as of 2026-06).
@@ -48,6 +55,7 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = versionCodeOverride ?: (if (isReleaseBuild) autoVersionCode else flutter.versionCode)
         versionName = flutter.versionName
+        manifestPlaceholders["mapsApiKey"] = mapsApiKey ?: ""
 
         // Ship only the locales you support to reduce resources size
         resourceConfigurations += listOf("en", "fr")

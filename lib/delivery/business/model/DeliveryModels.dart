@@ -710,7 +710,15 @@ class IncomingDelivery {
   bool get isAtHospital => status == 'at_hospital';
   bool get isEnRoute => status == 'en_route_to_hospital';
   bool get isPickedUp => status == 'picked_up_from_blood_bank';
+
+  /// Listed before any courier took it (no courier, or a phase that says so).
+  bool get awaitingCourier => _waitsForCourier(status, deliveryPersonName);
 }
+
+/// A buyer / seller list row has no courier until one accepts: no name, or a
+/// phase that is still awaiting_assignment / awaiting_acceptance.
+bool _waitsForCourier(String phase, String? courierName) =>
+    phase == 'awaiting_assignment' || phase == 'awaiting_acceptance' || (courierName ?? '').trim().isEmpty;
 
 /// Outgoing delivery as seen by the SELLER structure (blood bank selling to
 /// a hospital, or CNTS selling to a blood bank). Parsed from the enriched
@@ -759,6 +767,9 @@ class OutgoingDelivery {
   }
 
   bool get isPickupConfirmed => pickupConfirmedAt != null;
+
+  /// Listed before any courier took it (see [IncomingDelivery.awaitingCourier]).
+  bool get awaitingCourier => _waitsForCourier(deliveryPhase, deliveryPersonName);
 
   /// Courier accepted / is on the way / is at the door — handover can be
   /// confirmed as soon as a courier is assigned.

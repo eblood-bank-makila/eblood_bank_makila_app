@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:animate_do/animate_do.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,8 +9,9 @@ import 'package:get/get.dart';
 import '../../../apps/config/theme/ColorPages.dart';
 import '../../business/interactors/DeliveryController.dart';
 import '../../business/model/DeliveryModels.dart';
-import '../pages/HospitalDeliveryTrackingPage.dart';
+import '../sheet/active_delivery_sheet_controller.dart';
 import '../sheet/confirm_reception_dialog.dart';
+import '../sheet/delivery_sheet.dart';
 
 /// Widget showing incoming delivery for hospital (floating card on home screen)
 class IncomingDeliveryWidget extends ConsumerStatefulWidget {
@@ -71,7 +74,7 @@ class _IncomingDeliveryWidgetState extends ConsumerState<IncomingDeliveryWidget>
 
   Widget _buildHeader(IncomingDelivery delivery) {
     final statusColor = _getStatusColor(delivery.status);
-    final statusText = _getStatusText(delivery.status);
+    final statusText = pillKey(DeliverySheetRole.buyer, delivery.status, noCourier: delivery.awaitingCourier).tr;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -157,14 +160,16 @@ class _IncomingDeliveryWidgetState extends ConsumerState<IncomingDeliveryWidget>
       child: Column(
         children: [
           // Blood bank info
-          _buildInfoRow(
-            icon: Iconsax.hospital,
-            label: 'from'.tr,
-            value: delivery.bloodBankName,
-          ),
-          const SizedBox(height: 12),
-          // Delivery person info
-          if (delivery.deliveryPersonName != null)
+          if (delivery.bloodBankName.isNotEmpty) ...[
+            _buildInfoRow(
+              icon: Iconsax.hospital,
+              label: 'from'.tr,
+              value: delivery.bloodBankName,
+            ),
+            const SizedBox(height: 12),
+          ],
+          // Delivery person info (none until a courier accepts)
+          if (!delivery.awaitingCourier) ...[
             _buildInfoRow(
               icon: Iconsax.user,
               label: 'delivery_person'.tr,
@@ -179,7 +184,8 @@ class _IncomingDeliveryWidgetState extends ConsumerState<IncomingDeliveryWidget>
                     )
                   : null,
             ),
-          const SizedBox(height: 12),
+            const SizedBox(height: 12),
+          ],
           // Blood bags info
           _buildBloodBagsInfo(delivery.bloodBags),
         ],
@@ -274,16 +280,8 @@ class _IncomingDeliveryWidgetState extends ConsumerState<IncomingDeliveryWidget>
           // Track button
           Expanded(
             child: OutlinedButton.icon(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => HospitalDeliveryTrackingPage(
-                      deliveryId: delivery.id,
-                    ),
-                  ),
-                );
-              },
+              onPressed: () => unawaited(ActiveDeliverySheetController.instance
+                  .open(Navigator.of(context, rootNavigator: true), delivery.id, DeliverySheetRole.buyer)),
               icon: const Icon(Iconsax.location, size: 18),
               label: Text('track'.tr),
               style: OutlinedButton.styleFrom(
@@ -338,18 +336,4 @@ class _IncomingDeliveryWidgetState extends ConsumerState<IncomingDeliveryWidget>
         return Colors.grey;
     }
   }
-
-  String _getStatusText(String status) {
-    switch (status) {
-      case 'en_route_to_hospital':
-        return 'en_route'.tr;
-      case 'at_hospital':
-        return 'arrived'.tr;
-      case 'picked_up_from_blood_bank':
-        return 'picked_up'.tr;
-      default:
-        return status.tr;
-    }
-  }
 }
-

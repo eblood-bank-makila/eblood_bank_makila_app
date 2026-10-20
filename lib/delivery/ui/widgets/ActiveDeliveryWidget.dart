@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:animate_do/animate_do.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,7 +8,8 @@ import 'package:iconsax/iconsax.dart';
 import 'package:get/get.dart';
 import '../../../apps/config/theme/ColorPages.dart';
 import '../../business/interactors/DeliveryController.dart';
-import '../pages/ActiveDeliveryTrackingPage.dart';
+import '../sheet/active_delivery_sheet_controller.dart';
+import '../sheet/delivery_sheet.dart';
 
 /// Widget showing active delivery status (minimized view on home screen)
 class ActiveDeliveryWidget extends ConsumerWidget {
@@ -23,16 +26,8 @@ class ActiveDeliveryWidget extends ConsumerWidget {
     return SlideInUp(
       duration: const Duration(milliseconds: 400),
       child: GestureDetector(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ActiveDeliveryTrackingPage(
-                deliveryId: activeDelivery.id,
-              ),
-            ),
-          );
-        },
+        onTap: () => unawaited(ActiveDeliverySheetController.instance
+            .open(Navigator.of(context, rootNavigator: true), activeDelivery.id, DeliverySheetRole.courier)),
         child: Container(
           margin: const EdgeInsets.all(16),
           padding: const EdgeInsets.all(16),

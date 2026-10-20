@@ -97,6 +97,16 @@ void main() {
     expect(find.byKey(const Key('call-accept')), findsOneWidget);
   });
 
+  testWidgets('a tapped call notification shows the same screen', (tester) async {
+    final (_, f) = await _app(tester);
+    f.service.handle(_call(), fromTap: true);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.byKey(const Key('call-accept')), findsOneWidget);
+    expect(f.opened, 0);
+  });
+
   testWidgets('another courier taking it closes the screen and silences the phone', (tester) async {
     final (_, f) = await _app(tester);
     f.service.handle(_call());

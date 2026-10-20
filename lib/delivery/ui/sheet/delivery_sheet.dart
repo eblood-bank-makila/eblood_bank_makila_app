@@ -46,6 +46,19 @@ const _stepLabels = {
   DeliverySheetRole.seller: ['step_en_route', 'step_handover', 'step_hospital', 'step_delivered'],
 };
 
+/// The status pill's translation key for [role]: shared with the home cards so they say the same thing.
+String pillKey(DeliverySheetRole role, String phase, {required bool noCourier}) {
+  final toBank = beforePickupPhases.contains(phase);
+  if (role != DeliverySheetRole.courier && noCourier) return 'pill_waiting_courier';
+  if (phase == 'at_blood_bank') return 'pill_at_bank';
+  if (phase == 'at_hospital') return role == DeliverySheetRole.buyer ? 'pill_courier_arrived' : 'pill_at_hospital';
+  return switch (role) {
+    DeliverySheetRole.courier => toBank ? 'pill_to_bank' : 'pill_to_hospital',
+    DeliverySheetRole.buyer => toBank ? 'pill_to_bank' : 'pill_to_you',
+    DeliverySheetRole.seller => toBank ? 'pill_courier_coming' : 'pill_to_hospital',
+  };
+}
+
 bool _noCourier(DeliveryTracking t) =>
     (t.courierName ?? '').trim().isEmpty || t.phase == 'awaiting_assignment' || t.phase == 'awaiting_acceptance';
 
@@ -301,18 +314,7 @@ class _DeliverySheetState extends ConsumerState<DeliverySheet> {
     );
   }
 
-  String _pillKey(DeliveryTracking t) {
-    final role = widget.role;
-    final toBank = beforePickupPhases.contains(t.phase);
-    if (role != DeliverySheetRole.courier && _noCourier(t)) return 'pill_waiting_courier';
-    if (t.phase == 'at_blood_bank') return 'pill_at_bank';
-    if (t.phase == 'at_hospital') return role == DeliverySheetRole.buyer ? 'pill_courier_arrived' : 'pill_at_hospital';
-    return switch (role) {
-      DeliverySheetRole.courier => toBank ? 'pill_to_bank' : 'pill_to_hospital',
-      DeliverySheetRole.buyer => toBank ? 'pill_to_bank' : 'pill_to_you',
-      DeliverySheetRole.seller => toBank ? 'pill_courier_coming' : 'pill_to_hospital',
-    };
-  }
+  String _pillKey(DeliveryTracking t) => pillKey(widget.role, t.phase, noCourier: _noCourier(t));
 
   List<Widget> _content(BuildContext context, DeliveryTracking t) {
     final toBank = beforePickupPhases.contains(t.phase);

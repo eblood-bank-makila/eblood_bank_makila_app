@@ -121,8 +121,8 @@ class CourierDutyService extends ChangeNotifier {
   /// On duty but the phone's location is switched off: no fixes go out.
   bool get locationProblem => _locationProblem;
 
-  /// The stream's latest fix while at most 2 min old, else null: the server
-  /// stamps presence positions as live, so an old one must never go out.
+  /// The stream's latest fix while it arrived at most 2 min ago, else null: the
+  /// server stamps presence positions as live, so an old one must never go out.
   Map<String, double>? get freshFix {
     final fix = _fix, at = _fixAt;
     if (fix == null || at == null || clock().difference(at) > _freshFor) return null;
@@ -169,16 +169,19 @@ class CourierDutyService extends ChangeNotifier {
     return null;
   }
 
-  /// App start: back on duty if it was left on and location is still allowed.
+  /// App start: back on duty if it was left on and location is still allowed;
+  /// a delivery in progress is picked up either way (it puts the courier on duty).
   Future<void> resumeIfNeeded() async {
-    if (_onDuty || storage.read(_key) != true || !isActivatedCourier()) return;
-    if (await hasPermission()) {
-      _start();
-      await _save(true);
-      unawaited(resumeDelivery().catchError((Object e) => debugPrint('[duty] active delivery: $e')));
-    } else {
-      await _save(false);
+    if (_onDuty || !isActivatedCourier()) return;
+    if (storage.read(_key) == true) {
+      if (await hasPermission()) {
+        _start();
+        await _save(true);
+      } else {
+        await _save(false);
+      }
     }
+    unawaited(resumeDelivery().catchError((Object e) => debugPrint('[duty] active delivery: $e')));
   }
 
   Future<int?> _send(Map<String, dynamic> body) async {
@@ -248,14 +251,17 @@ class CourierDutyService extends ChangeNotifier {
 
   void _onFix(DutyFix fix) {
     final now = clock();
-    _fix = fix;
-    _fixAt = fix.at ?? now;
     if (_locationProblem) {
       _locationProblem = false;
       notifyListeners();
     }
-    final fresh = freshFix;
-    if (fresh == null) return; // a cached position replayed by the platform: never sent as live
+    // A replayed or out-of-order fix, judged against the previous fix's own time:
+    // never against the phone clock, which can be off (GPS fixes carry satellite time).
+    final previousAt = _fix?.at, at = fix.at;
+    if (previousAt != null && at != null && !at.isAfter(previousAt)) return;
+    _fix = fix;
+    _fixAt = now;
+    final fresh = freshFix!;
     if (_pingOnFix) {
       _pingOnFix = false;
       unawaited(_send({'online': true, ...fresh}));

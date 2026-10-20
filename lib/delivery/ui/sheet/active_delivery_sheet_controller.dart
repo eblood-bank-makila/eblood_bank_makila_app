@@ -47,6 +47,7 @@ class ActiveDeliverySheetController extends ChangeNotifier {
   /// Why the courier could not go on duty for the current delivery (a
   /// translation key), else null: off duty, none of its positions go out.
   final dutyRefusal = ValueNotifier<String?>(null);
+  int _dutyCalls = 0;
 
   /// Puts the courier on duty (a no-op when already on); returns the refusal key.
   @visibleForTesting
@@ -133,6 +134,7 @@ class ActiveDeliverySheetController extends ChangeNotifier {
   /// The duty stream is the only sender of a delivery's positions: an off-duty
   /// courier goes on duty, or the courier's sheet says why not.
   Future<void> _ensureOnDuty() async {
+    final call = ++_dutyCalls;
     String? refusal;
     try {
       refusal = await goOnDuty();
@@ -140,6 +142,7 @@ class ActiveDeliverySheetController extends ChangeNotifier {
       debugPrint('[delivery] going on duty: $e');
       refusal = 'duty_server_error';
     }
+    if (call != _dutyCalls) return; // a later attempt's answer wins
     if (_courierId != null) dutyRefusal.value = refusal; // the delivery may have ended meanwhile
   }
 

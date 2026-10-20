@@ -299,6 +299,22 @@ void main() {
       await _open(t, DeliverySheetRole.courier, tracking);
       expect(find.text(banner), findsOneWidget);
     });
+
+    testWidgets("a slow first attempt's refusal never overrides a later success", (t) async {
+      final tracking = _Tracking();
+      await _app(t, tracking);
+      final slow = Completer<String?>();
+      _controller.goOnDuty = () => slow.future;
+      _controller.adopt('d1');
+      await _settle(t);
+
+      _controller.goOnDuty = () async => null;
+      await _open(t, DeliverySheetRole.courier, tracking);
+      slow.complete('duty_server_error');
+      await _settle(t);
+
+      expect(find.text(banner), findsNothing);
+    });
   });
 
   group('minimize and the bar', () {

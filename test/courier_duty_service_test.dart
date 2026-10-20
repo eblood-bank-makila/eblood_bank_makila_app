@@ -365,30 +365,38 @@ void main() {
       });
     });
 
-    test('a fix is as old as the platform says, not as old as its arrival', () async {
-      final h = _harness();
-      await h.service.setOnDuty(true);
-
-      await h.fix(-4.32, 15.31, at: h.now.subtract(const Duration(minutes: 3)));
-      expect(h.service.freshFix, isNull); // a cached position replayed by the stream
-
-      await h.fix(-4.33, 15.31, at: h.now.subtract(const Duration(seconds: 30)));
-      expect(h.service.freshFix, {'lat': -4.33, 'lng': 15.31, 'accuracy': 8});
-    });
-
-    test('an old fix never reaches the delivery location', () async {
+    test('a fix is as old as its arrival: a phone clock that is off never drops GPS fixes', () async {
       final h = _harness()..delivering = true;
       await h.service.setOnDuty(true);
 
+      // GPS fixes carry satellite time; this phone's clock runs 3 min fast.
       await h.fix(-4.32, 15.31, at: h.now.subtract(const Duration(minutes: 3)));
-      expect(h.locations, isEmpty);
+
+      expect(h.service.freshFix, {'lat': -4.32, 'lng': 15.31, 'accuracy': 8});
+      expect(h.locations, [(lat: -4.32, lng: 15.31, accuracy: 8.0)]);
     });
 
-    test('the first fresh fix on duty goes to presence at once, only once', () async {
+    test('a fix no newer than the previous one (replayed or out of order) is dropped', () async {
+      final h = _harness()..delivering = true;
+      await h.service.setOnDuty(true);
+      final t = h.now;
+
+      await h.fix(-4.32, 15.31, at: t);
+      h.now = h.now.add(const Duration(seconds: 20));
+      await h.fix(-4.40, 15.40, at: t); // replayed
+      await h.fix(-4.41, 15.41, at: t.subtract(const Duration(seconds: 5))); // out of order
+
+      expect(h.service.freshFix, {'lat': -4.32, 'lng': 15.31, 'accuracy': 8});
+      expect(h.locations, [(lat: -4.32, lng: 15.31, accuracy: 8.0)]);
+
+      await h.fix(-4.33, 15.31, at: t.add(const Duration(seconds: 20)));
+      expect(h.locations.last, (lat: -4.33, lng: 15.31, accuracy: 8.0));
+    });
+
+    test('the first fix on duty goes to presence at once, only once', () async {
       final h = _harness();
       await h.service.setOnDuty(true);
 
-      await h.fix(-4.30, 15.30, at: h.now.subtract(const Duration(minutes: 3))); // too old to send
       await h.fix(-4.32, 15.31, accuracy: 9);
       h.now = h.now.add(const Duration(seconds: 15));
       await h.fix(-4.33, 15.31);
@@ -475,7 +483,7 @@ void main() {
       expect(h.service.onDuty, isFalse);
       expect(h.subscriptions, 0);
       expect(h.events, isEmpty);
-      expect(h.deliveryResumes, 0);
+      expect(h.deliveryResumes, 1); // a delivery in progress still asks for duty
       expect(GetStorage().read('courier_on_duty'), isFalse);
     });
 
@@ -495,13 +503,15 @@ void main() {
       expect(h.deliveryResumes, 0);
     });
 
-    test('off duty saved: nothing starts', () async {
+    test('off duty saved: no stream, but a delivery in progress is still picked up', () async {
       final h = _harness();
 
       await h.service.resumeIfNeeded();
+      await pumpEventQueue();
 
       expect(h.service.onDuty, isFalse);
       expect(h.subscriptions, 0);
+      expect(h.deliveryResumes, 1); // adopt() puts the courier on duty
     });
   });
 

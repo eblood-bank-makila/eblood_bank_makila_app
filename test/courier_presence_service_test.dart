@@ -14,6 +14,7 @@ import 'package:path_provider_platform_interface/path_provider_platform_interfac
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 import 'package:eblood_bank_mak_app/delivery/business/service/courier_presence_service.dart';
+import 'package:eblood_bank_mak_app/delivery/dispatch/courier_profile.dart';
 
 class _TempPathProvider extends PathProviderPlatform
     with MockPlatformInterfaceMixin {
@@ -57,7 +58,12 @@ class _Harness {
   void Function(Timer)? onTick;
   _FakeTimer? timer;
 
+  /// « En service »: on unless a test says otherwise.
+  final onDuty = ValueNotifier(true);
+
   late final service = CourierPresenceService(
+    isCourier: () => isActivatedCourier() && onDuty.value,
+    duty: onDuty,
     locate: () async => position,
     registerToken: () async => tokenRegistrations++,
     send: (body) async {
@@ -147,10 +153,9 @@ void main() {
     expect(h.timer!.cancelled, isTrue);
   });
 
-  test('pause stops pinging WITHOUT going offline; resume pings again',
-      () async {
-    // Yango-style: an on-duty courier whose screen fell asleep must still
-    // be rung by the dispatch, so only logout says "offline".
+  test('on duty, the pings go on in the background, without going offline', () async {
+    // The position service keeps the app alive: an on-duty courier whose
+    // screen fell asleep must stay « En ligne » for the dispatch.
     await GetStorage().write('user_profiles', _courierProfiles);
     final h = _Harness();
     h.service.attach();
@@ -158,19 +163,63 @@ void main() {
     final firstTimer = h.timer!;
 
     h.service.didChangeAppLifecycleState(AppLifecycleState.paused);
-    await pumpEventQueue();
-    expect(h.calls, [true]);
-    expect(firstTimer.cancelled, isTrue);
-
     h.service.didChangeAppLifecycleState(AppLifecycleState.detached);
-    await pumpEventQueue();
-    expect(h.calls, [true]);
+    await h.tick();
+    expect(h.calls, [true, true]);
+    expect(firstTimer.isActive, isTrue);
 
     h.service.didChangeAppLifecycleState(AppLifecycleState.resumed);
     await pumpEventQueue();
-    expect(h.calls, [true, true]);
-    expect(h.timer, isNot(same(firstTimer)));
+    expect(h.calls, [true, true]); // no second timer, no extra ping
+    expect(h.timer, same(firstTimer));
+  });
+
+  test('off duty, an activated courier never pings', () async {
+    await GetStorage().write('user_profiles', _courierProfiles);
+    final h = _Harness()..onDuty.value = false;
+
+    h.service.attach();
+    await pumpEventQueue();
+
+    expect(h.calls, isEmpty);
+    expect(h.timer, isNull);
+  });
+
+  test('going on duty starts the pings; going off stops them', () async {
+    await GetStorage().write('user_profiles', _courierProfiles);
+    final h = _Harness()..onDuty.value = false;
+    h.service.attach();
+    await pumpEventQueue();
+
+    h.onDuty.value = true;
+    await pumpEventQueue();
+    expect(h.calls, [true]);
     expect(h.timer!.isActive, isTrue);
+
+    h.onDuty.value = false;
+    await pumpEventQueue();
+    expect(h.calls, [true, false]); // lands after any ping in flight
+    expect(h.timer!.cancelled, isTrue);
+  });
+
+  test('a logout answered 409 (delivery in progress) still completes', () async {
+    await GetStorage().write('user_profiles', _courierProfiles);
+    final h = _Harness();
+    h.service.attach();
+    await pumpEventQueue();
+
+    h.status = 409;
+    await GetStorage().remove('user_profiles');
+    await pumpEventQueue();
+
+    expect(h.calls, [true, false]);
+    expect(h.timer!.cancelled, isTrue);
+
+    // The next login starts afresh.
+    h.status = 200;
+    await GetStorage().write('user_profiles', _courierProfiles);
+    await pumpEventQueue();
+    expect(h.calls, [true, false, true]);
   });
 
   test('a login while backgrounded waits for resume', () async {
@@ -272,6 +321,7 @@ void main() {
     void Function(Timer)? onTick;
     final timer = _FakeTimer();
     final service = CourierPresenceService(
+      isCourier: isActivatedCourier,
       send: (body) async {
         calls.add(body['online'] as bool);
         if (fail) throw const SocketException('offline');

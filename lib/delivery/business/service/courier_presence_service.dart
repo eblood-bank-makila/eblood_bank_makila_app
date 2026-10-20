@@ -108,6 +108,11 @@ class CourierPresenceService with WidgetsBindingObserver {
     }
   }
 
+  /// An « online » call with the freshest fix, asked by the duty stream's first
+  /// fix. It shares the ticks' queue: dropped while a call is in flight, and an
+  /// « offline » that follows waits for it, so it can never land after it.
+  Future<void> pingOnline() => _ping(true);
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {

@@ -62,6 +62,9 @@ class _Harness {
   /// The app's own tracking and the duty stream, in the order they happened.
   final events = <String>[];
   int deliveryResumes = 0;
+
+  /// The first-fix pings handed to the presence service's queue.
+  int pings = 0;
   int? status = 200;
   Completer<int?>? hold;
 
@@ -100,6 +103,7 @@ class _Harness {
     suspendOtherTracking: () => events.add('suspend'),
     resumeOtherTracking: () => events.add('resume'),
     resumeDelivery: () async => deliveryResumes++,
+    pingPresence: () async => pings++,
   );
 
   bool get listening => stream?.hasListener ?? false;
@@ -393,17 +397,20 @@ void main() {
       expect(h.locations.last, (lat: -4.33, lng: 15.31, accuracy: 8.0));
     });
 
-    test('the first fix on duty goes to presence at once, only once', () async {
+    test("the first fix on duty asks the presence queue for a ping at once, only once; it never calls the server itself", () async {
       final h = _harness();
       await h.service.setOnDuty(true);
 
       await h.fix(-4.32, 15.31, accuracy: 9);
+      expect(h.pings, 1);
+      expect(h.service.freshFix, {'lat': -4.32, 'lng': 15.31, 'accuracy': 9}); // what that ping carries
       h.now = h.now.add(const Duration(seconds: 15));
       await h.fix(-4.33, 15.31);
 
+      expect(h.pings, 1);
+      // A direct call here would sit outside the queue: a slow one could land after the off-duty "offline".
       expect(h.presence, [
         {'online': true},
-        {'online': true, 'lat': -4.32, 'lng': 15.31, 'accuracy': 9},
       ]);
     });
 
@@ -422,6 +429,66 @@ void main() {
       await h.fix(-4.32, 15.31);
       expect(h.service.locationProblem, isFalse);
       expect(notified, 2);
+    });
+
+    group('location switched off, then back', () {
+      // geolocator_android's LocationManagerClient (phones without Google
+      // services) removes its updates when location goes off and never ends
+      // the Dart stream: once location is back the old subscription stays dead.
+      Future<_Harness> problem() async {
+        final h = _harness();
+        await h.service.setOnDuty(true);
+        h.stream!.addError(const LocationServiceDisabledException());
+        await pumpEventQueue();
+        expect(h.service.locationProblem, isTrue);
+        return h;
+      }
+
+      Future<void> resume() async {
+        // ignore: invalid_use_of_protected_member
+        TestWidgetsFlutterBinding.instance.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+        await pumpEventQueue();
+      }
+
+      test('the app resuming cancels the dead stream, then subscribes a new one that clears the warning', () async {
+        final h = await problem();
+
+        await resume();
+
+        // Cancel first: the plugin only drops its cached stream once its last listener has gone.
+        expect(h.events, ['suspend', 'subscribe', 'cancel', 'subscribe']);
+        await h.fix(-4.32, 15.31);
+        expect(h.service.locationProblem, isFalse);
+        expect(h.service.freshFix, isNotNull);
+      });
+
+      test('two retries at once subscribe once', () async {
+        final h = await problem();
+
+        await Future.wait([h.service.retryLocation(), h.service.retryLocation()]);
+
+        expect(h.subscriptions, 2);
+      });
+
+      test('resuming with the location fine leaves the stream alone', () async {
+        final h = _harness();
+        await h.service.setOnDuty(true);
+        await h.fix(-4.32, 15.31);
+
+        await resume();
+
+        expect(h.subscriptions, 1);
+      });
+
+      test('off duty, resuming subscribes nothing', () async {
+        final h = await problem();
+        await h.service.setOnDuty(false);
+
+        await resume();
+        await h.service.retryLocation();
+
+        expect(h.subscriptions, 1);
+      });
     });
 
     test('without a delivery never reach the delivery location', () async {
@@ -650,13 +717,36 @@ void main() {
       await pumpSwitch(t, h.service, fixLocation: () async => fixes++);
 
       expect(find.text('Localisation désactivée'), findsOneWidget);
-      await t.tap(find.text('Localisation désactivée'));
+      // The tap subscribes the stream anew too (cancel, then listen): real async.
+      await t.runAsync(() async {
+        await t.tap(find.text('Localisation désactivée'));
+        await pumpEventQueue();
+      });
       expect(fixes, 1);
 
       await t.runAsync(() => h.fix(-4.32, 15.31));
       await t.pump();
       expect(find.text('Localisation désactivée'), findsNothing);
       expect(find.text('En service'), findsOneWidget);
+    });
+
+    testWidgets('the location warning also subscribes the stream anew before opening the settings', (t) async {
+      final h = _harness();
+      final calls = <String>[];
+      await t.runAsync(() async {
+        await h.service.setOnDuty(true);
+        h.stream!.addError(const LocationServiceDisabledException());
+        await pumpEventQueue();
+      });
+      await pumpSwitch(t, h.service, fixLocation: () async => calls.add('settings'));
+
+      await t.runAsync(() async {
+        await t.tap(find.text('Localisation désactivée'));
+        await pumpEventQueue();
+      });
+
+      expect(h.subscriptions, 2);
+      expect(calls, ['settings']);
     });
 
     testWidgets('toggles duty on and off and says which', (t) async {

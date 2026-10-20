@@ -380,26 +380,41 @@ class DeliveryApiService {
       if (response.statusCode == 200) {
         return ApiResponse.success(true);
       } else {
-        return ApiResponse.error('Failed to update delivery phase');
+        // The 409s carry a message the courier must read (« … pas encore remise »).
+        String message = 'Failed to update delivery phase';
+        try {
+          final body = json.decode(response.body);
+          message = (body['message'] ?? body['detail'])?.toString() ?? message;
+        } catch (_) {}
+        return ApiResponse.error(message, statusCode: response.statusCode);
       }
     } catch (e) {
       return ApiResponse.error('Network error: $e');
     }
   }
 
-  /// Update delivery person location
-  Future<ApiResponse<bool>> updateDeliveryPersonLocation(double lat, double lng, {double? accuracy}) async {
+  /// Update delivery person location. Sent on its own client, closed at the end:
+  /// closing it is what drops the socket of a send that timed out.
+  Future<ApiResponse<bool>> updateDeliveryPersonLocation(
+    double lat,
+    double lng, {
+    double? accuracy,
+    Duration timeout = const Duration(seconds: 15),
+  }) async {
+    final client = http.Client();
     try {
       final headers = await _getHeaders();
-      final response = await http.put(
-        Uri.parse(ApiConfig.buildUrl('/eblood-connect/delivery-assignment/update-location')),
-        headers: headers,
-        body: json.encode({
-          'lat': lat,
-          'lng': lng,
-          if (accuracy != null) 'accuracy': accuracy,
-        }),
-      );
+      final response = await client
+          .put(
+            Uri.parse(ApiConfig.buildUrl('/eblood-connect/delivery-assignment/update-location')),
+            headers: headers,
+            body: json.encode({
+              'lat': lat,
+              'lng': lng,
+              if (accuracy != null) 'accuracy': accuracy,
+            }),
+          )
+          .timeout(timeout);
 
       if (response.statusCode == 200) {
         return ApiResponse.success(true);
@@ -408,6 +423,8 @@ class DeliveryApiService {
       }
     } catch (e) {
       return ApiResponse.error('Network error: $e');
+    } finally {
+      client.close();
     }
   }
 
@@ -424,7 +441,7 @@ class DeliveryApiService {
         final data = json.decode(response.body);
         return ApiResponse.success(data['data'] as Map<String, dynamic>);
       } else {
-        return ApiResponse.error('Failed to load tracking info');
+        return ApiResponse.error('Failed to load tracking info', statusCode: response.statusCode);
       }
     } catch (e) {
       return ApiResponse.error('Network error: $e');
@@ -565,17 +582,21 @@ class ApiResponse<T> {
   final T? data;
   final String? error;
 
+  /// HTTP status of a failed call, when the server answered (null = network error).
+  final int? statusCode;
+
   ApiResponse._({
     required this.success,
     this.data,
     this.error,
+    this.statusCode,
   });
 
   factory ApiResponse.success(T data) {
     return ApiResponse._(success: true, data: data);
   }
 
-  factory ApiResponse.error(String error) {
-    return ApiResponse._(success: false, error: error);
+  factory ApiResponse.error(String error, {int? statusCode}) {
+    return ApiResponse._(success: false, error: error, statusCode: statusCode);
   }
 }

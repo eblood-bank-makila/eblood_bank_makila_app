@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:animate_do/animate_do.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,10 +7,11 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:get/get.dart';
 import '../../../apps/config/theme/ColorPages.dart';
-import '../../../blood_bank/providers/ewallet_provider.dart';
 import '../../business/interactors/DeliveryController.dart';
 import '../../business/model/DeliveryModels.dart';
-import '../pages/HospitalDeliveryTrackingPage.dart';
+import '../sheet/active_delivery_sheet_controller.dart';
+import '../sheet/confirm_reception_dialog.dart';
+import '../sheet/delivery_sheet.dart';
 
 /// Widget showing incoming delivery for hospital (floating card on home screen)
 class IncomingDeliveryWidget extends ConsumerStatefulWidget {
@@ -71,7 +74,7 @@ class _IncomingDeliveryWidgetState extends ConsumerState<IncomingDeliveryWidget>
 
   Widget _buildHeader(IncomingDelivery delivery) {
     final statusColor = _getStatusColor(delivery.status);
-    final statusText = _getStatusText(delivery.status);
+    final statusText = pillKey(DeliverySheetRole.buyer, delivery.status, noCourier: delivery.awaitingCourier).tr;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -157,14 +160,16 @@ class _IncomingDeliveryWidgetState extends ConsumerState<IncomingDeliveryWidget>
       child: Column(
         children: [
           // Blood bank info
-          _buildInfoRow(
-            icon: Iconsax.hospital,
-            label: 'from'.tr,
-            value: delivery.bloodBankName,
-          ),
-          const SizedBox(height: 12),
-          // Delivery person info
-          if (delivery.deliveryPersonName != null)
+          if (delivery.bloodBankName.isNotEmpty) ...[
+            _buildInfoRow(
+              icon: Iconsax.hospital,
+              label: 'from'.tr,
+              value: delivery.bloodBankName,
+            ),
+            const SizedBox(height: 12),
+          ],
+          // Delivery person info (none until a courier accepts)
+          if (!delivery.awaitingCourier) ...[
             _buildInfoRow(
               icon: Iconsax.user,
               label: 'delivery_person'.tr,
@@ -179,7 +184,8 @@ class _IncomingDeliveryWidgetState extends ConsumerState<IncomingDeliveryWidget>
                     )
                   : null,
             ),
-          const SizedBox(height: 12),
+            const SizedBox(height: 12),
+          ],
           // Blood bags info
           _buildBloodBagsInfo(delivery.bloodBags),
         ],
@@ -274,16 +280,8 @@ class _IncomingDeliveryWidgetState extends ConsumerState<IncomingDeliveryWidget>
           // Track button
           Expanded(
             child: OutlinedButton.icon(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => HospitalDeliveryTrackingPage(
-                      deliveryId: delivery.id,
-                    ),
-                  ),
-                );
-              },
+              onPressed: () => unawaited(ActiveDeliverySheetController.instance
+                  .open(Navigator.of(context, rootNavigator: true), delivery.id, DeliverySheetRole.buyer)),
               icon: const Icon(Iconsax.location, size: 18),
               label: Text('track'.tr),
               style: OutlinedButton.styleFrom(
@@ -319,98 +317,12 @@ class _IncomingDeliveryWidgetState extends ConsumerState<IncomingDeliveryWidget>
     );
   }
 
-  Future<void> _confirmDelivery(IncomingDelivery delivery) async {
-    // The reception confirm is code-gated: the courier presents the
-    // verification code at the door, the receiving structure types it here.
-    // Backend-side it triggers the seller wallet settlement.
-    final codeController = TextEditingController();
-    final code = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('confirm_delivery'.tr),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('confirm_delivery_message'.tr),
-            const SizedBox(height: 16),
-            TextField(
-              controller: codeController,
-              keyboardType: TextInputType.number,
-              maxLength: 6,
-              textAlign: TextAlign.center,
-              style: GoogleFonts.ubuntu(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 6,
-              ),
-              decoration: InputDecoration(
-                counterText: '',
-                hintText: '______',
-                labelText: 'Code de confirmation du livreur',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('cancel'.tr),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, codeController.text.trim()),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-            ),
-            child: Text('confirm'.tr),
-          ),
-        ],
-      ),
-    );
-
-    if (code == null) return;
-    if (code.isEmpty) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Veuillez entrer le code présenté par le livreur'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-      return;
-    }
-
-    final success = await ref
-        .read(incomingDeliveriesProvider.notifier)
-        .confirmDelivery(
-          delivery.id,
-          bloodRequestId: delivery.bloodRequestId,
-          verificationCode: code,
-        );
-
-    if (success && mounted) {
-      // Settlement just ran on the backend — refresh so a BB/CNTS user
-      // opening the wallet next sees the release credit without a manual
-      // refresh.
-      ref.invalidate(ewalletProvider);
-    }
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(success
-              ? 'delivery_confirmed'.tr
-              : 'Code invalide ou confirmation impossible'),
-          backgroundColor: success ? Colors.green : Colors.red,
-          behavior: SnackBarBehavior.floating,
-        ),
+  Future<void> _confirmDelivery(IncomingDelivery delivery) => confirmReception(
+        context,
+        ref,
+        deliveryId: delivery.id,
+        bloodRequestId: delivery.bloodRequestId,
       );
-    }
-  }
 
   Color _getStatusColor(String status) {
     switch (status) {
@@ -424,18 +336,4 @@ class _IncomingDeliveryWidgetState extends ConsumerState<IncomingDeliveryWidget>
         return Colors.grey;
     }
   }
-
-  String _getStatusText(String status) {
-    switch (status) {
-      case 'en_route_to_hospital':
-        return 'en_route'.tr;
-      case 'at_hospital':
-        return 'arrived'.tr;
-      case 'picked_up_from_blood_bank':
-        return 'picked_up'.tr;
-      default:
-        return status.tr;
-    }
-  }
 }
-

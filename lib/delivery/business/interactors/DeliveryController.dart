@@ -4,6 +4,7 @@ import '../../../apps/services/EbloodAuthHelper.dart';
 import '../../../orders/ui/framework/blood_request/BloodRequestNetworkServiceImpl.dart';
 import '../service/DeliveryApiService.dart';
 import '../model/DeliveryModels.dart';
+import '../../ui/sheet/active_delivery_sheet_controller.dart';
 
 // Backend enum: manual | qr_scan. 'code' was silently 400-ing every hospital confirmation (spec 2026-09-14 §1).
 const kDeliveryConfirmationMethodManual = 'manual';
@@ -372,6 +373,8 @@ class PendingDeliveryRequestController extends StateNotifier<PendingDeliveryRequ
         activeDelivery: response.data,
         clearActiveDelivery: response.data == null,
       );
+      final id = response.data?.id;
+      if (id != null) ActiveDeliverySheetController.instance.adopt(id); // its positions go out
     }
   }
 
@@ -450,17 +453,6 @@ class PendingDeliveryRequestController extends StateNotifier<PendingDeliveryRequ
       state = state.copyWith(error: response.error ?? 'Failed to update phase');
       return false;
     }
-  }
-
-  /// Update location
-  Future<bool> updateLocation(double lat, double lng, {double? accuracy}) async {
-    final response = await _apiService.updateDeliveryPersonLocation(
-      lat,
-      lng,
-      accuracy: accuracy,
-    );
-
-    return response.success;
   }
 
   /// Add a new pending request (from push notification)
@@ -616,30 +608,29 @@ class IncomingDeliveriesController extends StateNotifier<List<IncomingDelivery>>
 
   /// Confirm delivery receipt.
   ///
-  /// When [verificationCode] is provided (the code the courier presents at
-  /// the door), the settlement-triggering confirm
-  /// (/eblood-connect/blood-requests/confirm-delivery) runs FIRST — it is
-  /// the operation that credits the seller wallets — then the assignment is
-  /// closed. Without a code (legacy path) only the assignment is closed.
+  /// The settlement-triggering confirm
+  /// (/eblood-connect/blood-requests/confirm-delivery) checks
+  /// [verificationCode] (the code the courier presents at the door) against
+  /// [bloodRequestId] and credits the seller wallets; it runs FIRST, then the
+  /// assignment is closed. Without either value nothing runs (false): a typed
+  /// code must never be skipped.
   Future<bool> confirmDelivery(
     String deliveryId, {
     String? bloodRequestId,
     String? verificationCode,
   }) async {
+    if (verificationCode == null || verificationCode.isEmpty || bloodRequestId == null || bloodRequestId.isEmpty) {
+      return false;
+    }
     try {
-      if (verificationCode != null &&
-          verificationCode.isNotEmpty &&
-          bloodRequestId != null &&
-          bloodRequestId.isNotEmpty) {
-        final service = BloodRequestNetworkServiceImpl(ApiConfig.BASE_URL);
-        final settlementRes = await service.confirmDelivery(
-          bloodRequestId,
-          verificationCode,
-          kDeliveryConfirmationMethodManual,
-        );
-        if (!settlementRes.success) {
-          return false;
-        }
+      final service = BloodRequestNetworkServiceImpl(ApiConfig.BASE_URL);
+      final settlementRes = await service.confirmDelivery(
+        bloodRequestId,
+        verificationCode,
+        kDeliveryConfirmationMethodManual,
+      );
+      if (!settlementRes.success) {
+        return false;
       }
 
       // Real authenticated user id — the legacy hospitalUserId provider was

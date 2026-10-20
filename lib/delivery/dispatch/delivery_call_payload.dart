@@ -1,6 +1,8 @@
 /// Data of the courier call pushes sent by the backend dispatch
 /// (courier_dispatch_service): `delivery_call` rings, `delivery_call_closed`
 /// silences (reason taken | expired | cancelled). All values arrive as strings.
+/// The live-tracking pushes (`delivery_assigned`, `delivery_closed`,
+/// `delivery_progress`) are parsed at the end of this file.
 library;
 
 class DeliveryCallPayload {
@@ -82,4 +84,63 @@ class DeliveryCallClosed {
   String get message => reason == 'taken' || reason == 'cancelled'
       ? 'Course prise par un autre livreur.'
       : 'Appel terminé.';
+}
+
+String _id(Map<String, dynamic> data) => data['delivery_id']?.toString() ?? '';
+
+/// `delivery_assigned`: the console gave this courier a delivery.
+class DeliveryAssigned {
+  static const type = 'delivery_assigned';
+
+  final String deliveryId;
+
+  const DeliveryAssigned(this.deliveryId);
+
+  static DeliveryAssigned? tryParse(Map<String, dynamic> data) {
+    if (data['type']?.toString() != type) return null;
+    final id = _id(data);
+    return id.isEmpty ? null : DeliveryAssigned(id);
+  }
+}
+
+/// `delivery_closed` (data only): the courier no longer has this delivery.
+class DeliveryClosed {
+  static const type = 'delivery_closed';
+
+  final String deliveryId;
+  final String reason; // unassigned | cancelled
+
+  const DeliveryClosed(this.deliveryId, this.reason);
+
+  static DeliveryClosed? tryParse(Map<String, dynamic> data) {
+    if (data['type']?.toString() != type) return null;
+    final id = _id(data);
+    return id.isEmpty ? null : DeliveryClosed(id, data['reason']?.toString() ?? 'unassigned');
+  }
+
+  /// Translation key of what the courier is told.
+  String get messageKey => reason == 'cancelled' ? 'delivery_cancelled_by_admin' : 'delivery_reassigned';
+}
+
+/// `delivery_progress`: a delivery the structure follows moved on (event
+/// picked_up, at_blood_bank, ...). [audience] says which side it was sent to.
+class DeliveryProgress {
+  static const type = 'delivery_progress';
+
+  final String deliveryId;
+  final String phase;
+  final String event;
+  final String audience; // buyer | seller
+
+  const DeliveryProgress(this.deliveryId, this.phase, this.event, this.audience);
+
+  static DeliveryProgress? tryParse(Map<String, dynamic> data) {
+    if (data['type']?.toString() != type) return null;
+    final id = _id(data);
+    if (id.isEmpty) return null;
+    String s(String k) => data[k]?.toString() ?? '';
+    return DeliveryProgress(id, s('phase'), s('event'), s('audience'));
+  }
+
+  bool get isSeller => audience == 'seller';
 }

@@ -41,6 +41,7 @@ import 'core/rbac/data/rbac_local_storage.dart';
 import 'delivery/dispatch/delivery_call_notifications.dart';
 import 'delivery/dispatch/delivery_call_service.dart';
 import 'delivery/business/service/courier_presence_service.dart';
+import 'delivery/business/service/courier_duty_service.dart';
 
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -185,6 +186,7 @@ void main() async {
 
   // Courier "En ligne" heartbeat. After dotenv: it calls the API at once.
   CourierPresenceService.instance.attach();
+  unawaited(CourierDutyService.instance.resumeIfNeeded());
   unawaited(DeliveryCallService.instance.attach(navigatorKey));
 
   runApp(ProviderScope(

@@ -8,6 +8,7 @@ import '../../../apps/config/theme/ColorPages.dart';
 import '../../../core/rbac/services/rbac_guard.dart';
 import '../../business/interactors/DeliveryController.dart';
 import '../widgets/ActiveDeliveryWidget.dart';
+import '../widgets/duty_switch.dart';
 import '../widgets/PendingDeliveryRequestWidget.dart';
 import 'DeliveryManagementPage.dart';
 
@@ -167,18 +168,7 @@ class _DeliveryPersonHomePageState extends ConsumerState<DeliveryPersonHomePage>
               ],
             ),
           ),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-              Iconsax.truck,
-              color: ColorPages.COLOR_PRINCIPAL,
-              size: 24,
-            ),
-          ),
+          DutySwitch(),
         ],
       ),
     );

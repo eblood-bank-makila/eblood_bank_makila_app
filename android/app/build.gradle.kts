@@ -14,6 +14,13 @@ val keystoreProperties = Properties().apply {
     if (f.exists()) load(FileInputStream(f))
 }
 
+// Google Maps key lives in android/local.properties (git-ignored); a missing key
+// still builds (the map just renders blank until MAPS_API_KEY is added; release builds warn).
+val mapsApiKey = Properties().apply {
+    val f = rootProject.file("local.properties")
+    if (f.exists()) load(FileInputStream(f))
+}.getProperty("MAPS_API_KEY")
+
 // --- Auto-incrementing versionCode -------------------------------------------
 // Release builds (bundleRelease / assembleRelease) get a unique, monotonically
 // increasing code = whole minutes since the Unix epoch (~29.6M as of 2026-06).
@@ -26,6 +33,10 @@ val isReleaseBuild = gradle.startParameter.taskNames.any { it.contains("Release"
 val versionCodeOverride = (project.findProperty("versionCodeOverride") as? String)?.toIntOrNull()
 val autoVersionCode = (System.currentTimeMillis() / 60_000L).toInt()
 // -----------------------------------------------------------------------------
+
+if (isReleaseBuild && mapsApiKey.isNullOrBlank()) {
+    logger.warn("WARNING: MAPS_API_KEY is missing from android/local.properties: the delivery map will render blank in this release build.")
+}
 
 android {
     namespace = "com.ebloodbank.makila.grpe.apps.eblood_bank_mak_app"
@@ -48,6 +59,7 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = versionCodeOverride ?: (if (isReleaseBuild) autoVersionCode else flutter.versionCode)
         versionName = flutter.versionName
+        manifestPlaceholders["mapsApiKey"] = mapsApiKey ?: ""
 
         // Ship only the locales you support to reduce resources size
         resourceConfigurations += listOf("en", "fr")

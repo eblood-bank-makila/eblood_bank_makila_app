@@ -20,6 +20,8 @@ class LocationTrackingService {
   StreamSubscription<Position>? _positionStreamSubscription;
   Position? _currentPosition;
   Timer? _backgroundUpdateTimer;
+  bool _suspended = false;
+  bool _restartOnResume = false;
   
   // Storage keys
   static const String _keyLatitude = 'user_latitude';
@@ -259,8 +261,29 @@ class LocationTrackingService {
     }
   }
   
+  /// The courier's duty stream needs the plugin's position stream to itself:
+  /// geolocator_android keeps ONE stream, with the first listener's settings.
+  /// Stops tracking and keeps it stopped (a start waits) until [resume].
+  void suspend() {
+    if (_suspended) return;
+    _restartOnResume = isTracking;
+    stopBackgroundTracking();
+    _suspended = true;
+  }
+
+  /// Ends [suspend]: tracking restarts if it ran, or was asked to start, meanwhile.
+  void resume() {
+    if (!_suspended) return;
+    _suspended = false;
+    if (_restartOnResume) startBackgroundTracking();
+  }
+
   /// Start background location tracking
   void startBackgroundTracking() {
+    if (_suspended) {
+      _restartOnResume = true;
+      return;
+    }
     try {
       debugPrint('🔄 Starting background location tracking...');
       
@@ -309,6 +332,7 @@ class LocationTrackingService {
   
   /// Stop background location tracking
   void stopBackgroundTracking() {
+    if (_suspended) _restartOnResume = false; // an explicit stop wins over the pending restart
     try {
       debugPrint('🛑 Stopping background location tracking...');
       

@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'package:eblood_bank_mak_app/apps/translations/AppTranslations.dart';
 import 'package:eblood_bank_mak_app/delivery/business/interactors/DeliveryController.dart';
@@ -53,14 +54,31 @@ DeliveryTracking _tracking(
     );
 
 class _FakeApi extends DeliveryApiService {
-  _FakeApi(this.result);
-  final ApiResponse<bool> result;
+  _FakeApi(ApiResponse<bool> result) : _respond = (() async => result);
+
+  /// Never answers, like a dead socket.
+  _FakeApi.hanging() : _respond = (() => Completer<ApiResponse<bool>>().future);
+
+  final Future<ApiResponse<bool>> Function() _respond;
   final calls = <String>[];
+  final locations = <LocationInfo?>[];
 
   @override
-  Future<ApiResponse<bool>> updateDeliveryPhase(String deliveryId, String phase, {LocationInfo? location}) async {
+  Future<ApiResponse<bool>> updateDeliveryPhase(String deliveryId, String phase, {LocationInfo? location}) {
     calls.add('$deliveryId:$phase');
-    return result;
+    locations.add(location);
+    return _respond();
+  }
+}
+
+class _FakeOutgoing extends OutgoingDeliveriesController {
+  _FakeOutgoing() : super(DeliveryApiService());
+  final confirmed = <String>[];
+
+  @override
+  Future<String?> confirmPickup(String deliveryId) async {
+    confirmed.add(deliveryId);
+    return null;
   }
 }
 
@@ -69,11 +87,13 @@ Widget _host(
   DeliverySheetRole role, {
   DeliveryApiService? api,
   void Function(String?)? onEnded,
+  List<Override> overrides = const [],
 }) =>
     ProviderScope(
       overrides: [
         deliveryTrackingProvider('d1').overrideWith((ref) => stream()),
         if (api != null) deliveryApiServiceProvider.overrideWithValue(api),
+        ...overrides,
       ],
       child: GetMaterialApp(
         translations: AppTranslations(),
@@ -88,24 +108,62 @@ Widget _host(
       ),
     );
 
-Future<void> _show(WidgetTester t, DeliveryTracking value, DeliverySheetRole role, {DeliveryApiService? api}) async {
-  await t.pumpWidget(_host(() => Stream.value(value), role, api: api));
+Future<void> _show(
+  WidgetTester t,
+  DeliveryTracking value,
+  DeliverySheetRole role, {
+  DeliveryApiService? api,
+  List<Override> overrides = const [],
+}) async {
+  await t.pumpWidget(const SizedBox()); // a fresh ProviderScope when a test shows a second sheet
+  await t.pumpWidget(_host(() => Stream.value(value), role, api: api, overrides: overrides));
   await t.pump();
   await t.pump();
 }
 
 final _code = find.byKey(const Key('handover-code'));
 final _knob = find.byKey(const Key('slide-knob'));
+const _genericError = 'Erreur lors de la mise à jour du statut';
 
-/// Location denied: the step still goes out, without a position.
-void _denyLocation(WidgetTester t) => t.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+Map<String, Object> _fix(double lat, Duration age) => {
+      'latitude': lat,
+      'longitude': 15.3,
+      'accuracy': 8.0,
+      'timestamp': DateTime.now().subtract(age).millisecondsSinceEpoch,
+    };
+
+/// Fakes the geolocator plugin: [current] answers getCurrentPosition (null =
+/// no fix in time), [last] answers getLastKnownPosition.
+void _location(WidgetTester t, {Map<String, Object>? current, Map<String, Object>? last}) =>
+    t.binding.defaultBinaryMessenger.setMockMethodCallHandler(
       const MethodChannel('flutter.baseflow.com/geolocator'),
-      (_) async => 0,
+      (call) async => switch (call.method) {
+        'getCurrentPosition' => current ?? (throw PlatformException(code: 'TIMEOUT')),
+        'getLastKnownPosition' => last,
+        _ => null,
+      },
     );
 
 Future<void> _slide(WidgetTester t) async {
   await t.drag(_knob, Offset(t.getSize(find.byType(SlideToConfirm)).width, 0));
   await t.pumpAndSettle();
+}
+
+/// The reception dialog styles its code field with GoogleFonts.ubuntu, which a
+/// test host can neither fetch nor find bundled: drop exactly that error.
+void _ignoringGoogleFonts(String description, Future<void> Function(WidgetTester t) body) {
+  testWidgets(description, (t) async {
+    GoogleFonts.config.allowRuntimeFetching = false;
+    final done = Completer<void>();
+    runZonedGuarded(() async {
+      await body(t);
+      if (!done.isCompleted) done.complete();
+    }, (error, stack) {
+      if ('$error'.contains('GoogleFonts.config.allowRuntimeFetching is false')) return;
+      if (!done.isCompleted) done.completeError(error, stack);
+    });
+    await done.future;
+  });
 }
 
 void main() {
@@ -125,16 +183,28 @@ void main() {
       expect(find.text('Glisser · Arrivé à l\'hôpital'), findsOneWidget);
     });
 
-    testWidgets('at the bank before the handover: waiting text, no slide', (t) async {
+    testWidgets('at the bank before the handover: waiting text, no slide, arrival pill', (t) async {
       await _show(t, _tracking('at_blood_bank'), DeliverySheetRole.courier);
       expect(find.byType(SlideToConfirm), findsNothing);
       expect(find.text('En attente de la remise par la banque…'), findsOneWidget);
+      expect(find.text('À la banque'), findsOneWidget);
+    });
+
+    testWidgets('step labels, and the distance to the stop with a French decimal comma', (t) async {
+      await _show(t, _tracking('en_route_to_blood_bank'), DeliverySheetRole.courier);
+      for (final label in ['Banque', 'Récupérée', 'Hôpital', 'Livrée']) {
+        expect(find.text(label), findsOneWidget, reason: label);
+      }
+      expect(find.text('· 3,2 km jusqu\'à la banque'), findsOneWidget);
+
+      await _show(t, _tracking('en_route_to_hospital', pickupConfirmed: true), DeliverySheetRole.courier);
+      expect(find.text('· 3,2 km jusqu\'à l\'hôpital'), findsOneWidget);
     });
 
     testWidgets('a refused step shows the server message and the slide comes back', (t) async {
       const msg = "La livraison n'est pas encore remise par la banque.";
       final api = _FakeApi(ApiResponse.error(msg, statusCode: 409));
-      _denyLocation(t);
+      _location(t);
       await _show(t, _tracking('en_route_to_blood_bank'), DeliverySheetRole.courier, api: api);
       final start = t.getTopLeft(_knob);
 
@@ -145,17 +215,72 @@ void main() {
       expect(t.getTopLeft(_knob), start);
     });
 
+    testWidgets('a network error shows the generic message, never the raw exception', (t) async {
+      final api = _FakeApi(ApiResponse.error('Network error: ClientException: Connection reset'));
+      _location(t);
+      await _show(t, _tracking('en_route_to_blood_bank'), DeliverySheetRole.courier, api: api);
+      final start = t.getTopLeft(_knob);
+
+      await _slide(t);
+
+      expect(find.text(_genericError), findsOneWidget);
+      expect(find.textContaining('ClientException'), findsNothing);
+      expect(t.getTopLeft(_knob), start);
+    });
+
+    testWidgets('a call that never answers times out after 15 s and the slide comes back', (t) async {
+      final api = _FakeApi.hanging();
+      _location(t);
+      await _show(t, _tracking('en_route_to_blood_bank'), DeliverySheetRole.courier, api: api);
+      final start = t.getTopLeft(_knob);
+
+      await t.drag(_knob, Offset(t.getSize(find.byType(SlideToConfirm)).width, 0));
+      await t.pump(const Duration(seconds: 14));
+      expect(find.text(_genericError), findsNothing);
+      await t.pump(const Duration(seconds: 2));
+      await t.pumpAndSettle();
+
+      expect(find.text(_genericError), findsOneWidget);
+      expect(t.getTopLeft(_knob), start);
+    });
+
     testWidgets('an accepted step goes out and the slide stays confirmed through the refresh', (t) async {
       final api = _FakeApi(ApiResponse.success(true));
-      _denyLocation(t);
+      _location(t);
       await _show(t, _tracking('en_route_to_blood_bank'), DeliverySheetRole.courier, api: api);
       final start = t.getTopLeft(_knob);
 
       await _slide(t);
 
       expect(api.calls, ['d1:at_blood_bank']);
+      expect(api.locations, [null]); // no fix at all: the step still goes out
       expect(find.byType(SnackBar), findsNothing);
       expect(t.getTopLeft(_knob), isNot(start));
+    });
+
+    testWidgets('the current fix goes out with the step', (t) async {
+      final api = _FakeApi(ApiResponse.success(true));
+      _location(t, current: _fix(-4.311, Duration.zero), last: _fix(-4.999, Duration.zero));
+      await _show(t, _tracking('en_route_to_blood_bank'), DeliverySheetRole.courier, api: api);
+      await _slide(t);
+      expect(api.locations.single?.lat, -4.311);
+    });
+
+    testWidgets('without a current fix, a cached one under 2 min old is sent', (t) async {
+      final api = _FakeApi(ApiResponse.success(true));
+      _location(t, last: _fix(-4.322, const Duration(seconds: 30)));
+      await _show(t, _tracking('en_route_to_blood_bank'), DeliverySheetRole.courier, api: api);
+      await _slide(t);
+      expect(api.locations.single?.lat, -4.322);
+    });
+
+    testWidgets('a cached fix older than 2 min is never stamped as live', (t) async {
+      final api = _FakeApi(ApiResponse.success(true));
+      _location(t, last: _fix(-4.333, const Duration(minutes: 5)));
+      await _show(t, _tracking('en_route_to_blood_bank'), DeliverySheetRole.courier, api: api);
+      await _slide(t);
+      expect(api.calls, ['d1:at_blood_bank']);
+      expect(api.locations, [null]);
     });
 
     testWidgets('the courier sees the leg ETA, not the trip to the hospital', (t) async {
@@ -173,6 +298,16 @@ void main() {
       expect(t.widget<FilledButton>(button).onPressed, isNotNull);
       expect(find.byKey(const Key('sheet-close')), findsOneWidget);
       expect(find.byType(SlideToConfirm), findsNothing);
+      expect(find.text('Livreur arrivé'), findsOneWidget);
+    });
+
+    _ignoringGoogleFonts('tapping « Confirmer la réception » opens the code dialog', (t) async {
+      await _show(t, _tracking('at_hospital', pickupConfirmed: true), DeliverySheetRole.buyer);
+      await t.tap(find.text('Confirmer la réception'));
+      await t.pumpAndSettle();
+      expect(find.byType(AlertDialog), findsOneWidget);
+      expect(find.text('Confirmer la livraison'), findsOneWidget);
+      expect(find.byType(TextField), findsOneWidget);
     });
 
     testWidgets('seller at the bank can confirm the handover', (t) async {
@@ -180,7 +315,28 @@ void main() {
       final button = find.widgetWithText(FilledButton, 'Confirmer la remise');
       expect(button, findsOneWidget);
       expect(t.widget<FilledButton>(button).onPressed, isNotNull);
-      expect(find.text('Livreur en approche'), findsOneWidget);
+      expect(find.text('À la banque'), findsOneWidget);
+    });
+
+    testWidgets('seller: confirm dialog, then confirmPickup, then a success message', (t) async {
+      final outgoing = _FakeOutgoing();
+      await _show(t, _tracking('at_blood_bank'), DeliverySheetRole.seller,
+          overrides: [outgoingDeliveriesProvider.overrideWith((ref) => outgoing)]);
+
+      await t.tap(find.widgetWithText(FilledButton, 'Confirmer la remise'));
+      await t.pumpAndSettle();
+      expect(find.text('Confirmez-vous avoir remis les poches de sang au livreur alvic dalton ?'), findsOneWidget);
+      expect(outgoing.confirmed, isEmpty); // nothing sent before the confirmation
+
+      await t.tap(find.widgetWithText(ElevatedButton, 'Confirmer'));
+      await t.pumpAndSettle();
+      expect(outgoing.confirmed, ['d1']);
+      expect(find.text('Remise confirmée — le livreur peut repartir'), findsOneWidget);
+    });
+
+    testWidgets('pills at arrival: the seller sees « À l\'hôpital »', (t) async {
+      await _show(t, _tracking('at_hospital', pickupConfirmed: true), DeliverySheetRole.seller);
+      expect(find.text("À l'hôpital"), findsOneWidget);
     });
 
     testWidgets('a 3-minute-old position is flagged as stale', (t) async {
@@ -195,10 +351,37 @@ void main() {
       expect(find.textContaining('en direct · il y a'), findsOneWidget);
     });
 
-    testWidgets('the buyer sees the ETA to the hospital', (t) async {
+    testWidgets('the buyer sees the ETA to the hospital, with the arrival time', (t) async {
       await _show(t, _tracking('en_route_to_blood_bank', eta: 300, etaToHospital: 900), DeliverySheetRole.buyer);
       expect(find.text('15 min'), findsOneWidget);
       expect(find.text('5 min'), findsNothing);
+      expect(find.textContaining(RegExp(r'^· arrivée vers \d\d:\d\d$')), findsOneWidget);
+    });
+
+    testWidgets('the seller sees the leg ETA', (t) async {
+      await _show(t, _tracking('en_route_to_blood_bank', eta: 300, etaToHospital: 900), DeliverySheetRole.seller);
+      expect(find.text('5 min'), findsOneWidget);
+      expect(find.text('15 min'), findsNothing);
+    });
+
+    testWidgets('step labels per role', (t) async {
+      await _show(t, _tracking('en_route_to_hospital', pickupConfirmed: true), DeliverySheetRole.buyer);
+      for (final label in ['Banque', 'Récupérée', 'En route', 'Livrée']) {
+        expect(find.text(label), findsOneWidget, reason: 'buyer $label');
+      }
+      await _show(t, _tracking('en_route_to_blood_bank'), DeliverySheetRole.seller);
+      for (final label in ['En route', 'Remise', 'Hôpital', 'Livrée']) {
+        expect(find.text(label), findsOneWidget, reason: 'seller $label');
+      }
+    });
+
+    testWidgets('courier card and cargo line, per mockup', (t) async {
+      await _show(t, _tracking('en_route_to_hospital', pickupConfirmed: true), DeliverySheetRole.buyer);
+      expect(find.text('Livreur · moto'), findsOneWidget);
+      expect(find.text('1 × AB- · depuis cs dannico'), findsOneWidget);
+
+      await _show(t, _tracking('en_route_to_blood_bank'), DeliverySheetRole.seller);
+      expect(find.text('Préparer : 1 × AB- · pour cs bolingo'), findsOneWidget);
     });
 
     testWidgets('no route and no courier position still renders, ETA —', (t) async {
@@ -219,6 +402,12 @@ void main() {
       );
       expect(find.text("En attente d'un livreur"), findsOneWidget);
       expect(find.text('alvic dalton'), findsNothing);
+      expect(find.byKey(const Key('call-courier')), findsNothing);
+    });
+
+    testWidgets('a blank courier name counts as no courier', (t) async {
+      await _show(t, _tracking('en_route_to_blood_bank', courierName: '  '), DeliverySheetRole.seller);
+      expect(find.text("En attente d'un livreur"), findsOneWidget);
       expect(find.byKey(const Key('call-courier')), findsNothing);
     });
 
@@ -283,7 +472,14 @@ void main() {
       'waiting_bank_handover', 'waiting_hospital_confirm', 'handover_code_label',
       'live_seconds_ago', 'position_stale_minutes',
       'pill_to_bank', 'pill_to_hospital', 'pill_to_you', 'pill_courier_coming', 'pill_waiting_courier',
-      'confirm_receipt', 'confirm_handover', 'delivery_cancelled_by_admin', 'delivery_reassigned',
+      'pill_at_bank', 'pill_at_hospital', 'pill_courier_arrived',
+      'step_bank', 'step_picked_up', 'step_hospital', 'step_delivered', 'step_en_route', 'step_handover',
+      'eta_minutes', 'eta_km_to_bank', 'eta_km_to_hospital', 'eta_arrival_at',
+      'courier_on_moto', 'cargo_from', 'cargo_prepare_for',
+      'confirm_receipt', 'confirm_handover', 'confirm_handover_message', 'handover_confirmed',
+      'delivery_cancelled_by_admin', 'delivery_reassigned', 'error_updating_status', 'cancel', 'confirm',
+      // the reception dialog
+      'confirm_delivery', 'confirm_delivery_message', 'delivery_confirmed',
     ];
     final missing = <String>[];
     for (final entry in AppTranslations().keys.entries) {

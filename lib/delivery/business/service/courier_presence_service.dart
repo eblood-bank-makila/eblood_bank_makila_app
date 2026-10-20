@@ -31,7 +31,7 @@ class CourierPresenceService with WidgetsBindingObserver {
 
   static final instance = CourierPresenceService(
     send: _put,
-    locate: lastPosition,
+    locate: _lastPosition,
     registerToken: _registerCourierToken,
   );
 
@@ -62,8 +62,7 @@ class CourierPresenceService with WidgetsBindingObserver {
   static Future<Map<String, double>?> _noPosition() async => null;
   static Future<void> _noRegistration() async {}
 
-  /// Best-effort `{lat, lng, accuracy}`: never throws, null when unknown or not allowed.
-  static Future<Map<String, double>?> lastPosition() async {
+  static Future<Map<String, double>?> _lastPosition() async {
     try {
       final permission = await Geolocator.checkPermission();
       if (permission != LocationPermission.always && permission != LocationPermission.whileInUse) return null;

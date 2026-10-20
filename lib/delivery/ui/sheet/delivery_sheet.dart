@@ -3,7 +3,9 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart' show NumberFormat;
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../apps/config/AppConfig.dart';
@@ -11,7 +13,7 @@ import '../../business/interactors/DeliveryController.dart';
 import '../../business/interactors/delivery_tracking_provider.dart';
 import '../../business/model/DeliveryModels.dart' show LocationInfo;
 import '../../business/model/delivery_tracking.dart';
-import '../../business/service/courier_presence_service.dart';
+import '../../business/service/DeliveryApiService.dart' show ApiResponse;
 import '../widgets/slide_to_confirm.dart';
 import 'confirm_reception_dialog.dart';
 import 'courier_step.dart';
@@ -36,8 +38,46 @@ const _progress = {
   'delivered_and_confirmed': 4,
 };
 
+/// Labels under the bar, per role: the seller's trip starts with the courier coming to them.
+const _stepLabels = {
+  DeliverySheetRole.courier: ['step_bank', 'step_picked_up', 'step_hospital', 'step_delivered'],
+  DeliverySheetRole.buyer: ['step_bank', 'step_picked_up', 'step_en_route', 'step_delivered'],
+  DeliverySheetRole.seller: ['step_en_route', 'step_handover', 'step_hospital', 'step_delivered'],
+};
+
 bool _noCourier(DeliveryTracking t) =>
-    t.courierName == null || t.phase == 'awaiting_assignment' || t.phase == 'awaiting_acceptance';
+    (t.courierName ?? '').trim().isEmpty || t.phase == 'awaiting_assignment' || t.phase == 'awaiting_acceptance';
+
+/// The position stamped on a phase change. The server stores it as the
+/// courier's live position, so an old last-known fix must not go out as "now".
+Future<LocationInfo?> _freshFix() async {
+  LocationInfo info(Position p) => LocationInfo(lat: p.latitude, lng: p.longitude, accuracy: p.accuracy);
+  try {
+    return info(await Geolocator.getCurrentPosition(
+      locationSettings: const LocationSettings(accuracy: LocationAccuracy.high, timeLimit: Duration(seconds: 3)),
+    ));
+  } catch (_) {
+    // No fix in time, or location off / denied: try the cached one.
+  }
+  try {
+    final last = await Geolocator.getLastKnownPosition();
+    if (last != null && DateTime.now().difference(last.timestamp) <= const Duration(minutes: 2)) return info(last);
+  } catch (_) {
+    // Same: the step goes out without a position.
+  }
+  return null;
+}
+
+/// « 3,2 » in French, « 3.2 » in English.
+String _km(int meters) {
+  try {
+    return NumberFormat('0.0', Get.locale?.toString()).format(meters / 1000);
+  } catch (_) {
+    return (meters / 1000).toStringAsFixed(1); // locale unknown to intl
+  }
+}
+
+String _clock(DateTime t) => '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
 
 String _supportPhone() {
   try {
@@ -117,22 +157,29 @@ class _DeliverySheetState extends ConsumerState<DeliverySheet> {
     scheduleMicrotask(() => widget.onEnded?.call(messageKey));
   }
 
-  void _snack(String text) => _messenger.currentState
+  void _snack(String text, {bool ok = false}) => _messenger.currentState
     ?..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(content: Text(text), backgroundColor: Colors.red, behavior: SnackBarBehavior.floating));
+    ..showSnackBar(SnackBar(
+      content: Text(text),
+      backgroundColor: ok ? Colors.green : Colors.red,
+      behavior: SnackBarBehavior.floating,
+    ));
 
   void _refresh() => ref.invalidate(deliveryTrackingProvider(widget.deliveryId));
 
   Future<bool> _advance(String phase) async {
-    final pos = await CourierPresenceService.lastPosition();
-    final res = await ref.read(deliveryApiServiceProvider).updateDeliveryPhase(
-          widget.deliveryId,
-          phase,
-          location: pos == null ? null : LocationInfo(lat: pos['lat']!, lng: pos['lng']!, accuracy: pos['accuracy']),
-        );
+    // Read before any await: the sheet may be closed by then.
+    final api = ref.read(deliveryApiServiceProvider);
+    final id = widget.deliveryId;
+    final location = await _freshFix();
+    final res = await api
+        .updateDeliveryPhase(id, phase, location: location)
+        // http.put has no timeout of its own; a dead socket must not lock the slide.
+        .timeout(const Duration(seconds: 15), onTimeout: () => ApiResponse.error('timeout'));
     if (!mounted) return res.success;
     if (!res.success) {
-      _snack(res.error ?? 'error_updating_status'.tr);
+      // No status = network error or timeout: never show the raw exception text.
+      _snack(res.statusCode == null ? 'error_updating_status'.tr : res.error ?? 'error_updating_status'.tr);
       return false;
     }
     _refresh();
@@ -249,10 +296,13 @@ class _DeliverySheetState extends ConsumerState<DeliverySheet> {
   }
 
   String _pillKey(DeliveryTracking t) {
+    final role = widget.role;
     final toBank = _beforePickup.contains(t.phase);
-    return switch (widget.role) {
+    if (role != DeliverySheetRole.courier && _noCourier(t)) return 'pill_waiting_courier';
+    if (t.phase == 'at_blood_bank') return 'pill_at_bank';
+    if (t.phase == 'at_hospital') return role == DeliverySheetRole.buyer ? 'pill_courier_arrived' : 'pill_at_hospital';
+    return switch (role) {
       DeliverySheetRole.courier => toBank ? 'pill_to_bank' : 'pill_to_hospital',
-      _ when _noCourier(t) => 'pill_waiting_courier',
       DeliverySheetRole.buyer => toBank ? 'pill_to_bank' : 'pill_to_you',
       DeliverySheetRole.seller => toBank ? 'pill_courier_coming' : 'pill_to_hospital',
     };
@@ -262,9 +312,11 @@ class _DeliverySheetState extends ConsumerState<DeliverySheet> {
     final toBank = _beforePickup.contains(t.phase);
     final target = toBank ? t.bloodBank : t.hospital;
     final eta = widget.role == DeliverySheetRole.buyer ? t.etaToHospitalSeconds : t.etaSeconds;
-    final leg = t.currentLeg;
-    // The buyer's ETA runs to the hospital; a distance to the bank would not match it.
-    final distanceM = widget.role == DeliverySheetRole.buyer && t.activeLeg != 'to_hospital' ? null : leg?.distanceM;
+    final legM = t.currentLeg?.distanceM ?? 0;
+    // Courier: how far to the stop. Followers: when the courier gets there.
+    final etaDetail = _courier
+        ? (legM > 0 ? (toBank ? 'eta_km_to_bank' : 'eta_km_to_hospital').trParams({'km': _km(legM)}) : null)
+        : (eta != null ? 'eta_arrival_at'.trParams({'time': _clock(DateTime.now().add(Duration(seconds: eta)))}) : null);
     final action = _action(context, t);
 
     return [
@@ -300,17 +352,19 @@ class _DeliverySheetState extends ConsumerState<DeliverySheet> {
               crossAxisAlignment: CrossAxisAlignment.baseline,
               textBaseline: TextBaseline.alphabetic,
               children: [
-                Text(eta == null ? '—' : '${(eta / 60).ceil()} min',
+                Text(eta == null ? '—' : 'eta_minutes'.trParams({'m': '${(eta / 60).ceil()}'}),
                     style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w700)),
-                if (distanceM != null && distanceM > 0) ...[
+                if (etaDetail != null) ...[
                   const SizedBox(width: 8),
-                  Text('· ${(distanceM / 1000).toStringAsFixed(1)} km',
-                      style: TextStyle(fontSize: 14, color: Colors.grey.shade700)),
+                  Flexible(
+                    child: Text(etaDetail,
+                        overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 14, color: Colors.grey.shade700)),
+                  ),
                 ],
               ],
             ),
             const SizedBox(height: 10),
-            _StepBar(done: _progress[t.phase] ?? 0),
+            _StepBar(done: _progress[t.phase] ?? 0, labels: [for (final k in _stepLabels[widget.role]!) k.tr]),
             const SizedBox(height: 14),
             if (_courier && _codePhases.contains(t.phase) && t.verificationCode != null) _codeCard(t.verificationCode!),
             ..._cards(t, toBank),
@@ -335,11 +389,19 @@ class _DeliverySheetState extends ConsumerState<DeliverySheet> {
                   phone: t.hospital.phone, callKey: const Key('call-hospital')),
             ];
     }
-    final other = widget.role == DeliverySheetRole.buyer ? t.bloodBank.name : t.hospital.name;
+    final cargo = t.bloodSummary.isEmpty ? '—' : t.bloodSummary;
     return [
       if (!_noCourier(t))
-        _StopCard(icon: Icons.two_wheeler, title: t.courierName, phone: t.courierPhone, callKey: const Key('call-courier')),
-      _StopCard(icon: Icons.bloodtype, title: join([t.bloodSummary, other]), outlined: true),
+        _StopCard(
+          icon: Icons.two_wheeler,
+          title: t.courierName,
+          subtitle: 'courier_on_moto'.tr,
+          phone: t.courierPhone,
+          callKey: const Key('call-courier'),
+        ),
+      _CargoCard(widget.role == DeliverySheetRole.buyer
+          ? 'cargo_from'.trParams({'cargo': cargo, 'place': t.bloodBank.name ?? '—'})
+          : 'cargo_prepare_for'.trParams({'cargo': cargo, 'place': t.hospital.name ?? '—'})),
     ];
   }
 
@@ -397,52 +459,93 @@ class _DeliverySheetState extends ConsumerState<DeliverySheet> {
         if (t.pickupConfirmedAt != null || !_beforePickup.contains(t.phase)) return null;
         return button(
           'confirm_handover',
-          t.phase == 'at_blood_bank'
-              ? () => _run(() async {
-                    final error = await ref.read(outgoingDeliveriesProvider.notifier).confirmPickup(widget.deliveryId);
-                    if (error != null) _snack(error);
-                  })
-              : null,
+          t.phase == 'at_blood_bank' ? () => _run(() => _confirmHandover(context, t)) : null,
         );
     }
+  }
+
+  /// Same confirmation as the outgoing-delivery card.
+  Future<void> _confirmHandover(BuildContext context, DeliveryTracking t) async {
+    final outgoing = ref.read(outgoingDeliveriesProvider.notifier);
+    final id = widget.deliveryId;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('confirm_handover'.tr),
+        content: Text('confirm_handover_message'.trParams({'name': t.courierName ?? ''}).replaceAll('  ', ' ')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('cancel'.tr),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            child: Text('confirm'.tr),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    final error = await outgoing.confirmPickup(id);
+    if (!mounted) return;
+    _snack(error ?? 'handover_confirmed'.tr, ok: error == null);
   }
 }
 
 class _StepBar extends StatelessWidget {
-  const _StepBar({required this.done});
+  const _StepBar({required this.done, required this.labels});
 
   final int done;
+  final List<String> labels;
 
   @override
   Widget build(BuildContext context) => Semantics(
-        value: '$done / 4',
-        child: Row(
-          children: [
-            for (var i = 0; i < 4; i++)
-              Expanded(
-                child: Container(
-                  height: 5,
-                  margin: EdgeInsets.only(right: i < 3 ? 4 : 0),
-                  decoration: BoxDecoration(
-                    color: i < done ? _red : const Color(0xFFE4E4E8),
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                ),
+        label: labels.join(', '),
+        value: done > 0 ? '${labels[done - 1]} ($done / 4)' : '0 / 4',
+        child: ExcludeSemantics(
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  for (var i = 0; i < 4; i++)
+                    Expanded(
+                      child: Container(
+                        height: 5,
+                        margin: EdgeInsets.only(right: i < 3 ? 4 : 0),
+                        decoration: BoxDecoration(
+                          color: i < done ? _red : const Color(0xFFE4E4E8),
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                      ),
+                    ),
+                ],
               ),
-          ],
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  for (final l in labels)
+                    Expanded(
+                      child: Text(l,
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                    ),
+                ],
+              ),
+            ],
+          ),
         ),
       );
 }
 
 class _StopCard extends StatelessWidget {
-  const _StopCard({required this.icon, required this.title, this.subtitle, this.phone, this.callKey, this.outlined = false});
+  const _StopCard({required this.icon, required this.title, this.subtitle, this.phone, this.callKey});
 
   final IconData icon;
   final String? title, subtitle, phone;
   final Key? callKey;
-
-  /// The cargo line: lighter, no icon tile.
-  final bool outlined;
 
   @override
   Widget build(BuildContext context) {
@@ -451,7 +554,7 @@ class _StopCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        border: Border.all(color: outlined ? const Color(0xFFDDDDDD) : const Color(0xFFEEEEEE)),
+        border: Border.all(color: const Color(0xFFEEEEEE)),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
@@ -467,8 +570,7 @@ class _StopCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title ?? '—',
-                    style: TextStyle(fontSize: outlined ? 13 : 15, fontWeight: outlined ? FontWeight.w500 : FontWeight.w700)),
+                Text(title ?? '—', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
                 if (sub != null && sub.isNotEmpty)
                   Text(sub, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
               ],
@@ -486,6 +588,45 @@ class _StopCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The cargo line of the followers' sheet: dashed outline, no icon tile.
+class _CargoCard extends StatelessWidget {
+  const _CargoCard(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: CustomPaint(
+          painter: const _DashedBorder(),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Text(text, style: TextStyle(fontSize: 13, color: Colors.grey.shade800)),
+          ),
+        ),
+      );
+}
+
+class _DashedBorder extends CustomPainter {
+  const _DashedBorder();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFFCCCCCC)
+      ..style = PaintingStyle.stroke;
+    final outline = Path()..addRRect(RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(14)));
+    for (final metric in outline.computeMetrics()) {
+      for (var d = 0.0; d < metric.length; d += 9) {
+        canvas.drawPath(metric.extractPath(d, math.min(d + 5, metric.length)), paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DashedBorder oldDelegate) => false;
 }
 
 /// « en direct · il y a 8 s », or the stale warning; ticks on its own so a

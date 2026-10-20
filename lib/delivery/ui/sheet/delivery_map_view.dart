@@ -48,7 +48,10 @@ class _DeliveryMapViewState extends State<DeliveryMapView> {
       await c.animateCamera(CameraUpdate.newLatLngBounds(bounds, 48));
     } catch (_) {
       // Android refuses bounds while the map has no size yet; centre instead.
-      await c.animateCamera(CameraUpdate.newLatLngZoom(bounds.southwest, 13));
+      final sw = bounds.southwest, ne = bounds.northeast;
+      await c.animateCamera(
+        CameraUpdate.newLatLngZoom(LatLng((sw.latitude + ne.latitude) / 2, (sw.longitude + ne.longitude) / 2), 13),
+      );
     }
   }
 
@@ -78,8 +81,8 @@ class _DeliveryMapViewState extends State<DeliveryMapView> {
           mapToolbarEnabled: false,
           markers: {
             if (bank != null) pin('bank', bank, BitmapDescriptor.hueRed, t.bloodBank.name),
-            if (hospital != null) pin('hospital', hospital, BitmapDescriptor.hueRose, t.hospital.name),
-            if (courier != null) pin('courier', courier, BitmapDescriptor.hueAzure, t.courierName),
+            if (hospital != null) pin('hospital', hospital, BitmapDescriptor.hueAzure, t.hospital.name),
+            if (courier != null) pin('courier', courier, BitmapDescriptor.hueOrange, t.courierName),
           },
           polylines: {
             if (leg != null && leg.points.length > 1)

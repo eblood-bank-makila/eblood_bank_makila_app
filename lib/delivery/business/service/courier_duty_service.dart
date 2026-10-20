@@ -196,7 +196,6 @@ class CourierDutyService extends ChangeNotifier {
     suspendOtherTracking(); // its listener must be gone before ours subscribes
     _resubscribed = false;
     _pingOnFix = true; // presence learns where the courier is without waiting for its next minute
-
     _listen();
   }
 

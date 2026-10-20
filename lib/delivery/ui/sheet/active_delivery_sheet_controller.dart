@@ -143,10 +143,14 @@ class ActiveDeliverySheetController extends ChangeNotifier {
     if (_courierId != null) dutyRefusal.value = refusal; // the delivery may have ended meanwhile
   }
 
-  /// The warning's action: try again, then open the settings if location is still what is missing.
+  /// The warning's action: try again; if location is still what is missing,
+  /// open the location switch or the app's settings (the permission prompt
+  /// already ran in setOnDuty, so a fresh refusal is left alone).
   Future<void> _retryDuty() async {
     await _ensureOnDuty();
-    if (dutyRefusal.value == 'duty_location_needed') await LocationAccess().fix();
+    if (dutyRefusal.value != 'duty_location_needed') return;
+    final access = LocationAccess();
+    if (await access.status() != LocationAccessStatus.denied) await access.fix();
   }
 
   /// Shrinks the courier's sheet to the bar; the delivery stays current.

@@ -1,10 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 
+import '../../../core/services/location_access.dart';
 import '../../../core/services/session_identity.dart';
 import '../../../main.dart' show navigatorKey;
 import '../../business/model/delivery_tracking.dart';
+import '../../business/service/courier_duty_service.dart';
 import 'delivery_sheet.dart';
 
 /// What is on screen for one delivery sheet.
@@ -19,8 +23,9 @@ class _Open {
 }
 
 /// Owns the delivery sheet that is on screen and the courier's minimized state:
-/// the courier's sheet cannot be dismissed (« Réduire » shrinks it to the bar
-/// that [ActiveDeliveryBar] draws), followers' sheets close like any other.
+/// the courier's sheet cannot be dismissed (« Réduire » or back shrinks it to
+/// the bar that [ActiveDeliveryBar] draws), followers' sheets close like any
+/// other. A courier delivery becoming current puts the courier on duty.
 class ActiveDeliverySheetController extends ChangeNotifier {
   static final instance = ActiveDeliverySheetController();
 
@@ -38,6 +43,14 @@ class ActiveDeliverySheetController extends ChangeNotifier {
 
   /// The courier's sheet is shrunk: the bar stands in for it.
   bool get showBar => _courierId != null && _minimized;
+
+  /// Why the courier could not go on duty for the current delivery (a
+  /// translation key), else null: off duty, none of its positions go out.
+  final dutyRefusal = ValueNotifier<String?>(null);
+
+  /// Puts the courier on duty (a no-op when already on); returns the refusal key.
+  @visibleForTesting
+  Future<String?> Function() goOnDuty = () => CourierDutyService.instance.setOnDuty(true);
 
   /// Tests pass a placeholder (the default map is a platform view).
   @visibleForTesting
@@ -57,6 +70,7 @@ class ActiveDeliverySheetController extends ChangeNotifier {
       _courierId = deliveryId;
       _minimized = false;
       notifyListeners();
+      unawaited(_ensureOnDuty());
     }
     final sheet = _open = _Open(deliveryId, role);
     await showModalBottomSheet<void>(
@@ -76,15 +90,22 @@ class ActiveDeliverySheetController extends ChangeNotifier {
             mapBuilder: mapBuilder,
             onMinimize: minimize,
             onClose: _popSheet,
-            // The buyer's reception confirm says « Livraison confirmée » inside the
-            // sheet, which this closes: say it again where it outlives the sheet.
-            onEnded: (key) => closeFor(
-              deliveryId,
-              message: (key ?? (role == DeliverySheetRole.buyer ? 'delivery_confirmed' : null))?.tr,
-            ),
+            // Shown on the app's messenger: it outlives the sheet this closes.
+            onEnded: (key) => closeFor(deliveryId, message: key?.tr),
+            dutyRefusal: courier ? dutyRefusal : null,
+            onDutyAction: () => unawaited(_retryDuty()),
           ),
         );
-        return courier ? PopScope(canPop: false, child: content) : content;
+        // Back shrinks the courier's sheet to the bar; it is never dismissed.
+        return courier
+            ? PopScope(
+                canPop: false,
+                onPopInvokedWithResult: (didPop, _) {
+                  if (!didPop) minimize();
+                },
+                child: content,
+              )
+            : content;
       },
     );
     if (identical(_open, sheet)) {
@@ -106,6 +127,26 @@ class ActiveDeliverySheetController extends ChangeNotifier {
     _courierId = deliveryId;
     _minimized = true;
     notifyListeners();
+    unawaited(_ensureOnDuty());
+  }
+
+  /// The duty stream is the only sender of a delivery's positions: an off-duty
+  /// courier goes on duty, or the courier's sheet says why not.
+  Future<void> _ensureOnDuty() async {
+    String? refusal;
+    try {
+      refusal = await goOnDuty();
+    } catch (e) {
+      debugPrint('[delivery] going on duty: $e');
+      refusal = 'duty_server_error';
+    }
+    if (_courierId != null) dutyRefusal.value = refusal; // the delivery may have ended meanwhile
+  }
+
+  /// The warning's action: try again, then open the settings if location is still what is missing.
+  Future<void> _retryDuty() async {
+    await _ensureOnDuty();
+    if (dutyRefusal.value == 'duty_location_needed') await LocationAccess().fix();
   }
 
   /// Shrinks the courier's sheet to the bar; the delivery stays current.
@@ -123,6 +164,7 @@ class ActiveDeliverySheetController extends ChangeNotifier {
     if (_courierId == deliveryId) {
       _courierId = null;
       _minimized = false;
+      dutyRefusal.value = null;
     }
     notifyListeners();
     if (message != null) {
@@ -143,6 +185,7 @@ class ActiveDeliverySheetController extends ChangeNotifier {
       _courierId = null;
       _minimized = false;
       _endedId = null;
+      dutyRefusal.value = null;
       notifyListeners();
     });
   }

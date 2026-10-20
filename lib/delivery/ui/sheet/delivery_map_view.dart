@@ -21,7 +21,8 @@ List<LatLng> trackingPoints(DeliveryTracking t) => [
 
 /// The live map of the delivery sheet: the active leg's road route (dashed when
 /// it is only a straight-line estimate), bank / hospital / courier pins, and a
-/// recenter button. Fits everything in view once the map is ready.
+/// recenter button. Fits everything in view once the map is ready, and again
+/// when the first coordinates arrive after an empty start.
 class DeliveryMapView extends StatefulWidget {
   const DeliveryMapView({super.key, required this.tracking});
 
@@ -33,6 +34,17 @@ class DeliveryMapView extends StatefulWidget {
 
 class _DeliveryMapViewState extends State<DeliveryMapView> {
   GoogleMapController? _controller;
+
+  @override
+  void didUpdateWidget(DeliveryMapView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // The camera opened on Kinshasa with nothing to show: frame the first coordinates once they come.
+    if (trackingPoints(oldWidget.tracking).isEmpty && trackingPoints(widget.tracking).isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _fit();
+      });
+    }
+  }
 
   Future<void> _fit() async {
     final c = _controller;

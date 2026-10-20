@@ -72,6 +72,10 @@ class _Tracking {
 
 var _taps = 0;
 
+/// How many times the controller asked to go on duty, and what it was answered.
+var _dutyCalls = 0;
+String? _dutyAnswer;
+
 Future<void> _app(WidgetTester t, _Tracking tracking) async {
   t.view.physicalSize = const Size(900, 1800);
   t.view.devicePixelRatio = 2;
@@ -140,7 +144,19 @@ void main() {
     if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
   });
 
-  setUp(() => _controller.mapBuilder = (_, __) => const SizedBox.expand());
+  late Future<String?> Function() realGoOnDuty;
+  setUpAll(() => realGoOnDuty = _controller.goOnDuty);
+  tearDownAll(() => _controller.goOnDuty = realGoOnDuty);
+
+  setUp(() {
+    _controller.mapBuilder = (_, __) => const SizedBox.expand();
+    _dutyCalls = 0;
+    _dutyAnswer = null;
+    _controller.goOnDuty = () async {
+      _dutyCalls++;
+      return _dutyAnswer;
+    };
+  });
 
   tearDown(() {
     _controller.closeFor('d1');
@@ -163,14 +179,10 @@ void main() {
       expect(_sheet, findsNothing);
     });
 
-    testWidgets('the courier sheet survives back, a tap outside and a swipe down', (t) async {
+    testWidgets('the courier sheet survives a tap outside and a swipe down', (t) async {
       final tracking = _Tracking();
       await _app(t, tracking);
       await _open(t, DeliverySheetRole.courier, tracking);
-
-      await t.binding.handlePopRoute();
-      await _settle(t);
-      expect(_sheet, findsOneWidget);
 
       await t.tapAt(const Offset(20, 20));
       await _settle(t);
@@ -179,6 +191,19 @@ void main() {
       await t.fling(_pill, const Offset(0, 600), 2000);
       await _settle(t);
       expect(_sheet, findsOneWidget);
+    });
+
+    testWidgets('Android back shrinks the courier sheet to the bar', (t) async {
+      final tracking = _Tracking();
+      await _app(t, tracking);
+      await _open(t, DeliverySheetRole.courier, tracking);
+
+      await t.binding.handlePopRoute();
+      await _settle(t);
+      expect(_sheet, findsNothing);
+      expect(_bar, findsOneWidget);
+      expect(_controller.courierDeliveryId, 'd1');
+      expect(find.byKey(const Key('page')), findsOneWidget); // the page under it is still there
     });
 
     testWidgets('a follower sheet closes with the cross', (t) async {
@@ -214,6 +239,65 @@ void main() {
       expect(_sheet, findsOneWidget); // the buyer's, not both
       expect(find.byKey(const Key('sheet-close')), findsOneWidget);
       expect(_controller.showBar, isTrue);
+    });
+  });
+
+  group('duty', () {
+    const banner = 'Passez en service pour partager votre position pendant la livraison.';
+
+    testWidgets('a courier sheet puts the courier on duty; a follower sheet does not', (t) async {
+      final tracking = _Tracking();
+      await _app(t, tracking);
+
+      await _open(t, DeliverySheetRole.buyer, tracking);
+      expect(_dutyCalls, 0);
+
+      await _open(t, DeliverySheetRole.courier, tracking);
+      expect(_dutyCalls, 1);
+      expect(find.text(banner), findsNothing);
+    });
+
+    testWidgets('a delivery adopted as the bar puts the courier on duty', (t) async {
+      final tracking = _Tracking();
+      await _app(t, tracking);
+
+      _controller.adopt('d1');
+      await _settle(t);
+      expect(_dutyCalls, 1);
+    });
+
+    testWidgets('refused: the courier sheet warns, and « Réessayer » tries again', (t) async {
+      final tracking = _Tracking();
+      await _app(t, tracking);
+      _dutyAnswer = 'duty_server_error';
+
+      await _open(t, DeliverySheetRole.courier, tracking);
+      expect(find.text(banner), findsOneWidget);
+
+      _dutyAnswer = null;
+      await t.tap(find.text('Réessayer'));
+      await _settle(t);
+      expect(_dutyCalls, 2);
+      expect(find.text(banner), findsNothing);
+    });
+
+    testWidgets('refused for location: the warning offers the settings', (t) async {
+      final tracking = _Tracking();
+      await _app(t, tracking);
+      _dutyAnswer = 'duty_location_needed';
+
+      await _open(t, DeliverySheetRole.courier, tracking);
+      expect(find.text(banner), findsOneWidget);
+      expect(find.text('Ouvrir les paramètres'), findsOneWidget);
+    });
+
+    testWidgets('going on duty that throws still warns', (t) async {
+      final tracking = _Tracking();
+      await _app(t, tracking);
+      _controller.goOnDuty = () async => throw StateError('location plugin');
+
+      await _open(t, DeliverySheetRole.courier, tracking);
+      expect(find.text(banner), findsOneWidget);
     });
   });
 
@@ -326,6 +410,18 @@ void main() {
       expect(_controller.courierDeliveryId, 'd1');
     });
 
+    testWidgets('a 403 poll closes a follower sheet without the courier\'s « réassignée »', (t) async {
+      final tracking = _Tracking();
+      await _app(t, tracking);
+      await _open(t, DeliverySheetRole.buyer, tracking);
+
+      tracking.last.addError(const DeliveryTrackingClosed(forbidden: true));
+      await _settle(t);
+      expect(_sheet, findsNothing);
+      expect(find.text('Livraison réassignée à un autre livreur.'), findsNothing);
+      expect(find.byType(SnackBar), findsNothing);
+    });
+
     testWidgets('a 403 poll closes the courier sheet as reassigned', (t) async {
       final tracking = _Tracking();
       await _app(t, tracking);
@@ -361,7 +457,7 @@ void main() {
       expect(find.text('Livraison confirmée'), findsOneWidget);
     });
 
-    testWidgets('a delivered courier delivery closes without a message', (t) async {
+    testWidgets('a delivered courier delivery closes with « Livraison terminée »', (t) async {
       final tracking = _Tracking();
       await _app(t, tracking);
       await _open(t, DeliverySheetRole.courier, tracking, phase: 'at_hospital');
@@ -371,6 +467,30 @@ void main() {
       expect(_sheet, findsNothing);
       expect(_bar, findsNothing);
       expect(_controller.courierDeliveryId, isNull);
+      expect(find.text('Livraison terminée'), findsOneWidget);
+    });
+
+    testWidgets('a delivery delivered while minimized closes the bar with « Livraison terminée »', (t) async {
+      final tracking = _Tracking();
+      await _app(t, tracking);
+      await _open(t, DeliverySheetRole.courier, tracking, phase: 'at_hospital');
+      await t.tap(find.byKey(const Key('sheet-minimize')));
+      await _settle(t);
+
+      tracking.last.add(_tracking('delivered_and_confirmed'));
+      await _settle(t);
+      expect(_bar, findsNothing);
+      expect(find.text('Livraison terminée'), findsOneWidget);
+    });
+
+    testWidgets('a delivered seller delivery closes without a message', (t) async {
+      final tracking = _Tracking();
+      await _app(t, tracking);
+      await _open(t, DeliverySheetRole.seller, tracking, phase: 'at_hospital');
+
+      tracking.last.add(_tracking('delivered_and_confirmed'));
+      await _settle(t);
+      expect(_sheet, findsNothing);
       expect(find.byType(SnackBar), findsNothing);
     });
   });

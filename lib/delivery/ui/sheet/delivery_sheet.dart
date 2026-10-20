@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
@@ -113,14 +114,25 @@ Future<void> _launch(List<String> urls) async {
   }
 }
 
-/// Whether a tracking update ends the delivery for this viewer: null while it
-/// runs, else the translation key of the message to show (null = delivered,
-/// nothing to say). Shared by the sheet and the minimized bar.
-({String? messageKey})? deliveryEnd(AsyncValue<DeliveryTracking> update) {
+/// Whether a tracking update ends the delivery for a [role] viewer: null while
+/// it runs, else the translation key of the message to show (null = nothing to
+/// say). Shared by the sheet and the minimized bar.
+({String? messageKey})? deliveryEnd(AsyncValue<DeliveryTracking> update, DeliverySheetRole role) {
   final t = update.valueOrNull;
-  if (update.error is DeliveryTrackingClosed) return (messageKey: 'delivery_reassigned');
+  // Lost access: « réassignée » is the courier's story; a follower just stops seeing it.
+  if (update.error is DeliveryTrackingClosed) {
+    return (messageKey: role == DeliverySheetRole.courier ? 'delivery_reassigned' : null);
+  }
   if (t != null && t.isCancelled) return (messageKey: 'delivery_cancelled_by_admin');
-  if (t != null && t.isDelivered) return (messageKey: null);
+  if (t != null && t.isDelivered) {
+    return (
+      messageKey: switch (role) {
+        DeliverySheetRole.courier => 'delivery_finished',
+        DeliverySheetRole.buyer => 'delivery_confirmed',
+        DeliverySheetRole.seller => null,
+      }
+    );
+  }
   return null;
 }
 
@@ -135,6 +147,8 @@ class DeliverySheet extends ConsumerStatefulWidget {
     this.onMinimize,
     this.onClose,
     this.onEnded,
+    this.dutyRefusal,
+    this.onDutyAction,
   });
 
   final String deliveryId;
@@ -146,8 +160,13 @@ class DeliverySheet extends ConsumerStatefulWidget {
   final VoidCallback? onClose;
 
   /// Fired once when the delivery ends for this viewer, with the translation
-  /// key of the message to show (null = delivered, nothing to say).
+  /// key of the message to show (null = nothing to say).
   final void Function(String? messageKey)? onEnded;
+
+  /// The courier is off duty for this reason (a translation key): a warning
+  /// with [onDutyAction] tops the sheet while it is non-null.
+  final ValueListenable<String?>? dutyRefusal;
+  final VoidCallback? onDutyAction;
 
   @override
   ConsumerState<DeliverySheet> createState() => _DeliverySheetState();
@@ -164,7 +183,7 @@ class _DeliverySheetState extends ConsumerState<DeliverySheet> {
   void initState() {
     super.initState();
     ref.listenManual(deliveryTrackingProvider(widget.deliveryId), (_, next) {
-      final end = deliveryEnd(next);
+      final end = deliveryEnd(next, widget.role);
       if (end != null) _end(end.messageKey);
     }, fireImmediately: true);
   }
@@ -233,12 +252,19 @@ class _DeliverySheetState extends ConsumerState<DeliverySheet> {
               builder: (context) => Column(
                 children: [
                   _topBar(context, t),
+                  if (widget.dutyRefusal != null)
+                    ValueListenableBuilder<String?>(
+                      valueListenable: widget.dutyRefusal!,
+                      builder: (context, refusal, _) => refusal == null ? const SizedBox.shrink() : _dutyBanner(refusal),
+                    ),
                   if (t != null)
                     ..._content(context, t)
                   else
                     Expanded(
                       child: Center(
-                        child: async.hasError ? Text('delivery_reassigned'.tr) : const CircularProgressIndicator(),
+                        child: !async.hasError
+                            ? const CircularProgressIndicator()
+                            : (_courier ? Text('delivery_reassigned'.tr) : null),
                       ),
                     ),
                 ],
@@ -313,6 +339,26 @@ class _DeliverySheetState extends ConsumerState<DeliverySheet> {
       ),
     );
   }
+
+  Widget _dutyBanner(String refusal) => Container(
+        key: const Key('duty-banner'),
+        margin: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+        padding: const EdgeInsets.fromLTRB(12, 4, 4, 4),
+        decoration: BoxDecoration(color: const Color(0xFFFFF4E5), borderRadius: BorderRadius.circular(12)),
+        child: Row(
+          children: [
+            const Icon(Icons.location_off, color: Color(0xFFB06000), size: 20),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text('duty_needed_for_delivery'.tr, style: const TextStyle(fontSize: 13, color: Color(0xFF7A4300))),
+            ),
+            TextButton(
+              onPressed: widget.onDutyAction,
+              child: Text((refusal == 'duty_location_needed' ? 'open_settings' : 'retry').tr),
+            ),
+          ],
+        ),
+      );
 
   String _pillKey(DeliveryTracking t) => pillKey(widget.role, t.phase, noCourier: _noCourier(t));
 

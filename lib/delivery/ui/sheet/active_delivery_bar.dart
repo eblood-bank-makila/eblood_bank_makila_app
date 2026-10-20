@@ -52,7 +52,7 @@ class _Bar extends ConsumerWidget {
     // keeps the ETA fresh and closes the bar when the delivery ends. It polls
     // every 10 s, which is fine while the courier is on a delivery.
     ref.listen(tracking, (_, next) {
-      final end = deliveryEnd(next);
+      final end = deliveryEnd(next, DeliverySheetRole.courier);
       if (end != null) controller.closeFor(deliveryId, message: end.messageKey?.tr);
     });
     final t = ref.watch(tracking).valueOrNull;

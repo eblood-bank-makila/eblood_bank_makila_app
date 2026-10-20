@@ -419,10 +419,15 @@ void main() {
   });
 
   group('onEnded fires once', () {
-    Future<List<String?>> run(WidgetTester t, void Function(StreamController<DeliveryTracking>) feed) async {
+    Future<List<String?>> run(
+      WidgetTester t,
+      void Function(StreamController<DeliveryTracking>) feed, {
+      DeliverySheetRole role = DeliverySheetRole.buyer,
+    }) async {
       final ended = <String?>[];
       final ctrl = StreamController<DeliveryTracking>();
-      await t.pumpWidget(_host(() => ctrl.stream, DeliverySheetRole.buyer, onEnded: ended.add));
+      await t.pumpWidget(const SizedBox()); // a fresh sheet and ProviderScope per run
+      await t.pumpWidget(_host(() => ctrl.stream, role, onEnded: ended.add));
       ctrl.add(_tracking('en_route_to_hospital', pickupConfirmed: true));
       await t.pump();
       feed(ctrl);
@@ -437,14 +442,19 @@ void main() {
       expect(ended, ['delivery_cancelled_by_admin']);
     });
 
-    testWidgets('delivered and confirmed', (t) async {
-      final ended = await run(t, (c) => c..add(_tracking('delivered_and_confirmed'))..add(_tracking('delivered_and_confirmed')));
-      expect(ended, [null]);
+    testWidgets('delivered and confirmed: each role has its own word', (t) async {
+      void delivered(StreamController<DeliveryTracking> c) =>
+          c..add(_tracking('delivered_and_confirmed'))..add(_tracking('delivered_and_confirmed'));
+      expect(await run(t, delivered), ['delivery_confirmed']);
+      expect(await run(t, delivered, role: DeliverySheetRole.courier), ['delivery_finished']);
+      expect(await run(t, delivered, role: DeliverySheetRole.seller), [null]);
     });
 
-    testWidgets('access withdrawn (reassigned)', (t) async {
-      final ended = await run(t, (c) => c..addError(const DeliveryTrackingClosed(forbidden: true)));
-      expect(ended, ['delivery_reassigned']);
+    testWidgets('access withdrawn: reassigned for the courier, silent for followers', (t) async {
+      void closed(StreamController<DeliveryTracking> c) => c.addError(const DeliveryTrackingClosed(forbidden: true));
+      expect(await run(t, closed, role: DeliverySheetRole.courier), ['delivery_reassigned']);
+      expect(await run(t, closed), [null]);
+      expect(await run(t, closed, role: DeliverySheetRole.seller), [null]);
     });
   });
 

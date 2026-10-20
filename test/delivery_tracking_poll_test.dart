@@ -33,7 +33,13 @@ void main() {
   const tick = Duration(seconds: 10);
 
   /// Starts polling under fake time. [fetch] is called once per tick; every id it receives is recorded in `ids`.
-  _Run start(_Fetch fetch, {Duration every = tick, Duration timeout = const Duration(seconds: 8)}) {
+  /// [inFront] answers whether the app is on screen (always, unless a test says otherwise).
+  _Run start(
+    _Fetch fetch, {
+    Duration every = tick,
+    Duration timeout = const Duration(seconds: 8),
+    bool Function()? inFront,
+  }) {
     final run = _Run();
     run.sub = pollDeliveryTracking(
       'd1',
@@ -43,6 +49,7 @@ void main() {
       },
       every: every,
       timeout: timeout,
+      inFront: inFront ?? () => true,
     ).listen(run.values.add, onError: run.errors.add, onDone: () => run.done.add(true));
     return run;
   }
@@ -142,6 +149,22 @@ void main() {
       expect(s.done, [true]);
       async.elapse(tick * 3);
       expect(s.fetches, 1);
+    });
+  });
+
+  test('no fetch while the app is in the background; the next tick back in front fetches', () {
+    fakeAsync((async) {
+      var front = false;
+      final s = start((_) async => _ok('en_route_to_hospital'), inFront: () => front);
+      async.flushMicrotasks();
+      async.elapse(tick * 3);
+      expect(s.fetches, 0);
+
+      front = true;
+      async.elapse(tick);
+      expect(s.fetches, 1);
+      expect(s.values, hasLength(1));
+      s.sub.cancel();
     });
   });
 

@@ -12,7 +12,14 @@ class TrackingPlace {
   final String? id, name, address, phone;
   final double? lat, lng;
 
-  const TrackingPlace({this.id, this.name, this.address, this.phone, this.lat, this.lng});
+  const TrackingPlace({
+    this.id,
+    this.name,
+    this.address,
+    this.phone,
+    this.lat,
+    this.lng,
+  });
 
   factory TrackingPlace.fromJson(Object? raw) {
     final j = _map(raw);
@@ -41,11 +48,11 @@ class TrackingLeg {
   });
 
   factory TrackingLeg.fromJson(Map<String, dynamic> j) => TrackingLeg(
-        points: decodePolyline(_str(j['encoded_polyline']) ?? ''),
-        distanceM: _num(j['distance_m'])?.round() ?? 0,
-        durationS: _num(j['duration_s'])?.round() ?? 0,
-        approximate: j['approximate'] == true,
-      );
+    points: decodePolyline(_str(j['encoded_polyline']) ?? ''),
+    distanceM: _num(j['distance_m'])?.round() ?? 0,
+    durationS: _num(j['duration_s'])?.round() ?? 0,
+    approximate: j['approximate'] == true,
+  );
 }
 
 class DeliveryTracking {
@@ -96,7 +103,9 @@ class DeliveryTracking {
     final lat = _num(pos['lat']), lng = _num(pos['lng']);
     final legs = <String, TrackingLeg>{};
     _map(json['route_legs']).forEach((k, v) {
-      if (v is Map) legs[k] = TrackingLeg.fromJson(Map<String, dynamic>.from(v));
+      if (v is Map) {
+        legs[k] = TrackingLeg.fromJson(Map<String, dynamic>.from(v));
+      }
     });
 
     return DeliveryTracking(
@@ -110,7 +119,9 @@ class DeliveryTracking {
       hospital: TrackingPlace.fromJson(json['hospital']),
       courierName: _str(person['name']),
       courierPhone: _str(person['phone']),
-      courierPosition: lat != null && lng != null ? (lat: lat.toDouble(), lng: lng.toDouble()) : null,
+      courierPosition: lat != null && lng != null
+          ? (lat: lat.toDouble(), lng: lng.toDouble())
+          : null,
       courierLastSeenAt: _time(json['courier_last_seen_at']),
       routeLegs: legs,
       activeLeg: _str(json['active_leg']),
@@ -125,7 +136,8 @@ class DeliveryTracking {
   bool get isCancelled => phase == 'cancelled';
   bool get isDelivered => phase == 'delivered_and_confirmed';
 
-  TrackingLeg? get currentLeg => activeLeg == null ? null : routeLegs[activeLeg];
+  TrackingLeg? get currentLeg =>
+      activeLeg == null ? null : routeLegs[activeLeg];
 
   Duration? positionAge(DateTime nowUtc) =>
       courierLastSeenAt == null ? null : nowUtc.difference(courierLastSeenAt!);

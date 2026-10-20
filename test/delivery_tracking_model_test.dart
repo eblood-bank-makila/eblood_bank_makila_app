@@ -9,7 +9,8 @@ import 'package:eblood_bank_mak_app/delivery/business/model/DeliveryModels.dart'
 import 'package:eblood_bank_mak_app/delivery/business/model/delivery_tracking.dart';
 import 'package:eblood_bank_mak_app/delivery/business/model/route_polyline.dart';
 
-Map<String, dynamic> _place(String id, String name, double? lat, double? lng) => {
+Map<String, dynamic> _place(String id, String name, double? lat, double? lng) =>
+    {
       'id': id,
       'name': name,
       'address': 'Av. $name',
@@ -18,39 +19,43 @@ Map<String, dynamic> _place(String id, String name, double? lat, double? lng) =>
       'lng': lng,
     };
 
-Map<String, dynamic> _leg({int distanceM = 2400, int durationS = 420, bool approximate = false}) => {
-      'encoded_polyline': '_p~iF~ps|U_ulLnnqC_mqNvxq`@',
-      'distance_m': distanceM,
-      'duration_s': durationS,
-      'computed_at': '2026-10-20T08:00:00+00:00',
-      'origin': {'lat': -4.32, 'lng': 15.31},
-      'approximate': approximate,
-    };
+Map<String, dynamic> _leg({
+  int distanceM = 2400,
+  int durationS = 420,
+  bool approximate = false,
+}) => {
+  'encoded_polyline': '_p~iF~ps|U_ulLnnqC_mqNvxq`@',
+  'distance_m': distanceM,
+  'duration_s': durationS,
+  'computed_at': '2026-10-20T08:00:00+00:00',
+  'origin': {'lat': -4.32, 'lng': 15.31},
+  'approximate': approximate,
+};
 
 Map<String, dynamic> _full() => {
-      'id': 'd1',
-      'identifier': 'del-E8E2D3E1',
-      'blood_request_id': 'br1',
-      'delivery_phase': 'picked_up_from_blood_bank',
-      'assignment_status': 'picked_up',
-      'status': 'in_transit',
-      'pickup_confirmed_by_seller_at': '2026-10-20T07:55:00',
-      'blood_bank': _place('bb1', 'Gombe', -4.30, 15.30),
-      'hospital': _place('h1', 'Bolingo', -4.33, 15.27),
-      'delivery_person': {'name': 'Jean Mbala', 'phone': '+243 99 111 2222'},
-      'courier_position': {'lat': -4.31, 'lng': 15.29, 'accuracy': 12.5},
-      'courier_last_seen_at': '2026-10-20T08:00:00Z',
-      'route_legs': {
-        'to_blood_bank': _leg(distanceM: 800, durationS: 120),
-        'to_hospital': _leg(approximate: true),
-      },
-      'active_leg': 'to_hospital',
-      'eta_s': 420,
-      'eta_to_hospital_s': 540,
-      'bag_count': 2,
-      'blood_summary': '2 × AB-',
-      'delivery_verification_code': '482913',
-    };
+  'id': 'd1',
+  'identifier': 'del-E8E2D3E1',
+  'blood_request_id': 'br1',
+  'delivery_phase': 'picked_up_from_blood_bank',
+  'assignment_status': 'picked_up',
+  'status': 'in_transit',
+  'pickup_confirmed_by_seller_at': '2026-10-20T07:55:00',
+  'blood_bank': _place('bb1', 'Gombe', -4.30, 15.30),
+  'hospital': _place('h1', 'Bolingo', -4.33, 15.27),
+  'delivery_person': {'name': 'Jean Mbala', 'phone': '+243 99 111 2222'},
+  'courier_position': {'lat': -4.31, 'lng': 15.29, 'accuracy': 12.5},
+  'courier_last_seen_at': '2026-10-20T08:00:00Z',
+  'route_legs': {
+    'to_blood_bank': _leg(distanceM: 800, durationS: 120),
+    'to_hospital': _leg(approximate: true),
+  },
+  'active_leg': 'to_hospital',
+  'eta_s': 420,
+  'eta_to_hospital_s': 540,
+  'bag_count': 2,
+  'blood_summary': '2 × AB-',
+  'delivery_verification_code': '482913',
+};
 
 void main() {
   group('decodePolyline', () {
@@ -65,7 +70,10 @@ void main() {
       expect(pts[2].lng, closeTo(-126.453, 1e-5));
     });
 
-    test('empty input gives no points', () => expect(decodePolyline(''), isEmpty));
+    test(
+      'empty input gives no points',
+      () => expect(decodePolyline(''), isEmpty),
+    );
 
     test('truncated input gives no points instead of throwing', () {
       expect(decodePolyline('_p~iF~ps|U_ulL'), isEmpty);
@@ -109,7 +117,10 @@ void main() {
     test('currentLeg follows active_leg', () {
       final t = DeliveryTracking.fromJson(_full());
       expect(t.currentLeg, same(t.routeLegs['to_hospital']));
-      final other = DeliveryTracking.fromJson({..._full(), 'active_leg': 'to_blood_bank'});
+      final other = DeliveryTracking.fromJson({
+        ..._full(),
+        'active_leg': 'to_blood_bank',
+      });
       expect(other.currentLeg!.distanceM, 800);
     });
 
@@ -149,7 +160,10 @@ void main() {
       final t = DeliveryTracking.fromJson({
         'blood_bank': 'oops',
         'courier_position': {'lat': 'x'},
-        'route_legs': {'to_hospital': 'oops', 'to_blood_bank': <String, dynamic>{}},
+        'route_legs': {
+          'to_hospital': 'oops',
+          'to_blood_bank': <String, dynamic>{},
+        },
         'active_leg': 'to_hospital',
         'eta_s': 12.0,
       });
@@ -161,8 +175,16 @@ void main() {
     });
 
     test('phase getters', () {
-      expect(DeliveryTracking.fromJson({'delivery_phase': 'cancelled'}).isCancelled, isTrue);
-      expect(DeliveryTracking.fromJson({'delivery_phase': 'delivered_and_confirmed'}).isDelivered, isTrue);
+      expect(
+        DeliveryTracking.fromJson({'delivery_phase': 'cancelled'}).isCancelled,
+        isTrue,
+      );
+      expect(
+        DeliveryTracking.fromJson({
+          'delivery_phase': 'delivered_and_confirmed',
+        }).isDelivered,
+        isTrue,
+      );
     });
 
     test('isStale flips after 120 s without a position', () {
@@ -186,17 +208,33 @@ void main() {
       expect(d.isAtHospital, isTrue);
     });
 
-    test('the blood request id (which the reception confirm checks the code against) has a fallback key', () {
-      expect(IncomingDelivery.fromJson({'id': 'd1', 'ops_blood_request_id': 'br9'}).bloodRequestId, 'br9');
-      expect(
-        IncomingDelivery.fromJson({'id': 'd1', 'blood_request_id': 'br1', 'ops_blood_request_id': 'br9'}).bloodRequestId,
-        'br1',
-      );
-      expect(IncomingDelivery.fromJson({'id': 'd1'}).bloodRequestId, '');
-    });
+    test(
+      'the blood request id (which the reception confirm checks the code against) has a fallback key',
+      () {
+        expect(
+          IncomingDelivery.fromJson({
+            'id': 'd1',
+            'ops_blood_request_id': 'br9',
+          }).bloodRequestId,
+          'br9',
+        );
+        expect(
+          IncomingDelivery.fromJson({
+            'id': 'd1',
+            'blood_request_id': 'br1',
+            'ops_blood_request_id': 'br9',
+          }).bloodRequestId,
+          'br1',
+        );
+        expect(IncomingDelivery.fromJson({'id': 'd1'}).bloodRequestId, '');
+      },
+    );
 
     test('falls back to status when the phase is absent', () {
-      expect(IncomingDelivery.fromJson({'id': 'd1', 'status': 'in_transit'}).status, 'in_transit');
+      expect(
+        IncomingDelivery.fromJson({'id': 'd1', 'status': 'in_transit'}).status,
+        'in_transit',
+      );
     });
 
     test('names come from the nested blood_bank / delivery_person objects', () {
@@ -204,8 +242,18 @@ void main() {
         'id': 'd1',
         'source_blood_bank_id': 'bb1',
         'delivery_person_id': 'p1',
-        'blood_bank': {'id': 'bb1', 'name': 'BB Gombe', 'address': 'Av. de la Justice', 'phone_number': '+243 1'},
-        'delivery_person': {'id': 'p1', 'first_name': 'Jean', 'last_name': 'Mbala', 'phone_number': '+243 2'},
+        'blood_bank': {
+          'id': 'bb1',
+          'name': 'BB Gombe',
+          'address': 'Av. de la Justice',
+          'phone_number': '+243 1',
+        },
+        'delivery_person': {
+          'id': 'p1',
+          'first_name': 'Jean',
+          'last_name': 'Mbala',
+          'phone_number': '+243 2',
+        },
       });
       expect(d.bloodBankId, 'bb1');
       expect(d.bloodBankName, 'BB Gombe');

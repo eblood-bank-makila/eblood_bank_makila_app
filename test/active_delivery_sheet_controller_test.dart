@@ -557,7 +557,13 @@ void main() {
       final tracking = _Tracking();
       await _app(t, tracking);
       await _open(t, DeliverySheetRole.courier, tracking);
-      await t.runAsync(() => duty.setOnDuty(true));
+      await t.runAsync(() async {
+        // Only an activated courier goes on duty.
+        await GetStorage().write('user_profiles', [
+          {'profil': 'mobile_app_delivery_person_profil'},
+        ]);
+        await duty.setOnDuty(true);
+      });
       expect(duty.onDuty, isTrue);
 
       await t.runAsync(() => GetStorage().remove('user_profiles'));

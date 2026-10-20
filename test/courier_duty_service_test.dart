@@ -12,6 +12,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+// Transitive dependency of flutter_test (what the framework's own fake time uses).
+// ignore: depend_on_referenced_packages
+import 'package:fake_async/fake_async.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
@@ -61,25 +64,35 @@ class _Harness {
   int deliveryResumes = 0;
   int? status = 200;
   Completer<int?>? hold;
+
+  /// Holds every delivery location send until completed.
+  Completer<void>? locationHold;
   bool permission = true;
+  bool permissionThrows = false;
   bool granted = true;
   bool delivering = false;
   DateTime now = DateTime(2026, 10, 20, 9);
   int subscriptions = 0;
-  StreamController<_Fix>? stream;
+  StreamController<DutyFix>? stream;
 
   late final service = CourierDutyService(
     sendPresence: (body) async {
       presence.add(body);
       return hold != null ? hold!.future : status;
     },
-    sendDeliveryLocation: (lat, lng, accuracy) async => locations.add((lat: lat, lng: lng, accuracy: accuracy)),
+    sendDeliveryLocation: (lat, lng, accuracy) async {
+      locations.add((lat: lat, lng: lng, accuracy: accuracy));
+      await locationHold?.future;
+    },
     positions: () {
       subscriptions++;
       events.add('subscribe');
-      return (stream = StreamController<_Fix>(onCancel: () => events.add('cancel'))).stream;
+      return (stream = StreamController<DutyFix>(onCancel: () => events.add('cancel'))).stream;
     },
-    ensurePermission: () async => permission,
+    ensurePermission: () async {
+      if (permissionThrows) throw StateError('location plugin');
+      return permission;
+    },
     hasPermission: () async => granted,
     hasActiveDelivery: () => delivering,
     clock: () => now,
@@ -91,8 +104,9 @@ class _Harness {
 
   bool get listening => stream?.hasListener ?? false;
 
-  Future<void> fix(double lat, double lng, {double accuracy = 8}) async {
-    stream!.add((lat: lat, lng: lng, accuracy: accuracy));
+  /// A fix taken at [at] (null: the platform gave no time, so it is taken as now).
+  Future<void> fix(double lat, double lng, {double accuracy = 8, DateTime? at}) async {
+    stream!.add((lat: lat, lng: lng, accuracy: accuracy, at: at));
     await pumpEventQueue();
   }
 }
@@ -159,6 +173,47 @@ void main() {
         expect(h.events, isEmpty);
         expect(GetStorage().read('courier_on_duty'), isNot(isTrue));
       }
+    });
+
+    test('already on duty: going on again asks nothing and starts nothing new', () async {
+      final h = _harness();
+      await h.service.setOnDuty(true);
+
+      expect(await h.service.setOnDuty(true), isNull);
+
+      expect(h.presence, hasLength(1));
+      expect(h.subscriptions, 1);
+    });
+
+    test('a logout while the online call is out starts nothing and saves nothing', () async {
+      final h = _harness()..hold = Completer<int?>();
+      final going = h.service.setOnDuty(true);
+      await pumpEventQueue();
+
+      await GetStorage().remove('user_profiles');
+      h.hold!.complete(200);
+      await going;
+      await pumpEventQueue();
+
+      expect(h.service.onDuty, isFalse);
+      expect(h.subscriptions, 0);
+      expect(h.events, isEmpty);
+      expect(GetStorage().read('courier_on_duty'), isNot(isTrue));
+    });
+
+    test('another user signing in while the online call is out starts nothing', () async {
+      final h = _harness()..hold = Completer<int?>();
+      final going = h.service.setOnDuty(true);
+      await pumpEventQueue();
+
+      await _signIn('courier-2');
+      h.hold!.complete(200);
+      await going;
+      await pumpEventQueue();
+
+      expect(h.service.onDuty, isFalse);
+      expect(h.subscriptions, 0);
+      expect(GetStorage().read('courier_on_duty'), isNot(isTrue));
     });
 
     test('without the location permission is refused, with nothing started', () async {
@@ -233,6 +288,9 @@ void main() {
       expect(notification.notificationText, 'Position partagée pour les livraisons');
       expect(notification.enableWakeLock, isTrue);
       expect(notification.setOngoing, isTrue);
+      // The app's white status-bar icon (kept through shrinking by res/raw/keep.xml), not the launcher.
+      expect(notification.notificationIcon.name, 'ic_notification');
+      expect(notification.notificationIcon.defType, 'drawable');
     });
 
     test('a stream that ends is subscribed again once, then duty goes off', () async {
@@ -262,6 +320,100 @@ void main() {
       }
 
       expect(h.locations.map((f) => f.lat), [0, 15, 30]);
+    });
+
+    test('during a delivery a send still out holds the next one back', () async {
+      final h = _harness()
+        ..delivering = true
+        ..locationHold = Completer<void>();
+      await h.service.setOnDuty(true);
+
+      await h.fix(1, 15.3);
+      h.now = h.now.add(const Duration(seconds: 20));
+      await h.fix(2, 15.3); // the first is still out
+      expect(h.locations.map((f) => f.lat), [1]);
+
+      h.locationHold!.complete();
+      h.locationHold = null;
+      await pumpEventQueue();
+      h.now = h.now.add(const Duration(seconds: 20));
+      await h.fix(3, 15.3);
+      expect(h.locations.map((f) => f.lat), [1, 3]);
+    });
+
+    test('a delivery send that never answers is given up after 15 s', () {
+      final h = _harness()
+        ..delivering = true
+        ..locationHold = Completer<void>(); // never completed: a dead socket
+      fakeAsync((async) {
+        h.service.setOnDuty(true);
+        async.flushMicrotasks();
+
+        h.stream!.add((lat: 1.0, lng: 15.3, accuracy: 8.0, at: null));
+        async.flushMicrotasks();
+        h.now = h.now.add(const Duration(seconds: 20));
+        async.elapse(const Duration(seconds: 14));
+        h.stream!.add((lat: 2.0, lng: 15.3, accuracy: 8.0, at: null));
+        async.flushMicrotasks();
+        expect(h.locations.map((f) => f.lat), [1]);
+
+        async.elapse(const Duration(seconds: 2)); // past the 15 s timeout
+        h.now = h.now.add(const Duration(seconds: 20));
+        h.stream!.add((lat: 3.0, lng: 15.3, accuracy: 8.0, at: null));
+        async.flushMicrotasks();
+        expect(h.locations.map((f) => f.lat), [1, 3]);
+      });
+    });
+
+    test('a fix is as old as the platform says, not as old as its arrival', () async {
+      final h = _harness();
+      await h.service.setOnDuty(true);
+
+      await h.fix(-4.32, 15.31, at: h.now.subtract(const Duration(minutes: 3)));
+      expect(h.service.freshFix, isNull); // a cached position replayed by the stream
+
+      await h.fix(-4.33, 15.31, at: h.now.subtract(const Duration(seconds: 30)));
+      expect(h.service.freshFix, {'lat': -4.33, 'lng': 15.31, 'accuracy': 8});
+    });
+
+    test('an old fix never reaches the delivery location', () async {
+      final h = _harness()..delivering = true;
+      await h.service.setOnDuty(true);
+
+      await h.fix(-4.32, 15.31, at: h.now.subtract(const Duration(minutes: 3)));
+      expect(h.locations, isEmpty);
+    });
+
+    test('the first fresh fix on duty goes to presence at once, only once', () async {
+      final h = _harness();
+      await h.service.setOnDuty(true);
+
+      await h.fix(-4.30, 15.30, at: h.now.subtract(const Duration(minutes: 3))); // too old to send
+      await h.fix(-4.32, 15.31, accuracy: 9);
+      h.now = h.now.add(const Duration(seconds: 15));
+      await h.fix(-4.33, 15.31);
+
+      expect(h.presence, [
+        {'online': true},
+        {'online': true, 'lat': -4.32, 'lng': 15.31, 'accuracy': 9},
+      ]);
+    });
+
+    test('location switched off mid-duty is flagged until fixes come back', () async {
+      final h = _harness();
+      await h.service.setOnDuty(true);
+      var notified = 0;
+      h.service.addListener(() => notified++);
+
+      h.stream!.addError(const LocationServiceDisabledException());
+      await pumpEventQueue();
+      expect(h.service.locationProblem, isTrue);
+      expect(h.service.onDuty, isTrue);
+      expect(notified, 1);
+
+      await h.fix(-4.32, 15.31);
+      expect(h.service.locationProblem, isFalse);
+      expect(notified, 2);
     });
 
     test('without a delivery never reach the delivery location', () async {
@@ -325,6 +477,22 @@ void main() {
       expect(h.events, isEmpty);
       expect(h.deliveryResumes, 0);
       expect(GetStorage().read('courier_on_duty'), isFalse);
+    });
+
+    test('on duty saved but no activated courier signed in: nothing starts', () async {
+      await GetStorage().write('courier_on_duty', true);
+      await GetStorage().write('user_profiles', [
+        {'profil': 'mobile_app_customer_profil'},
+      ]);
+      final h = _harness();
+
+      await h.service.resumeIfNeeded();
+      await pumpEventQueue();
+
+      expect(h.service.onDuty, isFalse);
+      expect(h.subscriptions, 0);
+      expect(h.events, isEmpty);
+      expect(h.deliveryResumes, 0);
     });
 
     test('off duty saved: nothing starts', () async {
@@ -446,6 +614,39 @@ void main() {
 
       await t.tap(find.text('Ouvrir les paramètres'));
       expect(fixes, 1);
+    });
+
+    testWidgets('a change that throws leaves the switch usable and says so', (t) async {
+      final h = _harness()..permissionThrows = true;
+      await pumpSwitch(t, h.service);
+
+      await tapSwitch(t);
+      await t.pump();
+      await t.pump(const Duration(milliseconds: 750));
+
+      expect(enabled(t), isTrue);
+      expect(h.service.onDuty, isFalse);
+      expect(find.text('Impossible de passer en service, réessayez.'), findsOneWidget);
+    });
+
+    testWidgets('location switched off on duty: says so, and the tap opens the settings', (t) async {
+      final h = _harness();
+      var fixes = 0;
+      await t.runAsync(() async {
+        await h.service.setOnDuty(true);
+        h.stream!.addError(const LocationServiceDisabledException());
+        await pumpEventQueue();
+      });
+      await pumpSwitch(t, h.service, fixLocation: () async => fixes++);
+
+      expect(find.text('Localisation désactivée'), findsOneWidget);
+      await t.tap(find.text('Localisation désactivée'));
+      expect(fixes, 1);
+
+      await t.runAsync(() => h.fix(-4.32, 15.31));
+      await t.pump();
+      expect(find.text('Localisation désactivée'), findsNothing);
+      expect(find.text('En service'), findsOneWidget);
     });
 
     testWidgets('toggles duty on and off and says which', (t) async {

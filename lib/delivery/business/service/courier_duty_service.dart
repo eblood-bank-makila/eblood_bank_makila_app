@@ -18,7 +18,8 @@ import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get_storage/get_storage.dart';
 
-typedef DutyFix = ({double lat, double lng, double accuracy});
+/// [at]: when the platform took the fix (null: unknown, taken as its arrival).
+typedef DutyFix = ({double lat, double lng, double accuracy, DateTime? at});
 
 class CourierDutyService extends ChangeNotifier {
   CourierDutyService({
@@ -70,12 +71,15 @@ class CourierDutyService extends ChangeNotifier {
       notificationText: 'Position partagée pour les livraisons',
       enableWakeLock: true,
       setOngoing: true,
+      // White status-bar icon; res/raw/keep.xml keeps it through resource shrinking.
+      notificationIcon: AndroidResource(name: 'ic_notification', defType: 'drawable'),
     ),
   );
 
   static const _key = 'courier_on_duty';
   static const _deliveryEvery = Duration(seconds: 15);
   static const _freshFor = Duration(minutes: 2);
+  static const _sendTimeout = Duration(seconds: 15);
 
   /// One presence call; returns the HTTP status code.
   final Future<int?> Function(Map<String, dynamic> body) sendPresence;
@@ -108,8 +112,14 @@ class CourierDutyService extends ChangeNotifier {
   DutyFix? _fix;
   DateTime? _fixAt;
   DateTime? _deliverySentAt;
+  bool _sending = false;
+  bool _pingOnFix = false;
+  bool _locationProblem = false;
 
   bool get onDuty => _onDuty;
+
+  /// On duty but the phone's location is switched off: no fixes go out.
+  bool get locationProblem => _locationProblem;
 
   /// The stream's latest fix while at most 2 min old, else null: the server
   /// stamps presence positions as live, so an old one must never go out.
@@ -123,7 +133,7 @@ class CourierDutyService extends ChangeNotifier {
   static Future<void> _noDelivery() async {}
 
   static Stream<DutyFix> _positions() => Geolocator.getPositionStream(locationSettings: locationSettings)
-      .map((p) => (lat: p.latitude, lng: p.longitude, accuracy: p.accuracy));
+      .map((p) => (lat: p.latitude, lng: p.longitude, accuracy: p.accuracy, at: p.timestamp));
 
   static Future<bool> _ensurePermission() async {
     final access = LocationAccess();
@@ -142,8 +152,11 @@ class CourierDutyService extends ChangeNotifier {
     if (value == _onDuty) return null;
     if (value) {
       if (!await ensurePermission()) return 'duty_location_needed';
+      final session = SessionIdentity(storage);
       final code = await _send({'online': true});
       if (code == null || code < 200 || code >= 300) return 'duty_server_error';
+      // A logout or another login landed during the call: that session asked, not this one.
+      if (session.changed() || !isActivatedCourier()) return null;
       _start();
       await _save(true);
       return null;
@@ -158,7 +171,7 @@ class CourierDutyService extends ChangeNotifier {
 
   /// App start: back on duty if it was left on and location is still allowed.
   Future<void> resumeIfNeeded() async {
-    if (_onDuty || storage.read(_key) != true) return;
+    if (_onDuty || storage.read(_key) != true || !isActivatedCourier()) return;
     if (await hasPermission()) {
       _start();
       await _save(true);
@@ -182,13 +195,21 @@ class CourierDutyService extends ChangeNotifier {
     _ownsStream = true;
     suspendOtherTracking(); // its listener must be gone before ours subscribes
     _resubscribed = false;
+    _pingOnFix = true; // presence learns where the courier is without waiting for its next minute
+
     _listen();
   }
 
   void _listen() {
     _subscription = positions().listen(
       _onFix,
-      onError: (Object e) => debugPrint('[duty] position stream: $e'),
+      onError: (Object e) {
+        debugPrint('[duty] position stream: $e');
+        if (e is LocationServiceDisabledException && !_locationProblem) {
+          _locationProblem = true;
+          notifyListeners();
+        }
+      },
       onDone: _onDone,
     );
   }
@@ -212,6 +233,7 @@ class CourierDutyService extends ChangeNotifier {
     _fix = null;
     _fixAt = null;
     _deliverySentAt = null;
+    _locationProblem = false;
     if (!_ownsStream) return;
     _ownsStream = false;
     // The plugin drops its cached stream once its last listener has cancelled:
@@ -228,13 +250,26 @@ class CourierDutyService extends ChangeNotifier {
   void _onFix(DutyFix fix) {
     final now = clock();
     _fix = fix;
-    _fixAt = now;
-    if (!hasActiveDelivery()) return;
+    _fixAt = fix.at ?? now;
+    if (_locationProblem) {
+      _locationProblem = false;
+      notifyListeners();
+    }
+    final fresh = freshFix;
+    if (fresh == null) return; // a cached position replayed by the platform: never sent as live
+    if (_pingOnFix) {
+      _pingOnFix = false;
+      unawaited(_send({'online': true, ...fresh}));
+    }
+    if (!hasActiveDelivery() || _sending) return;
     final last = _deliverySentAt;
     if (last != null && now.difference(last) < _deliveryEvery) return;
     _deliverySentAt = now;
+    _sending = true;
     unawaited(sendDeliveryLocation(fix.lat, fix.lng, fix.accuracy)
-        .catchError((Object e) => debugPrint('[duty] delivery location failed: $e')));
+        .timeout(_sendTimeout) // a dead socket must not hold every later position back
+        .catchError((Object e) => debugPrint('[duty] delivery location failed: $e'))
+        .whenComplete(() => _sending = false));
   }
 
   /// Off duty without a server call: presence's own "offline" follows the change.

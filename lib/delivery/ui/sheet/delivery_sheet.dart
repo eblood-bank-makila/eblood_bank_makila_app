@@ -25,7 +25,8 @@ const _red = Color(0xFFD0021B);
 const _blue = Color(0xFF1A73E8);
 const _green = Color(0xFF1E8E3E);
 
-const _beforePickup = {'awaiting_assignment', 'awaiting_acceptance', 'en_route_to_blood_bank', 'at_blood_bank'};
+/// The phases where the courier is still heading to (or at) the blood bank.
+const beforePickupPhases = {'awaiting_assignment', 'awaiting_acceptance', 'en_route_to_blood_bank', 'at_blood_bank'};
 const _codePhases = {'picked_up_from_blood_bank', 'en_route_to_hospital', 'at_hospital'};
 
 /// Filled segments of the 4-step bar (bank · picked up · hospital · delivered).
@@ -99,6 +100,17 @@ Future<void> _launch(List<String> urls) async {
   }
 }
 
+/// Whether a tracking update ends the delivery for this viewer: null while it
+/// runs, else the translation key of the message to show (null = delivered,
+/// nothing to say). Shared by the sheet and the minimized bar.
+({String? messageKey})? deliveryEnd(AsyncValue<DeliveryTracking> update) {
+  final t = update.valueOrNull;
+  if (update.error is DeliveryTrackingClosed) return (messageKey: 'delivery_reassigned');
+  if (t != null && t.isCancelled) return (messageKey: 'delivery_cancelled_by_admin');
+  if (t != null && t.isDelivered) return (messageKey: null);
+  return null;
+}
+
 /// The live delivery sheet: map, ETA, progress, stops, and the one action the
 /// [role] owns. Polls the tracking read while it is open.
 class DeliverySheet extends ConsumerStatefulWidget {
@@ -139,14 +151,8 @@ class _DeliverySheetState extends ConsumerState<DeliverySheet> {
   void initState() {
     super.initState();
     ref.listenManual(deliveryTrackingProvider(widget.deliveryId), (_, next) {
-      final t = next.valueOrNull;
-      if (next.error is DeliveryTrackingClosed) {
-        _end('delivery_reassigned');
-      } else if (t != null && t.isCancelled) {
-        _end('delivery_cancelled_by_admin');
-      } else if (t != null && t.isDelivered) {
-        _end(null);
-      }
+      final end = deliveryEnd(next);
+      if (end != null) _end(end.messageKey);
     }, fireImmediately: true);
   }
 
@@ -297,7 +303,7 @@ class _DeliverySheetState extends ConsumerState<DeliverySheet> {
 
   String _pillKey(DeliveryTracking t) {
     final role = widget.role;
-    final toBank = _beforePickup.contains(t.phase);
+    final toBank = beforePickupPhases.contains(t.phase);
     if (role != DeliverySheetRole.courier && _noCourier(t)) return 'pill_waiting_courier';
     if (t.phase == 'at_blood_bank') return 'pill_at_bank';
     if (t.phase == 'at_hospital') return role == DeliverySheetRole.buyer ? 'pill_courier_arrived' : 'pill_at_hospital';
@@ -309,7 +315,7 @@ class _DeliverySheetState extends ConsumerState<DeliverySheet> {
   }
 
   List<Widget> _content(BuildContext context, DeliveryTracking t) {
-    final toBank = _beforePickup.contains(t.phase);
+    final toBank = beforePickupPhases.contains(t.phase);
     final target = toBank ? t.bloodBank : t.hospital;
     final eta = widget.role == DeliverySheetRole.buyer ? t.etaToHospitalSeconds : t.etaSeconds;
     final legM = t.currentLeg?.distanceM ?? 0;
@@ -456,7 +462,7 @@ class _DeliverySheetState extends ConsumerState<DeliverySheet> {
               : null,
         );
       case DeliverySheetRole.seller:
-        if (t.pickupConfirmedAt != null || !_beforePickup.contains(t.phase)) return null;
+        if (t.pickupConfirmedAt != null || !beforePickupPhases.contains(t.phase)) return null;
         return button(
           'confirm_handover',
           t.phase == 'at_blood_bank' ? () => _run(() => _confirmHandover(context, t)) : null,

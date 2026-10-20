@@ -1,4 +1,5 @@
 import 'package:eblood_bank_mak_app/apps/config/route/GoRouter.dart';
+import 'package:eblood_bank_mak_app/delivery/ui/sheet/active_delivery_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -59,7 +60,7 @@ class MonApplication extends ConsumerWidget {
           onTap: () {
             FocusManager.instance.primaryFocus?.unfocus();
           },
-          child: child ?? const SizedBox.shrink(),
+          child: withActiveDeliveryBar(child),
         );
       },
 

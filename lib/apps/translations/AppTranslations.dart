@@ -2193,6 +2193,8 @@ class AppTranslations extends Translations {
       'pill_courier_arrived': 'Livreur arrivé',
       'confirm_handover_message': 'Confirmez-vous avoir remis les poches de sang au livreur @name ?',
       'handover_confirmed': 'Remise confirmée — le livreur peut repartir',
+      'delivery_in_progress_bar': 'Livraison en cours · @eta',
+      'delivery_bar_subtitle': 'Vers @stop · position partagée',
     },
 
     // English translations
@@ -4252,6 +4254,8 @@ class AppTranslations extends Translations {
       'pill_courier_arrived': 'Courier arrived',
       'confirm_handover_message': 'Do you confirm you handed the blood bags to the courier @name?',
       'handover_confirmed': 'Handover confirmed — the courier can leave',
+      'delivery_in_progress_bar': 'Delivery in progress · @eta',
+      'delivery_bar_subtitle': 'To @stop · location shared',
     },
 
     // Spanish translations
@@ -5602,6 +5606,8 @@ class AppTranslations extends Translations {
       'pill_courier_arrived': 'Repartidor llegado',
       'confirm_handover_message': '¿Confirma que entregó las bolsas de sangre al repartidor @name?',
       'handover_confirmed': 'Entrega confirmada: el repartidor puede salir',
+      'delivery_in_progress_bar': 'Entrega en curso · @eta',
+      'delivery_bar_subtitle': 'Hacia @stop · ubicación compartida',
       'confirm_delivery': 'Confirmar la entrega',
     },
 
@@ -6879,6 +6885,8 @@ class AppTranslations extends Translations {
       'pill_courier_arrived': 'Momemi akomi',
       'confirm_handover_message': 'Ondimi ete opesi basaki ya makila na momemi @name?',
       'handover_confirmed': 'Bopesi endimami — momemi akoki kokende',
+      'delivery_in_progress_bar': 'Kokomisa ezali kosalema · @eta',
+      'delivery_bar_subtitle': 'Na nzela ya @stop · esika ezali kokabolama',
       'confirm_delivery': 'Ndima kokomisa',
     },
 
@@ -8268,6 +8276,8 @@ class AppTranslations extends Translations {
       'pill_courier_arrived': 'Курьер прибыл',
       'confirm_handover_message': 'Подтверждаете, что передали пакеты крови курьеру @name?',
       'handover_confirmed': 'Передача подтверждена — курьер может ехать',
+      'delivery_in_progress_bar': 'Доставка в процессе · @eta',
+      'delivery_bar_subtitle': 'В пути: @stop · позиция передаётся',
       'confirm_delivery': 'Подтвердить доставку',
     },
   };

@@ -33,6 +33,9 @@ void main() {
     'confirm_delivery', 'confirm_delivery_message', 'delivery_confirmed', 'map_recenter',
     // duty_switch.dart / courier_duty_service.dart
     'duty_on', 'duty_off', 'duty_location_needed', 'duty_finish_delivery_first', 'duty_server_error', 'open_settings',
+    'duty_location_off',
+    // the courier sheet's duty banner, the courier's end toast, the reception confirm without a request id
+    'duty_needed_for_delivery', 'retry', 'delivery_finished', 'confirm_missing_request',
     // Active / Incoming / Outgoing delivery cards
     'active_delivery', 'en_route_to_blood_bank', 'at_blood_bank', 'picked_up', 'en_route_to_hospital',
     'at_hospital', 'delivered', 'in_progress', 'incoming_delivery', 'eta', 'from', 'delivery_person',

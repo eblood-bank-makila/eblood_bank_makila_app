@@ -76,7 +76,7 @@ var _taps = 0;
 var _dutyCalls = 0;
 String? _dutyAnswer;
 
-Future<void> _app(WidgetTester t, _Tracking tracking) async {
+Future<void> _app(WidgetTester t, _Tracking tracking, {Widget? home}) async {
   t.view.physicalSize = const Size(900, 1800);
   t.view.devicePixelRatio = 2;
   addTearDown(t.view.reset);
@@ -90,14 +90,15 @@ Future<void> _app(WidgetTester t, _Tracking tracking) async {
       fallbackLocale: const Locale('fr', 'FR'),
       builder: (context, child) => withActiveDeliveryBar(child),
       // The whole page takes taps, so anything the bar covers beyond its own area shows up.
-      home: Scaffold(
-        body: GestureDetector(
-          key: const Key('page'),
-          behavior: HitTestBehavior.opaque,
-          onTap: () => _taps++,
-          child: const SizedBox.expand(),
-        ),
-      ),
+      home: home ??
+          Scaffold(
+            body: GestureDetector(
+              key: const Key('page'),
+              behavior: HitTestBehavior.opaque,
+              onTap: () => _taps++,
+              child: const SizedBox.expand(),
+            ),
+          ),
     ),
   ));
 }
@@ -369,6 +370,83 @@ void main() {
       await t.tapAt(Offset(screen.center.dx, bar.top - 4)); // just above the bar
       await t.tapAt(Offset(bar.left - 4, bar.center.dy)); // beside it
       expect(_taps, 3);
+    });
+
+    testWidgets('a page without a bottom navigation lays out above the bar, and takes the room back when it goes', (t) async {
+      final tracking = _Tracking();
+      // The welcome page: a user card at the very bottom of its SafeArea.
+      await _app(
+        t,
+        tracking,
+        home: const Scaffold(
+          body: SafeArea(
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: SizedBox(key: Key('card'), height: 56, width: double.infinity),
+            ),
+          ),
+        ),
+      );
+      final card = find.byKey(const Key('card'));
+      final screenBottom = t.getRect(find.byType(Scaffold)).bottom;
+      expect(t.getRect(card).bottom, screenBottom);
+
+      _controller.adopt('d1');
+      await _settle(t);
+      expect(_bar, findsOneWidget);
+      expect(t.getRect(card).bottom, lessThanOrEqualTo(t.getRect(_bar).top));
+      expect(t.getRect(_bar).bottom, lessThan(screenBottom)); // a margin under it, not glued to the edge
+
+      _controller.closeFor('d1');
+      await _settle(t);
+      expect(t.getRect(card).bottom, screenBottom);
+    });
+
+    testWidgets("a page with a bottom navigation keeps its items clear of the bar, which sits in the navigation's footer", (t) async {
+      final tracking = _Tracking();
+      await _app(
+        t,
+        tracking,
+        home: Scaffold(
+          body: const SizedBox.expand(),
+          // As the RBAC main screen builds it.
+          bottomNavigationBar: NavigationBar(
+            height: 65,
+            destinations: const [
+              NavigationDestination(key: Key('nav-item'), icon: Icon(Icons.home), label: 'a'),
+              NavigationDestination(icon: Icon(Icons.search), label: 'b'),
+            ],
+          ),
+        ),
+      );
+      final item = find.byKey(const Key('nav-item'));
+      final screenBottom = t.getRect(find.byType(Scaffold)).bottom;
+
+      _controller.adopt('d1');
+      await _settle(t);
+
+      expect(t.getRect(item).bottom, lessThanOrEqualTo(t.getRect(_bar).top));
+      expect(t.getRect(_bar).bottom, lessThan(screenBottom));
+    });
+
+    testWidgets('with the keyboard up the page keeps no room for the bar, which the keyboard covers anyway', (t) async {
+      final tracking = _Tracking();
+      await _app(
+        t,
+        tracking,
+        home: const Scaffold(
+          body: SafeArea(
+            child: Align(alignment: Alignment.bottomCenter, child: SizedBox(key: Key('card'), height: 56, width: double.infinity)),
+          ),
+        ),
+      );
+      _controller.adopt('d1');
+      t.view.viewInsets = const FakeViewPadding(bottom: 600); // physical px: 300 dp of keyboard
+      addTearDown(t.view.resetViewInsets);
+      await _settle(t);
+
+      final keyboardTop = t.getRect(find.byType(Scaffold)).bottom - 300;
+      expect(t.getRect(find.byKey(const Key('card'))).bottom, keyboardTop);
     });
 
     testWidgets('the delivery ending while minimized closes the bar and says why', (t) async {

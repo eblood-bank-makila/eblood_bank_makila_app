@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' show Tristate;
 
 import 'package:eblood_bank_mak_app/delivery/ui/widgets/slide_to_confirm.dart';
 import 'package:flutter/material.dart';
@@ -167,6 +168,120 @@ void main() {
     expect(t.getTopLeft(_knob), start);
   });
 
+  group('after a confirmed step', () {
+    testWidgets('the knob stays at the end and cannot confirm again', (
+      t,
+    ) async {
+      var calls = 0;
+      await t.pumpWidget(
+        _host(
+          onConfirmed: () async {
+            calls++;
+            return true;
+          },
+        ),
+      );
+      final start = t.getTopLeft(_knob);
+
+      await t.drag(_knob, Offset(_travel(t) * 0.95, 0));
+      await t.pumpAndSettle();
+      final atEnd = t.getTopLeft(_knob);
+      expect(atEnd.dx, start.dx + _travel(t));
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+
+      await t.drag(_knob, Offset(-_travel(t), 0));
+      await t.drag(_knob, Offset(_travel(t), 0));
+      await t.pumpAndSettle();
+
+      expect(calls, 1);
+      expect(t.getTopLeft(_knob), atEnd);
+    });
+
+    testWidgets('a new label (next step) resets the knob and confirms again', (
+      t,
+    ) async {
+      var calls = 0;
+      Future<bool> confirm() async {
+        calls++;
+        return true;
+      }
+
+      await t.pumpWidget(_host(onConfirmed: confirm));
+      final start = t.getTopLeft(_knob);
+      await t.drag(_knob, Offset(_travel(t) * 0.95, 0));
+      await t.pumpAndSettle();
+      expect(calls, 1);
+
+      await t.pumpWidget(
+        _host(onConfirmed: confirm, label: 'Glisser · Livré au patient'),
+      );
+      await t.pumpAndSettle();
+      expect(t.getTopLeft(_knob), start);
+      expect(find.text('Glisser · Livré au patient'), findsOneWidget);
+
+      await t.drag(_knob, Offset(_travel(t) * 0.95, 0));
+      await t.pumpAndSettle();
+      expect(calls, 2);
+    });
+
+    testWidgets('a label change while running resets instead of locking', (
+      t,
+    ) async {
+      var calls = 0;
+      final first = Completer<bool>();
+      Future<bool> confirm() {
+        calls++;
+        return calls == 1 ? first.future : Future.value(true);
+      }
+
+      await t.pumpWidget(_host(onConfirmed: confirm));
+      final start = t.getTopLeft(_knob);
+      await t.drag(_knob, Offset(_travel(t) * 0.95, 0));
+      await t.pump();
+      expect(calls, 1);
+
+      // onConfirmed advanced the step: the parent rebuilds with the next label
+      // before the future resolves.
+      await t.pumpWidget(
+        _host(onConfirmed: confirm, label: 'Glisser · Livré au patient'),
+      );
+      first.complete(true);
+      await t.pumpAndSettle();
+
+      expect(t.getTopLeft(_knob), start);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+
+      await t.drag(_knob, Offset(_travel(t) * 0.95, 0));
+      await t.pumpAndSettle();
+      expect(calls, 2);
+    });
+  });
+
+  testWidgets('disabled mid-drag sends the knob back to its start', (t) async {
+    var calls = 0;
+    Future<bool> confirm() async {
+      calls++;
+      return true;
+    }
+
+    await t.pumpWidget(_host(onConfirmed: confirm));
+    final start = t.getTopLeft(_knob);
+
+    final finger = await t.startGesture(t.getCenter(_knob));
+    await finger.moveBy(Offset(_travel(t) * 0.5, 0));
+    await t.pump();
+    expect(t.getTopLeft(_knob).dx, greaterThan(start.dx));
+
+    await t.pumpWidget(_host(onConfirmed: confirm, enabled: false));
+    await t.pumpAndSettle();
+    expect(t.getTopLeft(_knob), start);
+
+    await finger.up();
+    await t.pumpAndSettle();
+    expect(t.getTopLeft(_knob), start);
+    expect(calls, 0);
+  });
+
   testWidgets('the label is not hidden under the knob at rest', (t) async {
     await t.pumpWidget(_host(onConfirmed: () async => true));
 
@@ -193,11 +308,47 @@ void main() {
       final node = t.getSemantics(find.byType(SlideToConfirm));
       expect(node.label, _label);
       expect(node.flagsCollection.isButton, isTrue);
+      expect(node.flagsCollection.isEnabled, Tristate.isTrue);
       expect(node.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
 
       t.semantics.tap(find.semantics.byLabel(_label));
       await t.pumpAndSettle();
       expect(calls, 1);
+      handle.dispose();
+    });
+
+    testWidgets('while running it is not enabled, has no tap, and a hint', (
+      t,
+    ) async {
+      final handle = t.ensureSemantics();
+      final done = Completer<bool>();
+      await t.pumpWidget(_host(onConfirmed: () => done.future));
+      expect(t.getSemantics(find.byType(SlideToConfirm)).hint, isEmpty);
+
+      await t.drag(_knob, Offset(_travel(t) * 0.95, 0));
+      await t.pump();
+
+      final node = t.getSemantics(find.byType(SlideToConfirm));
+      expect(node.label, _label);
+      expect(node.hint, 'En cours…');
+      expect(node.flagsCollection.isEnabled, isNot(Tristate.isTrue));
+      expect(node.getSemanticsData().hasAction(SemanticsAction.tap), isFalse);
+
+      done.complete(true);
+      await t.pumpAndSettle();
+      handle.dispose();
+    });
+
+    testWidgets('once done it is not enabled and has no tap action', (t) async {
+      final handle = t.ensureSemantics();
+      await t.pumpWidget(_host(onConfirmed: () async => true));
+      await t.drag(_knob, Offset(_travel(t) * 0.95, 0));
+      await t.pumpAndSettle();
+
+      final node = t.getSemantics(find.byType(SlideToConfirm));
+      expect(node.hint, isEmpty);
+      expect(node.flagsCollection.isEnabled, isNot(Tristate.isTrue));
+      expect(node.getSemanticsData().hasAction(SemanticsAction.tap), isFalse);
       handle.dispose();
     });
 

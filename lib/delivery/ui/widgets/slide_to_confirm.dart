@@ -22,11 +22,15 @@ class SlideToConfirm extends StatefulWidget {
     required this.label,
     required this.onConfirmed,
     this.enabled = true,
+    this.busyHint = 'En cours…',
   });
 
   final String label;
   final Future<bool> Function() onConfirmed;
   final bool enabled;
+
+  /// Read by screen readers while [onConfirmed] runs.
+  final String busyHint;
 
   @override
   State<SlideToConfirm> createState() => _SlideToConfirmState();
@@ -51,6 +55,9 @@ class _SlideToConfirmState extends State<SlideToConfirm>
     if (_done && old.label != widget.label) {
       _done = false;
       _pos.value = 0;
+    } else if (old.enabled && !widget.enabled && !_busy && !_done) {
+      // Disabled mid-drag: the gesture is dropped, so the knob would stay put.
+      _pos.animateTo(0);
     }
   }
 
@@ -93,7 +100,8 @@ class _SlideToConfirmState extends State<SlideToConfirm>
     return Semantics(
       button: true,
       label: widget.label,
-      enabled: widget.enabled,
+      hint: _busy ? widget.busyHint : null,
+      enabled: _active,
       onTap: _active ? _confirm : null,
       excludeSemantics: true,
       child: LayoutBuilder(

@@ -667,16 +667,32 @@ class IncomingDelivery {
   });
 
   factory IncomingDelivery.fromJson(Map<String, dynamic> json) {
+    // The server nests the structure / courier as _enrich_delivery_details
+    // emits them; the flat keys are kept for older payloads.
+    final bank = json['blood_bank'] is Map
+        ? Map<String, dynamic>.from(json['blood_bank'])
+        : <String, dynamic>{};
+    final person = json['delivery_person'] is Map
+        ? Map<String, dynamic>.from(json['delivery_person'])
+        : <String, dynamic>{};
+    final personName =
+        '${person['first_name'] ?? ''} ${person['last_name'] ?? ''}'.trim();
+
     return IncomingDelivery(
       id: json['id'] ?? json['_id'] ?? '',
-      bloodRequestId: json['blood_request_id'] ?? '',
-      bloodBankId: json['blood_bank_id'] ?? '',
-      bloodBankName: json['blood_bank_name'] ?? '',
-      bloodBankAddress: json['blood_bank_address'] ?? '',
-      status: json['status'] ?? json['delivery_phase'] ?? '',
+      bloodRequestId:
+          json['blood_request_id'] ?? json['ops_blood_request_id'] ?? '',
+      bloodBankId: json['blood_bank_id'] ?? json['source_blood_bank_id'] ?? '',
+      bloodBankName: bank['name'] ?? json['blood_bank_name'] ?? '',
+      bloodBankAddress: bank['address'] ?? json['blood_bank_address'] ?? '',
+      // The coarse status stays `in_transit` through arrival; only the
+      // phase says `at_hospital`.
+      status: json['delivery_phase'] ?? json['status'] ?? '',
       deliveryPersonId: json['delivery_person_id'],
-      deliveryPersonName: json['delivery_person_name'],
-      deliveryPersonPhone: json['delivery_person_phone'],
+      deliveryPersonName:
+          personName.isNotEmpty ? personName : json['delivery_person_name'],
+      deliveryPersonPhone:
+          person['phone_number'] ?? json['delivery_person_phone'],
       bloodBags: (json['blood_bags'] as List<dynamic>?)
               ?.map((e) => BloodBagInfo.fromJson(e))
               .toList() ??

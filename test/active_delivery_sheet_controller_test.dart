@@ -17,6 +17,7 @@ import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:eblood_bank_mak_app/apps/translations/AppTranslations.dart';
 import 'package:eblood_bank_mak_app/delivery/business/interactors/delivery_tracking_provider.dart';
 import 'package:eblood_bank_mak_app/delivery/business/model/delivery_tracking.dart';
+import 'package:eblood_bank_mak_app/delivery/business/service/courier_duty_service.dart';
 import 'package:eblood_bank_mak_app/delivery/ui/sheet/active_delivery_bar.dart';
 import 'package:eblood_bank_mak_app/delivery/ui/sheet/active_delivery_sheet_controller.dart';
 import 'package:eblood_bank_mak_app/delivery/ui/sheet/delivery_sheet.dart';
@@ -114,14 +115,28 @@ Future<void> _open(WidgetTester t, DeliverySheetRole role, _Tracking tracking, {
 void main() {
   late Directory tempDir;
 
+  /// Built before any sheet opens, as in the app (presence builds it at start):
+  /// its session listener comes before the sheet controller's.
+  late CourierDutyService duty;
+
   setUpAll(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
     tempDir = await Directory.systemTemp.createTemp('eblood_delivery_sheet_test');
     PathProviderPlatform.instance = _TempPathProvider(tempDir.path);
     await GetStorage.init();
+    duty = CourierDutyService(
+      sendPresence: (_) async => 200,
+      sendDeliveryLocation: (_, __, ___) async {},
+      positions: () => StreamController<DutyFix>().stream,
+      ensurePermission: () async => true,
+      hasPermission: () async => true,
+      hasActiveDelivery: () => false,
+      storage: GetStorage(),
+    );
   });
 
   tearDownAll(() {
+    duty.dispose();
     if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
   });
 
@@ -435,6 +450,32 @@ void main() {
     });
   });
 
+  group('adopt', () {
+    testWidgets('a delivery no sheet shows becomes the bar, without opening the sheet', (t) async {
+      final tracking = _Tracking();
+      await _app(t, tracking);
+
+      _controller.adopt('d1');
+      await _settle(t);
+      expect(_sheet, findsNothing);
+      expect(_bar, findsOneWidget);
+      expect(_controller.courierDeliveryId, 'd1');
+      expect(_controller.minimized, isTrue);
+    });
+
+    testWidgets('leaves the current delivery alone', (t) async {
+      final tracking = _Tracking();
+      await _app(t, tracking);
+      await _open(t, DeliverySheetRole.courier, tracking);
+
+      _controller.adopt('d2');
+      await _settle(t);
+      expect(_controller.courierDeliveryId, 'd1');
+      expect(_sheet, findsOneWidget);
+      expect(_bar, findsNothing);
+    });
+  });
+
   group('end message', () {
     testWidgets('is shown once per delivery, until the delivery is opened again', (t) async {
       final tracking = _Tracking();
@@ -510,6 +551,20 @@ void main() {
       expect(_bar, findsNothing);
       expect(_controller.courierDeliveryId, isNull);
       expect(find.byType(SnackBar), findsNothing);
+    });
+
+    testWidgets('a logout while on duty still closes the courier sheet', (t) async {
+      final tracking = _Tracking();
+      await _app(t, tracking);
+      await _open(t, DeliverySheetRole.courier, tracking);
+      await t.runAsync(() => duty.setOnDuty(true));
+      expect(duty.onDuty, isTrue);
+
+      await t.runAsync(() => GetStorage().remove('user_profiles'));
+      await _settle(t);
+      expect(_sheet, findsNothing);
+      expect(_controller.courierDeliveryId, isNull);
+      expect(duty.onDuty, isFalse);
     });
 
     testWidgets('a logout closes a follower sheet too', (t) async {

@@ -97,6 +97,17 @@ class ActiveDeliverySheetController extends ChangeNotifier {
     }
   }
 
+  /// A delivery in progress that no sheet shows (after a restart, or loaded
+  /// by the courier's home page) becomes current as the bar, without opening
+  /// the sheet, so its positions go out. A current delivery is left alone.
+  void adopt(String deliveryId) {
+    if (_courierId != null || deliveryId.isEmpty) return;
+    _watchSession();
+    _courierId = deliveryId;
+    _minimized = true;
+    notifyListeners();
+  }
+
   /// Shrinks the courier's sheet to the bar; the delivery stays current.
   void minimize() {
     if (_courierId == null) return;

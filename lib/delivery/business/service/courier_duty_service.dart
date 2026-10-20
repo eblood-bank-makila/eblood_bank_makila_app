@@ -8,6 +8,7 @@ library;
 import 'dart:async';
 
 import 'package:eblood_bank_mak_app/core/services/location_access.dart';
+import 'package:eblood_bank_mak_app/core/services/location_tracking_service.dart';
 import 'package:eblood_bank_mak_app/core/services/session_identity.dart';
 import 'package:eblood_bank_mak_app/delivery/business/service/DeliveryApiService.dart';
 import 'package:eblood_bank_mak_app/delivery/business/service/courier_presence_service.dart';
@@ -29,11 +30,16 @@ class CourierDutyService extends ChangeNotifier {
     required this.hasActiveDelivery,
     this.clock = DateTime.now,
     required this.storage,
+    this.suspendOtherTracking = _nothing,
+    this.resumeOtherTracking = _nothing,
+    this.resumeDelivery = _noDelivery,
   }) {
     final session = SessionIdentity(storage);
     _unlisten = storage.listenKey('user_profiles', (_) {
       // Another user, a logout, or the console withdrawing the courier profile.
-      if (session.changed() || !isActivatedCourier()) _reset();
+      // Deferred: a storage write inside a GetStorage listener hides the event
+      // from the listeners after this one (the sheet controller, presence).
+      if (session.changed() || !isActivatedCourier()) scheduleMicrotask(_reset);
     });
   }
 
@@ -45,9 +51,26 @@ class CourierDutyService extends ChangeNotifier {
     ensurePermission: _ensurePermission,
     hasPermission: () async => await LocationAccess().status() == LocationAccessStatus.granted,
     // Set by every way a courier gets a delivery (call accepted, console
-    // assignment push, the home card) and cleared when it ends.
+    // assignment push, the home card, [resumeDelivery]) and cleared when it ends.
     hasActiveDelivery: () => ActiveDeliverySheetController.instance.courierDeliveryId != null,
     storage: GetStorage(),
+    suspendOtherTracking: () => LocationTrackingService().suspend(),
+    resumeOtherTracking: () => LocationTrackingService().resume(),
+    resumeDelivery: _resumeActiveDelivery,
+  );
+
+  /// The duty stream: one fix every 15 s, moving or not, so presence always
+  /// has one under 2 min old; the foreground service keeps it going in the background.
+  static final locationSettings = AndroidSettings(
+    accuracy: LocationAccuracy.high,
+    distanceFilter: 0,
+    intervalDuration: const Duration(seconds: 15),
+    foregroundNotificationConfig: const ForegroundNotificationConfig(
+      notificationTitle: 'e-Blood · En service',
+      notificationText: 'Position partagée pour les livraisons',
+      enableWakeLock: true,
+      setOngoing: true,
+    ),
   );
 
   static const _key = 'courier_on_duty';
@@ -68,8 +91,19 @@ class CourierDutyService extends ChangeNotifier {
   final DateTime Function() clock;
   final GetStorage storage;
 
+  /// geolocator_android hands every caller the ONE stream it has cached, with
+  /// the first caller's settings: the app's own tracking stops while on duty.
+  final void Function() suspendOtherTracking;
+  final void Function() resumeOtherTracking;
+
+  /// App start, back on duty: picks up the delivery in progress, if any, so
+  /// its positions go out again.
+  final Future<void> Function() resumeDelivery;
+
   late final VoidCallback _unlisten;
   bool _onDuty = false;
+  bool _ownsStream = false;
+  bool _resubscribed = false;
   StreamSubscription<DutyFix>? _subscription;
   DutyFix? _fix;
   DateTime? _fixAt;
@@ -85,19 +119,11 @@ class CourierDutyService extends ChangeNotifier {
     return {'lat': fix.lat, 'lng': fix.lng, 'accuracy': fix.accuracy};
   }
 
-  static Stream<DutyFix> _positions() => Geolocator.getPositionStream(
-        locationSettings: AndroidSettings(
-          accuracy: LocationAccuracy.high,
-          distanceFilter: 30,
-          intervalDuration: const Duration(seconds: 15),
-          foregroundNotificationConfig: const ForegroundNotificationConfig(
-            notificationTitle: 'e-Blood · En service',
-            notificationText: 'Position partagée pour les livraisons',
-            enableWakeLock: true,
-            setOngoing: true,
-          ),
-        ),
-      ).map((p) => (lat: p.latitude, lng: p.longitude, accuracy: p.accuracy));
+  static void _nothing() {}
+  static Future<void> _noDelivery() async {}
+
+  static Stream<DutyFix> _positions() => Geolocator.getPositionStream(locationSettings: locationSettings)
+      .map((p) => (lat: p.latitude, lng: p.longitude, accuracy: p.accuracy));
 
   static Future<bool> _ensurePermission() async {
     final access = LocationAccess();
@@ -106,15 +132,20 @@ class CourierDutyService extends ChangeNotifier {
     return status == LocationAccessStatus.granted;
   }
 
+  static Future<void> _resumeActiveDelivery() async {
+    final id = (await DeliveryApiService().getActiveDelivery()).data?.id;
+    if (id != null) ActiveDeliverySheetController.instance.adopt(id);
+  }
+
   /// Returns a translation key when the change is refused.
   Future<String?> setOnDuty(bool value) async {
     if (value == _onDuty) return null;
     if (value) {
       if (!await ensurePermission()) return 'duty_location_needed';
+      final code = await _send({'online': true});
+      if (code == null || code < 200 || code >= 300) return 'duty_server_error';
       _start();
       await _save(true);
-      // Presence also pings once it sees the change; the PUT is idempotent.
-      await _send({'online': true, ...?freshFix});
       return null;
     }
     if (hasActiveDelivery()) return 'duty_finish_delivery_first';
@@ -131,6 +162,7 @@ class CourierDutyService extends ChangeNotifier {
     if (await hasPermission()) {
       _start();
       await _save(true);
+      unawaited(resumeDelivery().catchError((Object e) => debugPrint('[duty] active delivery: $e')));
     } else {
       await _save(false);
     }
@@ -146,15 +178,45 @@ class CourierDutyService extends ChangeNotifier {
   }
 
   void _start() {
-    _subscription ??= positions().listen(_onFix, onError: (Object e) => debugPrint('[duty] position stream: $e'));
+    if (_ownsStream) return;
+    _ownsStream = true;
+    suspendOtherTracking(); // its listener must be gone before ours subscribes
+    _resubscribed = false;
+    _listen();
+  }
+
+  void _listen() {
+    _subscription = positions().listen(
+      _onFix,
+      onError: (Object e) => debugPrint('[duty] position stream: $e'),
+      onDone: _onDone,
+    );
+  }
+
+  /// The stream ended by itself: one new subscription, then off duty rather
+  /// than « En service » with no fixes.
+  void _onDone() {
+    _subscription = null;
+    if (!_resubscribed) {
+      _resubscribed = true;
+      _listen();
+    } else {
+      debugPrint('[duty] position stream ended twice, going off duty');
+      _reset();
+    }
   }
 
   void _stop() {
-    unawaited(_subscription?.cancel());
+    final subscription = _subscription;
     _subscription = null;
     _fix = null;
     _fixAt = null;
     _deliverySentAt = null;
+    if (!_ownsStream) return;
+    _ownsStream = false;
+    // The plugin drops its cached stream once its last listener has cancelled:
+    // the app's own tracking then gets a fresh one with its own settings.
+    unawaited((subscription?.cancel() ?? Future<void>.value()).whenComplete(resumeOtherTracking));
   }
 
   Future<void> _save(bool value) async {
@@ -175,6 +237,7 @@ class CourierDutyService extends ChangeNotifier {
         .catchError((Object e) => debugPrint('[duty] delivery location failed: $e')));
   }
 
+  /// Off duty without a server call: presence's own "offline" follows the change.
   void _reset() {
     if (!_onDuty && storage.read(_key) != true) return;
     _stop();

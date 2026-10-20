@@ -5,17 +5,26 @@
 library;
 
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 import 'package:eblood_bank_mak_app/apps/translations/AppTranslations.dart';
+import 'package:eblood_bank_mak_app/delivery/business/interactors/DeliveryController.dart';
+import 'package:eblood_bank_mak_app/delivery/business/service/DeliveryApiService.dart';
 import 'package:eblood_bank_mak_app/delivery/business/service/courier_duty_service.dart';
+import 'package:eblood_bank_mak_app/delivery/ui/sheet/active_delivery_sheet_controller.dart';
 import 'package:eblood_bank_mak_app/delivery/ui/widgets/duty_switch.dart';
 
 class _TempPathProvider extends PathProviderPlatform with MockPlatformInterfaceMixin {
@@ -46,7 +55,12 @@ Future<void> _signIn(String userId) async {
 class _Harness {
   final presence = <Map<String, dynamic>>[];
   final locations = <_Fix>[];
+
+  /// The app's own tracking and the duty stream, in the order they happened.
+  final events = <String>[];
+  int deliveryResumes = 0;
   int? status = 200;
+  Completer<int?>? hold;
   bool permission = true;
   bool granted = true;
   bool delivering = false;
@@ -57,18 +71,22 @@ class _Harness {
   late final service = CourierDutyService(
     sendPresence: (body) async {
       presence.add(body);
-      return status;
+      return hold != null ? hold!.future : status;
     },
     sendDeliveryLocation: (lat, lng, accuracy) async => locations.add((lat: lat, lng: lng, accuracy: accuracy)),
     positions: () {
       subscriptions++;
-      return (stream = StreamController<_Fix>()).stream;
+      events.add('subscribe');
+      return (stream = StreamController<_Fix>(onCancel: () => events.add('cancel'))).stream;
     },
     ensurePermission: () async => permission,
     hasPermission: () async => granted,
     hasActiveDelivery: () => delivering,
     clock: () => now,
     storage: GetStorage(),
+    suspendOtherTracking: () => events.add('suspend'),
+    resumeOtherTracking: () => events.add('resume'),
+    resumeDelivery: () async => deliveryResumes++,
   );
 
   bool get listening => stream?.hasListener ?? false;
@@ -116,6 +134,31 @@ void main() {
         {'online': true},
       ]);
       expect(GetStorage().read('courier_on_duty'), isTrue);
+    });
+
+    test("stops the app's own tracking before the duty stream subscribes, and restarts it after", () async {
+      // geolocator_android hands every caller its ONE cached stream: the app's
+      // 100 m tracking must be gone, or the duty gets it without its foreground service.
+      final h = _harness();
+
+      await h.service.setOnDuty(true);
+      expect(h.events, ['suspend', 'subscribe']);
+
+      await h.service.setOnDuty(false);
+      await pumpEventQueue();
+      expect(h.events, ['suspend', 'subscribe', 'cancel', 'resume']);
+    });
+
+    test('refused by the server, or without network, stays off with nothing started', () async {
+      for (final status in [500, 403, null]) {
+        final h = _harness()..status = status;
+
+        expect(await h.service.setOnDuty(true), 'duty_server_error', reason: '$status');
+
+        expect(h.service.onDuty, isFalse);
+        expect(h.events, isEmpty);
+        expect(GetStorage().read('courier_on_duty'), isNot(isTrue));
+      }
     });
 
     test('without the location permission is refused, with nothing started', () async {
@@ -180,6 +223,35 @@ void main() {
   });
 
   group('positions', () {
+    test('the duty stream: a precise fix every 15 s, moving or not, in a foreground service', () {
+      final settings = CourierDutyService.locationSettings;
+      expect(settings.accuracy, LocationAccuracy.high);
+      expect(settings.distanceFilter, 0); // a courier waiting at the bank stays fresh
+      expect(settings.intervalDuration, const Duration(seconds: 15));
+      final notification = settings.foregroundNotificationConfig!;
+      expect(notification.notificationTitle, 'e-Blood · En service');
+      expect(notification.notificationText, 'Position partagée pour les livraisons');
+      expect(notification.enableWakeLock, isTrue);
+      expect(notification.setOngoing, isTrue);
+    });
+
+    test('a stream that ends is subscribed again once, then duty goes off', () async {
+      final h = _harness();
+      await h.service.setOnDuty(true);
+
+      await h.stream!.close();
+      await pumpEventQueue();
+      expect(h.subscriptions, 2);
+      expect(h.service.onDuty, isTrue);
+
+      await h.stream!.close();
+      await pumpEventQueue();
+      expect(h.subscriptions, 2);
+      expect(h.service.onDuty, isFalse);
+      expect(GetStorage().read('courier_on_duty'), isFalse);
+      expect(h.events.last, 'resume');
+    });
+
     test('during a delivery reach the server at most every 15 s', () async {
       final h = _harness()..delivering = true;
       await h.service.setOnDuty(true);
@@ -232,9 +304,12 @@ void main() {
       final h = _harness();
 
       await h.service.resumeIfNeeded();
+      await pumpEventQueue();
 
       expect(h.service.onDuty, isTrue);
       expect(h.listening, isTrue);
+      expect(h.events, ['suspend', 'subscribe']);
+      expect(h.deliveryResumes, 1); // the delivery in progress, if any, sends its positions again
     });
 
     test('without the permission any more goes off duty, without prompting', () async {
@@ -247,6 +322,8 @@ void main() {
 
       expect(h.service.onDuty, isFalse);
       expect(h.subscriptions, 0);
+      expect(h.events, isEmpty);
+      expect(h.deliveryResumes, 0);
       expect(GetStorage().read('courier_on_duty'), isFalse);
     });
 
@@ -271,6 +348,21 @@ void main() {
       expect(h.service.onDuty, isFalse);
       expect(h.listening, isFalse);
       expect(GetStorage().read('courier_on_duty'), isFalse);
+    });
+
+    test('a listener registered after the duty service still sees the logout', () async {
+      // GetStorage tells a listener only about the LAST write: a write made
+      // while it notifies would hide the logout from the sheet controller.
+      final h = _harness();
+      await h.service.setOnDuty(true);
+      final seen = <Object?>[];
+      addTearDown(GetStorage().listenKey('user_profiles', seen.add));
+
+      await GetStorage().remove('user_profiles');
+      await pumpEventQueue();
+
+      expect(seen, [null]);
+      expect(h.service.onDuty, isFalse);
     });
 
     test('a logout turns duty off', () async {
@@ -310,12 +402,51 @@ void main() {
   });
 
   group('switch', () {
-    Future<void> pumpSwitch(WidgetTester t, CourierDutyService duty) => t.pumpWidget(GetMaterialApp(
+    Future<void> pumpSwitch(WidgetTester t, CourierDutyService duty, {Future<void> Function()? fixLocation}) =>
+        t.pumpWidget(GetMaterialApp(
           translations: AppTranslations(),
           locale: const Locale('fr', 'FR'),
           fallbackLocale: const Locale('fr', 'FR'),
-          home: Scaffold(body: Center(child: DutySwitch(duty: duty))),
+          home: Scaffold(body: Center(child: DutySwitch(duty: duty, fixLocation: fixLocation))),
         ));
+
+    Future<void> tapSwitch(WidgetTester t) => t.runAsync(() async {
+          await t.tap(find.byKey(const Key('duty-switch')));
+          await pumpEventQueue();
+        });
+
+    bool enabled(WidgetTester t) => t.widget<Switch>(find.byKey(const Key('duty-switch'))).onChanged != null;
+
+    testWidgets('is disabled while the change is on its way', (t) async {
+      final h = _harness()..hold = Completer<int?>();
+      await pumpSwitch(t, h.service);
+
+      await tapSwitch(t);
+      await t.pump();
+      expect(enabled(t), isFalse);
+
+      await t.runAsync(() async {
+        h.hold!.complete(200);
+        await pumpEventQueue();
+      });
+      await t.pump();
+      expect(enabled(t), isTrue);
+      expect(h.service.onDuty, isTrue);
+    });
+
+    testWidgets('without location, the refusal offers the settings', (t) async {
+      final h = _harness()..permission = false;
+      var fixes = 0;
+      await pumpSwitch(t, h.service, fixLocation: () async => fixes++);
+
+      await tapSwitch(t);
+      await t.pump();
+      await t.pump(const Duration(milliseconds: 750)); // the SnackBar slides in
+      expect(find.text('Autorisez la localisation pour passer en service.'), findsOneWidget);
+
+      await t.tap(find.text('Ouvrir les paramètres'));
+      expect(fixes, 1);
+    });
 
     testWidgets('toggles duty on and off and says which', (t) async {
       final h = _harness();
@@ -354,6 +485,59 @@ void main() {
       expect(h.service.onDuty, isTrue);
       expect(find.text('En service'), findsOneWidget);
       expect(find.text('Terminez la livraison en cours avant de passer hors service.'), findsOneWidget);
+    });
+  });
+
+  // Last: these build the app-wide singletons.
+  group('wiring', () {
+    late http.Request sent;
+
+    setUpAll(() {
+      dotenv.loadFromString(envString: 'BASE_API_URL=http://api.test');
+      // A stored token: getAuthToken returns before its GetStorage fallback.
+      FlutterSecureStorage.setMockInitialValues({'auth_token': 'tok'});
+    });
+
+    Future<T> server<T>(Future<T> Function() call, {Object? body}) => http.runWithClient(
+          call,
+          () => MockClient((request) async {
+            sent = request;
+            return http.Response(jsonEncode(body ?? {'success': true}), 200, headers: {'content-type': 'application/json'});
+          }),
+        );
+
+    test('the delivery location goes to update-location', () async {
+      await server(() => CourierDutyService.instance.sendDeliveryLocation(-4.3, 15.3, 9));
+
+      expect(sent.method, 'PUT');
+      expect(sent.url.toString(), 'http://api.test/eblood-connect/delivery-assignment/update-location');
+      expect(sent.headers['Authorization'], 'Bearer tok');
+      expect(jsonDecode(sent.body), {'lat': -4.3, 'lng': 15.3, 'accuracy': 9});
+    });
+
+    test('after a restart, the delivery in progress comes back as the bar', () async {
+      final controller = ActiveDeliverySheetController.instance;
+      addTearDown(() => controller.closeFor('d9'));
+
+      await server(() => CourierDutyService.instance.resumeDelivery(), body: {
+        'data': {'_id': 'd9'},
+      });
+
+      expect(sent.url.path, '/eblood-connect/delivery-assignment/active-delivery');
+      expect(controller.courierDeliveryId, 'd9');
+      expect(controller.minimized, isTrue);
+    });
+
+    test("the courier home's active delivery becomes current too", () async {
+      final controller = ActiveDeliverySheetController.instance;
+      addTearDown(() => controller.closeFor('d8'));
+
+      await server(() => PendingDeliveryRequestController(DeliveryApiService()).loadActiveDelivery(), body: {
+        'data': {'_id': 'd8'},
+      });
+
+      expect(controller.courierDeliveryId, 'd8');
+      expect(controller.showBar, isTrue);
     });
   });
 }

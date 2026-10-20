@@ -4,6 +4,7 @@ import '../../../apps/services/EbloodAuthHelper.dart';
 import '../../../orders/ui/framework/blood_request/BloodRequestNetworkServiceImpl.dart';
 import '../service/DeliveryApiService.dart';
 import '../model/DeliveryModels.dart';
+import '../../ui/sheet/active_delivery_sheet_controller.dart';
 
 // Backend enum: manual | qr_scan. 'code' was silently 400-ing every hospital confirmation (spec 2026-09-14 §1).
 const kDeliveryConfirmationMethodManual = 'manual';
@@ -372,6 +373,8 @@ class PendingDeliveryRequestController extends StateNotifier<PendingDeliveryRequ
         activeDelivery: response.data,
         clearActiveDelivery: response.data == null,
       );
+      final id = response.data?.id;
+      if (id != null) ActiveDeliverySheetController.instance.adopt(id); // its positions go out
     }
   }
 

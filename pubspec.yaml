@@ -122,4 +122,5 @@ flutter:
     - assets/animations/
     - assets/paymentmethods/
     - .env
+    - bloonio_store.yaml
   

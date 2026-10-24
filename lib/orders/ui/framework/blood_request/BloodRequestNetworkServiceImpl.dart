@@ -218,7 +218,7 @@ class BloodRequestNetworkServiceImpl implements BloodRequestNetworkService {
           'confirmation_method': confirmationMethod,
         },
       );
-      return IApiResponse.fromData(res);
+      return res; // postWithDio already parsed it; fromData() of a non-map is always success:false
     } catch (e) {
       debugPrint('💥 confirmDelivery error: $e');
       return IApiResponse.error('Erreur: $e');
@@ -237,7 +237,7 @@ class BloodRequestNetworkServiceImpl implements BloodRequestNetworkService {
       if (patientId != null && patientId.isNotEmpty) body['patient_id'] = patientId;
       if (usageNotes != null && usageNotes.isNotEmpty) body['usage_notes'] = usageNotes;
       final res = await postWithDio(endpoint, body: body);
-      return IApiResponse.fromData(res);
+      return res; // postWithDio already parsed it; fromData() of a non-map is always success:false
     } catch (e) {
       debugPrint('💥 markBloodBagUsed error: $e');
       return IApiResponse.error('Erreur: $e');
@@ -278,7 +278,7 @@ class BloodRequestNetworkServiceImpl implements BloodRequestNetworkService {
           'qr_token': qrToken.trim(),
         },
       );
-      return IApiResponse.fromData(res);
+      return res; // postWithDio already parsed it; fromData() of a non-map is always success:false
     } catch (e) {
       debugPrint('💥 requestCoolboxPassword error: $e');
       return IApiResponse.error('Erreur: $e');

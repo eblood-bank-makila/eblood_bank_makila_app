@@ -375,12 +375,12 @@ class _DeliverySheetState extends ConsumerState<DeliverySheet> {
 
     return [
       Expanded(
-        // One scroll for the whole sheet: the map takes 70% of its height, the ETA, steps and cards follow it.
+        // One scroll for the whole sheet: the map takes 75% of its height, the ETA, steps and cards follow it.
         child: LayoutBuilder(builder: (context, box) => ListView(
           padding: const EdgeInsets.only(bottom: 8),
           children: [
             SizedBox(
-              height: box.maxHeight * 0.7,
+              height: box.maxHeight * 0.75,
               child: Stack(
                 children: [
                   Positioned.fill(child: (widget.mapBuilder ?? (_, t) => DeliveryMapView(tracking: t))(context, t)),

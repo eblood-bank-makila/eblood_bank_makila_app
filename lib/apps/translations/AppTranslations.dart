@@ -6,6 +6,8 @@ class AppTranslations extends Translations {
   Map<String, Map<String, String>> get keys => {
     // French translations
     'fr_FR': {
+      'courier_no_deliveries_today': 'Aucune livraison aujourd\'hui',
+      'courier_phase_cancelled': 'Annulée',
       // Backend enum labels (enum_label.dart): request status, bag status, request type.
       'rq_status_requested': 'Demandée',
       'rq_status_pending': 'En attente',
@@ -2274,6 +2276,8 @@ class AppTranslations extends Translations {
 
     // English translations
     'en_US': {
+      'courier_no_deliveries_today': 'No deliveries today',
+      'courier_phase_cancelled': 'Cancelled',
       // Backend enum labels (enum_label.dart): request status, bag status, request type.
       'rq_status_requested': 'Requested',
       'rq_status_pending': 'Pending',

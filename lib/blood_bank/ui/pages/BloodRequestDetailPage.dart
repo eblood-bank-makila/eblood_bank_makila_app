@@ -271,7 +271,8 @@ class _BloodRequestDetailPageState extends ConsumerState<BloodRequestDetailPage>
         // Content
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.all(16.0),
+            // The page draws under the system navigation bar: clear it so the last button stays tappable.
+            padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + MediaQuery.paddingOf(context).bottom),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

@@ -629,7 +629,11 @@ class IncomingDeliveriesController extends StateNotifier<List<IncomingDelivery>>
         verificationCode,
         kDeliveryConfirmationMethodManual,
       );
-      if (!settlementRes.success) {
+      // « already confirmed » = a previous attempt was settled but the assignment
+      // close below never ran: carry on and close it.
+      // shortcut: matches the backend's English detail, upgrade to an error code when it has one.
+      final alreadyConfirmed = (settlementRes.message ?? '').contains('already confirmed');
+      if (!settlementRes.success && !alreadyConfirmed) {
         return false;
       }
 

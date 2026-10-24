@@ -1,13 +1,13 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../../../apps/config/api/ApiConfig.dart';
-import '../../../apps/config/api/dio_client.dart' show getAuthToken;
+import '../../../apps/config/api/dio_client.dart' show getAuthToken, mobileApiHeaders;
 import '../model/DeliveryModels.dart';
 
 class DeliveryApiService {
   // Get authorization headers
   Future<Map<String, String>> _getHeaders() async {
-    final headers = Map<String, String>.from(ApiConfig.defaultHeaders);
+    final headers = {...ApiConfig.defaultHeaders, ...await mobileApiHeaders()};
     final token = await getAuthToken();
     if (token != null && token.isNotEmpty) {
       headers['Authorization'] = 'Bearer $token';

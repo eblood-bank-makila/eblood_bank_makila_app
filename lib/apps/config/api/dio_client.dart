@@ -84,56 +84,76 @@ Future<String?> getAuthToken() async {
   }
 }
 
+/// The JSON the backend reads from `mobile-device-infos` (device id, model, OS).
+Future<String> _deviceInfoJson() async {
+  final DeviceInfoPlugin deviceInfoPlugin = DeviceInfoPlugin();
+  String deviceInfo = '';
+  if (Platform.isAndroid) {
+    final AndroidDeviceInfo androidInfo =
+        await deviceInfoPlugin.androidInfo;
+    deviceInfo = jsonEncode({
+      'manufacturer': androidInfo.manufacturer,
+      'model': androidInfo.model,
+      'device_id': androidInfo.id,
+      'version': androidInfo.version.release, // Android version like "11", "12", etc.
+      'version_sdk': androidInfo.version.sdkInt, // SDK version like 30, 31, etc.
+      'version_codename': androidInfo.version.codename, // Codename like "REL"
+      'version_incremental': androidInfo.version.incremental, // Build incremental
+      'version_security_patch': androidInfo.version.securityPatch, // Security patch date
+      'android_id': androidInfo.id, // Android ID
+      'brand': androidInfo.brand, // Device brand
+      'device': androidInfo.device, // Device name
+      'display': androidInfo.display, // Build display
+      'fingerprint': androidInfo.fingerprint, // Build fingerprint
+      'hardware': androidInfo.hardware, // Hardware name
+      'host': androidInfo.host, // Build host
+      'product': androidInfo.product, // Product name
+      'supported32BitAbis': androidInfo.supported32BitAbis, // Supported 32-bit ABIs
+      'supported64BitAbis': androidInfo.supported64BitAbis, // Supported 64-bit ABIs
+      'supportedAbis': androidInfo.supportedAbis, // All supported ABIs
+      'tags': androidInfo.tags, // Build tags
+      'type': androidInfo.type, // Build type
+      'isPhysicalDevice': androidInfo.isPhysicalDevice, // Is physical device
+    });
+  } else if (Platform.isIOS) {
+    final IosDeviceInfo iosInfo = await deviceInfoPlugin.iosInfo;
+    deviceInfo = jsonEncode({
+      'manufacturer': 'Apple', // iOS devices are always Apple
+      'name': iosInfo.name, // Device name set by user
+      'model': iosInfo.model, // Device model
+      'device_id': iosInfo.identifierForVendor, // Unique identifier
+      'version': iosInfo.systemVersion, // iOS version like "15.0", "16.1", etc.
+      'system_name': iosInfo.systemName, // "iOS" or "iPadOS"
+      'localized_model': iosInfo.localizedModel, // Localized model name
+      'machine': iosInfo.utsname.machine, // Hardware identifier like "iPhone14,2"
+      'is_physical_device': iosInfo.isPhysicalDevice, // Is physical device
+      'brand': 'Apple', // Brand is always Apple for iOS
+    });
+  }
+  return deviceInfo;
+}
+
+/// The headers the Dio interceptors add, for callers still on the plain
+/// `http` package: without them RBAC-gated routes answer 401.
+Future<Map<String, String>> mobileApiHeaders() async {
+  final deviceInfo = await _deviceInfoJson();
+  return {
+    'api-consumer': _apiConsumer,
+    'accept-language': await _getCurrentLanguage(),
+    'App-Type': 'mobile',
+    'mobile_device_infos': deviceInfo,
+    'mobile-device-infos': deviceInfo,
+  };
+}
+
 class DeviceInfoInterceptor extends Interceptor {
   @override
   void onRequest(
       RequestOptions options, RequestInterceptorHandler handler) async {
-    final DeviceInfoPlugin deviceInfoPlugin = DeviceInfoPlugin();
     String deviceInfo = '';
 
     if (options.headers['mobile_device_infos'] == null) {
-      if (Platform.isAndroid) {
-        final AndroidDeviceInfo androidInfo =
-            await deviceInfoPlugin.androidInfo;
-        deviceInfo = jsonEncode({
-          'manufacturer': androidInfo.manufacturer,
-          'model': androidInfo.model,
-          'device_id': androidInfo.id,
-          'version': androidInfo.version.release, // Android version like "11", "12", etc.
-          'version_sdk': androidInfo.version.sdkInt, // SDK version like 30, 31, etc.
-          'version_codename': androidInfo.version.codename, // Codename like "REL"
-          'version_incremental': androidInfo.version.incremental, // Build incremental
-          'version_security_patch': androidInfo.version.securityPatch, // Security patch date
-          'android_id': androidInfo.id, // Android ID
-          'brand': androidInfo.brand, // Device brand
-          'device': androidInfo.device, // Device name
-          'display': androidInfo.display, // Build display
-          'fingerprint': androidInfo.fingerprint, // Build fingerprint
-          'hardware': androidInfo.hardware, // Hardware name
-          'host': androidInfo.host, // Build host
-          'product': androidInfo.product, // Product name
-          'supported32BitAbis': androidInfo.supported32BitAbis, // Supported 32-bit ABIs
-          'supported64BitAbis': androidInfo.supported64BitAbis, // Supported 64-bit ABIs
-          'supportedAbis': androidInfo.supportedAbis, // All supported ABIs
-          'tags': androidInfo.tags, // Build tags
-          'type': androidInfo.type, // Build type
-          'isPhysicalDevice': androidInfo.isPhysicalDevice, // Is physical device
-        });
-      } else if (Platform.isIOS) {
-        final IosDeviceInfo iosInfo = await deviceInfoPlugin.iosInfo;
-        deviceInfo = jsonEncode({
-          'manufacturer': 'Apple', // iOS devices are always Apple
-          'name': iosInfo.name, // Device name set by user
-          'model': iosInfo.model, // Device model
-          'device_id': iosInfo.identifierForVendor, // Unique identifier
-          'version': iosInfo.systemVersion, // iOS version like "15.0", "16.1", etc.
-          'system_name': iosInfo.systemName, // "iOS" or "iPadOS"
-          'localized_model': iosInfo.localizedModel, // Localized model name
-          'machine': iosInfo.utsname.machine, // Hardware identifier like "iPhone14,2"
-          'is_physical_device': iosInfo.isPhysicalDevice, // Is physical device
-          'brand': 'Apple', // Brand is always Apple for iOS
-        });
-      }
+      deviceInfo = await _deviceInfoJson();
     }
     options.headers['mobile_device_infos'] = deviceInfo;
     // Dash-named twin: the production edge (Caddy) silently DROPS header

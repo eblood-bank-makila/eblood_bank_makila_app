@@ -25,16 +25,37 @@ class OutgoingDeliveryWidget extends ConsumerStatefulWidget {
       _OutgoingDeliveryWidgetState();
 }
 
+/// How often the home delivery cards re-read their list while on screen.
+const deliveryCardsPollInterval = Duration(seconds: 15);
+
 class _OutgoingDeliveryWidgetState
-    extends ConsumerState<OutgoingDeliveryWidget> {
+    extends ConsumerState<OutgoingDeliveryWidget> with WidgetsBindingObserver {
   String? _confirmingId; // delivery whose handover is being confirmed
+  Timer? _poll;
+
+  void _load() => ref.read(outgoingDeliveriesProvider.notifier).loadOutgoingDeliveries();
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(outgoingDeliveriesProvider.notifier).loadOutgoingDeliveries();
+    WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+    // A courier accepting the call (which enables the handover) happens on another phone.
+    _poll = Timer.periodic(deliveryCardsPollInterval, (_) {
+      if (WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed) _load();
     });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _load();
+  }
+
+  @override
+  void dispose() {
+    _poll?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   @override

@@ -1,4 +1,4 @@
-import 'DeliveryModels.dart' show parseServerTime;
+import 'DeliveryModels.dart' show Delivery, DeliveryPriority, DeliveryStatus, parseServerTime;
 
 /// GET /eblood-connect/delivery-assignment/my-dashboard: the token's courier's
 /// counters and most recent deliveries.
@@ -29,13 +29,16 @@ class CourierDashboard {
     );
   }
 
-  /// Deliveries accepted (or last touched) today, local time.
+  /// Deliveries with something today (accepted, confirmed or updated), local
+  /// time: one accepted days ago and delivered today belongs to today.
   List<CourierDeliveryRow> get today {
     final now = DateTime.now();
-    return deliveries.where((d) {
-      final t = (d.acceptedAt ?? d.updatedAt)?.toLocal();
-      return t != null && t.year == now.year && t.month == now.month && t.day == now.day;
-    }).toList();
+    bool isToday(DateTime? t) {
+      final l = t?.toLocal();
+      return l != null && l.year == now.year && l.month == now.month && l.day == now.day;
+    }
+
+    return deliveries.where((d) => isToday(d.acceptedAt) || isToday(d.confirmedAt) || isToday(d.updatedAt)).toList();
   }
 }
 
@@ -49,11 +52,15 @@ class CourierDeliveryRow {
     this.acceptedAt,
     this.confirmedAt,
     this.updatedAt,
+    this.bagCount = 0,
+    this.bloodSummary = '',
   });
 
   final String id, phase;
   final String? hospitalName, bloodBankName, priority;
   final DateTime? acceptedAt, confirmedAt, updatedAt;
+  final int bagCount;
+  final String bloodSummary; // « 1 × AB-, 2 × O+ »
 
   factory CourierDeliveryRow.fromJson(Map<String, dynamic> json) {
     DateTime? t(String k) => json[k] == null ? null : parseServerTime(json[k].toString());
@@ -66,6 +73,41 @@ class CourierDeliveryRow {
       acceptedAt: t('accepted_at'),
       confirmedAt: t('confirmed_at'),
       updatedAt: t('updated_at'),
+      bagCount: (json['bag_count'] as num?)?.toInt() ?? 0,
+      bloodSummary: json['blood_summary']?.toString() ?? '',
+    );
+  }
+
+  /// The « Mes livraisons » page's [Delivery], built from this row.
+  Delivery toDelivery() {
+    final now = DateTime.now();
+    final firstType = bloodSummary.split(',').first.split('×').last.trim();
+    return Delivery(
+      id: id,
+      requestId: '',
+      hospitalName: hospitalName ?? '—',
+      hospitalAddress: bloodBankName ?? '', // the page's second line: where the bags come from
+      bloodType: firstType.isEmpty ? '?' : firstType,
+      quantity: bagCount,
+      status: switch (phase) {
+        'delivered_and_confirmed' => DeliveryStatus.delivered,
+        'cancelled' => DeliveryStatus.cancelled,
+        'en_route_to_blood_bank' || 'at_blood_bank' => DeliveryStatus.assigned,
+        'picked_up_from_blood_bank' || 'en_route_to_hospital' || 'at_hospital' => DeliveryStatus.inProgress,
+        _ => DeliveryStatus.pending,
+      },
+      priority: switch (priority) {
+        'emergency' || 'critical' => DeliveryPriority.emergency,
+        'high' => DeliveryPriority.urgent,
+        _ => DeliveryPriority.normal,
+      },
+      deliveryPersonId: '',
+      deliveryPersonName: '',
+      requestDate: acceptedAt ?? updatedAt ?? now,
+      assignedDate: acceptedAt,
+      deliveredDate: confirmedAt,
+      createdAt: acceptedAt ?? updatedAt ?? now,
+      updatedAt: updatedAt ?? now,
     );
   }
 

@@ -29,13 +29,16 @@ class CourierDashboard {
     );
   }
 
-  /// Deliveries accepted (or last touched) today, local time.
+  /// Deliveries with something today (accepted, confirmed or updated), local
+  /// time: one accepted days ago and delivered today belongs to today.
   List<CourierDeliveryRow> get today {
     final now = DateTime.now();
-    return deliveries.where((d) {
-      final t = (d.acceptedAt ?? d.updatedAt)?.toLocal();
-      return t != null && t.year == now.year && t.month == now.month && t.day == now.day;
-    }).toList();
+    bool isToday(DateTime? t) {
+      final l = t?.toLocal();
+      return l != null && l.year == now.year && l.month == now.month && l.day == now.day;
+    }
+
+    return deliveries.where((d) => isToday(d.acceptedAt) || isToday(d.confirmedAt) || isToday(d.updatedAt)).toList();
   }
 }
 

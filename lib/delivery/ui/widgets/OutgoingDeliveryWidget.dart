@@ -259,27 +259,7 @@ class _OutgoingDeliveryWidgetState
   }
 
   Future<void> _confirmPickup(OutgoingDelivery delivery) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Confirmer la remise'),
-        content: Text(
-          'Confirmez-vous avoir remis les poches de sang au livreur'
-          '${delivery.deliveryPersonName != null ? ' ${delivery.deliveryPersonName}' : ''} ?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Annuler'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-            child: const Text('Confirmer'),
-          ),
-        ],
-      ),
-    );
+    final confirmed = await askHandoverConfirmation(context, delivery);
 
     if (confirmed != true) return;
 
@@ -298,4 +278,30 @@ class _OutgoingDeliveryWidgetState
       ),
     );
   }
+}
+
+/// « Confirmez-vous avoir remis les poches au livreur … ? », shared by the home
+/// card and the request detail page.
+Future<bool?> askHandoverConfirmation(BuildContext context, OutgoingDelivery delivery) {
+  return showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('Confirmer la remise'),
+      content: Text(
+        'Confirmez-vous avoir remis les poches de sang au livreur'
+        '${delivery.deliveryPersonName != null ? ' ${delivery.deliveryPersonName}' : ''} ?',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('Annuler'),
+        ),
+        ElevatedButton(
+          onPressed: () => Navigator.pop(context, true),
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+          child: const Text('Confirmer'),
+        ),
+      ],
+    ),
+  );
 }

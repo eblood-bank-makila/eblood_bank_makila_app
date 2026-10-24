@@ -103,7 +103,8 @@ class ApiConfig {
     return {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      'User-Agent': 'E-Blood-Bank-Mobile/1.0.0',
+      // No User-Agent override: in prod the backend identifies the device by
+      // it (the edge drops mobile_device_infos), so it must match the Dio calls'.
     };
   }
 

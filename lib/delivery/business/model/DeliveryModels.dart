@@ -732,6 +732,9 @@ class OutgoingDelivery {
   final String? deliveryPersonPhone;
   final DateTime? pickupConfirmedAt;
 
+  /// The blood request this delivery carries (ties it to the request detail).
+  final String? bloodRequestId;
+
   OutgoingDelivery({
     required this.id,
     required this.deliveryPhase,
@@ -740,6 +743,7 @@ class OutgoingDelivery {
     this.deliveryPersonName,
     this.deliveryPersonPhone,
     this.pickupConfirmedAt,
+    this.bloodRequestId,
   });
 
   factory OutgoingDelivery.fromJson(Map<String, dynamic> json) {
@@ -763,6 +767,7 @@ class OutgoingDelivery {
       pickupConfirmedAt: json['pickup_confirmed_by_seller_at'] != null
           ? DateTime.tryParse(json['pickup_confirmed_by_seller_at'].toString())
           : null,
+      bloodRequestId: json['ops_blood_request_id']?.toString(),
     );
   }
 

@@ -12,6 +12,9 @@ import '../../../core/rbac/services/rbac_url_helper.dart';
 import '../../../core/rbac/enums/collection_crud_info_flag.dart';
 import '../../data/models/blood_request_model.dart';
 import '../../providers/blood_request_provider.dart';
+import '../../../delivery/business/interactors/DeliveryController.dart';
+import '../../../delivery/business/model/DeliveryModels.dart';
+import '../../../delivery/ui/widgets/OutgoingDeliveryWidget.dart' show askHandoverConfirmation;
 
 
 Color? _hexToColor(String? hex) {
@@ -44,6 +47,7 @@ class _BloodRequestDetailPageState extends ConsumerState<BloodRequestDetailPage>
   BloodRequestModel? _request;
   bool _isLoading = false;
   bool _isConfirmingPickup = false;
+  bool _isConfirmingHandover = false;
   String? _error;
   late final bool _canConfirmPickup;
 
@@ -68,6 +72,26 @@ class _BloodRequestDetailPageState extends ConsumerState<BloodRequestDetailPage>
     if (_request == null) {
       _fetchRequestDetails();
     }
+    // The courier's delivery for this request, if the bags still await handover.
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => ref.read(outgoingDeliveriesProvider.notifier).loadOutgoingDeliveries(),
+    );
+  }
+
+  /// Same confirmation as the home page's « Remise au livreur » card.
+  Future<void> _confirmHandover(OutgoingDelivery delivery) async {
+    if (await askHandoverConfirmation(context, delivery) != true) return;
+    setState(() => _isConfirmingHandover = true);
+    final error = await ref.read(outgoingDeliveriesProvider.notifier).confirmPickup(delivery.id);
+    if (!mounted) return;
+    setState(() => _isConfirmingHandover = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(error ?? 'Remise confirmée — le livreur peut repartir'),
+        backgroundColor: error == null ? Colors.green : Colors.red,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   Future<void> _fetchRequestDetails() async {
@@ -201,6 +225,10 @@ class _BloodRequestDetailPageState extends ConsumerState<BloodRequestDetailPage>
   Widget _buildDetailContent() {
     final request = _request!;
     final statusInfo = _getStatusInfo(request.status);
+    final handover = ref
+        .watch(outgoingDeliveriesProvider)
+        .where((d) => d.bloodRequestId == request.id && d.canConfirmPickup)
+        .firstOrNull;
     final createdDate = request.createdDateTime;
     final deliveryDate = request.deliveryDateTime;
 
@@ -381,6 +409,25 @@ class _BloodRequestDetailPageState extends ConsumerState<BloodRequestDetailPage>
                           ),
                         ),
                       ],
+                    ),
+                  ),
+
+                if (handover != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 24, bottom: 16),
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: ElevatedButton.icon(
+                        onPressed: _isConfirmingHandover ? null : () => _confirmHandover(handover),
+                        icon: const Icon(Icons.check_circle_outline),
+                        label: const Text('Confirmer la remise des poches'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: ColorPages.COLOR_PRINCIPAL,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                      ),
                     ),
                   ),
 

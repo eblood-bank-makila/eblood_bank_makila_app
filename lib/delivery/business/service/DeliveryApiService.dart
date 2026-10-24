@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import '../../../apps/config/api/ApiConfig.dart';
 import '../../../apps/config/api/dio_client.dart' show getAuthToken, mobileApiHeaders;
 import '../model/DeliveryModels.dart';
+import '../model/courier_dashboard.dart';
 
 class DeliveryApiService {
   // Get authorization headers
@@ -19,18 +20,16 @@ class DeliveryApiService {
   Future<ApiResponse<List<Delivery>>> getDeliveries() async {
     try {
       final headers = await _getHeaders();
+      // /delivery/deliveries never existed; the courier's own list is my-dashboard.
       final response = await http.get(
-        Uri.parse(ApiConfig.buildUrl('/delivery/deliveries')),
+        Uri.parse(ApiConfig.buildUrl('/eblood-connect/delivery-assignment/my-dashboard?limit=100')),
         headers: headers,
       );
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final List<Delivery> deliveries = (data['data'] as List)
-            .map((item) => Delivery.fromJson(item))
-            .toList();
-        
-        return ApiResponse.success(deliveries);
+        final data = json.decode(response.body)['data'];
+        final dashboard = CourierDashboard.fromJson(data is Map ? Map<String, dynamic>.from(data) : {});
+        return ApiResponse.success(dashboard.deliveries.map((d) => d.toDelivery()).toList());
       } else {
         return ApiResponse.error('Failed to load deliveries');
       }

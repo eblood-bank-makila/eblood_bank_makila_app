@@ -38,7 +38,6 @@ class _DeliveryManagementPageState
     // Load deliveries on page load
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(deliveryControllerProvider.notifier).loadDeliveries();
-      ref.read(deliveryStatsControllerProvider.notifier).loadStats();
     });
   }
 

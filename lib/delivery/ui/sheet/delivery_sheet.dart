@@ -176,6 +176,8 @@ class _DeliverySheetState extends ConsumerState<DeliverySheet> {
   final _messenger = GlobalKey<ScaffoldMessengerState>();
   bool _ended = false;
   bool _busy = false;
+  final _headKey = GlobalKey();
+  double? _headHeight;
 
   bool get _courier => widget.role == DeliverySheetRole.courier;
 
@@ -372,11 +374,16 @@ class _DeliverySheetState extends ConsumerState<DeliverySheet> {
         ? (legM > 0 ? (toBank ? 'eta_km_to_bank' : 'eta_km_to_hospital').trParams({'km': _km(legM)}) : null)
         : (eta != null ? 'eta_arrival_at'.trParams({'time': _clock(DateTime.now().add(Duration(seconds: eta)))}) : null);
     final action = _action(context, t);
+    final cards = _cards(t, toBank);
+    final room = MediaQuery.sizeOf(context).height;
+    // The map takes all the room above the ETA, steps and first card; any further card scrolls under them.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final h = _headKey.currentContext?.size?.height;
+      if (mounted && h != null && h != _headHeight) setState(() => _headHeight = h);
+    });
 
     return [
       Expanded(
-        // The map takes 3/5 of the room, down to about the first stop card; the ETA, steps and cards scroll below it.
-        flex: 3,
         child: Stack(
           children: [
             Positioned.fill(child: (widget.mapBuilder ?? (_, t) => DeliveryMapView(tracking: t))(context, t)),
@@ -399,31 +406,42 @@ class _DeliverySheetState extends ConsumerState<DeliverySheet> {
           ],
         ),
       ),
-      Expanded(
-        flex: 2,
+      SizedBox(
+        // +20 = the list's vertical padding; capped so a tall code card never squeezes the map away.
+        height: math.min(_headHeight == null ? room * 0.3 : _headHeight! + 20, room * 0.55),
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.baseline,
-              textBaseline: TextBaseline.alphabetic,
-              children: [
-                Text(eta == null ? '—' : 'eta_minutes'.trParams({'m': '${(eta / 60).ceil()}'}),
-                    style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w700)),
-                if (etaDetail != null) ...[
-                  const SizedBox(width: 8),
-                  Flexible(
-                    child: Text(etaDetail,
-                        overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 14, color: Colors.grey.shade700)),
+            KeyedSubtree(
+              key: _headKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Text(eta == null ? '—' : 'eta_minutes'.trParams({'m': '${(eta / 60).ceil()}'}),
+                          style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w700)),
+                      if (etaDetail != null) ...[
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(etaDetail,
+                              overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 14, color: Colors.grey.shade700)),
+                        ),
+                      ],
+                    ],
                   ),
+                  const SizedBox(height: 10),
+                  _StepBar(done: _progress[t.phase] ?? 0, labels: [for (final k in _stepLabels[widget.role]!) k.tr]),
+                  const SizedBox(height: 14),
+                  if (_courier && _codePhases.contains(t.phase) && t.verificationCode != null) _codeCard(t.verificationCode!),
+                  ...cards.take(1),
                 ],
-              ],
+              ),
             ),
-            const SizedBox(height: 10),
-            _StepBar(done: _progress[t.phase] ?? 0, labels: [for (final k in _stepLabels[widget.role]!) k.tr]),
-            const SizedBox(height: 14),
-            if (_courier && _codePhases.contains(t.phase) && t.verificationCode != null) _codeCard(t.verificationCode!),
-            ..._cards(t, toBank),
+            ...cards.skip(1),
           ],
         ),
       ),

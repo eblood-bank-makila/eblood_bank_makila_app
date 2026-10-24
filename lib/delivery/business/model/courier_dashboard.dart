@@ -46,6 +46,7 @@ class CourierDeliveryRow {
   const CourierDeliveryRow({
     required this.id,
     required this.phase,
+    this.identifier,
     this.hospitalName,
     this.bloodBankName,
     this.priority,
@@ -57,6 +58,7 @@ class CourierDeliveryRow {
   });
 
   final String id, phase;
+  final String? identifier;
   final String? hospitalName, bloodBankName, priority;
   final DateTime? acceptedAt, confirmedAt, updatedAt;
   final int bagCount;
@@ -67,6 +69,7 @@ class CourierDeliveryRow {
     return CourierDeliveryRow(
       id: json['id']?.toString() ?? '',
       phase: json['delivery_phase']?.toString() ?? '',
+      identifier: json['identifier']?.toString(),
       hospitalName: json['hospital_name']?.toString(),
       bloodBankName: json['blood_bank_name']?.toString(),
       priority: json['priority']?.toString(),
@@ -84,6 +87,7 @@ class CourierDeliveryRow {
     final firstType = bloodSummary.split(',').first.split('×').last.trim();
     return Delivery(
       id: id,
+      reference: identifier,
       requestId: '',
       hospitalName: hospitalName ?? '—',
       hospitalAddress: bloodBankName ?? '', // the page's second line: where the bags come from

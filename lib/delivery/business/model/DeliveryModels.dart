@@ -19,6 +19,9 @@ class Delivery {
   final double? longitude;
   final String? contactPhone;
   final String? contactPerson;
+
+  /// Human reference shown to the courier (« del-E8E2D3E1 »); [id] stays the key.
+  final String? reference;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -43,6 +46,7 @@ class Delivery {
     this.longitude,
     this.contactPhone,
     this.contactPerson,
+    this.reference,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -160,6 +164,7 @@ class Delivery {
       longitude: longitude ?? this.longitude,
       contactPhone: contactPhone ?? this.contactPhone,
       contactPerson: contactPerson ?? this.contactPerson,
+      reference: reference,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

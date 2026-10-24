@@ -15,6 +15,10 @@ class BloodRequestService {
   final RbacUrlHelper _urlHelper = RbacUrlHelper();
 
   BloodRequestService(this._appCrudInfo, this._detailCrudInfo);
+
+  /// The RBAC URL, or the seeded default when the RBAC tree lacks it (an
+  /// empty URL would hit the bare base URL and fail as « Client error »).
+  static String _orDefault(String rbacUrl, String fallback) => rbacUrl.isEmpty ? fallback : rbacUrl;
   /// Fetch blood requests with optional filters
   Future<BloodRequestsResponse> getBloodRequests({
     String? statusFilter,
@@ -48,7 +52,7 @@ class BloodRequestService {
 
       // Use dio_client for automatic auth header injection
       final response = await getWithDio(
-        _urlHelper.getFetchUrl(_appCrudInfo),
+        _orDefault(_urlHelper.getFetchUrl(_appCrudInfo), '/api/v1/eblood-connect/blood-requests/list'),
         queryParams: queryParams,
       );
 
@@ -95,7 +99,7 @@ class BloodRequestService {
       print('🔍 Fetching blood request by ID: $requestId');
 
       final response = await getWithDio(
-        _urlHelper.getFetchOneInfoUrl(_detailCrudInfo),
+        _orDefault(_urlHelper.getFetchOneInfoUrl(_detailCrudInfo), '/api/v1/eblood-connect/blood-requests/detail'),
         queryParams: {'item_id': requestId},
       );
 
@@ -128,7 +132,8 @@ class BloodRequestService {
       print('📦 Confirming pickup for request: $requestId');
 
       final response = await putWithDio(
-        _urlHelper.getUpdateProcessingUrl(_detailCrudInfo, 'confirm_pickup_url'),
+        _orDefault(_urlHelper.getUpdateProcessingUrl(_detailCrudInfo, 'confirm_pickup_url'),
+            '/api/v1/eblood-connect/blood-requests/confirm-pickup'),
         queryParams: {'item_id': requestId},
         body: {
           'status': 'picked_up_from_blood_bank',

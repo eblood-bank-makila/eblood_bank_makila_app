@@ -12,6 +12,7 @@ import '../../business/model/DeliveryModels.dart';
 import '../sheet/active_delivery_sheet_controller.dart';
 import '../sheet/confirm_reception_dialog.dart';
 import '../sheet/delivery_sheet.dart';
+import 'OutgoingDeliveryWidget.dart' show deliveryCardsPollInterval;
 
 /// Widget showing incoming delivery for hospital (floating card on home screen)
 class IncomingDeliveryWidget extends ConsumerStatefulWidget {
@@ -22,14 +23,33 @@ class IncomingDeliveryWidget extends ConsumerStatefulWidget {
       _IncomingDeliveryWidgetState();
 }
 
-class _IncomingDeliveryWidgetState extends ConsumerState<IncomingDeliveryWidget> {
+class _IncomingDeliveryWidgetState extends ConsumerState<IncomingDeliveryWidget>
+    with WidgetsBindingObserver {
+  Timer? _poll;
+
+  void _load() => ref.read(incomingDeliveriesProvider.notifier).loadIncomingDeliveries();
+
   @override
   void initState() {
     super.initState();
-    // Load incoming deliveries
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(incomingDeliveriesProvider.notifier).loadIncomingDeliveries();
+    WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+    // The courier's phase (« Livreur arrivé » unlocks the reception) changes on another phone.
+    _poll = Timer.periodic(deliveryCardsPollInterval, (_) {
+      if (WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed) _load();
     });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _load();
+  }
+
+  @override
+  void dispose() {
+    _poll?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   @override

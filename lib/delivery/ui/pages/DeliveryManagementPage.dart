@@ -436,7 +436,7 @@ class _DeliveryManagementPageState
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      delivery.id,
+                      delivery.reference ?? delivery.id,
                       style: GoogleFonts.ubuntu(
                         fontSize: 12,
                         color: Colors.grey.shade600,

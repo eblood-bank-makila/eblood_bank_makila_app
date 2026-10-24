@@ -12,6 +12,7 @@ import '../../../core/rbac/services/rbac_url_helper.dart';
 import '../../../core/rbac/enums/collection_crud_info_flag.dart';
 import '../../data/models/blood_request_model.dart';
 import '../../providers/blood_request_provider.dart';
+import '../enum_label.dart';
 
 
 Color? _hexToColor(String? hex) {
@@ -275,7 +276,7 @@ class _BloodRequestDetailPageState extends ConsumerState<BloodRequestDetailPage>
                     children: [
                       _buildDetailRow('blood_type'.tr, request.patientBloodTypeDisplay),
                       _buildDetailRow('urgency_level'.tr, request.urgencyLevel.toUpperCase()),
-                      _buildDetailRow('request_type'.tr, request.requestType),
+                      _buildDetailRow('request_type'.tr, enumLabel('rq_type', request.requestType)),
                     ],
                   ),
                 ),
@@ -312,7 +313,7 @@ class _BloodRequestDetailPageState extends ConsumerState<BloodRequestDetailPage>
                               bag.identifier,
                               if (bag.rhesusFactor?.isNotEmpty == true) bag.rhesusFactor!,
                               if (bag.volume?.isNotEmpty == true) bag.volume!,
-                              if (bag.statusLabel?.isNotEmpty == true) bag.statusLabel!,
+                              enumLabel('bag_status', bag.status),
                               if (bag.amount != null) '${bag.currencySymbol ?? ''} ${bag.amount!.toStringAsFixed(2)}',
                             ].where((e) => e.toString().trim().isNotEmpty).join(' • ');
                             return Container(
@@ -878,7 +879,7 @@ class _BloodRequestDetailPageState extends ConsumerState<BloodRequestDetailPage>
         };
       default:
         return {
-          'label': status,
+          'label': enumLabel('rq_status', status),
           'color': Colors.grey,
           'icon': Icons.info_rounded,
         };

@@ -19,6 +19,7 @@ import '../../providers/websocket_provider.dart';
 import '../../services/websocket_service.dart';
 import '../../services/blood_request_export_service.dart';
 import 'BloodRequestDetailPage.dart';
+import '../enum_label.dart';
 
 
 Color? _hexToColor(String? hex) {
@@ -760,7 +761,7 @@ class _BloodBankRequestsPageState extends ConsumerState<BloodBankRequestsPage> {
                         bag.identifier,
                         if (bag.rhesusFactor != null && bag.rhesusFactor!.isNotEmpty) bag.rhesusFactor!,
                         if (bag.volume != null && bag.volume!.isNotEmpty) bag.volume!,
-                        if (bag.statusLabel != null && bag.statusLabel!.isNotEmpty) bag.statusLabel!,
+                        enumLabel('bag_status', bag.status),
                         if (bag.amount != null) '${bag.currencySymbol ?? ''} ${bag.amount!.toStringAsFixed(2)}',
                       ].where((e) => e.toString().trim().isNotEmpty).join(' • ');
                       return Container(
@@ -1020,7 +1021,7 @@ class _BloodBankRequestsPageState extends ConsumerState<BloodBankRequestsPage> {
       case 'timeout':
         return {'label': 'status_failed'.tr, 'color': Colors.red};
       default:
-        return {'label': status, 'color': Colors.grey};
+        return {'label': enumLabel('rq_status', status), 'color': Colors.grey};
     }
   }
 }

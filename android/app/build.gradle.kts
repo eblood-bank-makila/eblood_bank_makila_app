@@ -14,8 +14,8 @@ val keystoreProperties = Properties().apply {
     if (f.exists()) load(FileInputStream(f))
 }
 
-// Google Maps key lives in android/local.properties (git-ignored); a missing key
-// still builds (the map just renders blank until MAPS_API_KEY is added; release builds warn).
+// Google Maps key lives in android/local.properties (git-ignored). Debug builds
+// without it still build (blank map); release builds refuse to (see below).
 val mapsApiKey = Properties().apply {
     val f = rootProject.file("local.properties")
     if (f.exists()) load(FileInputStream(f))
@@ -34,8 +34,12 @@ val versionCodeOverride = (project.findProperty("versionCodeOverride") as? Strin
 val autoVersionCode = (System.currentTimeMillis() / 60_000L).toInt()
 // -----------------------------------------------------------------------------
 
+// A release without the key ships a blank delivery map (happened 2026-10): stop the build.
 if (isReleaseBuild && mapsApiKey.isNullOrBlank()) {
-    logger.warn("WARNING: MAPS_API_KEY is missing from android/local.properties: the delivery map will render blank in this release build.")
+    throw GradleException(
+        "MAPS_API_KEY is missing from android/local.properties: a release build would ship a blank delivery map. " +
+            "Add the line MAPS_API_KEY=... on its own line (flutter rewrites the file's last line), then rebuild."
+    )
 }
 
 android {

@@ -1,4 +1,6 @@
 import 'package:animate_do/animate_do.dart';
+import '../../business/interactors/courier_dashboard_provider.dart';
+import '../../business/model/courier_dashboard.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -33,8 +35,6 @@ class _DeliveryPersonHomePageState extends ConsumerState<DeliveryPersonHomePage>
     );
     // Load initial data
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(deliveryControllerProvider.notifier).loadDeliveries();
-      ref.read(deliveryStatsControllerProvider.notifier).loadStats();
       // Load pending delivery requests
       ref.read(pendingDeliveryRequestProvider.notifier).loadPendingRequests();
       ref.read(pendingDeliveryRequestProvider.notifier).loadActiveDelivery();
@@ -107,10 +107,7 @@ class _DeliveryPersonHomePageState extends ConsumerState<DeliveryPersonHomePage>
               right: 0,
               bottom: 0,
               child: PendingDeliveryRequestWidget(
-                onAccepted: () {
-                  // Refresh deliveries after accepting
-                  ref.read(deliveryControllerProvider.notifier).loadDeliveries();
-                },
+                onAccepted: () => ref.invalidate(courierDashboardProvider),
                 onRejected: () {
                   // Optional: show feedback
                 },
@@ -175,10 +172,8 @@ class _DeliveryPersonHomePageState extends ConsumerState<DeliveryPersonHomePage>
   }
 
   Widget _buildPerformanceSection() {
-    final totalDeliveries = ref.watch(totalDeliveriesCountProvider);
-    final inProgressDeliveries = ref.watch(inProgressDeliveriesCountProvider);
-    final deliveredDeliveries = ref.watch(deliveredDeliveriesCountProvider);
-    final urgentDeliveries = ref.watch(urgentDeliveriesCountProvider);
+    final dash = ref.watch(courierDashboardProvider).valueOrNull;
+    String n(int Function(CourierDashboard) pick) => dash == null ? '–' : pick(dash).toString();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -202,10 +197,9 @@ class _DeliveryPersonHomePageState extends ConsumerState<DeliveryPersonHomePage>
                 delay: const Duration(milliseconds: 500),
                 child: _buildStatCard(
                   title: 'total_deliveries'.tr,
-                  value: totalDeliveries.toString(),
+                  value: n((d) => d.total),
                   icon: Iconsax.box_tick,
                   color: Colors.green,
-                  trend: '+15%',
                 ),
               ),
             ),
@@ -215,10 +209,9 @@ class _DeliveryPersonHomePageState extends ConsumerState<DeliveryPersonHomePage>
                 delay: const Duration(milliseconds: 600),
                 child: _buildStatCard(
                   title: 'in_progress'.tr,
-                  value: inProgressDeliveries.toString(),
+                  value: n((d) => d.inProgress),
                   icon: Iconsax.truck_time,
                   color: Colors.blue,
-                  trend: '0%',
                 ),
               ),
             ),
@@ -232,10 +225,9 @@ class _DeliveryPersonHomePageState extends ConsumerState<DeliveryPersonHomePage>
                 delay: const Duration(milliseconds: 700),
                 child: _buildStatCard(
                   title: 'completed'.tr,
-                  value: deliveredDeliveries.toString(),
+                  value: n((d) => d.delivered),
                   icon: Iconsax.medal_star,
                   color: Colors.orange,
-                  trend: '+2%',
                 ),
               ),
             ),
@@ -245,10 +237,9 @@ class _DeliveryPersonHomePageState extends ConsumerState<DeliveryPersonHomePage>
                 delay: const Duration(milliseconds: 800),
                 child: _buildStatCard(
                   title: 'urgent_deliveries'.tr,
-                  value: urgentDeliveries.toString(),
+                  value: n((d) => d.urgent),
                   icon: Iconsax.timer_1,
                   color: Colors.purple,
-                  trend: '-5min',
                 ),
               ),
             ),
@@ -263,7 +254,6 @@ class _DeliveryPersonHomePageState extends ConsumerState<DeliveryPersonHomePage>
     required String value,
     required IconData icon,
     required Color color,
-    required String trend,
   }) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -281,30 +271,13 @@ class _DeliveryPersonHomePageState extends ConsumerState<DeliveryPersonHomePage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, color: color, size: 20),
-              ),
-              Text(
-                trend,
-                style: GoogleFonts.ubuntu(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: trend.startsWith('+') || trend.contains('-5min') 
-                      ? Colors.green 
-                      : trend == '0%' 
-                          ? Colors.grey 
-                          : Colors.red,
-                ),
-              ),
-            ],
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: color, size: 20),
           ),
           const SizedBox(height: 12),
           Text(
@@ -329,6 +302,8 @@ class _DeliveryPersonHomePageState extends ConsumerState<DeliveryPersonHomePage>
   }
 
   Widget _buildTodayDeliveriesSection() {
+    final dash = ref.watch(courierDashboardProvider).valueOrNull;
+    final today = dash?.today ?? const <CourierDeliveryRow>[];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -352,7 +327,7 @@ class _DeliveryPersonHomePageState extends ConsumerState<DeliveryPersonHomePage>
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  'in_progress_count'.tr.replaceAll('@count', '3'),
+                  'in_progress_count'.tr.replaceAll('@count', '${dash?.inProgress ?? 0}'),
                   style: GoogleFonts.ubuntu(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -378,54 +353,44 @@ class _DeliveryPersonHomePageState extends ConsumerState<DeliveryPersonHomePage>
                 ),
               ],
             ),
-            child: Column(
-              children: [
-                _buildDeliveryItem(
-                  destination: 'Hôpital Central',
-                  bloodType: 'O+',
-                  quantity: '2 ${'units'.tr}',
-                  status: 'en_route'.tr,
-                  statusColor: Colors.blue,
-                  distance: '2.5 km',
-                  estimatedTime: '15 min',
-                ),
-                const Divider(height: 1),
-                _buildDeliveryItem(
-                  destination: 'Clinique Saint-Joseph',
-                  bloodType: 'A-',
-                  quantity: '1 ${'unit'.tr}',
-                  status: 'collected'.tr,
-                  statusColor: Colors.orange,
-                  distance: '4.2 km',
-                  estimatedTime: '25 min',
-                ),
-                const Divider(height: 1),
-                _buildDeliveryItem(
-                  destination: 'Hôpital Universitaire',
-                  bloodType: 'B+',
-                  quantity: '3 ${'units'.tr}',
-                  status: 'delivered'.tr,
-                  statusColor: Colors.green,
-                  distance: '1.8 km',
-                  estimatedTime: 'finished'.tr,
-                ),
-              ],
-            ),
+            child: today.isEmpty
+                ? Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Center(
+                      child: Text(
+                        'courier_no_deliveries_today'.tr,
+                        style: GoogleFonts.ubuntu(fontSize: 13, color: Colors.grey.shade600),
+                      ),
+                    ),
+                  )
+                : Column(
+                    children: [
+                      for (final (i, d) in today.indexed) ...[
+                        if (i > 0) const Divider(height: 1),
+                        _buildDeliveryItem(d),
+                      ],
+                    ],
+                  ),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildDeliveryItem({
-    required String destination,
-    required String bloodType,
-    required String quantity,
-    required String status,
-    required Color statusColor,
-    required String distance,
-    required String estimatedTime,
-  }) {
+  /// Phase chip: label and colour for a delivery's phase.
+  (String, Color) _phaseChip(String phase) => switch (phase) {
+        'delivered_and_confirmed' => ('delivered'.tr, Colors.green),
+        'cancelled' => ('courier_phase_cancelled'.tr, Colors.red),
+        'at_hospital' => ('at_hospital'.tr, Colors.teal),
+        'picked_up_from_blood_bank' => ('collected'.tr, Colors.orange),
+        'en_route_to_hospital' => ('en_route'.tr, Colors.blue),
+        _ => ('pill_to_bank'.tr, Colors.deepOrange),
+      };
+
+  Widget _buildDeliveryItem(CourierDeliveryRow d) {
+    final (status, statusColor) = _phaseChip(d.phase);
+    final at = (d.confirmedAt ?? d.acceptedAt ?? d.updatedAt)?.toLocal();
+    final time = at == null ? '' : '${at.hour.toString().padLeft(2, '0')}:${at.minute.toString().padLeft(2, '0')}';
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Row(
@@ -434,19 +399,11 @@ class _DeliveryPersonHomePageState extends ConsumerState<DeliveryPersonHomePage>
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.1),
+              color: (d.isUrgent ? Colors.red : ColorPages.COLOR_PRINCIPAL).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Center(
-              child: Text(
-                bloodType,
-                style: GoogleFonts.ubuntu(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: ColorPages.COLOR_PRINCIPAL,
-                ),
-              ),
-            ),
+            child: Icon(d.isUrgent ? Iconsax.danger : Iconsax.truck_fast,
+                size: 20, color: d.isUrgent ? Colors.red : ColorPages.COLOR_PRINCIPAL),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -454,7 +411,9 @@ class _DeliveryPersonHomePageState extends ConsumerState<DeliveryPersonHomePage>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  destination,
+                  d.hospitalName ?? '—',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.ubuntu(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -462,23 +421,14 @@ class _DeliveryPersonHomePageState extends ConsumerState<DeliveryPersonHomePage>
                   ),
                 ),
                 const SizedBox(height: 2),
-                Row(
-                  children: [
-                    Text(
-                      quantity,
-                      style: GoogleFonts.ubuntu(
-                        fontSize: 12,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                    Text(
-                      ' • $distance • $estimatedTime',
-                      style: GoogleFonts.ubuntu(
-                        fontSize: 12,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                  ],
+                Text(
+                  [if (d.bloodBankName != null) d.bloodBankName!, if (time.isNotEmpty) time].join(' • '),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.ubuntu(
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
+                  ),
                 ),
               ],
             ),

@@ -375,57 +375,64 @@ class _DeliverySheetState extends ConsumerState<DeliverySheet> {
 
     return [
       Expanded(
-        // The map takes 3/5 of the room, down to about the first stop card; the ETA, steps and cards scroll below it.
-        flex: 3,
-        child: Stack(
+        // One scroll for the whole sheet: the map takes 75% of its height, the ETA, steps and cards follow it.
+        child: LayoutBuilder(builder: (context, box) => ListView(
+          padding: const EdgeInsets.only(bottom: 8),
           children: [
-            Positioned.fill(child: (widget.mapBuilder ?? (_, t) => DeliveryMapView(tracking: t))(context, t)),
-            if (_courier && target.lat != null && target.lng != null)
-              Positioned(
-                left: 10,
-                bottom: 10,
-                child: FilledButton.icon(
-                  style: FilledButton.styleFrom(backgroundColor: _blue, visualDensity: VisualDensity.compact),
-                  onPressed: () => _launch([
-                    'google.navigation:q=${target.lat},${target.lng}&mode=l',
-                    'https://www.google.com/maps/dir/?api=1&destination=${target.lat},${target.lng}',
-                  ]),
-                  icon: const Icon(Icons.navigation, size: 18),
-                  label: Text('sheet_navigate'.tr),
-                ),
-              ),
-            if (!_courier && !_noCourier(t) && t.courierLastSeenAt != null)
-              Positioned(left: 10, top: 10, child: _FreshnessBadge(t)),
-          ],
-        ),
-      ),
-      Expanded(
-        flex: 2,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.baseline,
-              textBaseline: TextBaseline.alphabetic,
-              children: [
-                Text(eta == null ? '—' : 'eta_minutes'.trParams({'m': '${(eta / 60).ceil()}'}),
-                    style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w700)),
-                if (etaDetail != null) ...[
-                  const SizedBox(width: 8),
-                  Flexible(
-                    child: Text(etaDetail,
-                        overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 14, color: Colors.grey.shade700)),
-                  ),
+            SizedBox(
+              height: box.maxHeight * 0.75,
+              child: Stack(
+                children: [
+                  Positioned.fill(child: (widget.mapBuilder ?? (_, t) => DeliveryMapView(tracking: t))(context, t)),
+                  if (_courier && target.lat != null && target.lng != null)
+                    Positioned(
+                      left: 10,
+                      bottom: 10,
+                      child: FilledButton.icon(
+                        style: FilledButton.styleFrom(backgroundColor: _blue, visualDensity: VisualDensity.compact),
+                        onPressed: () => _launch([
+                          'google.navigation:q=${target.lat},${target.lng}&mode=l',
+                          'https://www.google.com/maps/dir/?api=1&destination=${target.lat},${target.lng}',
+                        ]),
+                        icon: const Icon(Icons.navigation, size: 18),
+                        label: Text('sheet_navigate'.tr),
+                      ),
+                    ),
+                  if (!_courier && !_noCourier(t) && t.courierLastSeenAt != null)
+                    Positioned(left: 10, top: 10, child: _FreshnessBadge(t)),
                 ],
-              ],
+              ),
             ),
-            const SizedBox(height: 10),
-            _StepBar(done: _progress[t.phase] ?? 0, labels: [for (final k in _stepLabels[widget.role]!) k.tr]),
-            const SizedBox(height: 14),
-            if (_courier && _codePhases.contains(t.phase) && t.verificationCode != null) _codeCard(t.verificationCode!),
-            ..._cards(t, toBank),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Text(eta == null ? '—' : 'eta_minutes'.trParams({'m': '${(eta / 60).ceil()}'}),
+                          style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w700)),
+                      if (etaDetail != null) ...[
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(etaDetail,
+                              overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 14, color: Colors.grey.shade700)),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  _StepBar(done: _progress[t.phase] ?? 0, labels: [for (final k in _stepLabels[widget.role]!) k.tr]),
+                  const SizedBox(height: 14),
+                  if (_courier && _codePhases.contains(t.phase) && t.verificationCode != null) _codeCard(t.verificationCode!),
+                  ..._cards(t, toBank),
+                ],
+              ),
+            ),
           ],
-        ),
+        )),
       ),
       ?action,
     ];

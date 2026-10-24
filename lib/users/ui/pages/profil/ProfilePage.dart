@@ -588,56 +588,62 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           width: 1,
         ),
       ),
-      child: ListTile(
-        leading: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: accountTypeColor.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(
-            _getAccountTypeIcon(accountType),
-            size: 20,
-            color: accountTypeColor,
-          ),
-        ),
-        title: Text(
-          'account_type'.tr,
-          style: GoogleFonts.ubuntu(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-            color: Colors.black87,
-          ),
-        ),
-        subtitle: Text(
-          accountTypeName,
-          style: GoogleFonts.ubuntu(
-            fontSize: 14,
-            color: Colors.grey.shade600,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        trailing: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: accountTypeColor.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: accountTypeColor.withValues(alpha: 0.3),
-              width: 1,
+      // Stacked, not a ListTile: the long badge in `trailing` crushed the title to a letter-wide column.
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: accountTypeColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                _getAccountTypeIcon(accountType),
+                size: 20,
+                color: accountTypeColor,
+              ),
             ),
-          ),
-          child: Text(
-            accountTypeName,
-            style: GoogleFonts.ubuntu(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: accountTypeColor,
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'account_type'.tr,
+                    style: GoogleFonts.ubuntu(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: accountTypeColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: accountTypeColor.withValues(alpha: 0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Text(
+                      accountTypeName,
+                      style: GoogleFonts.ubuntu(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: accountTypeColor,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
+          ],
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     );
   }

@@ -399,31 +399,38 @@ class _BloodSearchWelcomePageState extends ConsumerState<BloodSearchWelcomePage>
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Logo/Brand
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(12),
+                    // Logo + the logged-in structure's or user's name (« E-Blood » for visitors)
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              Iconsax.heart,
+                              color: Colors.white,
+                              size: 24,
+                            ),
                           ),
-                          child: const Icon(
-                            Iconsax.heart,
-                            color: Colors.white,
-                            size: 24,
+                          const SizedBox(width: 12),
+                          Flexible(
+                            child: Text(
+                              _isLoggedIn && _userDisplayName.isNotEmpty ? _userDisplayName : 'E-Blood',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.ubuntu(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          'E-Blood',
-                          style: GoogleFonts.ubuntu(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
+                          const SizedBox(width: 12),
+                        ],
+                      ),
                     ),
                     // Profile icon (if authenticated) and About icon
                     Row(

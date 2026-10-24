@@ -176,8 +176,6 @@ class _DeliverySheetState extends ConsumerState<DeliverySheet> {
   final _messenger = GlobalKey<ScaffoldMessengerState>();
   bool _ended = false;
   bool _busy = false;
-  final _headKey = GlobalKey();
-  double? _headHeight;
 
   bool get _courier => widget.role == DeliverySheetRole.courier;
 
@@ -374,48 +372,40 @@ class _DeliverySheetState extends ConsumerState<DeliverySheet> {
         ? (legM > 0 ? (toBank ? 'eta_km_to_bank' : 'eta_km_to_hospital').trParams({'km': _km(legM)}) : null)
         : (eta != null ? 'eta_arrival_at'.trParams({'time': _clock(DateTime.now().add(Duration(seconds: eta)))}) : null);
     final action = _action(context, t);
-    final cards = _cards(t, toBank);
-    final room = MediaQuery.sizeOf(context).height;
-    // The map takes all the room above the ETA, steps and first card; any further card scrolls under them.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final h = _headKey.currentContext?.size?.height;
-      if (mounted && h != null && h != _headHeight) setState(() => _headHeight = h);
-    });
 
     return [
       Expanded(
-        child: Stack(
+        // One scroll for the whole sheet: the map takes 70% of its height, the ETA, steps and cards follow it.
+        child: LayoutBuilder(builder: (context, box) => ListView(
+          padding: const EdgeInsets.only(bottom: 8),
           children: [
-            Positioned.fill(child: (widget.mapBuilder ?? (_, t) => DeliveryMapView(tracking: t))(context, t)),
-            if (_courier && target.lat != null && target.lng != null)
-              Positioned(
-                left: 10,
-                bottom: 10,
-                child: FilledButton.icon(
-                  style: FilledButton.styleFrom(backgroundColor: _blue, visualDensity: VisualDensity.compact),
-                  onPressed: () => _launch([
-                    'google.navigation:q=${target.lat},${target.lng}&mode=l',
-                    'https://www.google.com/maps/dir/?api=1&destination=${target.lat},${target.lng}',
-                  ]),
-                  icon: const Icon(Icons.navigation, size: 18),
-                  label: Text('sheet_navigate'.tr),
-                ),
+            SizedBox(
+              height: box.maxHeight * 0.7,
+              child: Stack(
+                children: [
+                  Positioned.fill(child: (widget.mapBuilder ?? (_, t) => DeliveryMapView(tracking: t))(context, t)),
+                  if (_courier && target.lat != null && target.lng != null)
+                    Positioned(
+                      left: 10,
+                      bottom: 10,
+                      child: FilledButton.icon(
+                        style: FilledButton.styleFrom(backgroundColor: _blue, visualDensity: VisualDensity.compact),
+                        onPressed: () => _launch([
+                          'google.navigation:q=${target.lat},${target.lng}&mode=l',
+                          'https://www.google.com/maps/dir/?api=1&destination=${target.lat},${target.lng}',
+                        ]),
+                        icon: const Icon(Icons.navigation, size: 18),
+                        label: Text('sheet_navigate'.tr),
+                      ),
+                    ),
+                  if (!_courier && !_noCourier(t) && t.courierLastSeenAt != null)
+                    Positioned(left: 10, top: 10, child: _FreshnessBadge(t)),
+                ],
               ),
-            if (!_courier && !_noCourier(t) && t.courierLastSeenAt != null)
-              Positioned(left: 10, top: 10, child: _FreshnessBadge(t)),
-          ],
-        ),
-      ),
-      SizedBox(
-        // +20 = the list's vertical padding; capped so a tall code card never squeezes the map away.
-        height: math.min(_headHeight == null ? room * 0.3 : _headHeight! + 20, room * 0.55),
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-          children: [
-            KeyedSubtree(
-              key: _headKey,
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
               child: Column(
-                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Row(
@@ -437,13 +427,12 @@ class _DeliverySheetState extends ConsumerState<DeliverySheet> {
                   _StepBar(done: _progress[t.phase] ?? 0, labels: [for (final k in _stepLabels[widget.role]!) k.tr]),
                   const SizedBox(height: 14),
                   if (_courier && _codePhases.contains(t.phase) && t.verificationCode != null) _codeCard(t.verificationCode!),
-                  ...cards.take(1),
+                  ..._cards(t, toBank),
                 ],
               ),
             ),
-            ...cards.skip(1),
           ],
-        ),
+        )),
       ),
       ?action,
     ];

@@ -172,26 +172,7 @@ class _BloodSearchWelcomePageState extends ConsumerState<BloodSearchWelcomePage>
     }
   }
 
-  String _accountTypeLabel(String type) {
-    switch (type) {
-      case 'hospital':
-        return 'hospital'.tr.isEmpty ? 'Hospital' : 'hospital'.tr;
-      case 'blood_bank':
-        return 'blood_bank'.tr.isEmpty ? 'Blood Bank' : 'blood_bank'.tr;
-      case 'customer':
-      case 'personal':
-        return 'personal_account'.tr;
-      case 'visitor':
-        return 'visitor'.tr.isEmpty ? 'Visitor' : 'visitor'.tr;
-      case 'blood_donor':
-        return 'blood_donor'.tr.isEmpty ? 'Blood Donor' : 'blood_donor'.tr;
-      case 'delivery':
-      case 'delivery_person':
-        return 'delivery'.tr.isEmpty ? 'Delivery' : 'delivery'.tr;
-      default:
-        return type.isNotEmpty ? type : 'User';
-    }
-  }
+  String _accountTypeLabel(String type) => SessionUserStore.accountTypeLabel(type);
 
   /// A signed-in hospital, blood bank, CNTS, customer… has a dashboard to go
   /// back to; a visitor or guest does not.

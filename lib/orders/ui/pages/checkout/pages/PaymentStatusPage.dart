@@ -286,6 +286,7 @@ class _PaymentStatusPageState extends ConsumerState<PaymentStatusPage>
     // Check status field
     if (status != null) {
       switch (status) {
+        case 'succeeded': // backend PaymentState
         case 'success':
         case 'completed':
         case 'approved':
@@ -296,6 +297,7 @@ class _PaymentStatusPageState extends ConsumerState<PaymentStatusPage>
         case 'failed':
         case 'rejected':
         case 'cancelled':
+        case 'expired':
         case 'error':
         case 'timeout':
           isFailure = true;

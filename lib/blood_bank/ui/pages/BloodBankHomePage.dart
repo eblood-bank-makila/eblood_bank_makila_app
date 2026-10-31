@@ -15,6 +15,7 @@ import 'BloodBankInventoryPage.dart';
 import 'HealthStructureNetworkPage.dart';
 import 'WalletManagementPage.dart';
 import 'BloodDonorsManagementPage.dart';
+import 'package:eblood_bank_mak_app/core/services/session_user_store.dart';
 
 class BloodBankHomePage extends ConsumerStatefulWidget {
   const BloodBankHomePage({super.key});
@@ -24,11 +25,15 @@ class BloodBankHomePage extends ConsumerStatefulWidget {
 }
 
 class _BloodBankHomePageState extends ConsumerState<BloodBankHomePage> {
+  SessionUser? _session;
   bool _isRefreshing = false;
 
   @override
   void initState() {
     super.initState();
+    SessionUserStore.current().then((u) {
+      if (mounted) setState(() => _session = u);
+    });
     // Load initial data
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadData();
@@ -174,7 +179,7 @@ class _BloodBankHomePageState extends ConsumerState<BloodBankHomePage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'blood_bank'.tr,
+_session?.displayName.isNotEmpty == true ? _session!.displayName :                   'blood_bank'.tr,
                   style: GoogleFonts.ubuntu(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
@@ -183,7 +188,7 @@ class _BloodBankHomePageState extends ConsumerState<BloodBankHomePage> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'dashboard_title'.tr,
+_session != null ? SessionUserStore.accountTypeLabel(_session!.accountType) :                   'dashboard_title'.tr,
                   style: GoogleFonts.ubuntu(
                     fontSize: 16,
                     color: Colors.grey.shade600,

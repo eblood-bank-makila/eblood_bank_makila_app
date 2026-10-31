@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 
 /// Compact, durable record of the currently logged-in user used to render the
 /// "logged-in" UI (e.g. the bottom user bar on the blood-search / QR page).
@@ -36,6 +38,47 @@ class SessionUserStore {
 
   static const String _key = 'session_user';
   static const FlutterSecureStorage _secure = FlutterSecureStorage();
+
+  /// Who is logged in right now, for the home headers: GetStorage's
+  /// `user_data` + `account_type` first (fresh right after login), else the
+  /// durable secure copy. Null when nobody is logged in.
+  static Future<SessionUser?> current() async {
+    try {
+      final box = GetStorage();
+      final accountType =
+          (box.read('account_type') ?? '').toString().toLowerCase();
+      final userData = box.read('user_data');
+      if (userData is Map) {
+        final name = deriveDisplayName(userData, accountType);
+        if (name.isNotEmpty) {
+          return SessionUser(displayName: name, accountType: accountType);
+        }
+      }
+    } catch (_) {}
+    return read();
+  }
+
+  /// Localised account-type label for a stored `account_type` value.
+  static String accountTypeLabel(String type) {
+    switch (type.trim().toLowerCase()) {
+      case 'hospital':
+        return 'hospital'.tr;
+      case 'blood_bank':
+        return 'blood_bank'.tr;
+      case 'customer':
+      case 'personal':
+        return 'personal_account'.tr;
+      case 'visitor':
+        return 'visitor'.tr;
+      case 'blood_donor':
+        return 'blood_donor'.tr;
+      case 'delivery':
+      case 'delivery_person':
+        return 'delivery'.tr;
+      default:
+        return type.isNotEmpty ? type : 'User';
+    }
+  }
 
   /// Persist the display name + account type. No-op when the name is empty.
   static Future<void> save({

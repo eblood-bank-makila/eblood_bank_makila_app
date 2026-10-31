@@ -35,6 +35,13 @@ class PaymentApi {
     return null;
   }
 
+  /// Same flat-envelope tolerance as [initiatePayload] for the two payment
+  /// status endpoints (`get-payment-status`, `confirm-collect`): a
+  /// `PaymentStatusResponse` always carries `customer_reference`.
+  @visibleForTesting
+  static Map<String, dynamic>? statusPayload(IApiResponse res) =>
+      initiatePayload(res);
+
   /// Same flat-envelope tolerance as [initiatePayload] for the
   /// purchase-quote endpoints — their sentinel key is `total`, not
   /// `customer_reference`.
@@ -346,13 +353,17 @@ class PaymentApi {
         '/payments/get-payment-status',
         queryParams: {'customer_reference': customerReference},
       );
-      if (!res.success || res.data is! Map) {
+      // FLAT body (no {success,data} envelope), like /initiate/payment and
+      // /confirm-collect: IApiResponse reports it as data:null, so the old
+      // `res.data is! Map` guard failed EVERY poll and the status page timed
+      // out on payments the webhook had already marked succeeded.
+      final payload = statusPayload(res);
+      if (payload == null) {
         return PaymentStatusResult.error(
           res.message ?? 'Échec de la vérification du statut.',
         );
       }
-      final data = Map<String, dynamic>.from(res.data as Map);
-      return PaymentStatusResult.fromJson(data);
+      return PaymentStatusResult.fromJson(payload);
     } catch (e) {
       debugPrint('💥 PaymentApi.getStatus error: $e');
       return PaymentStatusResult.error('Erreur: $e');
@@ -379,13 +390,7 @@ class PaymentApi {
       );
       // The endpoint answers FLAT (no {success,data} envelope) — same as
       // /initiate/payment. Fall back to raw when data is absent.
-      Map<String, dynamic>? payload;
-      if (res.data is Map) {
-        payload = Map<String, dynamic>.from(res.data as Map);
-      } else if (res.raw is Map &&
-          (res.raw as Map)['customer_reference'] != null) {
-        payload = Map<String, dynamic>.from(res.raw as Map);
-      }
+      final payload = statusPayload(res);
       if (payload == null) {
         return PaymentStatusResult.error(
           res.message ?? 'Échec de la confirmation du paiement.',
@@ -706,6 +711,7 @@ class PaymentStatusResult {
   /// can render without a switch-on-string at every call site.
   PaymentDisplayState get display {
     switch (state.toLowerCase()) {
+      case 'succeeded': // the backend's PaymentState value
       case 'paid':
       case 'approved':
       case 'success':

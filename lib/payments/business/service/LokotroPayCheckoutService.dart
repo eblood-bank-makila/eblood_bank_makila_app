@@ -56,6 +56,9 @@ class LokotroPayCheckoutService {
       customerReference: initiate.customerReference!,
       amount: (initiate.amountCents / 100.0).toStringAsFixed(2),
       currency: (initiate.currency ?? 'usd').toLowerCase(),
+      // eBlood already converted the amount into the buyer's chosen currency;
+      // naming it here stops the gateway converting again to the method's default.
+      transactionalCurrency: (initiate.currency ?? 'usd').toLowerCase(),
       paymentMethod: paymentMethod,
       userInfo: initiate.userInfo,
       paymentMethodInfo: initiate.paymentMethodInfo,

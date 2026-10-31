@@ -7,6 +7,7 @@ import 'package:eblood_bank_mak_app/core/rbac/providers/rbac_provider.dart';
 import 'package:eblood_bank_mak_app/core/rbac/services/rbac_guard.dart';
 import 'package:eblood_bank_mak_app/orders/ui/pages/checkout/pages/PaymentStatusPage.dart';
 import 'package:eblood_bank_mak_app/orders/ui/pages/checkout/widgets/PhoneNumberBottomSheet.dart';
+import 'package:eblood_bank_mak_app/payments/ui/widgets/currency_choice_sheet.dart';
 import 'package:eblood_bank_mak_app/payments/business/service/LokotroPayCheckoutService.dart';
 import 'package:eblood_bank_mak_app/payments/business/service/PaymentApi.dart';
 import 'package:eblood_bank_mak_app/stock_management/business/model/banque/BanqueModele.dart';
@@ -597,6 +598,8 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
         _selectedBloodBag = widget.isViewAddressMode && bags.isNotEmpty ? bags.first : null;
         _isLoading = false;
       });
+      // Address mode: the quote is only needed for its payable currencies.
+      if (widget.isViewAddressMode && _selectedBloodBag != null) _fetchPurchaseQuote();
     } catch (e, stackTrace) {
       debugPrint('❌ Error fetching blood bags: $e');
       debugPrint('Stack trace: $stackTrace');
@@ -623,7 +626,7 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
   /// is recomputed by initiate-purchase with the same helpers.
   Future<void> _fetchPurchaseQuote() async {
     final bag = _selectedBloodBag;
-    if (widget.isViewAddressMode || bag == null) return;
+    if (bag == null) return;
     if (!mounted) return;
     setState(() => _isLoadingQuote = true);
     final hospitalId = await _resolveHospitalId();
@@ -1605,7 +1608,16 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
 
     // Mobile money: collect the phone number up-front (prefilled into the SDK).
     String? momoPhone;
+    PayableCurrency? currency;
     if (_paymentMethod == _methodMobileMoney) {
+      final currencies = _purchaseQuote?.payableCurrencies ?? const <PayableCurrency>[];
+      currency = await CurrencyChoiceSheet.pick(
+        context,
+        currencies,
+        amountFor: (c) => widget.isViewAddressMode ? _addressAccessFee * c.rate : c.total,
+      );
+      if (currency == null && CurrencyChoiceSheet.needsChoice(currencies)) return;
+      if (!mounted) return;
       final typed = await _showPhoneNumberBottomSheet();
       momoPhone = HospitalBagPurchaseFlow.normalizeMomoPhone(typed ?? '');
       if (momoPhone == null) {
@@ -1635,6 +1647,7 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
           entityId: bag.bloodBagInfo.id,
           amountCents: feeCents,
           currency: _currencyCode,
+          transactionalCurrencyId: currency?.id,
         );
       } else {
         // Delivery purchase of this bag to the logged-in hospital. The
@@ -1651,6 +1664,7 @@ class _BloodBagOrderStepperPageState extends ConsumerState<BloodBagOrderStepperP
           bloodBagId: bag.bloodBagInfo.id,
           hospitalId: hospitalId,
           phoneNumber: momoPhone,
+          transactionalCurrencyId: currency?.id,
         );
       }
 

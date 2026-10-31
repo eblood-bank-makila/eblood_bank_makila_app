@@ -19,6 +19,8 @@ import '../../../apps/config/theme/ColorPages.dart';
 import '../widgets/search_flow_app_bar.dart';
 import '../../data/services/visitor_registration_service_impl.dart';
 import '../../../payments/business/service/LokotroPayCheckoutService.dart';
+import '../../../payments/ui/widgets/currency_choice_sheet.dart';
+import '../../../payments/ui/widgets/dial_code_dropdown.dart';
 import '../../../payments/business/service/PaymentApi.dart';
 
 // Use PaymentOption from domain entities instead of defining a local one
@@ -125,10 +127,9 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
   }
 
   /// Fetch the exact delivery total (bag + fees) from the backend so the
-  /// pre-checkout price matches what the SDK will charge. No-op for the
-  /// view-address option (its 10% fee is computed accurately client-side).
+  /// pre-checkout price matches what the SDK will charge. Also the source of
+  /// the payable currencies, so it runs for the view-address option too.
   Future<void> _maybeFetchDeliveryQuote() async {
-    if (_selectedOption != PaymentOption.delivery) return;
     final state = ref.read(searchFlowProvider);
     final selected = state.selectedResult;
     if (selected == null || selected.id.isEmpty) return;
@@ -201,6 +202,7 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
             _SelectedOptionSummary(
               option: _selectedOption,
               price: _displayPrice,
+              currencyCode: _currency,
             ),
 
             const SizedBox(height: 24),
@@ -467,16 +469,26 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
     final option =
         isDelivery ? PaymentOption.delivery : PaymentOption.viewAddress;
 
-    // Mobile money: collect the phone number up-front (prefilled into the SDK).
+    // Mobile money: pick the currency, then the number with its dial code
+    // (both prefilled into the SDK).
     String? momoPhone;
+    PayableCurrency? currency;
     if (method == 'mobile_money') {
+      final currencies = _deliveryQuote?.payableCurrencies ?? const <PayableCurrency>[];
+      currency = await CurrencyChoiceSheet.pick(
+        context,
+        currencies,
+        amountFor: (c) => isDelivery ? c.total : _viewAddressPrice * c.rate,
+      );
+      if (currency == null && CurrencyChoiceSheet.needsChoice(currencies)) return;
+      if (!mounted) return;
       final phoneNumber = await _showMobileMoneyPhoneBottomSheet();
       if (phoneNumber == null || phoneNumber.isEmpty) {
         // User cancelled or didn't enter a phone number
         return;
       }
       _phoneNumber = phoneNumber;
-      momoPhone = '+243$_phoneNumber';
+      momoPhone = phoneNumber;
     }
 
     setState(() {
@@ -498,6 +510,7 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
         if (selectedResult != null) 'blood_bag_id': selectedResult.id,
         if (selectedResult != null) 'blood_bags_id': [selectedResult.id],
         if (momoPhone != null) 'phone_number': momoPhone,
+        if (currency != null) 'transactional_currency_id': currency.id,
       };
 
       // Cash on delivery: no online collection — the courier collects on
@@ -779,8 +792,13 @@ class _BloodBankDistanceCard extends StatelessWidget {
 class _SelectedOptionSummary extends StatelessWidget {
   final PaymentOption option;
   final double price;
+  final String currencyCode;
 
-  const _SelectedOptionSummary({required this.option, required this.price});
+  const _SelectedOptionSummary({
+    required this.option,
+    required this.price,
+    required this.currencyCode,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -892,7 +910,7 @@ class _SelectedOptionSummary extends StatelessWidget {
                 ),
               ),
               Text(
-                'CDF',
+                currencyCode,
                 style: GoogleFonts.ubuntu(
                   fontSize: 11,
                   color: Colors.grey.shade500,
@@ -1116,6 +1134,12 @@ class _MobileMoneyPhoneBottomSheetState
     extends State<_MobileMoneyPhoneBottomSheet> {
   final _phoneController = TextEditingController();
   String _phoneNumber = '';
+  String _dialCode = DialCodeDropdown.defaultCode;
+
+  // DRC mobile numbers are 9 digits; other covered countries vary.
+  bool get _phoneOk => _dialCode == DialCodeDropdown.defaultCode
+      ? _phoneNumber.length == 9
+      : _phoneNumber.length >= 8;
 
   @override
   void initState() {
@@ -1273,13 +1297,9 @@ class _MobileMoneyPhoneBottomSheetState
                                     color: Colors.grey.shade200,
                                   ),
                                 ),
-                                child: Text(
-                                  '+243',
-                                  style: GoogleFonts.ubuntu(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.grey.shade700,
-                                  ),
+                                child: DialCodeDropdown(
+                                  value: _dialCode,
+                                  onChanged: (v) => setState(() => _dialCode = v),
                                 ),
                               ),
                               const SizedBox(width: 12),
@@ -1339,8 +1359,8 @@ class _MobileMoneyPhoneBottomSheetState
                     width: double.infinity,
                     height: 56,
                     child: ElevatedButton.icon(
-                      onPressed: _phoneNumber.length == 9
-                          ? () => Navigator.pop(context, _phoneNumber)
+                      onPressed: _phoneOk
+                          ? () => Navigator.pop(context, '$_dialCode$_phoneNumber')
                           : null,
                       icon: Icon(
                         Iconsax.tick_circle,

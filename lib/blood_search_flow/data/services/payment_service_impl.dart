@@ -73,6 +73,7 @@ class PaymentServiceImpl implements IPaymentService {
       entityId: entityId,
       amountCents: _readAmountCents(paymentDetails),
       currency: _readCurrency(paymentDetails),
+      transactionalCurrencyId: paymentDetails['transactional_currency_id']?.toString(),
     );
   }
 

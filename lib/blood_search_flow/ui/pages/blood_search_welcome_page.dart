@@ -179,7 +179,8 @@ class _BloodSearchWelcomePageState extends ConsumerState<BloodSearchWelcomePage>
       case 'blood_bank':
         return 'blood_bank'.tr.isEmpty ? 'Blood Bank' : 'blood_bank'.tr;
       case 'customer':
-        return 'customer'.tr.isEmpty ? 'Customer' : 'customer'.tr;
+      case 'personal':
+        return 'personal_account'.tr;
       case 'visitor':
         return 'visitor'.tr.isEmpty ? 'Visitor' : 'visitor'.tr;
       case 'blood_donor':
@@ -417,15 +418,32 @@ class _BloodSearchWelcomePageState extends ConsumerState<BloodSearchWelcomePage>
                           ),
                           const SizedBox(width: 12),
                           Flexible(
-                            child: Text(
-                              _isLoggedIn && _userDisplayName.isNotEmpty ? _userDisplayName : 'E-Blood',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.ubuntu(
-                                color: Colors.white,
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  _isLoggedIn && _userDisplayName.isNotEmpty ? _userDisplayName : 'E-Blood',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.ubuntu(
+                                    color: Colors.white,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                // Account type under the name: « Banque de Sang », « Compte Personnel »…
+                                if (_isLoggedIn && _userSubtitle.isNotEmpty)
+                                  Text(
+                                    _userSubtitle,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: GoogleFonts.ubuntu(
+                                      color: Colors.white.withOpacity(0.8),
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                              ],
                             ),
                           ),
                           const SizedBox(width: 12),

@@ -28,6 +28,7 @@ import '../ins/ins_landing_page.dart';
 
 import '../services/AuthService.dart';
 import '../ins/ins_request_details_page.dart';
+import 'package:eblood_bank_mak_app/core/services/session_user_store.dart';
 
 
 class CustomerHomePage extends ConsumerStatefulWidget {
@@ -38,6 +39,7 @@ class CustomerHomePage extends ConsumerStatefulWidget {
 }
 
 class _CustomerHomePageState extends ConsumerState<CustomerHomePage> with WidgetsBindingObserver {
+  SessionUser? _session;
   final _service = AnnouncementsService();
   bool _loading = true;
   List<Map<String, dynamic>> _all = [];
@@ -62,6 +64,9 @@ class _CustomerHomePageState extends ConsumerState<CustomerHomePage> with Widget
   @override
   void initState() {
     super.initState();
+    SessionUserStore.current().then((u) {
+      if (mounted) setState(() => _session = u);
+    });
     WidgetsBinding.instance.addObserver(this);
     _loadProfileFlags();
     _subscribeToProfileUpdates();
@@ -240,7 +245,7 @@ class _CustomerHomePageState extends ConsumerState<CustomerHomePage> with Widget
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'E-Blood Bank',
+_session?.displayName.isNotEmpty == true ? _session!.displayName :                         'E-Blood Bank',
                         style: GoogleFonts.ubuntu(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -248,7 +253,7 @@ class _CustomerHomePageState extends ConsumerState<CustomerHomePage> with Widget
                         ),
                       ),
                       Text(
-                        'Trouvez du sang rapidement',
+_session != null ? SessionUserStore.accountTypeLabel(_session!.accountType) :                         'Trouvez du sang rapidement',
                         style: GoogleFonts.ubuntu(
                           fontSize: 12,
                           color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.7),

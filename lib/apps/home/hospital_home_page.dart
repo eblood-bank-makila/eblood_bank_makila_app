@@ -22,6 +22,7 @@ import '../../delivery/business/interactors/DeliveryController.dart';
 import '../../delivery/ui/widgets/IncomingDeliveryWidget.dart';
 
 import '../widgets/advertisement/AdvertisementCarousel.dart';
+import 'package:eblood_bank_mak_app/core/services/session_user_store.dart';
 
 /// Hospital/Blood Bank Home Page - Main dashboard with stats and quick actions
 class HospitalHomePage extends ConsumerStatefulWidget {
@@ -32,6 +33,7 @@ class HospitalHomePage extends ConsumerStatefulWidget {
 }
 
 class _HospitalHomePageState extends ConsumerState<HospitalHomePage> {
+  SessionUser? _session;
   bool _loading = true;
 
   // Stats (now loaded from API)
@@ -49,6 +51,9 @@ class _HospitalHomePageState extends ConsumerState<HospitalHomePage> {
   @override
   void initState() {
     super.initState();
+    SessionUserStore.current().then((u) {
+      if (mounted) setState(() => _session = u);
+    });
     _loadDashboardData();
     // Load incoming deliveries
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -167,7 +172,7 @@ class _HospitalHomePageState extends ConsumerState<HospitalHomePage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'E-Blood Bank',
+_session?.displayName.isNotEmpty == true ? _session!.displayName :                           'E-Blood Bank',
                           style: GoogleFonts.ubuntu(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -175,7 +180,7 @@ class _HospitalHomePageState extends ConsumerState<HospitalHomePage> {
                           ),
                         ),
                         Text(
-                          'Sauvez des vies en un clique',
+_session != null ? SessionUserStore.accountTypeLabel(_session!.accountType) :                           'Sauvez des vies en un clique',
                           style: GoogleFonts.ubuntu(
                             fontSize: 12,
                             color: ColorPages.COLOR_PRINCIPAL.withValues(alpha: 0.7),

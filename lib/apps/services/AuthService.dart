@@ -975,11 +975,21 @@ class AuthService {
       }
 
       // 1d. Sign out from Firebase Auth (Google Sign-In)
+      // Each sign-out on its own: when the Google one threw, the Firebase one
+      // was skipped too, the Firebase session survived the logout and the next
+      // « Continuer avec Google » tap signed straight back in without a picker.
       try {
-        final firebaseAuth = FirebaseAuth.instance;
-        final googleSignIn = GoogleSignIn();
-        await googleSignIn.signOut();
-        await firebaseAuth.signOut();
+        await GoogleSignIn().disconnect();
+      } catch (e) {
+        debugPrint('⚠️ [Logout] Google disconnect failed: $e');
+      }
+      try {
+        await GoogleSignIn().signOut();
+      } catch (e) {
+        debugPrint('⚠️ [Logout] Google sign-out failed: $e');
+      }
+      try {
+        await FirebaseAuth.instance.signOut();
         debugPrint('🔐 [Logout] Firebase sign-out done');
       } catch (e) {
         debugPrint('⚠️ [Logout] Firebase sign-out failed: $e');

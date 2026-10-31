@@ -206,6 +206,8 @@ class HospitalBagPurchaseFlow {
   static String? normalizeMomoPhone(String raw) {
     var digits = raw.replaceAll(RegExp(r'[^\d]'), '');
     if (digits.isEmpty) return null;
+    // `+<dial><number>` from the phone sheet's dial-code picker: already complete.
+    if (raw.trim().startsWith('+')) return '+$digits';
     if (digits.startsWith('0')) digits = digits.substring(1);
     if (!digits.startsWith('243')) digits = '243$digits';
     return '+$digits';

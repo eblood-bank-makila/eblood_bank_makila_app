@@ -27,8 +27,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:go_router/go_router.dart';
 import 'BloodRequestConfigDialog.dart';
 
-import '../../../../business/service/CurrencyExchangeService.dart';
-import '../../../debug/CurrencyExchangeDebugPage.dart';
+import 'package:eblood_bank_mak_app/payments/ui/widgets/currency_choice_sheet.dart';
 
 class DetailCommandePage extends ConsumerStatefulWidget {
   final DatumModel paiement;
@@ -95,7 +94,6 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
         ConfettiController(duration: const Duration(seconds: 10));
 
     // Initialize currency exchange data
-    _initializeCurrencyExchange();
 
     // Fetch the server-side price breakdown (includes the km delivery fee
     // the client cannot compute) for the cart being checked out.
@@ -117,54 +115,6 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
     setState(() {
       _cartQuote = quote;
       _isQuoteLoading = false;
-    });
-  }
-
-  void _initializeCurrencyExchange() {
-    debugPrint('🚀 Initializing currency exchange in initState');
-
-    // Trigger the currencyExchangeProvider with current cart amount and currency
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        try {
-          final cartState = ref.read(panierCtrlProvider);
-          final totalAmount = cartState.paniers?.data.isNotEmpty == true
-              ? cartState.paniers!.data[0].totalPrice.toDouble()
-              : 0.0;
-          final cart = cartState.paniers?.data.isNotEmpty == true ? cartState.paniers!.data[0] : null;
-          // Sprint 15 — pricing module wants the ISO code (e.g. 'USD'),
-          // not the legacy Mongo ref_currency_id. The cart already
-          // exposes its currency code; use it directly.
-          final fromCode = (cart?.currency ?? '').toString().trim();
-
-          if (fromCode.isEmpty) {
-            debugPrint('⚠️ Skipping currency exchange fetch: cart.currency code is empty');
-            debugPrint('🔎 Cart debug: cart.currency="${cart?.currency ?? ''}", cart.refCurrencyId="${cart?.refCurrencyId ?? ''}"');
-            return;
-          }
-
-          // Force the provider to fetch data immediately by reading it
-          final asyncValue = ref.read(
-            currencyExchangeProvider(
-              CurrencyExchangeParams(amount: totalAmount, fromCurrencyCode: fromCode),
-            ),
-          );
-          debugPrint('🔄 Currency exchange provider triggered with amount=$totalAmount, from_currency=$fromCode');
-          debugPrint('📊 Initial state: ${asyncValue.runtimeType}');
-
-          // Check the current state
-          asyncValue.when(
-            loading: () => debugPrint('🔄 Provider is loading...'),
-            error: (error, stack) => debugPrint('❌ Provider error: $error'),
-            data: (response) {
-              debugPrint('✅ Provider has data: ${response.success}');
-              debugPrint('📊 Currencies loaded: ${response.data.length}');
-            },
-          );
-        } catch (e) {
-          debugPrint('❌ Error triggering currency exchange provider: $e');
-        }
-      }
     });
   }
 
@@ -195,140 +145,26 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
   }
 
   Widget _buildCurrencyPaymentButtons(int totalPrice) {
-    // Get cart state and derive params
-    var state = ref.watch(panierCtrlProvider);
-    final cartCurrency = state.paniers?.data.isNotEmpty == true
-        ? state.paniers!.data[0].currency
-        : 'CDF';
-    final cart = state.paniers?.data.isNotEmpty == true ? state.paniers!.data[0] : null;
-    // Sprint 15 — pass the ISO code, not the legacy Mongo currency id.
-    final fromCode = (cart?.currency ?? '').toString().trim();
-
-    // Watch provider with params (Sprint 15: GET /pricing/get-currency-exchange-rate)
-    final currencyExchangeAsync = ref.watch(
-      currencyExchangeProvider(
-        CurrencyExchangeParams(amount: totalPrice.toDouble(), fromCurrencyCode: fromCode),
-      ),
-    );
-
-    return currencyExchangeAsync.when(
-      loading: () {
-        debugPrint('🔄 Currency Exchange: Loading state');
-        return _buildLoadingPaymentButton(totalPrice);
-      },
-      error: (error, stack) {
-        debugPrint('❌ Currency Exchange Error: $error');
-        debugPrint('❌ Stack trace: $stack');
-        return _buildDefaultPaymentButton(totalPrice);
-      },
-      data: (currencyResponse) {
-        debugPrint('📊 Currency Exchange Response received');
-        debugPrint('📊 Success: ${currencyResponse.success}');
-        debugPrint('📊 Data length: ${currencyResponse.data.length}');
-        debugPrint('📊 Message: ${currencyResponse.message}');
-
-        if (currencyResponse.data.isNotEmpty) {
-          debugPrint('📊 First currency data: ${currencyResponse.data.first.toString()}');
-        }
-
-        if (!currencyResponse.success || currencyResponse.data.isEmpty) {
-          debugPrint('⚠️ No currency data available, showing default button');
-          return _buildDefaultPaymentButton(totalPrice);
-        }
-
-        // Prefer a conversion that changes currency (FROM cart currency TO another)
-        final exchanges = currencyResponse.data;
-        final convertedOption = exchanges.firstWhere(
-          (c) => c.currencyFromCode.toLowerCase() == cartCurrency.toLowerCase() &&
-                 c.currencyToCode.toLowerCase() != cartCurrency.toLowerCase(),
-          orElse: () => exchanges.first,
-        );
-
-        // Prefer the server quote total (bags + fees + km delivery fee) for
-        // both labels; the converted one applies the exchange rate to it.
-        final num payableTotal = _cartQuote?.total ?? totalPrice;
-        final convertedAmount = _cartQuote != null
-            ? _cartQuote!.total * convertedOption.exchangedValue
-            : convertedOption.convertedAmount;
-
-        debugPrint('💱 Currency conversion:');
-        debugPrint('💱 Cart currency: $cartCurrency');
-        debugPrint('💱 Available currencies: ${currencyResponse.data.length}');
-        for (var currency in currencyResponse.data) {
-          debugPrint('💱   ${currency.currencyFromCode} → ${currency.currencyToCode}: ${currency.exchangedValue}');
-          debugPrint('💱     From ID: ${currency.currencyFrom}, To ID: ${currency.currencyTo}');
-        }
-        debugPrint('💱 Selected conversion: ${convertedOption.currencyFromCode} → ${convertedOption.currencyToCode}');
-        debugPrint('💱 Rate: ${convertedOption.exchangedValue}');
-        debugPrint('💱 Original amount: $cartCurrency ${totalPrice.toStringAsFixed(2)}');
-        debugPrint('💱 Converted amount: ${convertedAmount.toStringAsFixed(2)} ${convertedOption.currencyToCode.toUpperCase()}');
-        debugPrint('💱 Currency IDs: From=${convertedOption.currencyFrom}, To=${convertedOption.currencyTo}');
-        debugPrint('💱 Will send transactional_currency_id: ${convertedOption.currencyTo}');
-
-        return Column(
-          children: [
-            // Currency exchange info
-            Container(
-              margin: const EdgeInsets.only(bottom: 16),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.blue.shade200),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Iconsax.money_change,
-                    color: Colors.blue.shade600,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Taux de change: 1 ${cartCurrency.toUpperCase()} = ${convertedOption.exchangedValue.toStringAsFixed(4)} ${convertedOption.currencyToCode.toUpperCase()}',
-                      style: GoogleFonts.ubuntu(
-                        fontSize: 14,
-                        color: Colors.blue.shade700,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ],
+    // Exact totals per payable currency come from /cart/purchase-quote; the
+    // backend converts and mints the gateway session in the chosen currency.
+    final currencies = _cartQuote?.payableCurrencies ?? const <PayableCurrency>[];
+    if (currencies.length < 2) return _buildDefaultPaymentButton(totalPrice);
+    return Column(
+      children: [
+        for (final c in currencies)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: SizedBox(
+              width: double.infinity,
+              child: _buildPaymentButton(
+                label: 'Payer ${CurrencyChoiceSheet.formatAmount(c.total, c)}',
+                subtitle: c == currencies.first ? '${c.code} (Original)' : '${c.code} (Converti)',
+                onPressed: () => _processPaymentWithCurrency(c.id),
+                isPrimary: c == currencies.first,
               ),
             ),
-
-            const SizedBox(height: 16),
-
-            // Two payment buttons
-            Row(
-              children: [
-                // Blood request currency button (from cart)
-                Expanded(
-                  child: _buildPaymentButton(
-                    label: 'Payer $cartCurrency ${payableTotal.toStringAsFixed(2)}',
-                    subtitle: '${cartCurrency.toUpperCase()} (Original)',
-                    onPressed: () => _processPaymentWithCurrency(null), // null = cart currency default
-                    isPrimary: true,
-                  ),
-                ),
-
-                const SizedBox(width: 12),
-
-                // Converted currency button
-                Expanded(
-                  child: _buildPaymentButton(
-                    label: 'Payer ${_formatCurrency(convertedAmount, convertedOption.currencyToCode)}',
-                    subtitle: '${convertedOption.currencyToCode.toUpperCase()} (Converti)',
-                    onPressed: () => _processPaymentWithCurrency(convertedOption.currencyTo),
-                    isPrimary: false,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        );
-      },
+          ),
+      ],
     );
   }
 
@@ -914,21 +750,6 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
     );
   }
 
-  String _formatCurrency(double amount, String currencyCode) {
-    final currency = currencyCode.toLowerCase();
-
-    // For currencies that typically have large amounts (like CDF), show without decimals
-    if (currency == 'cdf' || currency == 'ugx' || currency == 'rwf') {
-      // Format with thousand separators
-      final formatter = RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))');
-      String result = amount.toStringAsFixed(0).replaceAllMapped(formatter, (Match m) => '${m[1]},');
-      return result;
-    }
-
-    // For other currencies (USD, EUR, etc.), show with 2 decimal places
-    return amount.toStringAsFixed(2);
-  }
-
   void _showDebugOptions() {
     showModalBottomSheet(
       context: context,
@@ -965,105 +786,7 @@ class _DetailCommandePageState extends ConsumerState<DetailCommandePage> {
             ),
             const SizedBox(height: 20),
 
-            // Refresh Currency Data
-            ListTile(
-              leading: const Icon(Icons.refresh, color: Colors.blue),
-              title: Text(
-                'Refresh Currency Data',
-                style: GoogleFonts.ubuntu(fontWeight: FontWeight.w600),
-              ),
-              subtitle: Text(
-                'Reload currency exchange rates',
-                style: GoogleFonts.ubuntu(fontSize: 12),
-              ),
-              onTap: () {
-                if (context.canPop()) {
-                  context.pop();
-                }
-                final cartState = ref.read(panierCtrlProvider);
-                final totalAmount = cartState.paniers?.data.isNotEmpty == true
-                    ? cartState.paniers!.data[0].totalPrice.toDouble()
-                    : 0.0;
-                final cart = cartState.paniers?.data.isNotEmpty == true ? cartState.paniers!.data[0] : null;
-                final fromCode = (cart?.currency ?? '').toString().trim();
-                ref.invalidate(
-                  currencyExchangeProvider(
-                    CurrencyExchangeParams(amount: totalAmount, fromCurrencyCode: fromCode),
-                  ),
-                );
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Currency data refreshed',
-                      style: GoogleFonts.ubuntu(),
-                    ),
-                    backgroundColor: Colors.blue,
-                  ),
-                );
-              },
-            ),
-
-            // Open Debug Page
-            ListTile(
-              leading: const Icon(Icons.bug_report, color: Colors.orange),
-              title: Text(
-                'Open Debug Page',
-                style: GoogleFonts.ubuntu(fontWeight: FontWeight.w600),
-              ),
-              subtitle: Text(
-                'View detailed currency exchange info',
-                style: GoogleFonts.ubuntu(fontSize: 12),
-              ),
-              onTap: () {
-                if (context.canPop()) {
-                  context.pop();
-                }
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const CurrencyExchangeDebugPage(),
-                  ),
-                );
-              },
-            ),
-
             const SizedBox(height: 20),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLoadingPaymentButton(int totalPrice) {
-    return SizedBox(
-      width: double.infinity,
-      height: 56,
-      child: ElevatedButton(
-        onPressed: null,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.grey.shade300,
-          foregroundColor: Colors.grey.shade600,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              'Chargement des devises...',
-              style: GoogleFonts.ubuntu(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
           ],
         ),
       ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../../../apps/config/theme/ColorPages.dart';
+import 'package:eblood_bank_mak_app/payments/ui/widgets/dial_code_dropdown.dart';
 
 class PhoneNumberBottomSheet extends StatefulWidget {
   final Function(String phoneNumber) onPhoneNumberSubmitted;
@@ -18,6 +19,7 @@ class _PhoneNumberBottomSheetState extends State<PhoneNumberBottomSheet> {
   final TextEditingController _phoneController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
+  String _dialCode = DialCodeDropdown.defaultCode;
 
   @override
   void dispose() {
@@ -53,7 +55,7 @@ class _PhoneNumberBottomSheetState extends State<PhoneNumberBottomSheet> {
       }
     }
     
-    if (!hasValidPrefix) {
+    if (_dialCode == DialCodeDropdown.defaultCode && !hasValidPrefix) {
       return 'Numéro de téléphone invalide';
     }
     
@@ -63,13 +65,13 @@ class _PhoneNumberBottomSheetState extends State<PhoneNumberBottomSheet> {
   String _formatPhoneNumber(String phoneNumber) {
     // Remove any non-digit characters
     String cleanNumber = phoneNumber.replaceAll(RegExp(r'[^\d]'), '');
-    
-    // Add country code if not present
-    if (!cleanNumber.startsWith('243')) {
-      cleanNumber = '243$cleanNumber';
+    final dial = _dialCode.replaceAll('+', '');
+    if (cleanNumber.startsWith('0')) cleanNumber = cleanNumber.substring(1);
+    // Add the picked dial code unless it was typed already
+    if (!cleanNumber.startsWith(dial)) {
+      cleanNumber = '$dial$cleanNumber';
     }
-    
-    return cleanNumber;
+    return '+$cleanNumber';
   }
 
   void _submitPhoneNumber() {
@@ -157,11 +159,20 @@ class _PhoneNumberBottomSheetState extends State<PhoneNumberBottomSheet> {
                   validator: _validatePhoneNumber,
                   decoration: InputDecoration(
                     labelText: 'Numéro de téléphone',
-                    hintText: 'Ex: 243991234567 ou 991234567',
-                    prefixIcon: const Icon(
-                      Icons.phone,
-                      color: ColorPages.COLOR_PRINCIPAL,
+                    hintText: 'Ex: 991234567',
+                    prefixIcon: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: DialCodeDropdown(
+                        value: _dialCode,
+                        onChanged: (v) => setState(() => _dialCode = v),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: ColorPages.COLOR_PRINCIPAL,
+                        ),
+                      ),
                     ),
+                    prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                       borderSide: const BorderSide(color: ColorPages.COLOR_PRINCIPAL),

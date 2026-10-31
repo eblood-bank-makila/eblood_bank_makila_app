@@ -1036,6 +1036,8 @@ class AppTranslations extends Translations {
       'account_type_description':
           'Choisissez le type de compte qui correspond le mieux à vos besoins',
       'personal_account': 'Compte Personnel',
+      'choose_payment_currency': 'Choisissez la devise de paiement',
+      'pay_in_currency': 'Payer',
       'personal_account_description':
           'Pour les donneurs et receveurs individuels',
       'hospital_account': 'Compte Hôpital',
@@ -3382,6 +3384,8 @@ class AppTranslations extends Translations {
       'account_type_description':
           'Choose the account type that best fits your needs',
       'personal_account': 'Personal Account',
+      'choose_payment_currency': 'Choose the payment currency',
+      'pay_in_currency': 'Pay',
       'personal_account_description': 'For individual donors and recipients',
       'hospital_account': 'Hospital Account',
       'hospital_account_description': 'For hospital establishments',
@@ -4808,6 +4812,8 @@ class AppTranslations extends Translations {
       'no_access_message': 'No hay funciones disponibles para su perfil. Contacte a su administrador.',
       'system_account': 'Cuenta del sistema',
       'personal_account': 'Cuenta personal',
+      'choose_payment_currency': 'Elija la moneda de pago',
+      'pay_in_currency': 'Pagar',
       'health_structure_account': 'Cuenta de entidad de salud',
       'blood_bank_account': 'Cuenta de banco de sangre',
       'hospital_account': 'Cuenta de hospital',
@@ -6625,6 +6631,8 @@ class AppTranslations extends Translations {
       'blood_bank_account': 'Compte Banque ya Makila',
       'health_structure_account': 'Compte ya structure ya bokolongono',
       'personal_account': 'Compte ya moto moko',
+      'choose_payment_currency': 'Pona mosolo ya kofuta',
+      'pay_in_currency': 'Futa',
       'delivery_person': 'Livreur',
       'admin_phone': 'Telephone ya Administrateur',
 
@@ -8092,6 +8100,8 @@ class AppTranslations extends Translations {
       'blood_bank_account': 'Аккаунт банка крови',
       'health_structure_account': 'Аккаунт медицинской организации',
       'personal_account': 'Личный аккаунт',
+      'choose_payment_currency': 'Выберите валюту оплаты',
+      'pay_in_currency': 'Оплатить',
       'delivery_person': 'Курьер',
       'admin_phone': 'Телефон администратора',
 

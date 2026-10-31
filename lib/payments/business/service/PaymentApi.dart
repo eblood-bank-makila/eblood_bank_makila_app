@@ -78,6 +78,7 @@ class PaymentApi {
     required int amountCents,
     required String currency,
     String? description,
+    String? transactionalCurrencyId,
   }) async {
     try {
       final payerUserId = EbloodAuthHelper.currentUserId();
@@ -96,6 +97,8 @@ class PaymentApi {
         'currency': currency.toUpperCase(),
         if (description != null && description.isNotEmpty)
           'description': description,
+        if (transactionalCurrencyId != null && transactionalCurrencyId.isNotEmpty)
+          'transactional_currency_id': transactionalCurrencyId,
       };
 
       final res = await postWithDio('/payments/initiate/payment', body: body);
@@ -478,6 +481,10 @@ class VisitorPurchaseQuote {
   final double total;
   final String? currency;
 
+  /// Currencies the buyer may pay in (bag currency first), each with the exact
+  /// converted total the backend will charge. Empty on older backends.
+  final List<PayableCurrency> payableCurrencies;
+
   const VisitorPurchaseQuote({
     required this.bagPrice,
     required this.ebloodFee,
@@ -486,6 +493,7 @@ class VisitorPurchaseQuote {
     this.distanceKm,
     required this.total,
     this.currency,
+    this.payableCurrencies = const [],
   });
 
   factory VisitorPurchaseQuote.fromJson(Map<String, dynamic> json) {
@@ -499,6 +507,44 @@ class VisitorPurchaseQuote {
           (json['distance_km'] is num) ? (json['distance_km'] as num).toDouble() : null,
       total: d(json['total']),
       currency: json['currency']?.toString(),
+      payableCurrencies: [
+        for (final c in (json['payable_currencies'] as List? ?? const []))
+          if (c is Map) PayableCurrency.fromJson(Map<String, dynamic>.from(c)),
+      ],
+    );
+  }
+}
+
+/// One currency the backend accepts for a purchase, with the converted total.
+class PayableCurrency {
+  const PayableCurrency({
+    required this.id,
+    required this.code,
+    this.symbol,
+    required this.rate,
+    required this.total,
+    required this.amountCents,
+  });
+
+  /// ref_currency id — what `transactional_currency_id` expects.
+  final String id;
+  final String code;
+  final String? symbol;
+
+  /// Units of this currency per unit of the bag's currency (1.0 for itself).
+  final double rate;
+  final double total;
+  final int amountCents;
+
+  factory PayableCurrency.fromJson(Map<String, dynamic> json) {
+    double d(dynamic v) => (v is num) ? v.toDouble() : 0.0;
+    return PayableCurrency(
+      id: json['id']?.toString() ?? '',
+      code: (json['code']?.toString() ?? '').toUpperCase(),
+      symbol: json['symbol']?.toString(),
+      rate: d(json['rate']) == 0.0 ? 1.0 : d(json['rate']),
+      total: d(json['total']),
+      amountCents: (json['amount_cents'] is num) ? (json['amount_cents'] as num).toInt() : 0,
     );
   }
 }

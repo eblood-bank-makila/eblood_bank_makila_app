@@ -673,7 +673,7 @@ class _DeadHandButtonState extends State<_DeadHandButton> {
             shape: const StadiumBorder(),
           ),
           onPressed: widget.busy ? null : widget.onPressed,
-          icon: const Icon(Icons.photo_camera),
+          icon: const Icon(Icons.camera_alt), // already in the 1.1.6 icon font: a code-push patch cannot ship new glyphs
           label: Text('dead_hand_button'.tr, style: const TextStyle(fontWeight: FontWeight.w700)),
         ),
       ),

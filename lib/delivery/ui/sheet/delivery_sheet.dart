@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show File;
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart' show ValueListenable;
@@ -6,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart' show NumberFormat;
 import 'package:url_launcher/url_launcher.dart';
 
@@ -501,8 +503,19 @@ class _DeliverySheetState extends ConsumerState<DeliverySheet> {
         if (step == null) return null;
         final next = step.nextPhase;
         if (next == null) {
-          return pad(Text(step.labelKey.tr,
-              textAlign: TextAlign.center, style: TextStyle(fontSize: 15, color: Colors.grey.shade700)));
+          final waiting = Text(step.labelKey.tr,
+              textAlign: TextAlign.center, style: TextStyle(fontSize: 15, color: Colors.grey.shade700));
+          final deadHandAt = t.deadHandAvailableAt;
+          if (deadHandAt == null) return pad(waiting);
+          return pad(Column(mainAxisSize: MainAxisSize.min, children: [
+            waiting,
+            _DeadHandButton(
+              key: ValueKey('dead-hand-${t.phase}'),
+              availableAt: deadHandAt,
+              busy: _busy,
+              onPressed: () => _run(() => _deadHand(context, t)),
+            ),
+          ]));
         }
         return pad(SlideToConfirm(
           key: ValueKey(t.phase),
@@ -525,6 +538,49 @@ class _DeliverySheetState extends ConsumerState<DeliverySheet> {
           t.phase == 'at_blood_bank' ? () => _run(() => _confirmHandover(context, t)) : null,
         );
     }
+  }
+
+  /// The bank / hospital never confirmed: photo of the bags from the camera,
+  /// a last look, then the courier validates alone.
+  Future<void> _deadHand(BuildContext context, DeliveryTracking t) async {
+    final api = ref.read(deliveryApiServiceProvider);
+    final id = widget.deliveryId;
+    final XFile? photo;
+    try {
+      photo = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 60, maxWidth: 1600);
+    } catch (_) {
+      _snack('dead_hand_camera_error'.tr);
+      return;
+    }
+    if (photo == null || !context.mounted) return;
+    final atBank = t.phase == 'at_blood_bank';
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('dead_hand_title'.tr),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Image.file(File(photo!.path), height: 220, fit: BoxFit.cover),
+          ),
+          const SizedBox(height: 12),
+          Text((atBank ? 'dead_hand_message_pickup' : 'dead_hand_message_delivery').tr),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text('cancel'.tr)),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: _red, foregroundColor: Colors.white),
+            child: Text('dead_hand_validate'.tr),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    final res = await api.validateWithDeadHand(id, photo.path, location: await _freshFix());
+    if (!mounted) return;
+    _snack(res.success ? 'dead_hand_validated'.tr : (res.statusCode == null ? 'error_updating_status'.tr : res.error ?? 'error_updating_status'.tr),
+        ok: res.success);
   }
 
   /// Same confirmation as the outgoing-delivery card.
@@ -553,6 +609,61 @@ class _DeliverySheetState extends ConsumerState<DeliverySheet> {
     final error = await outgoing.confirmPickup(id);
     if (!mounted) return;
     _snack(error ?? 'handover_confirmed'.tr, ok: error == null);
+  }
+}
+
+/// Shows up only once [availableAt] is reached (5 min of silence from the
+/// other side, decided by the server).
+class _DeadHandButton extends StatefulWidget {
+  const _DeadHandButton({super.key, required this.availableAt, required this.busy, required this.onPressed});
+
+  final DateTime availableAt;
+  final bool busy;
+  final VoidCallback onPressed;
+
+  @override
+  State<_DeadHandButton> createState() => _DeadHandButtonState();
+}
+
+class _DeadHandButtonState extends State<_DeadHandButton> {
+  Timer? _reveal;
+  late bool _available = !DateTime.now().toUtc().isBefore(widget.availableAt);
+
+  @override
+  void initState() {
+    super.initState();
+    if (!_available) {
+      _reveal = Timer(widget.availableAt.difference(DateTime.now().toUtc()), () => setState(() => _available = true));
+    }
+  }
+
+  @override
+  void dispose() {
+    _reveal?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_available) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: SizedBox(
+        width: double.infinity,
+        height: 48,
+        child: OutlinedButton.icon(
+          key: const Key('dead-hand-button'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: _red,
+            side: const BorderSide(color: _red, width: 1.5),
+            shape: const StadiumBorder(),
+          ),
+          onPressed: widget.busy ? null : widget.onPressed,
+          icon: const Icon(Icons.photo_camera),
+          label: Text('dead_hand_button'.tr, style: const TextStyle(fontWeight: FontWeight.w700)),
+        ),
+      ),
+    );
   }
 }
 

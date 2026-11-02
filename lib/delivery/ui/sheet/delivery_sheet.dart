@@ -612,8 +612,8 @@ class _DeliverySheetState extends ConsumerState<DeliverySheet> {
   }
 }
 
-/// Shows up only once [availableAt] is reached (5 min of silence from the
-/// other side, decided by the server).
+/// Counts down from the arrival (5 min, decided by the server), then turns
+/// into the dead-hand button.
 class _DeadHandButton extends StatefulWidget {
   const _DeadHandButton({super.key, required this.availableAt, required this.busy, required this.onPressed});
 
@@ -626,26 +626,40 @@ class _DeadHandButton extends StatefulWidget {
 }
 
 class _DeadHandButtonState extends State<_DeadHandButton> {
-  Timer? _reveal;
-  late bool _available = !DateTime.now().toUtc().isBefore(widget.availableAt);
+  Timer? _tick;
+  late Duration _left = widget.availableAt.difference(DateTime.now().toUtc());
 
   @override
   void initState() {
     super.initState();
-    if (!_available) {
-      _reveal = Timer(widget.availableAt.difference(DateTime.now().toUtc()), () => setState(() => _available = true));
+    if (_left > Duration.zero) {
+      // Counts timer ticks rather than re-reading the clock, so a skewed phone clock only shifts the start.
+      _tick = Timer.periodic(const Duration(seconds: 1), (timer) {
+        setState(() => _left -= const Duration(seconds: 1));
+        if (_left <= Duration.zero) timer.cancel();
+      });
     }
   }
 
   @override
   void dispose() {
-    _reveal?.cancel();
+    _tick?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!_available) return const SizedBox.shrink();
+    if (_left > Duration.zero) {
+      final s = _left.inSeconds;
+      final clock = '${s ~/ 60}:${(s % 60).toString().padLeft(2, '0')}';
+      return Padding(
+        padding: const EdgeInsets.only(top: 8),
+        child: Text('dead_hand_countdown'.trParams({'t': clock}),
+            key: const Key('dead-hand-countdown'),
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 13, color: Colors.grey.shade600, fontFeatures: const [FontFeature.tabularFigures()])),
+      );
+    }
     return Padding(
       padding: const EdgeInsets.only(top: 10),
       child: SizedBox(

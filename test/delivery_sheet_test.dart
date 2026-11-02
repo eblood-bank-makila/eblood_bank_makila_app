@@ -233,13 +233,18 @@ void main() {
           DeliverySheetRole.courier);
       expect(find.byKey(const Key('dead-hand-button')), findsNothing);
       expect(find.text('En attente de la remise par la banque…'), findsOneWidget);
+      expect(find.textContaining('Validation par photo possible dans 3:5'), findsOneWidget);
     });
 
     testWidgets('dead hand: the photo button appears once the wait is over', (t) async {
       await _show(t, _tracking('at_hospital', deadHandAt: DateTime.now().toUtc().add(const Duration(seconds: 2))),
           DeliverySheetRole.courier);
       expect(find.byKey(const Key('dead-hand-button')), findsNothing);
-      await t.pump(const Duration(seconds: 3));
+      expect(find.byKey(const Key('dead-hand-countdown')), findsOneWidget);
+      await t.pump(const Duration(seconds: 1));
+      await t.pump(const Duration(seconds: 1));
+      await t.pump(const Duration(seconds: 1));
+      expect(find.byKey(const Key('dead-hand-countdown')), findsNothing);
       expect(find.byKey(const Key('dead-hand-button')), findsOneWidget);
       expect(find.text('Valider moi-même (photo)'), findsOneWidget);
       expect(find.text("En attente de la confirmation de l'hôpital…"), findsOneWidget);

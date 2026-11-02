@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart' show MediaType;
 import '../../../apps/config/api/ApiConfig.dart';
 import '../../../apps/config/api/dio_client.dart' show getAuthToken, mobileApiHeaders;
 import '../model/DeliveryModels.dart';
@@ -387,6 +388,33 @@ class DeliveryApiService {
         } catch (_) {}
         return ApiResponse.error(message, statusCode: response.statusCode);
       }
+    } catch (e) {
+      return ApiResponse.error('Network error: $e');
+    }
+  }
+
+  /// Dead hand: the bank / hospital stayed silent, the courier validates the
+  /// pickup or the delivery alone with a camera photo of the bags.
+  Future<ApiResponse<bool>> validateWithDeadHand(String deliveryId, String photoPath, {LocationInfo? location}) async {
+    try {
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse(ApiConfig.buildUrl('/eblood-connect/delivery-assignment/$deliveryId/dead-hand')),
+      )
+        ..headers.addAll(await _getHeaders()..remove('Content-Type'))
+        ..files.add(await http.MultipartFile.fromPath('proof_photo', photoPath, contentType: MediaType('image', 'jpeg')));
+      if (location != null) {
+        request.fields['lat'] = '${location.lat}';
+        request.fields['lng'] = '${location.lng}';
+      }
+      final response = await http.Response.fromStream(await request.send().timeout(const Duration(seconds: 60)));
+      if (response.statusCode == 200) return ApiResponse.success(true);
+      String message = 'Failed to validate';
+      try {
+        final body = json.decode(response.body);
+        message = (body['message'] ?? body['detail'])?.toString() ?? message;
+      } catch (_) {}
+      return ApiResponse.error(message, statusCode: response.statusCode);
     } catch (e) {
       return ApiResponse.error('Network error: $e');
     }

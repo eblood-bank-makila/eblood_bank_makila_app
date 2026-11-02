@@ -61,6 +61,10 @@ class DeliveryTracking {
 
   final String id, identifier, bloodRequestId, phase, assignmentStatus;
   final DateTime? pickupConfirmedAt;
+
+  /// Courier only: from then on the courier may validate alone with a photo
+  /// (the bank / hospital did not confirm). Null = nothing to validate.
+  final DateTime? deadHandAvailableAt;
   final TrackingPlace bloodBank, hospital;
   final String? courierName, courierPhone;
   final LatLngPoint? courierPosition;
@@ -82,6 +86,7 @@ class DeliveryTracking {
     required this.phase,
     required this.assignmentStatus,
     this.pickupConfirmedAt,
+    this.deadHandAvailableAt,
     required this.bloodBank,
     required this.hospital,
     this.courierName,
@@ -115,6 +120,7 @@ class DeliveryTracking {
       phase: _str(json['delivery_phase']) ?? '',
       assignmentStatus: _str(json['assignment_status']) ?? '',
       pickupConfirmedAt: _time(json['pickup_confirmed_by_seller_at']),
+      deadHandAvailableAt: _time(json['dead_hand_available_at']),
       bloodBank: TrackingPlace.fromJson(json['blood_bank']),
       hospital: TrackingPlace.fromJson(json['hospital']),
       courierName: _str(person['name']),
